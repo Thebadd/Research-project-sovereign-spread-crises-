@@ -41,10 +41,11 @@ local slabels `""Baseline (all, DK)" "Crit1 only (1000bps)" "Crit2 only (HRT)" "
 
 * ─────────────────────────────────────────────────────────────────────────
 * Helper program: run LP for one spec, store in row `srow' of RB matrices
+* Uses a pre-generated binary flag `_smpl' as the estimation sample.
 * ─────────────────────────────────────────────────────────────────────────
 capture program drop run_rob
 program define run_rob
-    args srow treatment ifcond
+    args srow treatment
 
     local controls l1_gdpg l2_gdpg ca debt infl imf vix ust10y
 
@@ -53,12 +54,15 @@ program define run_rob
         local col = `h' + 1
 
         capture xtscc dy_`h' `treatment' `controls' i.year ///
-            if sample==1 `ifcond', fe lag(`lag')
+            if _smpl==1, fe lag(`lag')
 
         if _rc == 0 {
             matrix RB_b[`srow',  `col'] = _b[`treatment']
             matrix RB_lo[`srow', `col'] = _b[`treatment'] - 1.645*_se[`treatment']
             matrix RB_hi[`srow', `col'] = _b[`treatment'] + 1.645*_se[`treatment']
+        }
+        else {
+            di as error "  run_rob: xtscc failed at h=`h', _rc=" _rc
         }
     }
 end
@@ -67,7 +71,8 @@ end
 * R0 — BASELINE (replicates 02_lp_all.do, all crises, DK SE)
 * ══════════════════════════════════════════════════════════════════════════
 di as result _n "R0: Baseline"
-run_rob 1 onset_all ""
+gen _smpl = sample
+run_rob 1 onset_all
 
 * ══════════════════════════════════════════════════════════════════════════
 * R1 — THRESHOLD SENSITIVITY
@@ -80,36 +85,44 @@ gen onset_crit1 = (onset_all==1 & crit1==1)
 gen onset_crit2 = (onset_all==1 & crit2==1)
 
 di as result _n "R1a: Criterion 1 only (1000bps)"
-run_rob 2 onset_crit1 ""
+replace _smpl = sample
+run_rob 2 onset_crit1
 
 di as result _n "R1b: Criterion 2 only (HRT 378bps)"
-run_rob 3 onset_crit2 ""
+replace _smpl = sample
+run_rob 3 onset_crit2
 
 * ══════════════════════════════════════════════════════════════════════════
 * R2 — SAMPLE EXCLUSIONS
 * ══════════════════════════════════════════════════════════════════════════
 
 di as result _n "R2a: Drop Argentina"
-run_rob 4 onset_all " & country!=\"Argentina\""
+replace _smpl = sample & (country != "Argentina")
+run_rob 4 onset_all
 
 di as result _n "R2b: Drop Venezuela"
-run_rob 5 onset_all " & country!=\"Venezuela\""
+replace _smpl = sample & (country != "Venezuela")
+run_rob 5 onset_all
 
 di as result _n "R2c: Drop Argentina + Venezuela"
-run_rob 6 onset_all " & !inlist(country,\"Argentina\",\"Venezuela\")"
+replace _smpl = sample & !inlist(country, "Argentina", "Venezuela")
+run_rob 6 onset_all
 
 di as result _n "R2d: Drop 2020-2021 (COVID)"
-run_rob 7 onset_all " & !inrange(year, 2020, 2021)"
+replace _smpl = sample & !inrange(year, 2020, 2021)
+run_rob 7 onset_all
 
 * ══════════════════════════════════════════════════════════════════════════
 * R3 — DROP GLOBAL CRISIS WINDOWS
 * ══════════════════════════════════════════════════════════════════════════
 
 di as result _n "R3a: Drop GFC window (2008-2009)"
-run_rob 8 onset_all " & !inrange(year, 2008, 2009)"
+replace _smpl = sample & !inrange(year, 2008, 2009)
+run_rob 8 onset_all
 
 di as result _n "R3b: Drop Asian/EM crisis window (1997-1999)"
-run_rob 9 onset_all " & !inrange(year, 1997, 1999)"
+replace _smpl = sample & !inrange(year, 1997, 1999)
+run_rob 9 onset_all
 
 * ══════════════════════════════════════════════════════════════════════════
 * R4 — ALTERNATIVE SE: country clustering (xtreg fe cluster)
@@ -117,14 +130,16 @@ run_rob 9 onset_all " & !inrange(year, 1997, 1999)"
 
 di as result _n "R4: Country-clustered SE (xtreg fe)"
 
+replace _smpl = sample
 forvalues h = 0/4 {
     local col = `h' + 1
-    quietly xtreg dy_`h' onset_all `controls' i.year if sample==1, ///
+    quietly xtreg dy_`h' onset_all `controls' i.year if _smpl==1, ///
         fe vce(cluster cid)
     matrix RB_b[10,  `col'] = _b[onset_all]
     matrix RB_lo[10, `col'] = _b[onset_all] - 1.645*_se[onset_all]
     matrix RB_hi[10, `col'] = _b[onset_all] + 1.645*_se[onset_all]
 }
+drop _smpl
 
 * ══════════════════════════════════════════════════════════════════════════
 * EXPORT ROBUSTNESS SUMMARY TABLE (beta at h=2 across all specs)
