@@ -125,28 +125,30 @@ forvalues h = 0/4 {
 
 * ── Figure 5: Placebo distribution vs. true beta ─────────────────────────
 * One panel per horizon h=0..4
+* Use xline() to mark true beta — simpler and more reliable than pci
 
 local c_main "23 55 94"
 local c_null "180 180 180"
 
 forvalues h = 0/4 {
-
-    quietly summarize b_h`h'
-    local xmin = r(min) - 0.5
-    local xmax = r(max) + 0.5
+    * Extract true beta and emp p-value as plain locals
+    local tb  = PVAL[`h'+1, 1]
+    local ep  = PVAL[`h'+1, 4]
+    local tb_str  = string(`tb',  "%5.3f")
+    local ep_str  = string(`ep',  "%5.3f")
 
     twoway ///
-        (histogram b_h`h', width(0.3) freq                            ///
-            fcolor("`c_null'%50") lcolor("`c_null'") lwidth(vthin))   ///
-        (pci 0 `=scalar(true_b_h`h')' 50 `=scalar(true_b_h`h')',     ///
-            lcolor("`c_main'") lwidth(medthick) lpattern(solid)),     ///
-        xtitle("Placebo beta (pp)", size(small))                       ///
-        ytitle("Frequency", size(small))                               ///
-        title("Placebo Distribution — h=`h'", size(medium))           ///
-        subtitle("Vertical line = true beta. `n_reps' random draws.", ///
-                 size(small))                                          ///
-        note("Emp. p-value = " %4.3f PVAL[`h'+1,4], size(vsmall))    ///
-        legend(off)                                                    ///
+        (histogram b_h`h', width(0.3) freq                             ///
+            fcolor("`c_null'%50") lcolor("`c_null'") lwidth(vthin)),   ///
+        xline(`tb', lcolor("`c_main'") lwidth(medthick) lpattern(solid)) ///
+        xtitle("Placebo beta (pp)", size(small))                        ///
+        ytitle("Frequency", size(small))                                ///
+        title("Placebo Distribution — h=`h'", size(medium))            ///
+        subtitle("Vertical line = true beta. `n_reps' random draws.",  ///
+                 size(small))                                           ///
+        note("True beta = `tb_str'. Emp. p-value = `ep_str'",          ///
+             size(vsmall))                                              ///
+        legend(off)                                                     ///
         graphregion(color(white)) plotregion(color(white))
 
     graph export "$figs/fig5_placebo_h`h'.pdf", replace
@@ -155,16 +157,14 @@ forvalues h = 0/4 {
 di as result _n "Placebo figures saved (fig5_placebo_h0 to h4)."
 
 * ── Export p-value table ──────────────────────────────────────────────────
+* Use svmat to convert PVAL matrix directly — avoids repeated gen in loop
 clear
-set obs 5
+svmat PVAL, names(col)
+rename c1 true_b
+rename c2 p5_null
+rename c3 p50_null
+rename c4 emp_pval
 gen horizon = _n - 1
-forvalues h = 0/4 {
-    gen true_b = PVAL[`h'+1, 1] in `=`h'+1'
-    gen p5_null = PVAL[`h'+1, 2] in `=`h'+1'
-    gen p50_null = PVAL[`h'+1, 3] in `=`h'+1'
-    gen emp_pval = PVAL[`h'+1, 4] in `=`h'+1'
-}
-* Clean up duplicated rows from loop
-keep if !missing(true_b)
+order horizon true_b p5_null p50_null emp_pval
 export delimited "$tabs/placebo_pvalues.csv", replace
 di as result "Placebo p-values saved: $tabs/placebo_pvalues.csv"

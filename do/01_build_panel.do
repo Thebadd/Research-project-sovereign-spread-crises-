@@ -16,48 +16,41 @@ import delimited "$raw/FINAL_DATASET_STATA_V2.csv", ///
     varnames(1) stringcols(2 3 9 10 37 38) clear
 
 * Rename to clean Stata names
-* Note: import delimited lowercases all variable names automatically
-rename country_id       cid_str
-rename country          country
-rename region           region
-rename region_id        rid
-rename year             year
-rename d_it             onset_all         // =1 onset year, ALL crisis types
-rename d_it_x_frontier  onset_frontier
+* import delimited lowercases all headers; only rename where new name differs
+rename country_id        cid_str
+rename region_id         rid
+rename d_it              onset_all
+rename d_it_x_frontier   onset_frontier
 rename excl_continuation continuation
-rename episode_status   ep_status
-rename episode_id       ep_id
-rename crit1_flag       crit1
-rename crit2_flag       crit2
-rename crisis_any       crisis_any
-rename frontier         frontier
-rename log_gdppc        ln_gdppc
-rename gdppc_real_lcu   gdppc_lcu
-rename gdp_real_growth  gdpg
-rename l1_gdp_growth    l1_gdpg
-rename l2_gdp_growth    l2_gdpg
-rename spread_max       spr_max
-rename spread_mean      spr_mean
-rename l_spread_max     l_spr_max
-rename l_spread_mean    l_spr_mean
-rename ca_gdp           ca
-rename debt_gdp         debt
+rename episode_status    ep_status
+rename episode_id        ep_id
+rename crit1_flag        crit1
+rename crit2_flag        crit2
+rename log_gdppc         ln_gdppc
+rename gdppc_real_lcu    gdppc_lcu
+rename gdp_real_growth   gdpg
+rename l1_gdp_growth     l1_gdpg
+rename l2_gdp_growth     l2_gdpg
+rename spread_max        spr_max
+rename spread_mean       spr_mean
+rename l_spread_max      l_spr_max
+rename l_spread_mean     l_spr_mean
+rename ca_gdp            ca
+rename debt_gdp          debt
 rename primary_balance_gdp pb
-rename inflation_cpi    infl
-rename investment_gdp   inv
-rename tot_index        tot
-rename tot_pct          dtot
-rename credit_gdp       credit
-rename vix              vix
-rename fed_funds        fedfunds
-rename treasury_10y     ust10y
-rename imf_program      imf
-rename onset_month_num  onset_month
-rename onset_half       onset_h2         // =1 if onset in H2 (July-Dec)
-rename data_note        data_note
-rename fdi_gdp          fdi
-rename govexp_gdp       govexp
-rename claims_govt_gdp  claims_govt
+rename inflation_cpi     infl
+rename investment_gdp    inv
+rename tot_index         tot
+rename tot_pct           dtot
+rename credit_gdp        credit
+rename fed_funds         fedfunds
+rename treasury_10y      ust10y
+rename imf_program       imf
+rename onset_month_num   onset_month
+rename onset_half        onset_h2
+rename fdi_gdp           fdi
+rename govexp_gdp        govexp
+rename claims_govt_gdp   claims_govt
 
 * Destring numeric variables
 destring cid_str rid year onset_all onset_frontier continuation ///
@@ -81,14 +74,17 @@ sort cid year
 * ══════════════════════════════════════════════════════════════════════════
 
 preserve
+    * Use column letters (A, C, H) to avoid header-naming ambiguity.
+    * Row 2 = headers, Row 3+ = data → cellrange(A3) skips both note and headers.
+    * Columns: A=Country, C=Onset Year, H=Classification
     import excel "$raw/EM_Spread_Crisis_DB_FINAL.xlsx", ///
-        sheet("Episode_Summary") cellrange(A3) firstrow clear
+        sheet("Episode_Summary") cellrange(A3) clear
 
-    * Keep relevant columns and clean
-    keep Country OnsetYear Classification
-    rename Country     country
-    rename OnsetYear   year
-    rename Classification classification
+    keep A C H
+    rename A country
+    rename C year
+    rename H classification
+    destring year, replace force
 
     * Drop legend rows at bottom of sheet
     drop if missing(country) | missing(year) | missing(classification)

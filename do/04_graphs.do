@@ -51,21 +51,10 @@ di as result "Figure 1 saved."
 * FIGURE 2: NON-DEFAULT vs. DEFAULT-LINKED — OVERLAY
 * ════════════════════════════════════════════════════════════════════════════
 
-use "$clean/irf_joint.dta", clear
+* Load both IRF series into one dataset for overlay plot
+use "$clean/irf_nd.dta", clear
+append using "$clean/irf_def.dta"
 keep if horizon >= 0
-
-* Split into two sub-datasets for twoway
-preserve
-    keep if series == "nd"
-    tempfile nd_data
-    save `nd_data'
-restore
-
-keep if series == "def"
-tempfile def_data
-save `def_data'
-
-use `nd_data', clear
 
 twoway ///
     (rarea lo90 hi90 horizon if series=="nd",                              ///
@@ -73,7 +62,6 @@ twoway ///
     (connected b horizon if series=="nd",                                   ///
         lcolor("`c_nd'") lwidth(medthick)                                   ///
         mcolor("`c_nd'") msize(medium) msymbol(circle))                    ///
-    using `def_data' :                                                      ///
     (rarea lo90 hi90 horizon if series=="def",                             ///
         color("`c_def'%20") lwidth(none))                                  ///
     (connected b horizon if series=="def",                                  ///

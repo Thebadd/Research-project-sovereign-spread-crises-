@@ -188,15 +188,27 @@ replace spec_label = "Country-clustered SE"      in 10
 * Reverse order for reading top-to-bottom in plot
 gen ypos = 11 - spec_num
 
+* Define value label for y-axis ticks
+label define spec_lbl                    ///
+    1  "Country-clustered SE"            ///
+    2  "Excl. 1997-1999 (AFC)"           ///
+    3  "Excl. 2008-2009 (GFC)"           ///
+    4  "Excl. 2020-2021 (COVID)"         ///
+    5  "Drop ARG + VEN"                  ///
+    6  "Drop Venezuela"                  ///
+    7  "Drop Argentina"                  ///
+    8  "Criterion 2 only (HRT)"          ///
+    9  "Criterion 1 only (1000bps)"      ///
+    10 "Baseline (DK SE)"
+label values ypos spec_lbl
+
 twoway ///
     (rcap lo_h2 hi_h2 ypos,                                                  ///
         horizontal lcolor("23 55 94") lwidth(medthick))                       ///
     (scatter ypos b_h2,                                                       ///
         msymbol(circle) mcolor("23 55 94") msize(medium)),                    ///
-    yline(0, lpattern(dash) lcolor(gray) lwidth(thin))                        ///
-    xline(0, lpattern(solid) lcolor(gs10) lwidth(vthin))                      ///
-    ylabel(1(1)10, valuelabel angle(0) labsize(small)                         ///
-           val(spec_label) noticks nogrid)                                     ///
+    xline(0, lpattern(dash) lcolor(gray) lwidth(thin))                        ///
+    ylabel(1(1)10, valuelabel angle(0) labsize(small) noticks nogrid)         ///
     xlabel(, format(%4.1f) labsize(small))                                    ///
     xtitle("beta at h=2 (pp)", size(small))                                   ///
     ytitle("")                                                                 ///
