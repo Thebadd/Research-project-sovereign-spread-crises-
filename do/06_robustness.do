@@ -24,7 +24,7 @@
 
 use "$clean/panel_lp.dta", clear
 
-local controls l1_gdpg l2_gdpg ca debt infl l_spr_mean imf vix ust10y
+local controls l1_gdpg l2_gdpg ca debt infl imf vix ust10y
 local horizons "0 1 2 3 4"
 
 * Master storage: rows = specs, cols = horizons 0..4
@@ -46,7 +46,7 @@ capture program drop run_rob
 program define run_rob
     args srow treatment ifcond
 
-    local controls l1_gdpg l2_gdpg ca debt infl l_spr_mean imf vix ust10y
+    local controls l1_gdpg l2_gdpg ca debt infl imf vix ust10y
 
     forvalues h = 0/4 {
         local lag = max(1, `h'+1)

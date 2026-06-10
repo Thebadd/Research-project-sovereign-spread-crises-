@@ -17,7 +17,7 @@
 
 use "$clean/panel_lp.dta", clear
 
-local controls l1_gdpg l2_gdpg ca debt infl l_spr_mean imf vix ust10y
+local controls l1_gdpg l2_gdpg ca debt infl imf vix ust10y
 
 * ══════════════════════════════════════════════════════════════════════════
 * SPEC A-1: NON-DEFAULT EPISODES ONLY

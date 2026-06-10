@@ -15,7 +15,7 @@
 use "$clean/panel_lp.dta", clear
 
 * ── Controls (pre-determined at t, all lagged relative to outcome) ────────
-local controls l1_gdpg l2_gdpg ca debt infl l_spr_mean imf vix ust10y
+local controls l1_gdpg l2_gdpg ca debt infl imf vix ust10y
 
 * ── Storage matrices (rows: h = -2, -1, 0, 1, 2, 3, 4) ──────────────────
 local nhor = 7
