@@ -264,7 +264,7 @@ di as result "McFadden Pseudo-R2: " e(r2_p)
 
 quietly esttab fs_act2 using "$tabs/ipw_act2_first_stage.csv", ///
     se star(* 0.10 ** 0.05 *** 0.01) ///
-    title("Act 2 First Stage: Pr(Default-Linked | Crisis Onset) — Parsimonious") replace
+    title("Act 2 First Stage: Pr(Default-Linked | Crisis Onset) - Parsimonious") replace
 
 * Predict propensity scores (among crisis onsets only)
 predict pscore2 if onset_all == 1, pr
