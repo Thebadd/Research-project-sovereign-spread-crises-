@@ -187,7 +187,7 @@ twoway ///
     subtitle("52 EM economies, 1994-2025", size(small)) ///
     legend(order(1 "With IMF program (N=`n_imf')" ///
                  2 "Without IMF program (N=`n_no_imf')") ///
-           ring(0) pos(3) size(small)) ///
+           ring(1) pos(6) cols(2) size(small)) ///
     note("Point estimates only. Driscoll-Kraay SE, lag = h+1. Country + year FE." ///
          "p-values (H0: IMF = No-IMF): h0=`p0' h1=`p1' h2=`p2' h3=`p3' h4=`p4'", ///
          size(vsmall)) ///
