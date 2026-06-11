@@ -288,8 +288,7 @@ foreach ch of local channels {
         xtitle("Years after onset", size(vsmall)) ///
         ytitle("Cumulative change (pp)", size(vsmall)) ///
         title(`tlab', size(small) color(navy)) ///
-        legend(order(3 "Non-default" 4 "Default-linked") ///
-               ring(1) pos(6) cols(2) size(vsmall)) ///
+        legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
         name(ols_`i', replace)
 
@@ -300,8 +299,8 @@ graph combine ols_1 ols_2 ols_3 ols_4 ols_5 ols_6, ///
     cols(3) rows(2) ///
     title("Transmission Channels by Resolution Type — OLS", ///
           size(medlarge) color(navy)) ///
-    note("90% CI. DK SE. Country & year FE. Non-default: N=39. Default-linked: N=22.", ///
-         size(vsmall)) ///
+    note("— Non-default (N=39)     ·· Default-linked (N=22)     90% CI. DK SE. Country & year FE.", ///
+         size(small)) ///
     graphregion(color(white)) xsize(10) ysize(7)
 
 graph export "$figs/fig12a_channels_ols.pdf", replace
@@ -337,8 +336,7 @@ foreach ch of local channels {
         xtitle("Years after onset", size(vsmall)) ///
         ytitle("Cumulative change (pp)", size(vsmall)) ///
         title(`tlab', size(small) color(navy)) ///
-        legend(order(3 "Non-default (IPW)" 4 "Default-linked (IPW)") ///
-               ring(1) pos(6) cols(2) size(vsmall)) ///
+        legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
         name(ipw_`i', replace)
 
@@ -349,8 +347,8 @@ graph combine ipw_1 ipw_2 ipw_3 ipw_4 ipw_5 ipw_6, ///
     cols(3) rows(2) ///
     title("Transmission Channels by Resolution Type — IPW", ///
           size(medlarge) color(navy)) ///
-    note("90% CI. Clustered SE. Country & year FE. IPW: probit(def | crisis) on debt, CA.", ///
-         size(vsmall)) ///
+    note("— Non-default (N=39)     ·· Default-linked (N=22)     90% CI. Clustered SE. IPW: probit(def | crisis) on debt, CA.", ///
+         size(small)) ///
     graphregion(color(white)) xsize(10) ysize(7)
 
 graph export "$figs/fig12b_channels_ipw.pdf", replace
