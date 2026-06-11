@@ -40,3 +40,4 @@ do "$do/07_placebo.do"
 do "$do/08_ipw_lp.do"
 * do "$do/09_lp_imf.do"   // removed: IMF selection unpredictable from observables
 * do "$do/10_heterogeneity.do"  // removed: frontier variable poorly coded, duration data incomplete
+do "$do/11_channels.do"
