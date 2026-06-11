@@ -138,9 +138,9 @@ forvalues h = 0/4 {
     local lag = max(1, `h'+1)
     local row = `h' + 1
 
-    * Unweighted (OLS with FE, cluster SE — comparable baseline)
-    quietly xtreg dy_`h' onset_all `controls' i.year ///
-        if sample==1 & !missing(ipw), fe vce(cluster cid)
+    * Unweighted (areg absorbs country FE, cluster SE — comparable baseline)
+    quietly areg dy_`h' onset_all `controls' i.year ///
+        if sample==1 & !missing(ipw), absorb(cid) vce(cluster cid)
     matrix b_ols[`row',1]    = _b[onset_all]
     matrix lo90_ols[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
     matrix hi90_ols[`row',1] = _b[onset_all] + 1.645*_se[onset_all]
@@ -149,9 +149,9 @@ forvalues h = 0/4 {
     local b_u = _b[onset_all]
     local se_u = _se[onset_all]
 
-    * IPW-weighted (aw= used because xtreg fe does not allow pw varying within cid)
-    quietly xtreg dy_`h' onset_all `controls' i.year ///
-        [aw=ipw] if sample==1 & !missing(ipw), fe vce(cluster cid)
+    * IPW-weighted (areg used because xtreg fe requires weights constant within cid)
+    quietly areg dy_`h' onset_all `controls' i.year ///
+        [aw=ipw] if sample==1 & !missing(ipw), absorb(cid) vce(cluster cid)
     matrix b_ipw[`row',1]    = _b[onset_all]
     matrix lo90_ipw[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
     matrix hi90_ipw[`row',1] = _b[onset_all] + 1.645*_se[onset_all]
