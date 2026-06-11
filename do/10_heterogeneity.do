@@ -70,21 +70,10 @@ if `n_fr' < 15 | `n_em' < 15 {
     di as result _n "  Countries coded frontier==0 at onset:"
     tab country if onset_all == 1 & frontier == 0 & sample == 1
 
-    * Create empty IRF placeholders so downstream append does not break
-    foreach grp in fr em {
-        preserve
-            clear
-            set obs 5
-            gen horizon = _n - 1
-            foreach v in b lo90 hi90 lo95 hi95 {
-                gen `v' = .
-            }
-            gen series = "`grp'"
-            save "$clean/irf_`grp'.dta", replace
-        restore
-    }
+    scalar block_a_skip = 1
 }
 else {
+    scalar block_a_skip = 0
 
 * ── Spec A-1: Frontier markets ───────────────────────────────────────────
 
@@ -316,40 +305,46 @@ local c_em   "180 60 40"    // brick  — established EM
 local c_sh   "23 55 94"     // navy   — short
 local c_lg   "60 140 60"    // green  — long
 
-* ── Figure A: Frontier vs. Established EM ────────────────────────────────
+* ── Figure A: Frontier vs. Established EM (only if Block A ran) ─────────
 
-use "$clean/irf_frontier.dta", clear
-append using "$clean/irf_em.dta"
+if block_a_skip == 0 {
 
-twoway ///
-    (rarea lo95 hi95 horizon if series=="frontier", ///
-        color("`c_fr'%15") lwidth(none)) ///
-    (rarea lo95 hi95 horizon if series=="em", ///
-        color("`c_em'%15") lwidth(none)) ///
-    (rarea lo90 hi90 horizon if series=="frontier", ///
-        color("`c_fr'%25") lwidth(none)) ///
-    (rarea lo90 hi90 horizon if series=="em", ///
-        color("`c_em'%25") lwidth(none)) ///
-    (connected b horizon if series=="frontier", ///
-        lcolor("`c_fr'") mcolor("`c_fr'") msymbol(circle) ///
-        lwidth(medthick) msize(medium)) ///
-    (connected b horizon if series=="em", ///
-        lcolor("`c_em'") mcolor("`c_em'") msymbol(square) ///
-        lwidth(medthick) msize(medium) lpattern(dash)) ///
-    , ///
-    yline(0, lcolor(gs8) lpattern(dash) lwidth(thin)) ///
-    xlabel(0(1)4, labsize(medlarge)) ///
-    ylabel(, format(%5.1f) labsize(medlarge)) ///
-    xtitle("Years after onset", size(medlarge)) ///
-    ytitle("Cumulative % change in real GDP per capita", size(medlarge)) ///
-    title("Output Cost by Market Classification", size(large) color(navy)) ///
-    subtitle("90% and 95% CI | DK SE | Country & year FE", size(small) color(gs6)) ///
-    legend(order(5 "Frontier markets" 6 "Established EM") ///
-           ring(1) pos(6) cols(2) size(medsmall)) ///
-    graphregion(color(white)) plotregion(color(white))
+    use "$clean/irf_frontier.dta", clear
+    append using "$clean/irf_em.dta"
 
-graph export "$figs/fig10a_frontier_vs_em.pdf", replace
-di as result "Figure saved: fig10a_frontier_vs_em.pdf"
+    twoway ///
+        (rarea lo95 hi95 horizon if series=="frontier", ///
+            color("`c_fr'%15") lwidth(none)) ///
+        (rarea lo95 hi95 horizon if series=="em", ///
+            color("`c_em'%15") lwidth(none)) ///
+        (rarea lo90 hi90 horizon if series=="frontier", ///
+            color("`c_fr'%25") lwidth(none)) ///
+        (rarea lo90 hi90 horizon if series=="em", ///
+            color("`c_em'%25") lwidth(none)) ///
+        (connected b horizon if series=="frontier", ///
+            lcolor("`c_fr'") mcolor("`c_fr'") msymbol(circle) ///
+            lwidth(medthick) msize(medium)) ///
+        (connected b horizon if series=="em", ///
+            lcolor("`c_em'") mcolor("`c_em'") msymbol(square) ///
+            lwidth(medthick) msize(medium) lpattern(dash)) ///
+        , ///
+        yline(0, lcolor(gs8) lpattern(dash) lwidth(thin)) ///
+        xlabel(0(1)4, labsize(medlarge)) ///
+        ylabel(, format(%5.1f) labsize(medlarge)) ///
+        xtitle("Years after onset", size(medlarge)) ///
+        ytitle("Cumulative % change in real GDP per capita", size(medlarge)) ///
+        title("Output Cost by Market Classification", size(large) color(navy)) ///
+        subtitle("90% and 95% CI | DK SE | Country & year FE", size(small) color(gs6)) ///
+        legend(order(5 "Frontier markets" 6 "Established EM") ///
+               ring(1) pos(6) cols(2) size(medsmall)) ///
+        graphregion(color(white)) plotregion(color(white))
+
+    graph export "$figs/fig10a_frontier_vs_em.pdf", replace
+    di as result "Figure saved: fig10a_frontier_vs_em.pdf"
+}
+else {
+    di as result "Figure A skipped (Block A not estimated — frontier split too unbalanced)."
+}
 
 * ── Figure B: Short vs. Long Episodes ───────────────────────────────────
 
