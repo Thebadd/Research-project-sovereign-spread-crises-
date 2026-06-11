@@ -384,15 +384,20 @@ di as result "Figure saved: fig10b_short_vs_long.pdf"
 
 * ── Export p-value tables ─────────────────────────────────────────────────
 
-preserve
-    clear
-    svmat pval_fr
-    rename pval_fr1 p_diff
-    gen horizon = _n - 1
-    order horizon p_diff
-    export delimited "$tabs/pval_frontier_vs_em.csv", replace
-    di as result "P-values saved: pval_frontier_vs_em.csv"
-restore
+if block_a_skip == 0 {
+    preserve
+        clear
+        svmat pval_fr
+        rename pval_fr1 p_diff
+        gen horizon = _n - 1
+        order horizon p_diff
+        export delimited "$tabs/pval_frontier_vs_em.csv", replace
+        di as result "P-values saved: pval_frontier_vs_em.csv"
+    restore
+}
+else {
+    di as result "P-value table for Block A skipped (Block A not estimated)."
+}
 
 preserve
     clear
