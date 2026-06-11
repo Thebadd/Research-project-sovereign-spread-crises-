@@ -95,10 +95,10 @@ di as result "IPW2 weights: min=" r(min) "  max=" r(max) "  mean=" r(mean)
 local channels   credit claims_govt inv govexp pb fdi
 
 * Controls per channel (same as 11_channels.do)
-local ctrl_credit      l1_gdpg l2_gdpg debt infl vix ust10y
+local ctrl_credit      l1_gdpg l2_gdpg debt infl ca vix ust10y
 local ctrl_claims_govt l1_gdpg debt pb vix ust10y
 local ctrl_inv         l1_gdpg l2_gdpg debt ca L.credit vix ust10y
-local ctrl_govexp      l1_gdpg debt ca pb vix ust10y
+local ctrl_govexp      l1_gdpg debt ca infl vix ust10y
 local ctrl_pb          l1_gdpg l2_gdpg debt ca vix ust10y
 local ctrl_fdi         l1_gdpg debt ca vix ust10y
 

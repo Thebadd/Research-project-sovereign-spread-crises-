@@ -72,10 +72,63 @@ foreach var in credit claims_govt inv govexp pb fdi {
 * 3. LP ESTIMATION BY CHANNEL
 * ══════════════════════════════════════════════════════════════════════════
 
-* Storage: one 5×5 matrix per channel (rows=horizons, cols=b se lo90 hi90 lo95 hi95)
-* We store b, se, lo90, hi90, lo95, hi95 in separate 5×1 matrices
+/*
+  CONTROL VARIABLE RATIONALE BY CHANNEL:
+  ----------------------------------------
+  Credit/GDP:
+    l1_gdpg l2_gdpg — demand for credit linked to economic cycle
+    debt            — sovereign risk spills into bank funding costs
+    infl            — affects real cost of credit
+    ca              — ADDED: current account deficit means credit depends on
+                      external financing; capital outflows contract credit
+    vix ust10y      — global financial conditions
+
+  Bank claims on govt/GDP:
+    l1_gdpg         — macro conditions affect banks' portfolio decisions
+    debt            — sovereign borrowing stock determines bond supply
+    pb              — primary balance: captures flow of new issuance banks must absorb
+    vix ust10y      — global risk appetite (affects carry trade incentive)
+    NOTE: ca excluded — sovereign-bank nexus is primarily a domestic balance
+          sheet channel, less driven by external financing conditions
+
+  Investment/GDP:
+    l1_gdpg l2_gdpg — investment accelerator (two lags capture persistence)
+    debt            — fiscal crowding-out of private investment
+    ca              — external financing constraint (investment needs foreign capital)
+    L.credit        — bank credit availability (key financing source)
+    vix ust10y      — cost of capital and global conditions
+
+  Govt expenditure/GDP:
+    l1_gdpg         — automatic stabilizers link growth to revenues/spending
+    debt            — fiscal space constraint
+    ca              — external financing constraint on fiscal policy
+    infl            — REPLACES pb: inflation affects nominal spending, avoids
+                      mechanical relationship (pb = revenue - expenditure,
+                      govexp is a direct component of pb)
+    vix ust10y      — global conditions affecting borrowing costs
+
+  Primary balance/GDP:
+    l1_gdpg l2_gdpg — cyclical component (automatic stabilizers), Bohn rule
+    debt            — Bohn (1998) fiscal reaction: pb responds to debt level
+    ca              — external constraint forces fiscal adjustment (key for EM)
+    vix ust10y      — external borrowing costs affect fiscal stance
+
+  FDI/GDP:
+    l1_gdpg         — market size / growth attractiveness for foreign investors
+    debt            — sovereign risk signal for foreign investors
+    ca              — external position signals overall external sustainability
+    vix ust10y      — global risk appetite (dominant driver of EM capital flows)
+*/
 
 local channels credit claims_govt inv govexp pb fdi
+
+* Controls per channel — channel-specific, not identical across all
+local ctrl_credit      l1_gdpg l2_gdpg debt infl ca vix ust10y
+local ctrl_claims_govt l1_gdpg debt pb vix ust10y
+local ctrl_inv         l1_gdpg l2_gdpg debt ca L.credit vix ust10y
+local ctrl_govexp      l1_gdpg debt ca infl vix ust10y
+local ctrl_pb          l1_gdpg l2_gdpg debt ca vix ust10y
+local ctrl_fdi         l1_gdpg debt ca vix ust10y
 
 foreach ch of local channels {
     foreach m in b lo90 hi90 lo95 hi95 {
@@ -83,9 +136,32 @@ foreach ch of local channels {
     }
 }
 
+* ══════════════════════════════════════════════════════════════════════════
+* 3b. DIAGNOSTIC: FULL REGRESSION TABLE AT h=0 PER CHANNEL
+*     Shows coefficient and significance of each control variable.
+*     Run without capture so the full xtscc table is displayed.
+*     Purpose: verify that controls have the expected signs and are
+*     relevant — if a control is systematically insignificant across
+*     channels, it may not belong in that specification.
+* ══════════════════════════════════════════════════════════════════════════
+
+di as result _n "========================================================"
+di as result "DIAGNOSTIC: FULL REGRESSION TABLES AT h=0 (lag=1)"
+di as result "========================================================"
+
+foreach ch of local channels {
+    local ctrl `ctrl_`ch''
+    di as result _n "--- CHANNEL: `ch' ---"
+    di as result "Controls: `ctrl'"
+    xtscc ch_`ch'_0 onset_all `ctrl' i.year if sample==1, fe lag(1)
+}
+
+di as result _n "========================================================"
+di as result "END DIAGNOSTIC"
+di as result "========================================================"
+
 * ── Channel 1: Credit ────────────────────────────────────────────────────
 di as result _n "=== CHANNEL 1: PRIVATE CREDIT / GDP ==="
-local ctrl_credit l1_gdpg l2_gdpg debt infl vix ust10y
 
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
@@ -105,11 +181,10 @@ forvalues h = 0/4 {
 
 * ── Channel 2: Sovereign-bank nexus ──────────────────────────────────────
 di as result _n "=== CHANNEL 2: BANK CLAIMS ON GOVT / GDP ==="
-local ctrl_claims l1_gdpg debt pb vix ust10y
 
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
-    capture xtscc ch_claims_govt_`h' onset_all `ctrl_claims' i.year ///
+    capture xtscc ch_claims_govt_`h' onset_all `ctrl_claims_govt' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
         matrix b_claims_govt[`h'+1,1]    = _b[onset_all]
@@ -125,7 +200,6 @@ forvalues h = 0/4 {
 
 * ── Channel 3: Investment ────────────────────────────────────────────────
 di as result _n "=== CHANNEL 3: GROSS INVESTMENT / GDP ==="
-local ctrl_inv l1_gdpg l2_gdpg debt ca L.credit vix ust10y
 
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
@@ -145,7 +219,6 @@ forvalues h = 0/4 {
 
 * ── Channel 4: Government expenditure ────────────────────────────────────
 di as result _n "=== CHANNEL 4: GOVERNMENT EXPENDITURE / GDP ==="
-local ctrl_govexp l1_gdpg debt ca pb vix ust10y
 
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
@@ -165,7 +238,6 @@ forvalues h = 0/4 {
 
 * ── Channel 5: Primary balance ───────────────────────────────────────────
 di as result _n "=== CHANNEL 5: PRIMARY BALANCE / GDP ==="
-local ctrl_pb l1_gdpg l2_gdpg debt ca vix ust10y
 
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
@@ -185,7 +257,6 @@ forvalues h = 0/4 {
 
 * ── Channel 6: FDI ───────────────────────────────────────────────────────
 di as result _n "=== CHANNEL 6: FDI / GDP ==="
-local ctrl_fdi l1_gdpg debt ca vix ust10y
 
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
