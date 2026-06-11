@@ -270,6 +270,16 @@ foreach ch of local channels {
     use "$clean/irf_nd_ols_`ch'.dta",  clear
     append using "$clean/irf_def_ols_`ch'.dta"
 
+    * Show legend only in last panel (bottom-right)
+    if `i' == 6 {
+        local legopt legend(order(3 "Non-default" 4 "Default-linked") ///
+                     ring(0) pos(7) cols(1) size(vsmall) ///
+                     region(lcolor(gs12)))
+    }
+    else {
+        local legopt legend(off)
+    }
+
     twoway ///
         (rarea lo90 hi90 horizon if group=="nd", ///
             color("`c_nd'%20") lwidth(none)) ///
@@ -288,7 +298,7 @@ foreach ch of local channels {
         xtitle("Years after onset", size(vsmall)) ///
         ytitle("Cumulative change (pp)", size(vsmall)) ///
         title(`tlab', size(small) color(navy)) ///
-        legend(off) ///
+        `legopt' ///
         graphregion(color(white)) plotregion(color(white)) ///
         name(ols_`i', replace)
 
@@ -299,8 +309,8 @@ graph combine ols_1 ols_2 ols_3 ols_4 ols_5 ols_6, ///
     cols(3) rows(2) ///
     title("Transmission Channels by Resolution Type — OLS", ///
           size(medlarge) color(navy)) ///
-    note("— Non-default (N=39)     ·· Default-linked (N=22)     90% CI. DK SE. Country & year FE.", ///
-         size(small)) ///
+    note("90% CI. DK SE. Country & year FE. Non-default: N=39. Default-linked: N=22.", ///
+         size(vsmall)) ///
     graphregion(color(white)) xsize(10) ysize(7)
 
 graph export "$figs/fig12a_channels_ols.pdf", replace
@@ -318,6 +328,16 @@ foreach ch of local channels {
     use "$clean/irf_nd_ipw_`ch'.dta",  clear
     append using "$clean/irf_def_ipw_`ch'.dta"
 
+    * Show legend only in last panel (bottom-right)
+    if `i' == 6 {
+        local legopt legend(order(3 "Non-default (IPW)" 4 "Default-linked (IPW)") ///
+                     ring(0) pos(7) cols(1) size(vsmall) ///
+                     region(lcolor(gs12)))
+    }
+    else {
+        local legopt legend(off)
+    }
+
     twoway ///
         (rarea lo90 hi90 horizon if group=="nd", ///
             color("`c_nd'%20") lwidth(none)) ///
@@ -336,7 +356,7 @@ foreach ch of local channels {
         xtitle("Years after onset", size(vsmall)) ///
         ytitle("Cumulative change (pp)", size(vsmall)) ///
         title(`tlab', size(small) color(navy)) ///
-        legend(off) ///
+        `legopt' ///
         graphregion(color(white)) plotregion(color(white)) ///
         name(ipw_`i', replace)
 
@@ -347,8 +367,8 @@ graph combine ipw_1 ipw_2 ipw_3 ipw_4 ipw_5 ipw_6, ///
     cols(3) rows(2) ///
     title("Transmission Channels by Resolution Type — IPW", ///
           size(medlarge) color(navy)) ///
-    note("— Non-default (N=39)     ·· Default-linked (N=22)     90% CI. Clustered SE. IPW: probit(def | crisis) on debt, CA.", ///
-         size(small)) ///
+    note("90% CI. Clustered SE. Country & year FE. IPW: probit(def | crisis) on debt, CA.", ///
+         size(vsmall)) ///
     graphregion(color(white)) xsize(10) ysize(7)
 
 graph export "$figs/fig12b_channels_ipw.pdf", replace
