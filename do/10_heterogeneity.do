@@ -40,36 +40,79 @@ label var onset_frontier "Onset dummy — frontier market episodes"
 
 di as result _n "=== BLOCK A: EPISODE COUNTS BY MARKET TYPE ==="
 count if onset_frontier == 1 & sample == 1
-di as result "  Frontier onsets in estimation sample: " r(N)
+local n_fr = r(N)
+di as result "  Frontier onsets in estimation sample: " `n_fr'
 count if onset_em == 1 & sample == 1
-di as result "  Established EM onsets in estimation sample: " r(N)
+local n_em = r(N)
+di as result "  Established EM onsets in estimation sample: " `n_em'
+
+* Diagnostic: distribution of frontier flag across all countries
+di as result _n "  Frontier flag distribution (all years, estimation sample):"
+tab frontier if sample == 1, miss
+
+/*
+  Guard: if either group has fewer than 15 onset episodes, the LP subgroup
+  is not credibly estimable (too few treated units for DK SE with country FE).
+  Skip Block A regressions and issue a warning.
+*/
+if `n_fr' < 15 | `n_em' < 15 {
+    di as error _n "WARNING: Block A skipped."
+    di as error "  Frontier onsets = `n_fr', Established EM onsets = `n_em'."
+    di as error "  At least one group has fewer than 15 onset episodes."
+    di as error "  Check the 'frontier' variable in panel_lp.dta — the split"
+    di as error "  may be inverted or the variable may not reflect the intended"
+    di as error "  classification. Run: tab country frontier if onset_all==1"
+    di as error "  to inspect which countries are coded as frontier."
+
+    * Show which countries are coded as frontier at onset
+    di as result _n "  Countries coded frontier==1 at onset:"
+    tab country if onset_all == 1 & frontier == 1 & sample == 1
+    di as result _n "  Countries coded frontier==0 at onset:"
+    tab country if onset_all == 1 & frontier == 0 & sample == 1
+
+    * Create empty IRF placeholders so downstream append does not break
+    foreach grp in fr em {
+        preserve
+            clear
+            set obs 5
+            gen horizon = _n - 1
+            foreach v in b lo90 hi90 lo95 hi95 {
+                gen `v' = .
+            }
+            gen series = "`grp'"
+            save "$clean/irf_`grp'.dta", replace
+        restore
+    }
+}
+else {
 
 * ── Spec A-1: Frontier markets ───────────────────────────────────────────
 
 di as result _n "--- FRONTIER MARKETS ---"
 
-foreach m in b lo90 hi90 lo95 hi95 { matrix `m'_fr = J(5, 1, .) }
+foreach m in b lo90 hi90 lo95 hi95 {
+    matrix `m'_fr = J(5, 1, .)
+}
 
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
-    capture xtscc dy_`h' onset_frontier `controls' i.year if sample==1, fe lag(`lag')
-    if _rc == 0 {
-        matrix b_fr[`h'+1,1]    = _b[onset_frontier]
-        matrix lo90_fr[`h'+1,1] = _b[onset_frontier] - 1.645*_se[onset_frontier]
-        matrix hi90_fr[`h'+1,1] = _b[onset_frontier] + 1.645*_se[onset_frontier]
-        matrix lo95_fr[`h'+1,1] = _b[onset_frontier] - 1.960*_se[onset_frontier]
-        matrix hi95_fr[`h'+1,1] = _b[onset_frontier] + 1.960*_se[onset_frontier]
-        di "h=" `h' ": beta_frontier=" %6.3f _b[onset_frontier] ///
-           "  SE=" %6.3f _se[onset_frontier] "  N=" e(N)
-    }
-    else di as error "h=" `h' ": xtscc failed (rc=" _rc ") — likely too few frontier obs"
+    xtscc dy_`h' onset_frontier `controls' i.year if sample==1, fe lag(`lag')
+    matrix b_fr[`h'+1,1]    = _b[onset_frontier]
+    matrix lo90_fr[`h'+1,1] = _b[onset_frontier] - 1.645*_se[onset_frontier]
+    matrix hi90_fr[`h'+1,1] = _b[onset_frontier] + 1.645*_se[onset_frontier]
+    matrix lo95_fr[`h'+1,1] = _b[onset_frontier] - 1.960*_se[onset_frontier]
+    matrix hi95_fr[`h'+1,1] = _b[onset_frontier] + 1.960*_se[onset_frontier]
+    di "h=" `h' ": beta_frontier=" %6.3f _b[onset_frontier] ///
+       "  SE=" %6.3f _se[onset_frontier] "  N=" e(N)
 }
 
 * ── Spec A-2: Established EM ─────────────────────────────────────────────
 
 di as result _n "--- ESTABLISHED EM ---"
 
-foreach m in b lo90 hi90 lo95 hi95 { matrix `m'_em = J(5, 1, .) }
+foreach m in b lo90 hi90 lo95 hi95 {
+    matrix `m'_em = J(5, 1, .)
+}
 
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
@@ -91,16 +134,41 @@ matrix pval_fr = J(5, 1, .)
 
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
-    capture xtscc dy_`h' onset_frontier onset_em `controls' i.year if sample==1, fe lag(`lag')
-    if _rc == 0 {
-        test onset_frontier = onset_em
-        matrix pval_fr[`h'+1, 1] = r(p)
-        di "h=" `h' ":  beta_fr=" %6.3f _b[onset_frontier] ///
-                   "  beta_em=" %6.3f _b[onset_em] ///
-                   "  p(diff)=" %5.3f r(p)
-    }
-    else di as error "h=" `h' ": joint xtscc failed"
+    xtscc dy_`h' onset_frontier onset_em `controls' i.year if sample==1, fe lag(`lag')
+    test onset_frontier = onset_em
+    matrix pval_fr[`h'+1, 1] = r(p)
+    di "h=" `h' ":  beta_fr=" %6.3f _b[onset_frontier] ///
+               "  beta_em=" %6.3f _b[onset_em] ///
+               "  p(diff)=" %5.3f r(p)
 }
+
+* ── Save IRF datasets (Block A) ──────────────────────────────────────────
+
+preserve
+    clear
+    set obs 5
+    gen horizon = _n - 1
+    foreach m in b lo90 hi90 lo95 hi95 {
+        svmat `m'_fr, names(`m')
+        rename `m'1 `m'
+    }
+    gen series = "frontier"
+    save "$clean/irf_frontier.dta", replace
+restore
+
+preserve
+    clear
+    set obs 5
+    gen horizon = _n - 1
+    foreach m in b lo90 hi90 lo95 hi95 {
+        svmat `m'_em, names(`m')
+        rename `m'1 `m'
+    }
+    gen series = "em"
+    save "$clean/irf_em.dta", replace
+restore
+
+} // end Block A guard
 
 * ── Save IRF datasets (Block A) ──────────────────────────────────────────
 
@@ -187,7 +255,9 @@ di as result "  Long onsets  (>=3y): " r(N)
 
 di as result _n "--- SHORT EPISODES (<=2 years) ---"
 
-foreach m in b lo90 hi90 lo95 hi95 { matrix `m'_sh = J(5, 1, .) }
+foreach m in b lo90 hi90 lo95 hi95 {
+    matrix `m'_sh = J(5, 1, .)
+}
 
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
@@ -205,7 +275,9 @@ forvalues h = 0/4 {
 
 di as result _n "--- LONG EPISODES (>=3 years) ---"
 
-foreach m in b lo90 hi90 lo95 hi95 { matrix `m'_lg = J(5, 1, .) }
+foreach m in b lo90 hi90 lo95 hi95 {
+    matrix `m'_lg = J(5, 1, .)
+}
 
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
