@@ -8,7 +8,7 @@
     02_lp_all.do        → Act 1: LP for ALL 61 spread crisis episodes
     03_lp_resolution.do → Act 2: LP split by default-linked vs. non-default
     04_graphs.do        → publication-quality IRF figures
-    09_lp_imf.do        → Act 3: LP split by IMF program status
+    (09_lp_imf.do removed: IMF selection model too weak for credible inference)
 
   Required packages (run once):
     ssc install xtscc
@@ -38,4 +38,4 @@ do "$do/05_balance_table.do"
 do "$do/06_robustness.do"
 do "$do/07_placebo.do"
 do "$do/08_ipw_lp.do"
-do "$do/09_lp_imf.do"
+* do "$do/09_lp_imf.do"   // removed: IMF selection unpredictable from observables
