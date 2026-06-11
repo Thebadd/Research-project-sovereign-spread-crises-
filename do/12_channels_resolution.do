@@ -306,7 +306,9 @@ graph combine ols_1 ols_2 ols_3 ols_4 ols_5 ols_6, ///
 
 graph export "$figs/fig12a_channels_ols.pdf", replace
 di as result "Figure saved: fig12a_channels_ols.pdf"
-forvalues i = 1/6 { capture graph drop ols_`i' }
+forvalues i = 1/6 {
+    capture graph drop ols_`i'
+}
 
 * ── Figure B: IPW ────────────────────────────────────────────────────────
 
@@ -353,6 +355,8 @@ graph combine ipw_1 ipw_2 ipw_3 ipw_4 ipw_5 ipw_6, ///
 
 graph export "$figs/fig12b_channels_ipw.pdf", replace
 di as result "Figure saved: fig12b_channels_ipw.pdf"
-forvalues i = 1/6 { capture graph drop ipw_`i' }
+forvalues i = 1/6 {
+    capture graph drop ipw_`i'
+}
 
 di as result _n "12_channels_resolution.do complete."
