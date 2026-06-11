@@ -251,16 +251,20 @@ local controls l1_gdpg l2_gdpg ca debt infl imf vix ust10y
 
 di as result _n "=== ACT 2 IPW: FIRST STAGE — Probit of default-linked onset ==="
 di as result    "    Sample: crisis onset years only (onset_all == 1)"
+di as result    "    Parsimonious first stage: debt and CA only (2 significant"
+di as result    "    predictors from full model; 52 obs / 8 covariates = 6.5"
+di as result    "    obs per covariate is below the 10:1 rule of thumb)."
 
-* First stage: among crisis episodes, what predicts default-linked?
-probit onset_def `controls' if onset_all == 1, vce(robust)
+* Parsimonious first stage: only the 2 covariates significant in the full model
+* (debt p=0.022, ca p=0.012). Ratio: 52 obs / 2 covariates = 26 — reliable.
+probit onset_def debt ca if onset_all == 1, vce(robust)
 
 estimates store fs_act2
 di as result "McFadden Pseudo-R2: " e(r2_p)
 
 quietly esttab fs_act2 using "$tabs/ipw_act2_first_stage.csv", ///
     se star(* 0.10 ** 0.05 *** 0.01) ///
-    title("Act 2 First Stage: Pr(Default-Linked | Crisis Onset)") replace
+    title("Act 2 First Stage: Pr(Default-Linked | Crisis Onset) — Parsimonious") replace
 
 * Predict propensity scores (among crisis onsets only)
 predict pscore2 if onset_all == 1, pr
