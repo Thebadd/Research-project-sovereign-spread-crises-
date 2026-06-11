@@ -170,32 +170,6 @@ restore
 
 } // end Block A guard
 
-* ── Save IRF datasets (Block A) ──────────────────────────────────────────
-
-preserve
-    clear
-    set obs 5
-    gen horizon = _n - 1
-    foreach m in b lo90 hi90 lo95 hi95 {
-        svmat `m'_fr, names(`m')
-        rename `m'1 `m'
-    }
-    gen series = "frontier"
-    save "$clean/irf_frontier.dta", replace
-restore
-
-preserve
-    clear
-    set obs 5
-    gen horizon = _n - 1
-    foreach m in b lo90 hi90 lo95 hi95 {
-        svmat `m'_em, names(`m')
-        rename `m'1 `m'
-    }
-    gen series = "em"
-    save "$clean/irf_em.dta", replace
-restore
-
 * ══════════════════════════════════════════════════════════════════════════
 * BLOCK B — EPISODE DURATION AS MODERATOR
 * ══════════════════════════════════════════════════════════════════════════
