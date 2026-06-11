@@ -165,13 +165,16 @@ local c_imf    "0 130 79"
 local c_no_imf "23 55 94"
 local c_zero   "150 150 150"
 
+* Extract p-values for annotation
+local p0 = string(pval_imf[1,1], "%4.3f")
+local p1 = string(pval_imf[2,1], "%4.3f")
+local p2 = string(pval_imf[3,1], "%4.3f")
+local p3 = string(pval_imf[4,1], "%4.3f")
+local p4 = string(pval_imf[5,1], "%4.3f")
+
 twoway ///
-    (rarea lo90 hi90 horizon if series=="imf", ///
-        color("`c_imf'%20") lwidth(none)) ///
     (connected b horizon if series=="imf", ///
         lcolor("`c_imf'") lwidth(medthick) msymbol(circle) mcolor("`c_imf'")) ///
-    (rarea lo90 hi90 horizon if series=="no_imf", ///
-        color("`c_no_imf'%20") lwidth(none)) ///
     (connected b horizon if series=="no_imf", ///
         lcolor("`c_no_imf'") lwidth(medthick) lpattern(dash) ///
         msymbol(square) mcolor("`c_no_imf'")), ///
@@ -182,11 +185,11 @@ twoway ///
     ytitle("Cumulative change in log real GDP p.c. (pp)", size(medsmall)) ///
     title("Output Cost: IMF-Supported vs. Non-IMF Crises", size(medium)) ///
     subtitle("52 EM economies, 1994-2025", size(small)) ///
-    legend(order(2 "With IMF program (N=`n_imf')" ///
-                 4 "Without IMF program (N=`n_no_imf')") ///
+    legend(order(1 "With IMF program (N=`n_imf')" ///
+                 2 "Without IMF program (N=`n_no_imf')") ///
            ring(0) pos(3) size(small)) ///
-    note("Driscoll-Kraay SE, lag = h+1. Country + year FE." ///
-         "IMF variable excluded from controls (treatment modifier).", ///
+    note("Point estimates only. Driscoll-Kraay SE, lag = h+1. Country + year FE." ///
+         "p-values (H0: IMF = No-IMF): h0=`p0' h1=`p1' h2=`p2' h3=`p3' h4=`p4'", ///
          size(vsmall)) ///
     graphregion(color(white)) plotregion(color(white))
 
