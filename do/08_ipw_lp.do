@@ -149,9 +149,9 @@ forvalues h = 0/4 {
     local b_u = _b[onset_all]
     local se_u = _se[onset_all]
 
-    * IPW-weighted
+    * IPW-weighted (aw= used because xtreg fe does not allow pw varying within cid)
     quietly xtreg dy_`h' onset_all `controls' i.year ///
-        [pw=ipw] if sample==1 & !missing(ipw), fe vce(cluster cid)
+        [aw=ipw] if sample==1 & !missing(ipw), fe vce(cluster cid)
     matrix b_ipw[`row',1]    = _b[onset_all]
     matrix lo90_ipw[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
     matrix hi90_ipw[`row',1] = _b[onset_all] + 1.645*_se[onset_all]
