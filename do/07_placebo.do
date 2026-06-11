@@ -131,24 +131,35 @@ local c_main "23 55 94"
 local c_null "180 180 180"
 
 forvalues h = 0/4 {
-    * Extract true beta and emp p-value as plain locals
+    * Extract true beta, emp p-value and null distribution bounds
     local tb  = PVAL[`h'+1, 1]
     local ep  = PVAL[`h'+1, 4]
     local tb_str  = string(`tb',  "%5.3f")
     local ep_str  = string(`ep',  "%5.3f")
 
+    * Compute x-axis bounds: include true beta with 0.5pp margin on each side
+    quietly summarize b_h`h'
+    local x_min = min(`tb', r(min)) - 0.5
+    local x_max = max(r(max), 0) + 0.5
+
+    * Round to nearest 0.5 for clean axis labels
+    local x_min = floor(`x_min' * 2) / 2
+    local x_max = ceil(`x_max' * 2) / 2
+
     twoway ///
-        (histogram b_h`h', width(0.3) freq                             ///
-            fcolor("`c_null'%50") lcolor("`c_null'") lwidth(vthin)),   ///
+        (histogram b_h`h', width(0.3) freq start(`x_min')          ///
+            fcolor("`c_null'%50") lcolor("`c_null'") lwidth(vthin)), ///
         xline(`tb', lcolor("`c_main'") lwidth(medthick) lpattern(solid)) ///
-        xtitle("Placebo beta (pp)", size(small))                        ///
-        ytitle("Frequency", size(small))                                ///
-        title("Placebo Distribution — h=`h'", size(medium))            ///
-        subtitle("Vertical line = true beta. `n_reps' random draws.",  ///
-                 size(small))                                           ///
-        note("True beta = `tb_str'. Emp. p-value = `ep_str'",          ///
-             size(vsmall))                                              ///
-        legend(off)                                                     ///
+        xscale(range(`x_min' `x_max'))                               ///
+        xlabel(`x_min'(0.5)`x_max', labsize(small))                  ///
+        xtitle("Placebo beta (pp)", size(small))                      ///
+        ytitle("Frequency", size(small))                              ///
+        title("Placebo Distribution - h=`h'", size(medium))          ///
+        subtitle("Vertical line = true beta. `n_reps' random draws.", ///
+                 size(small))                                         ///
+        note("True beta = `tb_str'. Emp. p-value = `ep_str'",        ///
+             size(vsmall))                                            ///
+        legend(off)                                                   ///
         graphregion(color(white)) plotregion(color(white))
 
     graph export "$figs/fig5_placebo_h`h'.pdf", replace
