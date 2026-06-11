@@ -1,2 +1,5 @@
-# Research-project-sovereign-spread-crises-
-This paper estimates the output cost of sovereign spread crises that do not result in debt default or restructuring, using a sample of 52 emerging and frontier market economies over the period 1994-2025. Applying the local projections method of Jordà (2005) to an original crisis database constructed from JP Morgan EMBIG spreads
+# The Aftermath of Sovereign Spread Crises With and Without Default
+
+## Abstract
+
+Sovereign spread crises — episodes in which EMBIG spreads cross extreme thresholds — represent a recurring source of macroeconomic disruption in emerging markets, yet their real output costs remain imprecisely documented. Using a dataset of 61 spread crisis episodes across 52 emerging market and frontier economies over 1994–2025, we estimate the output cost of sovereign spread crises through the local projections method of Jordà (2005). We find that spread crises reduce cumulative real GDP per capita by approximately 3.8 percentage points at the trough, with no evidence of mean reversion over a four-year horizon. Strikingly, non-default spread crises — episodes resolved without debt restructuring — still impose a significant output cost of approximately 2.5 percentage points, demonstrating that sovereign stress carries substantial real consequences independent of default. Default-linked episodes amplify this cost by an additional 2 to 3 percentage points. These findings challenge the implicit assumption that output losses from sovereign stress are primarily a consequence of default itself.
