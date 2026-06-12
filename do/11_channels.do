@@ -399,4 +399,207 @@ foreach nm of local fignames {
     graph drop `nm'
 }
 
+* ══════════════════════════════════════════════════════════════════════════
+* 7. IPW-WEIGHTED CHANNEL REGRESSIONS
+*    Replicates section 3 with stabilized IPW weights to correct for
+*    selection: onset country-years are not randomly drawn from the panel —
+*    they have systematically worse pre-crisis fundamentals. IPW reweights
+*    tranquil observations to look like onset observations on observables,
+*    making the comparison credible.
+*
+*    Method: areg absorb(cid) [aw=ipw] vce(cluster cid)
+*    Note:   xtscc does not accept pweights; areg used here (same as 08_ipw_lp.do).
+*            SE are clustered by country rather than Driscoll-Kraay.
+*
+*    Output: side-by-side comparison of unweighted vs. IPW beta at each horizon.
+* ══════════════════════════════════════════════════════════════════════════
+
+* ── 7a. Reload panel and construct IPW weights ───────────────────────────
+
+use "$clean/panel_lp.dta", clear
+sort cid year
+xtset cid year
+
+* Regenerate channel outcome variables (same as section 1)
+foreach var in credit claims_govt inv govexp pb fdi {
+    capture drop `var'_base
+    gen `var'_base = L.`var'
+    forvalues h = 0/4 {
+        capture drop ch_`var'_`h'
+        gen ch_`var'_`h' = F`h'.`var' - `var'_base
+    }
+}
+
+* First-stage probit: same spec as 08_ipw_lp.do
+di as result _n "=== IPW FIRST STAGE (channels): Probit of crisis onset ==="
+local controls_ps l1_gdpg l2_gdpg debt ca infl imf vix ust10y
+probit onset_all `controls_ps' if sample == 1, vce(cluster cid)
+di as result "McFadden Pseudo-R2: " e(r2_p)
+
+predict pscore_ch if sample == 1, pr
+
+* Trim [0.01, 0.99]
+gen trimmed_ch = (pscore_ch < 0.01 | pscore_ch > 0.99) if !missing(pscore_ch)
+quietly count if trimmed_ch == 1
+di as result "Trimmed observations: " r(N)
+replace pscore_ch = . if trimmed_ch == 1
+
+* Stabilized IPW weights
+quietly summarize onset_all if sample == 1
+local p_treat = r(mean)
+local p_ctrl  = 1 - `p_treat'
+di as result "Marginal Pr(onset=1): " %5.4f `p_treat'
+
+gen ipw_ch = .
+replace ipw_ch = `p_treat' / pscore_ch        if onset_all == 1 & !missing(pscore_ch)
+replace ipw_ch = `p_ctrl'  / (1 - pscore_ch)  if onset_all == 0 & !missing(pscore_ch)
+label var ipw_ch "Stabilized IPW weight (channels)"
+
+summarize ipw_ch if sample == 1, detail
+
+* ── 7b. Re-declare control locals (same as section 3) ────────────────────
+
+local ctrl_credit      l1_gdpg l2_gdpg debt infl ca banking_crisis
+local ctrl_claims_govt L.claims_govt L.credit pb banking_crisis
+local ctrl_inv         l1_gdpg l2_gdpg debt ca L.credit banking_crisis
+local ctrl_govexp      L.govexp debt revenue_gdp
+local ctrl_pb          l1_gdpg l2_gdpg debt ca L.pb banking_crisis
+local ctrl_fdi         l1_gdpg L.fdi infl reer_chg
+
+* ── 7c. IPW-weighted LP: store results ───────────────────────────────────
+
+local channels credit claims_govt inv govexp pb fdi
+
+foreach ch of local channels {
+    foreach m in b_ipw lo90_ipw hi90_ipw lo95_ipw hi95_ipw {
+        matrix `m'_`ch' = J(5, 1, .)
+    }
+}
+
+* ── 7d. Run IPW-weighted LP and print side-by-side comparison ─────────────
+
+di as result _n "========================================================"
+di as result "IPW-WEIGHTED vs. UNWEIGHTED: CHANNEL COEFFICIENTS"
+di as result "  (areg absorb(cid) [aw=ipw] vce(cluster cid))"
+di as result "========================================================"
+
+foreach ch of local channels {
+    local ctrl `ctrl_`ch''
+
+    di as result _n "--- CHANNEL: `ch' ---"
+    di as result "h    beta_OLS   SE_OLS    beta_IPW   SE_IPW    delta"
+
+    forvalues h = 0/4 {
+        local row = `h' + 1
+
+        * Unweighted baseline (areg, for apples-to-apples SE comparison)
+        quietly areg ch_`ch'_`h' onset_all `ctrl' i.year ///
+            if sample == 1 & !missing(ipw_ch), absorb(cid) vce(cluster cid)
+        local b_ols  = _b[onset_all]
+        local se_ols = _se[onset_all]
+
+        * IPW-weighted
+        capture areg ch_`ch'_`h' onset_all `ctrl' i.year ///
+            [aw=ipw_ch] if sample == 1 & !missing(ipw_ch), absorb(cid) vce(cluster cid)
+        if _rc == 0 {
+            matrix b_ipw_`ch'[`row',1]    = _b[onset_all]
+            matrix lo90_ipw_`ch'[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
+            matrix hi90_ipw_`ch'[`row',1] = _b[onset_all] + 1.645*_se[onset_all]
+            matrix lo95_ipw_`ch'[`row',1] = _b[onset_all] - 1.960*_se[onset_all]
+            matrix hi95_ipw_`ch'[`row',1] = _b[onset_all] + 1.960*_se[onset_all]
+            local b_ipw  = _b[onset_all]
+            local se_ipw = _se[onset_all]
+            di "h=" `h' "   " %7.3f `b_ols'  "   " %6.3f `se_ols' ///
+                   "    " %7.3f `b_ipw' "   " %6.3f `se_ipw' ///
+                   "    " %7.3f (`b_ipw' - `b_ols')
+        }
+        else {
+            di as error "h=" `h' ": areg IPW failed for `ch' (rc=" _rc ")"
+        }
+    }
+}
+
+di as result _n "========================================================"
+di as result "END IPW COMPARISON"
+di as result "========================================================"
+
+* ── 7e. Save IPW IRF datasets ─────────────────────────────────────────────
+
+foreach ch of local channels {
+    preserve
+        clear
+        set obs 5
+        gen horizon = _n - 1
+        foreach m in b lo90 hi90 lo95 hi95 {
+            svmat `m'_ipw_`ch', names(`m')
+            rename `m'1 `m'
+        }
+        gen channel = "`ch'"
+        save "$clean/irf_ch_`ch'_ipw.dta", replace
+    restore
+}
+
+* ── 7f. Figure — IPW vs. unweighted overlay per channel ──────────────────
+
+local c_ols "23 55 94"
+local c_ipw "157 36 73"
+
+local channels    credit claims_govt inv govexp pb fdi
+local titlelabels `" "Private Credit/GDP" "Bank Claims on Govt/GDP" "Investment/GDP" "Govt Expenditure/GDP" "Primary Balance/GDP" "FDI/GDP" "'
+local fignames_cmp fig11a_cmp fig11b_cmp fig11c_cmp fig11d_cmp fig11e_cmp fig11f_cmp
+
+local i = 1
+foreach ch of local channels {
+
+    local tlab : word `i' of `titlelabels'
+
+    * Load unweighted IRF
+    use "$clean/irf_ch_`ch'.dta", clear
+    gen series = "ols"
+    tempfile ols_`ch'
+    save `ols_`ch''
+
+    * Load IPW IRF
+    use "$clean/irf_ch_`ch'_ipw.dta", clear
+    gen series = "ipw"
+    append using `ols_`ch''
+
+    twoway ///
+        (rarea lo90 hi90 horizon if series=="ols", ///
+            color("`c_ols'%20") lwidth(none)) ///
+        (connected b horizon if series=="ols", ///
+            lcolor("`c_ols'") lwidth(medthick) msymbol(circle) mcolor("`c_ols'")) ///
+        (rarea lo90 hi90 horizon if series=="ipw", ///
+            color("`c_ipw'%20") lwidth(none)) ///
+        (connected b horizon if series=="ipw", ///
+            lcolor("`c_ipw'") lwidth(medthick) lpattern(dash) ///
+            msymbol(square) mcolor("`c_ipw'")), ///
+        yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
+        xlabel(0(1)4, labsize(medsmall)) ///
+        ylabel(, format(%5.2f) labsize(medsmall)) ///
+        xtitle("Years after onset", size(small)) ///
+        ytitle("Cumulative change (pp)", size(small)) ///
+        title(`tlab', size(medsmall) color(navy)) ///
+        legend(order(2 "Unweighted (DK SE)" 4 "IPW-weighted (cluster SE)") ///
+               ring(0) pos(3) size(vsmall)) ///
+        graphregion(color(white)) plotregion(color(white)) ///
+        name(`: word `i' of `fignames_cmp'', replace)
+
+    local ++i
+}
+
+graph combine fig11a_cmp fig11b_cmp fig11c_cmp fig11d_cmp fig11e_cmp fig11f_cmp, ///
+    cols(3) rows(2) ///
+    title("Channels: Unweighted vs. IPW-Weighted", size(medlarge) color(navy)) ///
+    note("Blue solid = unweighted xtscc (DK SE). Red dashed = IPW-weighted areg (cluster SE)." ///
+         "IPW weights from probit of onset on lagged macro fundamentals.", size(vsmall)) ///
+    graphregion(color(white)) xsize(10) ysize(7)
+
+graph export "$figs/fig11_channels_ipw_compare.pdf", replace
+di as result "Figure saved: fig11_channels_ipw_compare.pdf"
+
+foreach nm of local fignames_cmp {
+    graph drop `nm'
+}
+
 di as result _n "11_channels.do complete."
