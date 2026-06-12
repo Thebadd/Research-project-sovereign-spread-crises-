@@ -15,7 +15,7 @@
 
   Specs compared:
     Baseline : ch_credit_h = αi + γt + β·onset_all
-               + l1_gdpg l2_gdpg debt infl ca banking_crisis + ε
+               + l1_gdpg l2_gdpg debt infl ca + ε
     With clms: same + L.claims_govt
 
   TEST 2 — Credit as Mediator of Investment Contraction
@@ -36,7 +36,7 @@
 
   Specs compared:
     Without : ch_inv_h = αi + γt + β·onset_all
-              + l1_gdpg l2_gdpg debt ca banking_crisis + ε
+              + l1_gdpg l2_gdpg debt ca + ε
     With    : same + L.credit   [current 11_channels.do spec]
 
   Outputs:
@@ -49,14 +49,6 @@
 use "$clean/panel_lp.dta", clear
 sort cid year
 xtset cid year
-
-* ── Variable availability check ──────────────────────────────────────────
-foreach v in credit claims_govt inv banking_crisis sample onset_all ///
-             l1_gdpg l2_gdpg debt infl ca {
-    capture confirm variable `v'
-    if _rc != 0 di as error "MISSING VARIABLE: `v'"
-    else        di as text  "OK: `v'"
-}
 
 * ── Generate outcome variables ───────────────────────────────────────────
 
@@ -91,9 +83,9 @@ forvalues h = 0/4 {
 
     * Baseline: current 11_channels spec
     capture xtscc ch_credit_`h' onset_all ///
-        l1_gdpg l2_gdpg debt infl ca banking_crisis ///
+        l1_gdpg l2_gdpg debt infl ca ///
         i.year if sample==1, fe lag(`lag')
-    di as text "  [Test1 baseline h=`h'] _rc=" _rc
+
     if _rc == 0 {
         matrix b_base[`row',1]    = _b[onset_all]
         matrix lo90_base[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
@@ -104,9 +96,9 @@ forvalues h = 0/4 {
 
     * With L.claims_govt added
     capture xtscc ch_credit_`h' onset_all ///
-        l1_gdpg l2_gdpg debt infl ca banking_crisis L.claims_govt ///
+        l1_gdpg l2_gdpg debt infl ca L.claims_govt ///
         i.year if sample==1, fe lag(`lag')
-    di as text "  [Test1 +clms    h=`h'] _rc=" _rc
+
     if _rc == 0 {
         matrix b_clms[`row',1]    = _b[onset_all]
         matrix lo90_clms[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
@@ -215,9 +207,9 @@ forvalues h = 0/4 {
 
     * Without L.credit (total effect)
     capture xtscc ch_inv_`h' onset_all ///
-        l1_gdpg l2_gdpg debt ca banking_crisis ///
+        l1_gdpg l2_gdpg debt ca ///
         i.year if sample==1, fe lag(`lag')
-    di as text "  [Test2 no_credit h=`h'] _rc=" _rc
+
     if _rc == 0 {
         matrix b_noc[`row',1]    = _b[onset_all]
         matrix lo90_noc[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
@@ -228,9 +220,9 @@ forvalues h = 0/4 {
 
     * With L.credit (direct effect net of credit)
     capture xtscc ch_inv_`h' onset_all ///
-        l1_gdpg l2_gdpg debt ca banking_crisis L.credit ///
+        l1_gdpg l2_gdpg debt ca L.credit ///
         i.year if sample==1, fe lag(`lag')
-    di as text "  [Test2 w_credit  h=`h'] _rc=" _rc
+
     if _rc == 0 {
         matrix b_wic[`row',1]    = _b[onset_all]
         matrix lo90_wic[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
