@@ -190,6 +190,20 @@ di as result "Figure saved: fig13a_credit_supply_demand.pdf"
 *   Investment LP without credit vs. with L.credit (current spec)
 * ══════════════════════════════════════════════════════════════════════════
 
+* ── Reload panel after Test 1 figure section changed the dataset ─────────
+use "$clean/panel_lp.dta", clear
+sort cid year
+xtset cid year
+
+foreach var in inv {
+    capture drop `var'_base
+    gen `var'_base = L.`var'
+    forvalues h = 0/4 {
+        capture drop ch_`var'_`h'
+        gen ch_`var'_`h' = F`h'.`var' - `var'_base
+    }
+}
+
 di as result _n "========================================================"
 di as result "TEST 2: CREDIT AS MEDIATOR OF INVESTMENT CONTRACTION"
 di as result "  Investment LP without vs. with L.credit"
