@@ -27,11 +27,11 @@
 
   CONTROLS BY CHANNEL (see discussion in paper):
   -----------------------------------------------
-  Credit:          l1_gdpg l2_gdpg debt infl vix ust10y
-  Sovereign-bank:  l1_gdpg debt pb vix ust10y
-  Investment:      l1_gdpg l2_gdpg debt ca L.credit vix ust10y
-  Govt expenditure:l1_gdpg debt ca pb vix ust10y
-  Primary balance: l1_gdpg l2_gdpg debt ca vix ust10y
+  Credit:          l1_gdpg l2_gdpg debt infl ca vix
+  Sovereign-bank:  l1_gdpg debt pb vix
+  Investment:      l1_gdpg l2_gdpg debt ca L.credit vix
+  Govt expenditure:l1_gdpg debt ca infl vix
+  Primary balance: l1_gdpg l2_gdpg debt ca vix
   FDI:             l1_gdpg debt ca vix ust10y
 
   Saves:
@@ -81,13 +81,16 @@ foreach var in credit claims_govt inv govexp pb fdi {
     infl            — affects real cost of credit
     ca              — ADDED: current account deficit means credit depends on
                       external financing; capital outflows contract credit
-    vix ust10y      — global financial conditions
+    vix             — global risk appetite (VIX captures uncertainty; UST10Y
+                      omitted from real-variable channels: it proxies the same
+                      global financial conditions as VIX but adds collinearity
+                      without incremental content for real outcomes)
 
   Bank claims on govt/GDP:
     l1_gdpg         — macro conditions affect banks' portfolio decisions
     debt            — sovereign borrowing stock determines bond supply
     pb              — primary balance: captures flow of new issuance banks must absorb
-    vix ust10y      — global risk appetite (affects carry trade incentive)
+    vix             — global risk appetite (affects carry trade incentive)
     NOTE: ca excluded — sovereign-bank nexus is primarily a domestic balance
           sheet channel, less driven by external financing conditions
 
@@ -96,7 +99,7 @@ foreach var in credit claims_govt inv govexp pb fdi {
     debt            — fiscal crowding-out of private investment
     ca              — external financing constraint (investment needs foreign capital)
     L.credit        — bank credit availability (key financing source)
-    vix ust10y      — cost of capital and global conditions
+    vix             — cost of capital and global uncertainty
 
   Govt expenditure/GDP:
     l1_gdpg         — automatic stabilizers link growth to revenues/spending
@@ -105,29 +108,31 @@ foreach var in credit claims_govt inv govexp pb fdi {
     infl            — REPLACES pb: inflation affects nominal spending, avoids
                       mechanical relationship (pb = revenue - expenditure,
                       govexp is a direct component of pb)
-    vix ust10y      — global conditions affecting borrowing costs
+    vix             — global conditions affecting borrowing costs
 
   Primary balance/GDP:
     l1_gdpg l2_gdpg — cyclical component (automatic stabilizers), Bohn rule
     debt            — Bohn (1998) fiscal reaction: pb responds to debt level
     ca              — external constraint forces fiscal adjustment (key for EM)
-    vix ust10y      — external borrowing costs affect fiscal stance
+    vix             — external borrowing costs / global risk sentiment
 
   FDI/GDP:
     l1_gdpg         — market size / growth attractiveness for foreign investors
     debt            — sovereign risk signal for foreign investors
     ca              — external position signals overall external sustainability
-    vix ust10y      — global risk appetite (dominant driver of EM capital flows)
+    vix             — global risk appetite (dominant driver of EM capital flows)
+    ust10y          — KEPT for FDI only: level of US rates affects carry trade
+                      and cost of external financing for foreign investors
 */
 
 local channels credit claims_govt inv govexp pb fdi
 
 * Controls per channel — channel-specific, not identical across all
-local ctrl_credit      l1_gdpg l2_gdpg debt infl ca vix ust10y
-local ctrl_claims_govt l1_gdpg debt pb vix ust10y
-local ctrl_inv         l1_gdpg l2_gdpg debt ca L.credit vix ust10y
-local ctrl_govexp      l1_gdpg debt ca infl vix ust10y
-local ctrl_pb          l1_gdpg l2_gdpg debt ca vix ust10y
+local ctrl_credit      l1_gdpg l2_gdpg debt infl ca vix
+local ctrl_claims_govt l1_gdpg debt pb vix
+local ctrl_inv         l1_gdpg l2_gdpg debt ca L.credit vix
+local ctrl_govexp      l1_gdpg debt ca infl vix
+local ctrl_pb          l1_gdpg l2_gdpg debt ca vix
 local ctrl_fdi         l1_gdpg debt ca vix ust10y
 
 foreach ch of local channels {
