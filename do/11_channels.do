@@ -27,12 +27,14 @@
 
   CONTROLS BY CHANNEL (see discussion in paper):
   -----------------------------------------------
-  Credit:          l1_gdpg l2_gdpg debt infl ca banking_crisis vix
-  Sovereign-bank:  L.claims_govt L.credit pb banking_crisis vix
-  Investment:      l1_gdpg l2_gdpg debt ca L.credit banking_crisis vix
-  Govt expenditure:L.govexp debt revenue_gdp vix
-  Primary balance: l1_gdpg l2_gdpg debt ca L.pb banking_crisis vix
-  FDI:             l1_gdpg L.fdi infl reer_chg vix ust10y
+  Credit:          l1_gdpg l2_gdpg debt infl ca banking_crisis
+  Sovereign-bank:  L.claims_govt L.credit pb banking_crisis
+  Investment:      l1_gdpg l2_gdpg debt ca L.credit banking_crisis
+  Govt expenditure:L.govexp debt revenue_gdp
+  Primary balance: l1_gdpg l2_gdpg debt ca L.pb banking_crisis
+  FDI:             l1_gdpg L.fdi infl reer_chg
+  NOTE: VIX and UST10Y excluded — both are pure time-series variables
+        with zero cross-sectional variation, fully absorbed by year FE.
 
   Saves:
     "$clean/irf_ch_*.dta"        — one IRF dataset per channel
@@ -130,12 +132,12 @@ foreach var in credit claims_govt inv govexp pb fdi {
 local channels credit claims_govt inv govexp pb fdi
 
 * Controls per channel — channel-specific, not identical across all
-local ctrl_credit      l1_gdpg l2_gdpg debt infl ca banking_crisis vix
-local ctrl_claims_govt L.claims_govt L.credit pb banking_crisis vix
-local ctrl_inv         l1_gdpg l2_gdpg debt ca L.credit banking_crisis vix
-local ctrl_govexp      L.govexp debt revenue_gdp vix
-local ctrl_pb          l1_gdpg l2_gdpg debt ca L.pb banking_crisis vix
-local ctrl_fdi         l1_gdpg L.fdi infl reer_chg vix ust10y
+local ctrl_credit      l1_gdpg l2_gdpg debt infl ca banking_crisis
+local ctrl_claims_govt L.claims_govt L.credit pb banking_crisis
+local ctrl_inv         l1_gdpg l2_gdpg debt ca L.credit banking_crisis
+local ctrl_govexp      L.govexp debt revenue_gdp
+local ctrl_pb          l1_gdpg l2_gdpg debt ca L.pb banking_crisis
+local ctrl_fdi         l1_gdpg L.fdi infl reer_chg
 
 foreach ch of local channels {
     foreach m in b lo90 hi90 lo95 hi95 {

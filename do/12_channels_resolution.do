@@ -97,12 +97,12 @@ di as result "IPW2 weights: min=" r(min) "  max=" r(max) "  mean=" r(mean)
 local channels   credit claims_govt inv govexp pb fdi
 
 * Controls per channel (same as 11_channels.do)
-local ctrl_credit      l1_gdpg l2_gdpg debt infl ca banking_crisis vix
-local ctrl_claims_govt L.claims_govt L.credit pb banking_crisis vix
-local ctrl_inv         l1_gdpg l2_gdpg debt ca L.credit banking_crisis vix
-local ctrl_govexp      L.govexp debt revenue_gdp vix
-local ctrl_pb          l1_gdpg l2_gdpg debt ca L.pb banking_crisis vix
-local ctrl_fdi         l1_gdpg L.fdi infl reer_chg vix ust10y
+local ctrl_credit      l1_gdpg l2_gdpg debt infl ca banking_crisis
+local ctrl_claims_govt L.claims_govt L.credit pb banking_crisis
+local ctrl_inv         l1_gdpg l2_gdpg debt ca L.credit banking_crisis
+local ctrl_govexp      L.govexp debt revenue_gdp
+local ctrl_pb          l1_gdpg l2_gdpg debt ca L.pb banking_crisis
+local ctrl_fdi         l1_gdpg L.fdi infl reer_chg
 
 * Initialize storage matrices
 foreach ch of local channels {
