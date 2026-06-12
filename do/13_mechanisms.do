@@ -359,8 +359,9 @@ forvalues h = 0/4 {
 di as result _n "========================================================"
 di as result "TEST 3: CURRENT ACCOUNT LP (Aguiar-Gopinath mechanism)"
 di as result "  Prediction: CA moves toward surplus after onset (β > 0)"
+di as result "  Controls include L.ca L2.ca to absorb CA persistence"
 di as result "========================================================"
-di as result "h    β_all    SE      β_nd     SE       β_def    SE"
+di as result "h    β_all    SE      R2_all   β_nd     SE       β_def    SE      R2_split"
 
 * Storage matrices
 foreach m in b_all lo90_all hi90_all b_nd lo90_nd hi90_nd b_def lo90_def hi90_def {
@@ -371,21 +372,22 @@ forvalues h = 0/4 {
     local lag = max(1, `h'+1)
     local row = `h' + 1
 
-    * Aggregate
+    * Aggregate — with lagged CA for persistence
     capture xtscc ch_ca_`h' onset_all ///
-        l1_gdpg l2_gdpg debt ///
+        l1_gdpg l2_gdpg debt L.ca L2.ca ///
         i.year if sample==1, fe lag(`lag')
     if _rc == 0 {
         matrix b_all[`row',1]    = _b[onset_all]
         matrix lo90_all[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
         matrix hi90_all[`row',1] = _b[onset_all] + 1.645*_se[onset_all]
-        local b0  = _b[onset_all]
-        local se0 = _se[onset_all]
+        local b0   = _b[onset_all]
+        local se0  = _se[onset_all]
+        local r2_0 = e(r2)
     }
 
-    * Non-default
+    * Split by episode type — with lagged CA
     capture xtscc ch_ca_`h' onset_nd onset_def ///
-        l1_gdpg l2_gdpg debt ///
+        l1_gdpg l2_gdpg debt L.ca L2.ca ///
         i.year if sample==1, fe lag(`lag')
     if _rc == 0 {
         matrix b_nd[`row',1]    = _b[onset_nd]
@@ -394,14 +396,15 @@ forvalues h = 0/4 {
         matrix b_def[`row',1]    = _b[onset_def]
         matrix lo90_def[`row',1] = _b[onset_def] - 1.645*_se[onset_def]
         matrix hi90_def[`row',1] = _b[onset_def] + 1.645*_se[onset_def]
-        local b1  = _b[onset_nd]
-        local se1 = _se[onset_nd]
-        local b2  = _b[onset_def]
-        local se2 = _se[onset_def]
+        local b1   = _b[onset_nd]
+        local se1  = _se[onset_nd]
+        local b2   = _b[onset_def]
+        local se2  = _se[onset_def]
+        local r2_1 = e(r2)
 
-        di "h=" `h' "   " %6.3f `b0' "  " %5.3f `se0' ///
-               "    " %6.3f `b1' "  " %5.3f `se1' ///
-               "    " %6.3f `b2' "  " %5.3f `se2'
+        di "h=" `h' "  " %6.3f `b0' "  " %5.3f `se0' "  " %5.3f `r2_0' ///
+               "  " %6.3f `b1' "  " %5.3f `se1' ///
+               "  " %6.3f `b2' "  " %5.3f `se2' "  " %5.3f `r2_1'
     }
 }
 
