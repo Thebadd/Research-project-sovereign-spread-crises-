@@ -175,6 +175,10 @@ capture rename v1        iso3    // fallback
 * Keep only revenue indicator
 keep if INDICATORID == "GGR_NGDP"
 
+* DIAGNOSTIC: show exact variable names so we can fix the rename
+describe
+di "--- varlist: " "`: varlist'"
+
 * Drop all known text/metadata columns — whatever remains are year columns
 * (Stata names digit-starting headers with _ prefix: 1980 → _1980)
 capture drop COUNTRY INDICATOR INDICATORDescription FREQUENCY SCALE UNIT ///
