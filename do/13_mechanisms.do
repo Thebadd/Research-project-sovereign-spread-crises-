@@ -425,45 +425,64 @@ foreach spec in all nd def {
     restore
 }
 
-* ── Figure: Test 3 ───────────────────────────────────────────────────────
+* ── Figure 13c: All episodes ─────────────────────────────────────────────
 
-local c_all  "23 55 94"
-local c_nd   "34 139 34"
-local c_def  "157 36 73"
+local c_all "23 55 94"
 
 use "$clean/irf_mech_ca_all.dta", clear
-append using "$clean/irf_mech_ca_nd.dta"
+
+twoway ///
+    (rarea lo90 hi90 horizon, ///
+        color("`c_all'%20") lwidth(none)) ///
+    (connected b horizon, ///
+        lcolor("`c_all'") lwidth(medthick) msymbol(circle) mcolor("`c_all'")), ///
+    yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
+    xlabel(0(1)4, labsize(medsmall)) ///
+    ylabel(, format(%5.2f) labsize(medsmall)) ///
+    xtitle("Years after onset", size(small)) ///
+    ytitle("Cumulative change in current account/GDP (pp)", size(small)) ///
+    title("Current Account Response — All Episodes", size(medium) color(navy)) ///
+    subtitle("Forced deleveraging test (Aguiar-Gopinath 2006)", size(small)) ///
+    legend(off) ///
+    note("All 61 spread crisis episodes. Positive = CA moves toward surplus." ///
+         "Controls: l1_gdpg l2_gdpg debt. DK SE. Country & year FE.", size(vsmall)) ///
+    graphregion(color(white)) plotregion(color(white))
+
+graph export "$figs/fig13c_ca_all.pdf", replace
+di as result "Figure saved: fig13c_ca_all.pdf"
+
+* ── Figure 13d: Non-default vs. Default split ────────────────────────────
+
+local c_nd  "34 139 34"
+local c_def "157 36 73"
+
+use "$clean/irf_mech_ca_nd.dta", clear
 append using "$clean/irf_mech_ca_def.dta"
 
 twoway ///
-    (rarea lo90 hi90 horizon if spec=="all", ///
-        color("`c_all'%15") lwidth(none)) ///
-    (connected b horizon if spec=="all", ///
-        lcolor("`c_all'") lwidth(medthick) msymbol(circle) mcolor("`c_all'")) ///
     (rarea lo90 hi90 horizon if spec=="nd", ///
-        color("`c_nd'%15") lwidth(none)) ///
+        color("`c_nd'%20") lwidth(none)) ///
     (connected b horizon if spec=="nd", ///
-        lcolor("`c_nd'") lwidth(medthick) lpattern(dash) ///
-        msymbol(triangle) mcolor("`c_nd'")) ///
+        lcolor("`c_nd'") lwidth(medthick) msymbol(triangle) mcolor("`c_nd'")) ///
     (rarea lo90 hi90 horizon if spec=="def", ///
-        color("`c_def'%15") lwidth(none)) ///
+        color("`c_def'%20") lwidth(none)) ///
     (connected b horizon if spec=="def", ///
-        lcolor("`c_def'") lwidth(medthick) lpattern(shortdash) ///
+        lcolor("`c_def'") lwidth(medthick) lpattern(dash) ///
         msymbol(square) mcolor("`c_def'")), ///
     yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
     xlabel(0(1)4, labsize(medsmall)) ///
     ylabel(, format(%5.2f) labsize(medsmall)) ///
     xtitle("Years after onset", size(small)) ///
     ytitle("Cumulative change in current account/GDP (pp)", size(small)) ///
-    title("Current Account Response to Spread Crisis", size(medium) color(navy)) ///
+    title("Current Account Response — By Resolution Type", size(medium) color(navy)) ///
     subtitle("Forced deleveraging test (Aguiar-Gopinath 2006)", size(small)) ///
-    legend(order(2 "All episodes" 4 "Non-default" 6 "Default-linked") ///
+    legend(order(2 "Non-default (39 episodes)" 4 "Default-linked (22 episodes)") ///
            ring(0) pos(7) cols(1) size(small) region(lcolor(none) fcolor(none))) ///
-    note("Positive = CA moves toward surplus (forced deleveraging)." ///
+    note("Green = non-default. Red = default-linked." ///
          "Controls: l1_gdpg l2_gdpg debt. DK SE. Country & year FE.", size(vsmall)) ///
     graphregion(color(white)) plotregion(color(white))
 
-graph export "$figs/fig13c_ca_lp.pdf", replace
-di as result "Figure saved: fig13c_ca_lp.pdf"
+graph export "$figs/fig13d_ca_split.pdf", replace
+di as result "Figure saved: fig13d_ca_split.pdf"
 
 di as result _n "13_mechanisms.do complete."
