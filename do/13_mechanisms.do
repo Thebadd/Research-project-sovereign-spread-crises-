@@ -50,6 +50,14 @@ use "$clean/panel_lp.dta", clear
 sort cid year
 xtset cid year
 
+* ── Variable availability check ──────────────────────────────────────────
+foreach v in credit claims_govt inv banking_crisis sample onset_all ///
+             l1_gdpg l2_gdpg debt infl ca {
+    capture confirm variable `v'
+    if _rc != 0 di as error "MISSING VARIABLE: `v'"
+    else        di as text  "OK: `v'"
+}
+
 * ── Generate outcome variables ───────────────────────────────────────────
 
 foreach var in credit claims_govt inv {
@@ -85,6 +93,7 @@ forvalues h = 0/4 {
     capture xtscc ch_credit_`h' onset_all ///
         l1_gdpg l2_gdpg debt infl ca banking_crisis ///
         i.year if sample==1, fe lag(`lag')
+    di as text "  [Test1 baseline h=`h'] _rc=" _rc
     if _rc == 0 {
         matrix b_base[`row',1]    = _b[onset_all]
         matrix lo90_base[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
@@ -97,6 +106,7 @@ forvalues h = 0/4 {
     capture xtscc ch_credit_`h' onset_all ///
         l1_gdpg l2_gdpg debt infl ca banking_crisis L.claims_govt ///
         i.year if sample==1, fe lag(`lag')
+    di as text "  [Test1 +clms    h=`h'] _rc=" _rc
     if _rc == 0 {
         matrix b_clms[`row',1]    = _b[onset_all]
         matrix lo90_clms[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
@@ -207,6 +217,7 @@ forvalues h = 0/4 {
     capture xtscc ch_inv_`h' onset_all ///
         l1_gdpg l2_gdpg debt ca banking_crisis ///
         i.year if sample==1, fe lag(`lag')
+    di as text "  [Test2 no_credit h=`h'] _rc=" _rc
     if _rc == 0 {
         matrix b_noc[`row',1]    = _b[onset_all]
         matrix lo90_noc[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
@@ -219,6 +230,7 @@ forvalues h = 0/4 {
     capture xtscc ch_inv_`h' onset_all ///
         l1_gdpg l2_gdpg debt ca banking_crisis L.credit ///
         i.year if sample==1, fe lag(`lag')
+    di as text "  [Test2 w_credit  h=`h'] _rc=" _rc
     if _rc == 0 {
         matrix b_wic[`row',1]    = _b[onset_all]
         matrix lo90_wic[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
