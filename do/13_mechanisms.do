@@ -382,7 +382,7 @@ forvalues h = 0/4 {
         matrix hi90_all[`row',1] = _b[onset_all] + 1.645*_se[onset_all]
         local b0   = _b[onset_all]
         local se0  = _se[onset_all]
-        local r2_0 = e(r2)
+        local r2_0 = e(r2_w)
     }
 
     * Split by episode type — with lagged CA
@@ -400,7 +400,7 @@ forvalues h = 0/4 {
         local se1  = _se[onset_nd]
         local b2   = _b[onset_def]
         local se2  = _se[onset_def]
-        local r2_1 = e(r2)
+        local r2_1 = e(r2_w)
 
         di "h=" `h' "  " %6.3f `b0' "  " %5.3f `se0' "  " %5.3f `r2_0' ///
                "  " %6.3f `b1' "  " %5.3f `se1' ///
