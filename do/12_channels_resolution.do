@@ -30,6 +30,8 @@
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
+sort cid year
+xtset cid year
 
 * ══════════════════════════════════════════════════════════════════════════
 * 1. GENERATE CHANNEL OUTCOME VARIABLES

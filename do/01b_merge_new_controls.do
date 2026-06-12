@@ -251,5 +251,7 @@ foreach v in reer_chg banking_crisis revenue_gdp {
     di as result "  `v': " r(N) " obs"
 }
 
+sort cid year
+xtset cid year
 save "$clean/panel_lp.dta", replace
 di as result _n "01b_merge_new_controls.do complete — panel_lp.dta updated."
