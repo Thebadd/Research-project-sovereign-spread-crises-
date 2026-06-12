@@ -488,4 +488,150 @@ twoway ///
 graph export "$figs/fig13d_ca_split.pdf", replace
 di as result "Figure saved: fig13d_ca_split.pdf"
 
+* ══════════════════════════════════════════════════════════════════════════
+* TEST 3 ROBUSTNESS — IPW-WEIGHTED CA LP (nd vs. default)
+*   Same probit first stage as 08_ipw_lp.do Act 2: onset_def ~ debt + ca
+*   among crisis onset years. Stabilized weights, trimmed [0.05, 0.95].
+*   Estimator: areg [aw=ipw2] (xtscc does not accept pweights).
+*   Output: fig13e_ca_ipw.pdf
+* ══════════════════════════════════════════════════════════════════════════
+
+use "$clean/panel_lp.dta", clear
+sort cid year
+xtset cid year
+
+capture drop ca_base
+gen ca_base = L.ca
+forvalues h = 0/4 {
+    capture drop ch_ca_`h'
+    gen ch_ca_`h' = F`h'.ca - ca_base
+}
+
+* ── Reconstruct Act 2 IPW weights ────────────────────────────────────────
+probit onset_def debt ca if onset_all == 1, vce(robust)
+
+predict pscore2_ca if onset_all == 1, pr
+
+gen trimmed2_ca = (pscore2_ca < 0.05 | pscore2_ca > 0.95) if !missing(pscore2_ca)
+replace pscore2_ca = . if trimmed2_ca == 1
+
+quietly summarize onset_def if onset_all == 1
+local p_def = r(mean)
+local p_nd  = 1 - `p_def'
+
+gen ipw2_ca = .
+replace ipw2_ca = `p_def' / pscore2_ca       if onset_def == 1 & !missing(pscore2_ca)
+replace ipw2_ca = `p_nd'  / (1 - pscore2_ca) if onset_nd  == 1 & !missing(pscore2_ca)
+replace ipw2_ca = 1 if onset_all == 0 & sample == 1
+
+* ── Run CA LP: OLS and IPW ───────────────────────────────────────────────
+di as result _n "========================================================"
+di as result "TEST 3 ROBUSTNESS: IPW-CORRECTED CA LP"
+di as result "========================================================"
+di as result "h   b_nd_OLS  b_def_OLS  b_nd_IPW  b_def_IPW"
+
+foreach m in b_nd_ols lo90_nd_ols hi90_nd_ols b_def_ols lo90_def_ols hi90_def_ols ///
+             b_nd_ipw lo90_nd_ipw hi90_nd_ipw b_def_ipw lo90_def_ipw hi90_def_ipw {
+    matrix `m' = J(5,1,.)
+}
+
+forvalues h = 0/4 {
+    local row = `h' + 1
+
+    capture areg ch_ca_`h' onset_nd onset_def ///
+        l1_gdpg l2_gdpg debt L.ca ///
+        i.year if sample == 1, absorb(cid) vce(cluster cid)
+    if _rc == 0 {
+        matrix b_nd_ols[`row',1]     = _b[onset_nd]
+        matrix lo90_nd_ols[`row',1]  = _b[onset_nd]  - 1.645*_se[onset_nd]
+        matrix hi90_nd_ols[`row',1]  = _b[onset_nd]  + 1.645*_se[onset_nd]
+        matrix b_def_ols[`row',1]    = _b[onset_def]
+        matrix lo90_def_ols[`row',1] = _b[onset_def] - 1.645*_se[onset_def]
+        matrix hi90_def_ols[`row',1] = _b[onset_def] + 1.645*_se[onset_def]
+        local b_nd_u  = _b[onset_nd]
+        local b_def_u = _b[onset_def]
+    }
+
+    capture areg ch_ca_`h' onset_nd onset_def ///
+        l1_gdpg l2_gdpg debt L.ca ///
+        [aw=ipw2_ca] if sample == 1 & !missing(ipw2_ca), absorb(cid) vce(cluster cid)
+    if _rc == 0 {
+        matrix b_nd_ipw[`row',1]     = _b[onset_nd]
+        matrix lo90_nd_ipw[`row',1]  = _b[onset_nd]  - 1.645*_se[onset_nd]
+        matrix hi90_nd_ipw[`row',1]  = _b[onset_nd]  + 1.645*_se[onset_nd]
+        matrix b_def_ipw[`row',1]    = _b[onset_def]
+        matrix lo90_def_ipw[`row',1] = _b[onset_def] - 1.645*_se[onset_def]
+        matrix hi90_def_ipw[`row',1] = _b[onset_def] + 1.645*_se[onset_def]
+        local b_nd_w  = _b[onset_nd]
+        local b_def_w = _b[onset_def]
+
+        di "h=" `h' "  " %7.3f `b_nd_u' "    " %7.3f `b_def_u' ///
+               "    " %7.3f `b_nd_w' "    " %7.3f `b_def_w'
+    }
+}
+
+* ── Save IRF datasets ────────────────────────────────────────────────────
+preserve
+    clear
+    set obs 5
+    gen horizon = _n - 1
+    foreach m in b_nd b_def lo90_nd hi90_nd lo90_def hi90_def {
+        svmat `m'_ols, names(`m')
+        rename `m'1 `m'
+    }
+    gen series = "ols"
+    save "$clean/irf_ca_act2_ols.dta", replace
+restore
+
+preserve
+    clear
+    set obs 5
+    gen horizon = _n - 1
+    foreach m in b_nd b_def lo90_nd hi90_nd lo90_def hi90_def {
+        svmat `m'_ipw, names(`m')
+        rename `m'1 `m'
+    }
+    gen series = "ipw"
+    save "$clean/irf_ca_act2_ipw.dta", replace
+restore
+
+* ── Figure 13e: CA LP — OLS vs. IPW overlay ─────────────────────────────
+local c_nd  "34 139 34"
+local c_def "157 36 73"
+
+use "$clean/irf_ca_act2_ols.dta", clear
+append using "$clean/irf_ca_act2_ipw.dta"
+
+twoway ///
+    (rarea lo90_nd hi90_nd horizon if series=="ols", ///
+        color("`c_nd'%15") lwidth(none)) ///
+    (connected b_nd horizon if series=="ols", ///
+        lcolor("`c_nd'") lwidth(medthick) msymbol(triangle) mcolor("`c_nd'")) ///
+    (rarea lo90_def hi90_def horizon if series=="ols", ///
+        color("`c_def'%15") lwidth(none)) ///
+    (connected b_def horizon if series=="ols", ///
+        lcolor("`c_def'") lwidth(medthick) msymbol(square) mcolor("`c_def'")) ///
+    (connected b_nd horizon if series=="ipw", ///
+        lcolor("`c_nd'") lwidth(medthick) lpattern(dash) ///
+        msymbol(triangle_hollow) mcolor("`c_nd'")) ///
+    (connected b_def horizon if series=="ipw", ///
+        lcolor("`c_def'") lwidth(medthick) lpattern(dash) ///
+        msymbol(square_hollow) mcolor("`c_def'")), ///
+    yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
+    xlabel(0(1)4, labsize(medsmall)) ///
+    ylabel(, format(%5.2f) labsize(medsmall)) ///
+    xtitle("Years after onset", size(small)) ///
+    ytitle("Cumulative change in current account/GDP (pp)", size(small)) ///
+    title("Current Account Response — IPW Robustness", size(medium) color(navy)) ///
+    subtitle("Solid = OLS baseline. Dashed = IPW-weighted.", size(small)) ///
+    legend(order(2 "Non-default (OLS)" 4 "Default-linked (OLS)" ///
+                 5 "Non-default (IPW)" 6 "Default-linked (IPW)") ///
+           cols(2) size(small) region(lcolor(none) fcolor(none))) ///
+    note("IPW reweights non-default episodes to match default-linked on pre-crisis" ///
+         "fundamentals (probit: debt & CA). areg, clustered SE.", size(vsmall)) ///
+    graphregion(color(white)) plotregion(color(white))
+
+graph export "$figs/fig13e_ca_ipw.pdf", replace
+di as result "Figure saved: fig13e_ca_ipw.pdf"
+
 di as result _n "13_mechanisms.do complete."
