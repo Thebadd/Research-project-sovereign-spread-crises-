@@ -188,3 +188,37 @@ compress
 save "$clean/panel_lp.dta", replace
 
 di as result "panel_lp.dta saved. Obs: `=_N', Countries: `=r(max)' (from xtdescribe above)"
+
+* ══════════════════════════════════════════════════════════════════════════
+* 7. CRISIS TREATMENT DIAGNOSTIC
+*    Identify ever-treated vs. never-treated countries
+* ══════════════════════════════════════════════════════════════════════════
+
+di as result _n "=== CRISIS TREATMENT DIAGNOSTIC ==="
+
+bysort country: egen ever_crisis = max(onset_all)
+bysort country: egen n_onsets   = total(onset_all)
+
+* Ever-treated: number of episodes per country
+di as result _n "--- Ever-treated countries (n_onsets >= 1) ---"
+preserve
+    bysort country: keep if _n == 1
+    keep if ever_crisis == 1
+    sort n_onsets country
+    list country n_onsets, sep(0) noobs abbrev(30)
+    quietly count
+    di as result "Total ever-treated countries: " r(N)
+restore
+
+* Never-treated: pure control group
+di as result _n "--- Never-treated countries (pure control group) ---"
+preserve
+    bysort country: keep if _n == 1
+    keep if ever_crisis == 0
+    sort country
+    list country, sep(0) noobs abbrev(30)
+    quietly count
+    di as result "Total never-treated countries: " r(N)
+restore
+
+drop ever_crisis n_onsets
