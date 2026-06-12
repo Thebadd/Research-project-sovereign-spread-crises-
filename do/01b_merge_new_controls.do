@@ -175,30 +175,25 @@ capture rename v1        iso3    // fallback
 * Keep only revenue indicator
 keep if INDICATORID == "GGR_NGDP"
 
-* DIAGNOSTIC: show exact variable names so we can fix the rename
-describe
-di "--- varlist: " "`: varlist'"
-
-* Drop all known text/metadata columns — whatever remains are year columns
-* (Stata names digit-starting headers with _ prefix: 1980 → _1980)
-capture drop COUNTRY INDICATOR INDICATORDescription FREQUENCY SCALE UNIT ///
-             COUNTRY_UPDATE_DATE PUBLICATION_DATE UPDATE_DATE ///
-             PRIMARY_DOMESTIC_CURRENCY
-
-* Rename year columns to yr#### (try both _ prefix and no prefix)
-foreach y of numlist 1980/2031 {
-    capture rename _`y' yr`y'   // Stata underscore prefix
-    capture rename  `y' yr`y'   // plain numeric name (fallback)
-    capture rename v`y' yr`y'   // v-prefix fallback
+* Year columns are named AB, AC, AD, ... CA (Excel column letters, labels = years)
+* Rename AB→yr1980, AC→yr1981, ... CA→yr2031
+local col AB AC AD AE AF AG AH AI AJ AK AL AM AN AO AP AQ AR AS AT AU ///
+          AV AW AX AY AZ BA BB BC BD BE BF BG BH BI BJ BK BL BM BN BO ///
+          BP BQ BR BS BT BU BV BW BX BY BZ CA
+local y = 1980
+foreach c of local col {
+    capture rename `c' yr`y'
+    local ++y
 }
 
-* Drop any remaining non-year string columns
+* Drop remaining text/metadata columns
 foreach v of varlist * {
     capture confirm string variable `v'
     if _rc == 0 & "`v'" != "iso3" {
         drop `v'
     }
 }
+capture drop COUNTRY_UPDATE_DATE
 
 keep iso3 yr*
 keep if length(iso3) == 3
