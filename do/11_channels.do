@@ -582,7 +582,7 @@ foreach ch of local channels {
         title(`tlab', size(medsmall) color(navy)) ///
         legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
-        name(`: word `i' of `fignames_cmp'', replace)
+        nodraw name(`: word `i' of `fignames_cmp'', replace)
 
     local ++i
 }
@@ -590,7 +590,7 @@ foreach ch of local channels {
 graph combine fig11a_cmp fig11b_cmp fig11c_cmp fig11d_cmp fig11e_cmp fig11f_cmp, ///
     cols(3) rows(2) ///
     title("Channels: Unweighted vs. IPW-Weighted", size(medlarge) color(navy)) ///
-    note("Blue solid = unweighted xtscc (DK SE). Red dashed = IPW-weighted areg (cluster SE)." ///
+    note("Blue solid = unweighted (DK SE). Red dashed = IPW-weighted (cluster SE)." ///
          "IPW weights from probit of onset on lagged macro fundamentals.", size(vsmall)) ///
     graphregion(color(white)) xsize(10) ysize(7)
 
