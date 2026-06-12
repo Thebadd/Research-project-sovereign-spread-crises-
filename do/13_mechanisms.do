@@ -83,7 +83,7 @@ forvalues h = 0/4 {
 
     * Baseline: current 11_channels spec
     capture xtscc ch_credit_`h' onset_all ///
-        l1_gdpg l2_gdpg debt infl ca ///
+        l1_gdpg l2_gdpg debt infl ca banking_crisis ///
         i.year if sample==1, fe lag(`lag')
 
     if _rc == 0 {
@@ -96,7 +96,7 @@ forvalues h = 0/4 {
 
     * With L.claims_govt added
     capture xtscc ch_credit_`h' onset_all ///
-        l1_gdpg l2_gdpg debt infl ca L.claims_govt ///
+        l1_gdpg l2_gdpg debt infl ca banking_crisis L.claims_govt ///
         i.year if sample==1, fe lag(`lag')
 
     if _rc == 0 {
@@ -207,7 +207,7 @@ forvalues h = 0/4 {
 
     * Without L.credit (total effect)
     capture xtscc ch_inv_`h' onset_all ///
-        l1_gdpg l2_gdpg debt ca ///
+        l1_gdpg l2_gdpg debt ca banking_crisis ///
         i.year if sample==1, fe lag(`lag')
 
     if _rc == 0 {
@@ -220,7 +220,7 @@ forvalues h = 0/4 {
 
     * With L.credit (direct effect net of credit)
     capture xtscc ch_inv_`h' onset_all ///
-        l1_gdpg l2_gdpg debt ca L.credit ///
+        l1_gdpg l2_gdpg debt ca banking_crisis L.credit ///
         i.year if sample==1, fe lag(`lag')
 
     if _rc == 0 {
