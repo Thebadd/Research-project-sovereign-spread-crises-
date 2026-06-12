@@ -359,7 +359,7 @@ forvalues h = 0/4 {
 di as result _n "========================================================"
 di as result "TEST 3: CURRENT ACCOUNT LP (Aguiar-Gopinath mechanism)"
 di as result "  Prediction: CA moves toward surplus after onset (β > 0)"
-di as result "  Controls include L.ca L2.ca to absorb CA persistence"
+di as result "  Controls include L.ca to absorb CA persistence"
 di as result "========================================================"
 di as result "h    β_all    SE      R2_all   β_nd     SE       β_def    SE      R2_split"
 
@@ -374,7 +374,7 @@ forvalues h = 0/4 {
 
     * Aggregate — with lagged CA for persistence
     capture xtscc ch_ca_`h' onset_all ///
-        l1_gdpg l2_gdpg debt L.ca L2.ca ///
+        l1_gdpg l2_gdpg debt L.ca ///
         i.year if sample==1, fe lag(`lag')
     if _rc == 0 {
         matrix b_all[`row',1]    = _b[onset_all]
@@ -387,7 +387,7 @@ forvalues h = 0/4 {
 
     * Split by episode type — with lagged CA
     capture xtscc ch_ca_`h' onset_nd onset_def ///
-        l1_gdpg l2_gdpg debt L.ca L2.ca ///
+        l1_gdpg l2_gdpg debt L.ca ///
         i.year if sample==1, fe lag(`lag')
     if _rc == 0 {
         matrix b_nd[`row',1]    = _b[onset_nd]
