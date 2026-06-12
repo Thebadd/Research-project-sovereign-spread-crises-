@@ -101,26 +101,21 @@ keep if length(iso3) == 3
 * Drop non-data columns
 capture drop series_name series_code country_name
 
-* Destring all remaining columns (year data)
-foreach v of varlist * {
-    if "`v'" != "iso3" {
-        destring `v', replace force
-    }
+* Destring all year columns (named YR1990, YR1991, ...)
+foreach v of varlist YR* {
+    destring `v', replace force
 }
 
-* Reshape to long — all non-iso3 variables are year columns
-reshape long , i(iso3) j(year_str) string
-rename _j year_col
-rename __000000 reer_index
+* Reshape to long — stub = YR, j = numeric year
+reshape long YR, i(iso3) j(year)
+rename YR reer_index
 
-* year_str will be the column name; extract 4-digit year from it
-gen year = real(substr(year_col, 1, 4))
-drop year_col year_str
 keep if !missing(year) & year >= 1989
 
 * Sort and compute % change
 sort iso3 year
-by iso3: gen reer_chg = (reer_index / reer_index[_n-1] - 1) * 100 if reer_index[_n-1] != .
+by iso3: gen reer_chg = (reer_index / reer_index[_n-1] - 1) * 100 ///
+    if !missing(reer_index[_n-1])
 drop reer_index
 
 * Merge with crosswalk
@@ -147,20 +142,14 @@ capture rename CountryCode iso3
 keep if length(iso3) == 3
 capture drop series_name series_code country_name
 
-foreach v of varlist * {
-    if "`v'" != "iso3" {
-        destring `v', replace force
-    }
+foreach v of varlist YR* {
+    destring `v', replace force
 }
 
-reshape long , i(iso3) j(year_str) string
-rename _j year_col
-rename __000000 banking_crisis
+reshape long YR, i(iso3) j(year)
+rename YR banking_crisis
 
-gen year = real(substr(year_col, 1, 4))
-drop year_col year_str
 keep if !missing(year) & year >= 1989
-
 keep if !missing(banking_crisis)
 
 merge m:1 iso3 using `crosswalk', keep(match) nogen
