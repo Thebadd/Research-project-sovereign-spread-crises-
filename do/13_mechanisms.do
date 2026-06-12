@@ -324,4 +324,146 @@ twoway ///
 graph export "$figs/fig13b_inv_mediation.pdf", replace
 di as result "Figure saved: fig13b_inv_mediation.pdf"
 
+* ══════════════════════════════════════════════════════════════════════════
+* TEST 3 — CURRENT ACCOUNT LP
+*   Theory: Aguiar-Gopinath (2006) predict spread crises force current
+*   account adjustment toward surplus (forced deleveraging). Test whether
+*   the CA moves toward surplus following onset, overall and by episode type.
+*
+*   Note: ca is a CONTROL in channel regressions; here it is the OUTCOME
+*   so it is excluded from the right-hand side.
+*
+*   Specs:
+*     Aggregate : ch_ca_h = αi + γt + β·onset_all + l1_gdpg l2_gdpg debt + ε
+*     By type   : same with onset_nd and onset_def separately
+*
+*   Prediction: β > 0 (CA moves toward surplus = forced deleveraging)
+*               stronger for default episodes (harder market exclusion)
+*
+*   Output: fig13c_ca_lp.pdf, irf_mech_ca_*.dta
+* ══════════════════════════════════════════════════════════════════════════
+
+* ── Reload panel ─────────────────────────────────────────────────────────
+use "$clean/panel_lp.dta", clear
+sort cid year
+xtset cid year
+
+* Generate CA outcome variables
+capture drop ca_base
+gen ca_base = L.ca
+forvalues h = 0/4 {
+    capture drop ch_ca_`h'
+    gen ch_ca_`h' = F`h'.ca - ca_base
+}
+
+di as result _n "========================================================"
+di as result "TEST 3: CURRENT ACCOUNT LP (Aguiar-Gopinath mechanism)"
+di as result "  Prediction: CA moves toward surplus after onset (β > 0)"
+di as result "========================================================"
+di as result "h    β_all    SE      β_nd     SE       β_def    SE"
+
+* Storage matrices
+foreach m in b_all lo90_all hi90_all b_nd lo90_nd hi90_nd b_def lo90_def hi90_def {
+    matrix `m' = J(5,1,.)
+}
+
+forvalues h = 0/4 {
+    local lag = max(1, `h'+1)
+    local row = `h' + 1
+
+    * Aggregate
+    capture xtscc ch_ca_`h' onset_all ///
+        l1_gdpg l2_gdpg debt ///
+        i.year if sample==1, fe lag(`lag')
+    if _rc == 0 {
+        matrix b_all[`row',1]    = _b[onset_all]
+        matrix lo90_all[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
+        matrix hi90_all[`row',1] = _b[onset_all] + 1.645*_se[onset_all]
+        local b0  = _b[onset_all]
+        local se0 = _se[onset_all]
+    }
+
+    * Non-default
+    capture xtscc ch_ca_`h' onset_nd onset_def ///
+        l1_gdpg l2_gdpg debt ///
+        i.year if sample==1, fe lag(`lag')
+    if _rc == 0 {
+        matrix b_nd[`row',1]    = _b[onset_nd]
+        matrix lo90_nd[`row',1] = _b[onset_nd] - 1.645*_se[onset_nd]
+        matrix hi90_nd[`row',1] = _b[onset_nd] + 1.645*_se[onset_nd]
+        matrix b_def[`row',1]    = _b[onset_def]
+        matrix lo90_def[`row',1] = _b[onset_def] - 1.645*_se[onset_def]
+        matrix hi90_def[`row',1] = _b[onset_def] + 1.645*_se[onset_def]
+        local b1  = _b[onset_nd]
+        local se1 = _se[onset_nd]
+        local b2  = _b[onset_def]
+        local se2 = _se[onset_def]
+
+        di "h=" `h' "   " %6.3f `b0' "  " %5.3f `se0' ///
+               "    " %6.3f `b1' "  " %5.3f `se1' ///
+               "    " %6.3f `b2' "  " %5.3f `se2'
+    }
+}
+
+di as result _n "Interpretation:"
+di as result "  β > 0 → CA moves toward surplus (forced deleveraging, Aguiar-Gopinath)"
+di as result "  β_def > β_nd → harder adjustment in default episodes"
+
+* ── Save IRF datasets ────────────────────────────────────────────────────
+
+foreach spec in all nd def {
+    preserve
+        clear
+        set obs 5
+        gen horizon = _n - 1
+        foreach m in b lo90 hi90 {
+            svmat `m'_`spec', names(`m')
+            rename `m'1 `m'
+        }
+        gen spec = "`spec'"
+        save "$clean/irf_mech_ca_`spec'.dta", replace
+    restore
+}
+
+* ── Figure: Test 3 ───────────────────────────────────────────────────────
+
+local c_all  "23 55 94"
+local c_nd   "34 139 34"
+local c_def  "157 36 73"
+
+use "$clean/irf_mech_ca_all.dta", clear
+append using "$clean/irf_mech_ca_nd.dta"
+append using "$clean/irf_mech_ca_def.dta"
+
+twoway ///
+    (rarea lo90 hi90 horizon if spec=="all", ///
+        color("`c_all'%15") lwidth(none)) ///
+    (connected b horizon if spec=="all", ///
+        lcolor("`c_all'") lwidth(medthick) msymbol(circle) mcolor("`c_all'")) ///
+    (rarea lo90 hi90 horizon if spec=="nd", ///
+        color("`c_nd'%15") lwidth(none)) ///
+    (connected b horizon if spec=="nd", ///
+        lcolor("`c_nd'") lwidth(medthick) lpattern(dash) ///
+        msymbol(triangle) mcolor("`c_nd'")) ///
+    (rarea lo90 hi90 horizon if spec=="def", ///
+        color("`c_def'%15") lwidth(none)) ///
+    (connected b horizon if spec=="def", ///
+        lcolor("`c_def'") lwidth(medthick) lpattern(shortdash) ///
+        msymbol(square) mcolor("`c_def'")), ///
+    yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
+    xlabel(0(1)4, labsize(medsmall)) ///
+    ylabel(, format(%5.2f) labsize(medsmall)) ///
+    xtitle("Years after onset", size(small)) ///
+    ytitle("Cumulative change in current account/GDP (pp)", size(small)) ///
+    title("Current Account Response to Spread Crisis", size(medium) color(navy)) ///
+    subtitle("Forced deleveraging test (Aguiar-Gopinath 2006)", size(small)) ///
+    legend(order(2 "All episodes" 4 "Non-default" 6 "Default-linked") ///
+           ring(0) pos(7) cols(1) size(small) region(lcolor(none) fcolor(none))) ///
+    note("Positive = CA moves toward surplus (forced deleveraging)." ///
+         "Controls: l1_gdpg l2_gdpg debt. DK SE. Country & year FE.", size(vsmall)) ///
+    graphregion(color(white)) plotregion(color(white))
+
+graph export "$figs/fig13c_ca_lp.pdf", replace
+di as result "Figure saved: fig13c_ca_lp.pdf"
+
 di as result _n "13_mechanisms.do complete."
