@@ -43,3 +43,4 @@ do "$do/08_ipw_lp.do"
 * do "$do/10_heterogeneity.do"  // removed: frontier variable poorly coded, duration data incomplete
 do "$do/11_channels.do"
 do "$do/12_channels_resolution.do"
+do "$do/13_mechanisms.do"
