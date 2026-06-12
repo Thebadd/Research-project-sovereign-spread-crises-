@@ -31,6 +31,7 @@ global tabs  "$root/output/tables"
 
 * ── Run pipeline ────────────────────────────────────────────────────────────
 do "$do/01_build_panel.do"
+do "$do/01b_merge_new_controls.do"
 do "$do/02_lp_all.do"
 do "$do/03_lp_resolution.do"
 do "$do/04_graphs.do"
