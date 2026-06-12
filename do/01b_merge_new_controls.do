@@ -175,14 +175,25 @@ capture rename v1        iso3    // fallback
 * Keep only revenue indicator
 keep if INDICATORID == "GGR_NGDP"
 
-keep iso3 v*
-* Year columns are numeric-named: Stata stores them as v5, v6 ... or as the
-* actual numbers. After firstrow they become variable names = column headers.
-* Rename to yr#### pattern for reshape.
+* Drop all known text/metadata columns — whatever remains are year columns
+* (Stata names digit-starting headers with _ prefix: 1980 → _1980)
+capture drop COUNTRY INDICATOR INDICATORDescription FREQUENCY SCALE UNIT ///
+             COUNTRY_UPDATE_DATE PUBLICATION_DATE UPDATE_DATE ///
+             PRIMARY_DOMESTIC_CURRENCY
 
-* Identify and rename year columns (1980–2031)
+* Rename year columns to yr#### (try both _ prefix and no prefix)
 foreach y of numlist 1980/2031 {
-    capture rename `y' yr`y'
+    capture rename _`y' yr`y'   // Stata underscore prefix
+    capture rename  `y' yr`y'   // plain numeric name (fallback)
+    capture rename v`y' yr`y'   // v-prefix fallback
+}
+
+* Drop any remaining non-year string columns
+foreach v of varlist * {
+    capture confirm string variable `v'
+    if _rc == 0 & "`v'" != "iso3" {
+        drop `v'
+    }
 }
 
 keep iso3 yr*
