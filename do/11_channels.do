@@ -581,7 +581,8 @@ foreach ch of local channels {
         ytitle("Cumulative change (pp)", size(small)) ///
         title(`tlab', size(medsmall) color(navy)) ///
         legend(order(2 "Unweighted (DK SE)" 4 "IPW-weighted (cluster SE)") ///
-               ring(0) pos(3) size(vsmall)) ///
+               ring(0) pos(11) cols(1) size(vsmall) ///
+               region(lcolor(none) fcolor(none))) ///
         graphregion(color(white)) plotregion(color(white)) ///
         name(`: word `i' of `fignames_cmp'', replace)
 
