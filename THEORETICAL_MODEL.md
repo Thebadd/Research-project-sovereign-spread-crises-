@@ -564,7 +564,26 @@ insignificant at $h=0$ (when $\acute{n}_0 = -\mathrm{B}\hat{s}_0$ is small if $b
 
 ### 8.4 The Default Path: Modified Log-Linearized System
 
-Under default, three structural breaks modify the transmission equations.
+#### Why GDP falls faster under default — four simultaneous mechanisms
+
+The key difference between the two paths is that **under default, four distinct mechanisms activate simultaneously**, each depressing output independently. Under non-default, only the sovereign spread rises; the economy remains connected to world capital markets, investment continues, and the transmission is entirely mediated by the banking sector. Under default:
+
+| Mechanism | Timing | Equation | Absent under non-default? |
+|---|---|---|---|
+| **1. Capital depletion** ($I_t = 0$, capital shrinks at $-\delta$ per year) | Progressive, worsens at $h=1,2,3,4$ | IR.5: $\hat{k}^{\text{def}}_h = h\ln(1-\delta)$ | Yes — $I_t > 0$ in non-default |
+| **2. Autarky lending-rate wedge** ($R^{L,\text{aut}} \gg R^{L,ss}$) | Immediate at $h=0$ | IR.5: $-\varepsilon_p \Delta r^{L,\text{aut}}$ | Yes — non-default uses $R^* + \gamma s_t$ |
+| **3. Sudden stop** (external funding $F_t = 0$, maturing debt non-rollable) | Immediate at $h=0$ | Eq. (30): $CA^{\text{def}} = F_{-1} + (1-\delta^B)B_0$ | Yes — $F_t > 0$ in non-default |
+| **4. Direct exclusion cost** (trade finance, FDI, imported inputs lost) | Immediate, persistent | Parameter $\phi$ in autarky budget | Yes — $\phi = 0$ out of default |
+
+Mechanisms 1 and 2 are embedded directly in equation (IR.5). Mechanism 3 generates the front-loaded current-account adjustment. Mechanism 4 enters the autarky budget constraint.
+
+**Capital depletion (Mechanism 1) is the key driver of the GDP-denominator effect.** It is **cumulative and strictly worsening**: at $h=1$, GDP falls by $\alpha\delta \approx 3.3$ pp from capital depletion alone; by $h=4$, the cumulative capital loss drives GDP down by a further $\alpha \cdot |4\ln(1-\delta)| \approx 11$ pp. This is why the GDP denominator shrinks so much faster than private credit in default episodes, generating the empirical result that credit/GDP does not fall more despite private lending collapsing (Proposition 3).
+
+Under non-default, **none of these four mechanisms is active**. Only the sovereign spread channel $\gamma \hat{s}_t$ and the balance-sheet amplification through $\acute{n}_t$ operate. This is why the non-default recession is shallower and the credit channel — not capital depletion — is the dominant empirical signature.
+
+---
+
+Under default, three structural breaks modify the transmission equations relative to (LL.1a)–(LL.7).
 
 **Break 1 — Collapse of international wholesale funding.** Setting $F_t = 0$ severs the sovereign-ceiling link. The domestic deposit rate is now set by closed-economy equilibrium (§5.4) rather than by international arbitrage. Equation LL.7 is replaced by the autarky Euler equation with $R^{D,\text{aut}}_t > R^{D,ss}$, inducing a larger front-loaded consumption contraction than under non-default.
 
