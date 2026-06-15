@@ -47,7 +47,7 @@ The household supplies labor inelastically ($L_t = 1$ in all periods) and holds 
 
 Maximizing (1) subject to (2) yields the **consumption Euler equation**:
 
-$$C_t^{-\sigma} = \beta \, R^D_{t+1} \, \mathbb{E}_t\!\left[C_{t+1}^{-\sigma}\right] \qquad\qquad (3)$$
+$$C_t^{-\sigma} = \beta \, R^D_{t+1} \, \mathbb{E}_t\left[C_{t+1}^{-\sigma}\right] \qquad\qquad (3)$$
 
 This equation says the household equates the marginal utility of consuming today ($C_t^{-\sigma}$) to the discounted expected marginal utility of consuming tomorrow, scaled by the deposit return $R^D_{t+1}$. A higher deposit rate $R^D_{t+1}$ induces the household to save more and consume less today — the **intertemporal substitution effect** that is central to the model's transmission mechanism.
 
@@ -150,7 +150,7 @@ where $R^D_t$ is the domestic deposit rate that households receive.
 
 **Equation (12) is the sovereign ceiling's key implication**: the domestic deposit rate is pinned to the international sovereign spread. Any rise in $s_t$ immediately raises $R^D_{t+1}$, which via the Euler equation (3) induces households to defer consumption and reduce demand. Substituting (12) into (3):
 
-$$C_t^{-\sigma} = \beta \, (R^* + \gamma s_{t+1}) \, \mathbb{E}_t\!\left[C_{t+1}^{-\sigma}\right] \qquad\qquad (3')$$
+$$C_t^{-\sigma} = \beta \, (R^* + \gamma s_{t+1}) \, \mathbb{E}_t\left[C_{t+1}^{-\sigma}\right] \qquad\qquad (3')$$
 
 This modified Euler equation makes explicit that **a sovereign spread spike reduces consumption today** through the intertemporal substitution channel, even before any change in credit quantities or investment. This channel is absent from models that treat the spread as only a government borrowing cost.
 
@@ -215,7 +215,7 @@ $$\boxed{R^L_t = R^* + \gamma s_t + \varphi \, \frac{b^B_{t-1}}{N_t}} \qquad\qqu
 
 A continuum of risk-neutral foreign investors can purchase the government's external bonds at price $q_t$. They do not purchase domestic bank liabilities or firm equity — they operate exclusively in the sovereign bond market. Their participation requires that expected returns equal the risk-free rate $R^*$:
 
-$$q_t (1+R^*) = \mathbb{E}_t\!\left[(1-\pi_{t+1}) \cdot 1 + \pi_{t+1} \cdot \theta\right] \qquad\qquad (18)$$
+$$q_t (1+R^*) = \mathbb{E}_t\left[(1-\pi_{t+1}) \cdot 1 + \pi_{t+1} \cdot \theta\right] \qquad\qquad (18)$$
 
 where:
 - $q_t \in (0,1)$ is the current price of a sovereign bond with face value of 1 (a discount bond)
@@ -241,7 +241,7 @@ The spread $s_t$ is:
 
 A spread crisis episode is defined as any period in which the EMBIG spread crosses the threshold $\bar{s} = 1000$ basis points (10 percentage points) from below:
 
-$$\Omega_t = \mathbf{1}\!\left[s_t \ge \bar{s}\right] \qquad\qquad (20)$$
+$$\Omega_t = \mathbf{1}\left[s_t \ge \bar{s}\right] \qquad\qquad (20)$$
 
 where $\Omega_t = 1$ denotes a spread crisis onset and $\mathbf{1}[\cdot]$ is the indicator function. This threshold is consistent with the Pescatori-Sy (2007) criterion used in the empirical analysis. By inverting (19), $s_t \ge \bar{s}$ if and only if the default probability exceeds a threshold $\bar{\pi}$ derived from $\bar{s}$ and the structural parameters.
 
@@ -253,7 +253,7 @@ where $\Omega_t = 1$ denotes a spread crisis onset and $\mathbf{1}[\cdot]$ is th
 
 Each period the government must finance primary expenditure and repay maturing debt, either from tax revenue or by issuing new bonds:
 
-$$G_t + (1-\delta^B) B_t = \tau Y_t + q_t \!\left[B_{t+1} - (1-\delta^B)B_t\right] \qquad\qquad (21)$$
+$$G_t + (1-\delta^B) B_t = \tau Y_t + q_t \left[B_{t+1} - (1-\delta^B)B_t\right] \qquad\qquad (21)$$
 
 where:
 - $G_t \ge \bar{G}$ is primary government expenditure, subject to a **minimum spending floor** $\bar{G} > 0$ (essential services the government cannot cut below)
@@ -269,7 +269,7 @@ where:
 
 The government maximizes the discounted value of primary expenditure utility subject to the budget constraint. Let the **state variables** be $(B_t, K_t)$ — the current debt level and the current capital stock (which determines tax capacity $\tau Y_t$ through production). The **value of repayment** satisfies:
 
-$$V^R_t(B_t,K_t) = \max_{G_t,\; B_{t+1}}\left\{ U(G_t) + \beta_p \, \mathbb{E}_t\!\left[V_{t+1}(B_{t+1},K_{t+1})\right] \right\} \qquad\qquad (22)$$
+$$V^R_t(B_t,K_t) = \max_{G_t,\; B_{t+1}}\{ U(G_t) + \beta_p \, \mathbb{E}_t\left[V_{t+1}(B_{t+1},K_{t+1})\right] \} \qquad\qquad (22)$$
 
 where:
 - $U(G_t)$ is the government's per-period utility from primary expenditure (strictly increasing and concave)
@@ -279,7 +279,7 @@ where:
 
 Upon default, the government is **excluded from international capital markets** with probability $1-\mu$ each period (it re-enters with probability $\mu$, calibrated at $\mu = 0.22$ based on Gelos et al. 2011 who find an average exclusion period of approximately 4.5 years). The **value of default** is:
 
-$$V^D_t(K_t) = \max_{G_t}\left\{ U(G_t) + \beta_p \, \mathbb{E}_t\!\left[\mu \, V^R_{t+1}(0, K_{t+1}) + (1-\mu) V^D_{t+1}(K_{t+1})\right] \right\} \qquad\qquad (23)$$
+$$V^D_t(K_t) = \max_{G_t}\{ U(G_t) + \beta_p \, \mathbb{E}_t\left[\mu \, V^R_{t+1}(0, K_{t+1}) + (1-\mu) V^D_{t+1}(K_{t+1})\right] \} \qquad\qquad (23)$$
 
 where:
 - $V^D$ depends only on $K_t$ (not $B_t$) because debt obligations are suspended during default
@@ -295,7 +295,7 @@ $$V^D_t(K_t) \ge V^R_t(B_t, K_t) \qquad\qquad (24)$$
 
 This inequality defines a **default set** characterized by a threshold $B^*_t(K_t)$: the government defaults if and only if current debt exceeds the threshold. The threshold is **decreasing in $s_t$** (higher spreads make repayment more costly, expanding the default region) and **decreasing in $K_t$** (lower capital reduces tax revenues, making repayment harder). Foreign investors form rational expectations of the default probability:
 
-$$\pi_{t+1} = \Pr\!\left(B_{t+1} \ge B^*_{t+1}(K_{t+1}) \mid \mathcal{F}_t\right) \qquad\qquad (25)$$
+$$\pi_{t+1} = \Pr\left(B_{t+1} \ge B^*_{t+1}(K_{t+1}) \mid \mathcal{F}_t\right) \qquad\qquad (25)$$
 
 where $\mathcal{F}_t$ is the information set at time $t$ (all variables observed up to and including period $t$).
 
@@ -373,7 +373,7 @@ Both components improve the current account simultaneously and immediately: the 
 
 With $F_t = 0$, domestic banks can no longer arbitrage between domestic and international funding, severing the sovereign-ceiling transmission channel (12). The domestic deposit rate is now determined by domestic deposit-market equilibrium under autarky (see §5.4 below):
 
-$$C_0^{-\sigma} = \beta \, R^{D,\text{aut}}_0 \, \mathbb{E}_0\!\left[C_1^{-\sigma}\right], \qquad R^{D,\text{aut}}_0 > R^{D,ss} \qquad\qquad (31)$$
+$$C_0^{-\sigma} = \beta \, R^{D,\text{aut}}_0 \, \mathbb{E}_0\left[C_1^{-\sigma}\right], \qquad R^{D,\text{aut}}_0 > R^{D,ss} \qquad\qquad (31)$$
 
 where $R^{D,\text{aut}}_0$ is the autarky deposit rate, which *exceeds* the non-crisis steady-state rate because domestic savings are scarce under financial autarky. This induces a **large front-loaded consumption contraction** that contributes to the immediate output collapse.
 
@@ -483,13 +483,13 @@ where $\acute{n}_t \equiv \log(N_t/N^{ss})$ is the log-deviation of bank net wor
 
 **Output** (from 8), where $\varepsilon_p \equiv \xi n R^{L,ss}/[1+\xi(R^{L,ss}-1)] > 0$ is the **elasticity of output with respect to the lending rate** through the working-capital channel (also called the working-capital output elasticity):
 
-$$\hat{y}^{nd}_t = \alpha \hat{k}_t - \varepsilon_p\!\left(\gamma \hat{s}_t - \Omega \acute{n}_t\right) \qquad\qquad \text{(LL.2a)}$$
+$$\hat{y}^{nd}_t = \alpha \hat{k}_t - \varepsilon_p\left(\gamma \hat{s}_t - \Omega \acute{n}_t\right) \qquad\qquad \text{(LL.2a)}$$
 
 where $\hat{k}_t \equiv \log(K_t/K^{ss})$ is the capital stock deviation. Output deviates from steady state through two channels: the **capital accumulation channel** $\alpha \hat{k}_t$ (zero at $h=0$ since capital is predetermined, growing in magnitude thereafter) and the **working-capital channel** $-\varepsilon_p \Delta r^{L,nd}_t$ (operating immediately at $h=0$).
 
 **Capital** (from 5 and 9), with $\eta \equiv 1/[(1-\alpha)(R^{L,ss}-(1-\delta))] > 0$ being the **interest semi-elasticity of the capital stock** with respect to the lending rate:
 
-$$\hat{k}^{nd}_{t+1} = (1-\delta)\hat{k}_t - \eta\!\left(\gamma \hat{s}_t - \Omega \acute{n}_t\right) \qquad\qquad \text{(LL.3a)}$$
+$$\hat{k}^{nd}_{t+1} = (1-\delta)\hat{k}_t - \eta\left(\gamma \hat{s}_t - \Omega \acute{n}_t\right) \qquad\qquad \text{(LL.3a)}$$
 
 The capital stock evolves as a first-order linear difference equation driven by both the current spread (via the sovereign-ceiling channel on investment) and current net worth (via the balance-sheet amplification). Since $(1-\delta) < 1$, the system is stable.
 
@@ -524,7 +524,7 @@ Given the AR(1) process $\hat{s}_t = \rho_s^t \hat{s}_0$ and the initial impact 
 
 **Net worth at horizon $h$:**
 
-$$\acute{n}^{nd}_h = (\Phi^N)^h \acute{n}_0 \;-\; \sum_{h'=1}^{h} (\Phi^N)^{h-h'}\!\left(\mathrm{B}\,\rho_s^{h'} + \Phi^O \gamma\,\rho_s^{h'-1}\right)\hat{s}_0 \qquad\qquad \text{(IR.1)}$$
+$$\acute{n}^{nd}_h = (\Phi^N)^h \acute{n}_0 \;-\; \sum_{h'=1}^{h} (\Phi^N)^{h-h'}\left(\mathrm{B}\,\rho_s^{h'} + \Phi^O \gamma\,\rho_s^{h'-1}\right)\hat{s}_0 \qquad\qquad \text{(IR.1)}$$
 
 where the first term $(\Phi^N)^h \acute{n}_0$ is the **decaying legacy** of the initial net-worth shock, and the summation is the **cumulative fresh loss** from the still-elevated spread at each subsequent period.
 
