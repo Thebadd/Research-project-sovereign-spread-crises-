@@ -6,8 +6,8 @@
   Specification B: joint regression with both dummies — tests equality of IRFs
 
   Treatment dummies:
-    onset_nd  = 1 → 39 non-default episodes
-    onset_def = 1 → 22 default-linked episodes
+    onset_nd  = 1 → 40 non-default episodes
+    onset_def = 1 → 21 default-linked episodes
 
   Saves:
     "$clean/irf_nd.dta"    — non-default IRF
@@ -23,7 +23,7 @@ local controls l1_gdpg l2_gdpg ca debt infl imf vix ust10y
 * SPEC A-1: NON-DEFAULT EPISODES ONLY
 * ══════════════════════════════════════════════════════════════════════════
 
-di as result _n "=== NON-DEFAULT EPISODES (N=39 onsets) ==="
+di as result _n "=== NON-DEFAULT EPISODES (N=40 onsets) ==="
 
 foreach m in b lo90 hi90 lo95 hi95 {
     matrix `m'_nd = J(7, 1, .)
@@ -58,7 +58,7 @@ forvalues h = 0/4 {
 * SPEC A-2: DEFAULT-LINKED EPISODES ONLY
 * ══════════════════════════════════════════════════════════════════════════
 
-di as result _n "=== DEFAULT-LINKED EPISODES (N=22 onsets) ==="
+di as result _n "=== DEFAULT-LINKED EPISODES (N=21 onsets) ==="
 
 foreach m in b lo90 hi90 lo95 hi95 {
     matrix `m'_def = J(7, 1, .)

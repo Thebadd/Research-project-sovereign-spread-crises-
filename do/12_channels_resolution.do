@@ -311,7 +311,7 @@ graph combine ols_1 ols_2 ols_3 ols_4 ols_5 ols_6, ///
     cols(3) rows(2) ///
     title("Transmission Channels by Resolution Type — OLS", ///
           size(medlarge) color(navy)) ///
-    note("90% CI. DK SE. Country & year FE. Non-default: N=39. Default-linked: N=22.", ///
+    note("90% CI. DK SE. Country & year FE. Non-default: N=40. Default-linked: N=21.", ///
          size(vsmall)) ///
     graphregion(color(white)) xsize(10) ysize(7)
 

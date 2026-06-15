@@ -73,7 +73,7 @@ twoway ///
     ytitle("Cumulative change in log real GDP p.c. (pp)", size(medsmall)) ///
     title("Output Cost: Non-Default vs. Default-Linked Crises", size(medium)) ///
     subtitle("52 EM economies, 1994-2025", size(small)) ///
-    legend(order(2 "Non-default (N=39)" 4 "Default-linked (N=22)") ///
+    legend(order(2 "Non-default (N=40)" 4 "Default-linked (N=21)") ///
            ring(0) pos(3) size(small)) ///
     note("Driscoll-Kraay SE, lag = h+1. Country + year FE.", size(vsmall)) ///
     graphregion(color(white)) plotregion(color(white))
