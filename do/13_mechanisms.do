@@ -479,7 +479,7 @@ twoway ///
     ytitle("Cumulative change in current account/GDP (pp)", size(small)) ///
     title("Current Account Response — By Resolution Type", size(medium) color(navy)) ///
     subtitle("Forced deleveraging test (Aguiar-Gopinath 2006)", size(small)) ///
-    legend(order(2 "Non-default (39 episodes)" 4 "Default-linked (22 episodes)") ///
+    legend(order(2 "Non-default (40 episodes)" 4 "Default-linked (21 episodes)") ///
            ring(0) pos(7) cols(1) size(small) region(lcolor(none) fcolor(none))) ///
     note("Green = non-default. Red = default-linked." ///
          "Controls: l1_gdpg l2_gdpg debt. DK SE. Country & year FE.", size(vsmall)) ///
