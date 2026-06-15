@@ -44,3 +44,8 @@ do "$do/08_ipw_lp.do"
 do "$do/11_channels.do"
 do "$do/12_channels_resolution.do"
 do "$do/13_mechanisms.do"
+
+* ── Structural model: calibration + nonlinear default block + transmission ──
+do "$do/14_calibration.do"      // calibrate params (literature + data moments)
+do "$do/15_solve_default.do"    // Arellano-style VFI: endogenous default & spread
+do "$do/16_model_irf.do"        // log-linear transmission; model vs. data IRFs
