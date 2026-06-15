@@ -102,6 +102,13 @@ restore
 
 merge m:1 country year using `classif', keep(master match) nogen
 
+* ── Manual reclassification ──────────────────────────────────────────────
+* Venezuela 2008: restructuring began in 2017 (9-year lag). Episodes where
+* onset precedes default by more than 5 years are reclassified as non-default
+* because the spread crisis reflected genuine non-default distress at inception.
+replace nondefault     = 1  if country == "Venezuela" & year == 2008
+replace classification = "NON-DEFAULT Spread Crisis" if country == "Venezuela" & year == 2008
+
 * For non-onset years: set nondefault to missing (not applicable)
 replace nondefault      = . if onset_all == 0
 replace classification  = "" if onset_all == 0
@@ -113,8 +120,8 @@ replace onset_nd  = 0 if missing(nondefault)
 replace onset_def = 0 if missing(nondefault)
 
 label var onset_all  "Onset dummy — all 61 crisis episodes"
-label var onset_nd   "Onset dummy — 39 non-default episodes"
-label var onset_def  "Onset dummy — 22 default-linked episodes"
+label var onset_nd   "Onset dummy — 40 non-default episodes"
+label var onset_def  "Onset dummy — 21 default-linked episodes"
 
 * ══════════════════════════════════════════════════════════════════════════
 * 3. PANEL SETUP
