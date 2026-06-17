@@ -12,7 +12,12 @@ worth, a working-capital channel operating through the cost of intermediate
 inputs, and a capital-accumulation channel operating through firms' investment
 decisions. The two blocks are deliberately kept separate: the default block
 generates the spread paths that feed into the transmission block, but the
-transmission block does not feed back into the default decision. This
+transmission block does not feed back into the default decision. Crucially,
+the equilibrium of Block 1 endogenously produces two classes of high-spread
+episode — those that are eventually resolved without default and those that
+lead to debt restructuring — through the same optimal default rule $d(B_t,
+y_t)$. The two crisis types are therefore model objects, not assumptions
+imposed from outside. This
 recursive structure keeps the model analytically tractable and ensures that
 each block can be separately identified.
 
@@ -456,40 +461,7 @@ $$\bar{y}^{def}_h = (1-\mu)^h \cdot \left[\alpha \hat{k}^{excl}_h - \varepsilon_
 
 ---
 
-## 3.8 Identifying the Two Crisis Types from the Model
-
-A central requirement for the empirical test to be valid is that the two
-crisis types — spread crises without default and spread crises linked to a
-default — be identified from the model itself, not from the data. We achieve
-this through the simulation of the Block 1 economy.
-
-We simulate the Arellano model to generate time series of spreads $\{s_t\}$,
-default decisions $\{d_t\}$, income $\{y_t\}$, and market access indicators
-$\{m_t\}$. We collect all periods in which the sovereign spread crosses the
-1,000 basis point threshold from below while the country is in good standing
-($m_t = 1$, $s_t \geq 0.10$, $s_{t-1} < 0.10$). Each such crossing
-constitutes a model crisis onset. We classify each onset as:
-
-- **Spread crisis without default:** the country does not default in any of
-  the four years following the onset
-  ($d_{t+k} = 0$ for $k = 0, 1, 2, 3, 4$).
-- **Spread crisis linked to a default:** the country defaults in at least
-  one of the four years following the onset
-  ($\exists\, k \in \{0,1,2,3,4\} : d_{t+k} = 1$).
-
-For each type, we compute the average spread path over the event window
-$h \in \{-2, -1, 0, 1, 2, 3, 4\}$ by averaging $s_{t+h}$ across all onsets
-of that type. This yields two model-implied spread paths,
-$\hat{s}^{nd}_h$ and $\hat{s}^{def}_h$, which serve as the inputs
-to the Block 2 transmission system. The model generates these two paths
-endogenously from the same economy, so the difference between them — spread
-crises linked to a default have a higher and more persistent spread, since
-the country's fundamentals are worse — is a model prediction, not an
-assumption.
-
----
-
-## 3.9 Testable Predictions
+## 3.8 Testable Predictions
 
 The model generates three predictions that follow as logical deductions from
 its equations. Each prediction concerns a qualitative pattern — a ranking, a
