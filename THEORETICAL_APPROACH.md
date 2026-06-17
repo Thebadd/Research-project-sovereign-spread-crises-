@@ -82,7 +82,7 @@ where $q(B_{t+1}, y_t)$ is the equilibrium bond price, which is endogenous
 and depends on the borrowing level and current income because both affect the
 probability of future default. The value of repayment is:
 
-$$V^R(B_t, y_t) = \max_{B_{t+1}} \left\{ u\!\left(y_t - B_t + q(B_{t+1}, y_t) \cdot B_{t+1}\right) + \beta' \,\mathbb{E}_{y'|y}\!\left[V(B_{t+1}, y')\right] \right\}$$
+$$V^R(B_t, y_t) = \max_{B_{t+1}} \Bigl\{ u\left(y_t - B_t + q(B_{t+1}, y_t) \cdot B_{t+1}\right) + \beta' \,\mathbb{E}_{y'|y}\left[V(B_{t+1}, y')\right] \Bigr\}$$
 
 **Default.** If the government defaults, it receives income $y_t^{def}$
 in the current period and is excluded from international capital markets.
@@ -96,7 +96,7 @@ The excluded sovereign re-enters international markets with probability $\mu$
 each period, at which point it restarts with zero debt. The value of
 default is:
 
-$$V^D(y_t) = u(y_t^{def}) + \beta' \left\{ \mu \cdot \mathbb{E}_{y'|y}\!\left[V(0, y')\right] + (1-\mu) \cdot \mathbb{E}_{y'|y}\!\left[V^D(y')\right] \right\}$$
+$$V^D(y_t) = u(y_t^{def}) + \beta' \Bigl\{ \mu \cdot \mathbb{E}_{y'|y}\left[V(0, y')\right] + (1-\mu) \cdot \mathbb{E}_{y'|y}\left[V^D(y')\right] \Bigr\}$$
 
 Note that $V^D$ does not depend on $B_t$: once the government defaults, the
 stock of outstanding debt is irrelevant because it is being repudiated.
@@ -104,7 +104,7 @@ stock of outstanding debt is irrelevant because it is being repudiated.
 **Default decision.** The government defaults whenever the value of default
 exceeds the value of repayment. The optimal policy is:
 
-$$d(B_t, y_t) = \mathbf{1}\!\left\{ V^D(y_t) > V^R(B_t, y_t) \right\}$$
+$$d(B_t, y_t) = \mathbf{1}\Bigl\{ V^D(y_t) > V^R(B_t, y_t) \Bigr\}$$
 
 The default set $\mathcal{D}(B_t) = \{ y_t : V^D(y_t) > V^R(B_t, y_t) \}$
 is the set of income realizations for which default is optimal given debt
@@ -129,7 +129,7 @@ satisfies the zero-profit condition:
 
 $$q(B_{t+1}, y_t) = \frac{1 - \delta(B_{t+1}, y_t)\cdot(1 - \theta)}{1 + R^*}$$
 
-where $\delta(B_{t+1}, y_t) = \mathbb{E}_{y'|y}\!\left[ d(B_{t+1}, y') \right]$
+where $\delta(B_{t+1}, y_t) = \mathbb{E}_{y'|y}\left[ d(B_{t+1}, y') \right]$
 is the probability that the government defaults next period, evaluated at
 the borrowing level $B_{t+1}$ and the current income $y_t$, which determines
 the distribution of $y'$ via the transition matrix. This pricing equation
@@ -182,7 +182,7 @@ a mark-to-market loss of $b^B_{t-1} \cdot \Delta q_t$ when the bond price
 falls by $\Delta q_t = q_t - q_{t-1}$. In log-linear terms, the deviation of
 net worth from its steady-state value $N_{ss}$ satisfies:
 
-$$\hat{n}_t = \Phi_N \hat{n}_{t-1} - B_{sens} \hat{s}_t - \Phi^O \gamma \hat{s}_{t-1} \tag{LL.5a}$$
+$$\hat{n}_t = \Phi_N \hat{n}_{t-1} - B_{sens} \hat{s}_t - \Phi^O \gamma \hat{s}_{t-1} \quad\text{(LL.5a)}$$
 
 where $\hat{n}_t = (N_t - N_{ss})/N_{ss}$ denotes the proportional deviation
 of net worth from steady state, and $\hat{s}_t = s_t - s_{ss}$ is the
@@ -201,7 +201,7 @@ pass-through from wholesale funding costs, discussed further below.
 **Leverage constraint.** A binding leverage constraint limits the volume of
 loans a bank can extend to a multiple $\lambda$ of its net worth:
 
-$$\ell_t = \lambda \cdot N_t \tag{IR.4}$$
+$$\ell_t = \lambda \cdot N_t \quad\text{(IR.4)}$$
 
 This constraint — standard in the bank-capital literature (Gertler and
 Karadi 2011; Bocola 2016) — is the key mechanism linking sovereign risk to
@@ -219,7 +219,7 @@ regularity that banks in emerging markets cannot borrow more cheaply than
 their own sovereign (Borensztein et al. 2006) — the bank lending rate is tied
 to the sovereign spread through a pass-through coefficient $\gamma$:
 
-$$R^L_t = R^* + \gamma \cdot s_t \tag{SC}$$
+$$R^L_t = R^* + \gamma \cdot s_t \quad\text{(SC)}$$
 
 where $\gamma \in (0,1]$ measures how much of the sovereign spread is
 transmitted to the private lending rate. We set $\gamma = 0.80$ following
@@ -275,7 +275,7 @@ minus one plus depreciation net of the replacement cost). Log-linearizing
 this condition and combining with the capital accumulation identity
 $K_{t+1} = (1-\delta)K_t + I_t$, we obtain the capital recursion:
 
-$$\hat{k}_{t+1} = (1-\delta)\hat{k}_t - \eta \left(\gamma \hat{s}_t - \Omega \hat{n}_t\right) \tag{LL.3a}$$
+$$\hat{k}_{t+1} = (1-\delta)\hat{k}_t - \eta \left(\gamma \hat{s}_t - \Omega \hat{n}_t\right) \quad\text{(LL.3a)}$$
 
 where $\hat{k}_t = (K_t - K_{ss})/K_{ss}$ is the proportional capital
 deviation and the parameter:
@@ -311,9 +311,9 @@ $h$ measured in years after crisis onset.
 At the moment of onset, the capital stock has not yet adjusted
 ($\hat{k}_0 = 0$). The impact responses of net worth and output are:
 
-$$\hat{n}_0 = -B_{sens} \cdot \hat{s}_0 \tag{1}$$
+$$\hat{n}_0 = -B_{sens} \cdot \hat{s}_0 \quad\text{(1)}$$
 
-$$\hat{y}_0 = -\varepsilon_p \left(\gamma \hat{s}_0 - \Omega \hat{n}_0\right) \tag{2}$$
+$$\hat{y}_0 = -\varepsilon_p \left(\gamma \hat{s}_0 - \Omega \hat{n}_0\right) \quad\text{(2)}$$
 
 Equation (1) states that a spread increase at onset reduces bank net worth
 proportionally to sovereign bond exposure. Equation (2) states that output
@@ -325,13 +325,13 @@ they raise rates further, amplifying the output contraction.
 **Horizons $h \geq 1$ (dynamic propagation).**
 For subsequent periods, the full recursion governs the dynamic evolution:
 
-$$\hat{n}_h = \Phi_N \hat{n}_{h-1} - B_{sens} \hat{s}_h - \Phi^O \gamma \hat{s}_{h-1} \tag{LL.5a}$$
+$$\hat{n}_h = \Phi_N \hat{n}_{h-1} - B_{sens} \hat{s}_h - \Phi^O \gamma \hat{s}_{h-1} \quad\text{(LL.5a)}$$
 
-$$\hat{k}_h = (1-\delta)\hat{k}_{h-1} - \eta\left(\gamma \hat{s}_{h-1} - \Omega \hat{n}_{h-1}\right) \tag{LL.3a}$$
+$$\hat{k}_h = (1-\delta)\hat{k}_{h-1} - \eta\left(\gamma \hat{s}_{h-1} - \Omega \hat{n}_{h-1}\right) \quad\text{(LL.3a)}$$
 
-$$\hat{y}_h = \alpha \hat{k}_h - \varepsilon_p\left(\gamma \hat{s}_h - \Omega \hat{n}_h\right) \tag{LL.2a}$$
+$$\hat{y}_h = \alpha \hat{k}_h - \varepsilon_p\left(\gamma \hat{s}_h - \Omega \hat{n}_h\right) \quad\text{(LL.2a)}$$
 
-$$\hat{\ell}_h = \frac{\lambda N_{ss}}{\ell_{ss}} \hat{n}_h \tag{IR.4}$$
+$$\hat{\ell}_h = \frac{\lambda N_{ss}}{\ell_{ss}} \hat{n}_h \quad\text{(IR.4)}$$
 
 The recursion in LL.5a propagates bank net worth losses forward: the
 parameter $\Phi_N$ governs how quickly banks repair their balance sheets
@@ -382,12 +382,12 @@ funds only. In the aggregate, the sudden stop of capital inflows forces
 $I_t = 0$: domestic savings are insufficient to replace depreciating capital.
 The capital law of motion then simplifies to:
 
-$$K_{t+1} = (1-\delta) K_t \tag{3}$$
+$$K_{t+1} = (1-\delta) K_t \quad\text{(3)}$$
 
 Log-linearizing with $I_{ss} = \delta K_{ss}$ (the steady-state investment
 required to maintain the capital stock), the autarky capital path satisfies:
 
-$$\hat{k}^{excl}_{h+1} = (1-\delta)\hat{k}^{excl}_h - \delta \tag{4}$$
+$$\hat{k}^{excl}_{h+1} = (1-\delta)\hat{k}^{excl}_h - \delta \quad\text{(4)}$$
 
 The subtraction of $\delta$ in equation (4) reflects that zero investment
 falls short of the steady-state investment level by exactly $\delta K_{ss}$,
@@ -422,7 +422,7 @@ $(1-\mu)^h$ — the probability of being excluded for at least $h$ consecutive
 periods — and assume that re-entered countries (fraction $1-(1-\mu)^h$)
 have output approximately back at the steady-state level:
 
-$$\bar{y}^{def}_h = (1-\mu)^h \cdot \left[\alpha \hat{k}^{excl}_h - \varepsilon_p \cdot \Delta R^L_{aut}\right] \times 100 \tag{5}$$
+$$\bar{y}^{def}_h = (1-\mu)^h \cdot \left[\alpha \hat{k}^{excl}_h - \varepsilon_p \cdot \Delta R^L_{aut}\right] \times 100 \quad\text{(5)}$$
 
 The autarky wedge $\Delta R^L_{aut}$ is the only parameter not set
 independently: it is pinned to match the $h=0$ output observation for
@@ -529,7 +529,7 @@ persistence — are jointly calibrated by Simulated Method of Moments (SMM)
 to minimize the sum of squared deviations between the model-implied
 non-default output path and the LP estimates at horizons $h = 0, 1, 2, 3, 4$:
 
-$$\{\xi^*, \phi^*, \Phi_N^*\} = \arg\min_{\xi, \phi, \Phi_N} \sum_{h=0}^{4} \left(\hat{y}^{nd,model}_h - \hat{\beta}^{nd,LP}_h\right)^2 \tag{SMM}$$
+$$\{\xi^*, \phi^*, \Phi_N^*\} = \arg\min_{\xi, \phi, \Phi_N} \sum_{h=0}^{4} \left(\hat{y}^{nd,model}_h - \hat{\beta}^{nd,LP}_h\right)^2 \quad\text{(SMM)}$$
 
 This step is the only place in the calibration where the empirical LP
 estimates enter. The default path, the credit responses for both episode
