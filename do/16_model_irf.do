@@ -21,7 +21,7 @@
 
 * ── Load calibration + model spread event path ─────────────────────────────
 use "$clean/cal_params.dta", clear
-foreach p in beta alpha delta s_ss bB_gdp N_gdp credit_gdp lambda Rstar Phi_O {
+foreach p in beta alpha delta s_ss bB_gdp N_gdp credit_gdp lambda Rstar Phi_O gamma mu {
     scalar `p' = `p'[1]
 }
 
@@ -44,6 +44,31 @@ preserve
     keep if horizon >= 0
     mkmat horizon b, matrix(IRF_DEF)
 restore
+
+* Pre-load credit IRFs into matrices (must be done in Stata — $clean won't expand in Mata strings)
+capture {
+    preserve
+    use "$clean/irf_nd_credit.dta", clear
+    keep if horizon >= 0
+    mkmat horizon b, matrix(CND)
+    restore
+}
+if _rc != 0 {
+    matrix CND = J(5,2,0)
+    di as text "  (irf_nd_credit.dta not found — credit ND set to zero)"
+}
+
+capture {
+    preserve
+    use "$clean/irf_def_credit.dta", clear
+    keep if horizon >= 0
+    mkmat horizon b, matrix(CDEF)
+    restore
+}
+if _rc != 0 {
+    matrix CDEF = J(5,2,0)
+    di as text "  (irf_def_credit.dta not found — credit DEF set to zero)"
+}
 
 mata:
 mata clear
@@ -86,33 +111,22 @@ for (h=0;h<=4;h++) {
     bdef[h+1] = pickrow(DEF, h);
 }
 
-// ─── Empirical credit IRFs ─────────────────────────────────────────────────
-// irf_nd_credit.dta and irf_def_credit.dta produced by 03_lp_resolution.do
-// If missing, set to zero (graceful fallback)
-stata("capture confirm file \"$clean/irf_nd_credit.dta\"");
-if (st_numscalar("_rc")==0) {
-    stata("preserve");
-    stata("use \"$clean/irf_nd_credit.dta\", clear");
-    stata("mkmat horizon b, matrix(CND)");
-    stata("restore");
-    CND = st_matrix("CND");
-    bnd_cred = J(5,1,.);
-    for (h=0;h<=4;h++) bnd_cred[h+1] = pickrow(CND, h);
+// ─── Empirical credit IRFs (pre-loaded from Stata above) ──────────────────
+CND  = st_matrix("CND");
+CDEF = st_matrix("CDEF");
+// Check if real data or zero placeholder (col 1 = horizon, col 2 = coef)
+has_cnd  = (CND[1,1]  != 0 | CND[2,1]  != 0);
+has_cdef = (CDEF[1,1] != 0 | CDEF[2,1] != 0);
+bnd_cred  = J(5,1,0);
+bdef_cred = J(5,1,0);
+if (has_cnd) {
+    for (h=0;h<=4;h++) bnd_cred[h+1]  = pickrow(CND,  h);
 } else {
-    bnd_cred = J(5,1,0);
     printf("  (credit ND IRF not found — credit plot skipped)\n");
 }
-stata("capture confirm file \"$clean/irf_def_credit.dta\"");
-if (st_numscalar("_rc")==0) {
-    stata("preserve");
-    stata("use \"$clean/irf_def_credit.dta\", clear");
-    stata("mkmat horizon b, matrix(CDEF)");
-    stata("restore");
-    CDEF = st_matrix("CDEF");
-    bdef_cred = J(5,1,.);
+if (has_cdef) {
     for (h=0;h<=4;h++) bdef_cred[h+1] = pickrow(CDEF, h);
 } else {
-    bdef_cred = J(5,1,0);
     printf("  (credit DEF IRF not found — credit plot skipped)\n");
 }
 
