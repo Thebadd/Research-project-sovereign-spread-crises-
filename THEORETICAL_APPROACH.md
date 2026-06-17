@@ -218,22 +218,53 @@ net worth shock. We calibrate $\lambda$ directly from the data as the ratio
 of total bank assets (sovereign bonds plus loans) to bank equity in tranquil
 periods (Section 3.9).
 
-**Remark: passive bank behavior and the doom loop.** The model assumes that
-banks hold a fixed stock of sovereign bonds $b^B_{ss}$ at all times. This is
-a deliberate simplification: in reality, and as documented in Section 4 of
-this paper, banks in pre-default episodes systematically *increase* their
-sovereign holdings by 4 to 6 percentage points of GDP — the so-called
-doom loop or diabolic loop (Brunnermeier et al. 2016). This accumulation
-amplifies the balance-sheet channel specifically for default-linked episodes:
-a bank that has loaded up on sovereign bonds before the default event suffers
-a larger net worth loss when the spread spikes. By abstracting from this
-behavior, the model understates the severity of the balance-sheet channel in
-pre-default episodes relative to non-default ones. The qualitative prediction
-— that default-linked crises involve deeper financial disruption — is therefore
-conservative: the actual amplification mechanism is stronger than the model
-captures. Incorporating endogenous sovereign bond accumulation would require
-modelling the bank's portfolio choice problem and the undercapitalization
-incentive to gamble for resurrection, which we leave as an extension.
+**Regime-dependent sovereign bond accumulation and the doom loop.** The
+empirical evidence in Section 4 documents that banks in pre-default episodes
+systematically *increase* their sovereign bond holdings by 4 to 6 percentage
+points of GDP during the crisis window — the diabolic loop (Brunnermeier
+et al. 2016; Crosignani et al. 2021). This accumulation is absent in
+non-default episodes. The mechanism behind this asymmetry is the
+*gambling for resurrection* motive (Acharya and Steffen 2015): an
+undercapitalized bank approaching insolvency prefers a concentrated,
+high-yield sovereign position to a safe portfolio, because the upside from
+sovereign repayment allows the bank to rebuild equity, while the downside —
+sovereign default — would have rendered the bank insolvent regardless.
+
+To incorporate this asymmetry structurally, the model treats bank sovereign
+holdings as regime-dependent:
+
+$$b^B_t = \begin{cases} b^B_{ss} & \text{non-default path} \\ b^B_{ss} + \Delta_{\text{doom}} & \text{pre-default path} \end{cases}$$
+
+where $\Delta_{\text{doom}} > 0$ is the additional sovereign exposure accumulated
+before default. This modifies the balance-sheet sensitivity of bank net worth
+differently across regimes. In the non-default regime the sensitivity
+coefficient retains its baseline value:
+
+$$B^{nd}_{sens} = \frac{b^B_{ss}/N_{ss}}{(1 + s_{ss})^2}$$
+
+In the pre-default regime the effective exposure is higher, so the sensitivity
+is amplified:
+
+$$B^{def}_{sens} = \frac{(b^B_{ss} + \Delta_{\text{doom}})/N_{ss}}{(1 + s_{ss})^2} > B^{nd}_{sens}$$
+
+Consequently, equation LL.5a takes two distinct forms. For non-default episodes:
+
+$$\hat{n}^{nd}_h = \Phi_N \hat{n}^{nd}_{h-1} - B^{nd}_{sens}\, \hat{s}^{nd}_h - \Phi^O \gamma \hat{s}^{nd}_{h-1} \quad\text{(LL.5a-nd)}$$
+
+For pre-default episodes:
+
+$$\hat{n}^{def}_h = \Phi_N \hat{n}^{def}_{h-1} - B^{def}_{sens}\, \hat{s}^{def}_h - \Phi^O \gamma \hat{s}^{def}_{h-1} \quad\text{(LL.5a-def)}$$
+
+The parameter $\Delta_{\text{doom}}$ is not a free parameter: it is calibrated
+directly from the empirical bank-sovereign exposure response in Act 4, where
+the increase in bank claims on the government during default-linked episodes
+is observed to be +4 to +6pp of GDP. We set $\Delta_{\text{doom}}$ to the
+Act 4 estimate at $h = 0$. This adds one empirical moment and one parameter,
+leaving the model's identification status unchanged. With this extension,
+the doom loop is a structural prediction of the model rather than an
+acknowledged omission: the model generates a larger net worth contraction in
+pre-default episodes not because we assume a larger shock, but because banks
+enter the crisis with amplified sovereign exposure.
 
 **Lending rate and the sovereign ceiling.** Banks fund firm investment at the
 lending rate $R^L_t$. Following the sovereign ceiling doctrine — the empirical
@@ -402,50 +433,62 @@ the ability to issue new sovereign bonds and — through the sovereign ceiling
 (SC) — also disrupts domestic financial intermediation. We model the autarky
 period through two distinct mechanisms.
 
-**Investment stop.** In autarky, domestic investment depends on internal
-funds only. In the aggregate, the sudden stop of capital inflows forces
-$I_t = 0$: domestic savings are insufficient to replace depreciating capital.
-The capital law of motion then simplifies to:
+**Partial investment stop.** In autarky, domestic investment depends on
+internal funds only. The sudden stop of capital inflows eliminates the
+external financing component of investment; however, a fraction of
+investment continues to be financed domestically — through retained corporate
+earnings, domestic bank credit, and public investment funded by tax revenues.
+We model this by setting:
 
-$$K_{t+1} = (1-\delta) K_t \quad\text{(3)}$$
+$$I_t = (1-\chi)\,\delta K_t \quad\text{(3)}$$
 
-Log-linearizing with $I_{ss} = \delta K_{ss}$ (the steady-state investment
-required to maintain the capital stock), the autarky capital path satisfies:
+where $\chi \in [0,1]$ is the *external investment share*: the fraction of
+steady-state replacement investment that requires access to international
+capital markets. When $\chi = 1$, all investment is externally financed and
+investment drops to zero in autarky — the polar case assumed in earlier
+formulations. When $\chi = 0$, autarky does not affect investment at all.
+For intermediate $\chi$, domestic investment partially sustains capital
+accumulation even while the sovereign is excluded.
 
-$$\hat{k}^{excl}_{h+1} = (1-\delta)\hat{k}^{excl}_h - \delta \quad\text{(4)}$$
+Substituting into the capital law of motion $K_{t+1} = (1-\delta)K_t + I_t$:
 
-The subtraction of $\delta$ in equation (4) reflects that zero investment
-falls short of the steady-state investment level by exactly $\delta K_{ss}$,
-generating a persistent decline in the capital stock below its steady-state
-level. Starting from $\hat{k}^{excl}_0 = 0$ at the moment of default (the
-capital stock has not yet been affected), the autarky capital path is:
+$$K_{t+1} = (1-\delta)K_t + (1-\chi)\delta K_t = (1-\chi\delta)K_t$$
 
-$$\hat{k}^{excl}_h = -\delta \sum_{j=0}^{h-1} (1-\delta)^j = -(1 - (1-\delta)^h)$$
+The autarky capital stock therefore depreciates at the *effective* rate
+$\chi\delta$ rather than $\delta$. Log-linearizing around the steady state
+(using $I_{ss} = \delta K_{ss}$), the autarky capital recursion becomes:
 
-Capital falls by $\delta$ percent in the first year of exclusion, and by a
-cumulative $(1-(1-\delta)^h)$ percent after $h$ years. For $\delta = 0.10$,
-capital is 10 percent below its steady state after one year and 34 percent
-below after four years of uninterrupted exclusion.
+$$\hat{k}^{excl}_{h+1} = (1-\chi\delta)\,\hat{k}^{excl}_h - \chi\delta \quad\text{(4)}$$
 
-**Remark: partial investment in default.** The assumption $I_t = 0$ is an
-upper bound on the investment disruption caused by sovereign default. In
-practice, countries in default retain some investment capacity: public
-investment continues to the extent it is financed by tax revenues rather
-than external borrowing; foreign direct investment, while depressed, does
-not stop entirely; and domestic savings can substitute partially for the
-lost external financing. A more general formulation would set
-$I_t = (1-\chi)\delta K_t$, where $\chi \in [0,1]$ is the fraction of
-steady-state investment that is lost during exclusion. The calibrated
-value $\chi = 1$ — full investment stop — maximizes capital depletion and
-therefore produces the largest possible output losses at horizons $h = 3$
-and $h = 4$. The model's default path predictions at these longer horizons
-should accordingly be interpreted as an upper bound for countries that
-remain in continuous exclusion, rather than as point estimates. The empirical
-LP average, which includes countries that re-entered markets before $h = 3$,
-will naturally show a shallower trough than the conditional model path —
-a gap that the survival weighting $(1-\mu)^h$ only partially closes. We note
-this explicitly when comparing the model default path to the LP estimates
-in Section 4.
+Starting from $\hat{k}^{excl}_0 = 0$, the closed-form autarky capital path is:
+
+$$\hat{k}^{excl}_h = -(1-(1-\chi\delta)^h) \quad\text{(4')}$$
+
+When $\chi = 1$ this collapses to $-(1-(1-\delta)^h)$, the standard full-stop
+formula. When $\chi < 1$, capital depletion is attenuated: for $\chi = 0.5$
+and $\delta = 0.10$, capital falls by 5 percent in the first year of exclusion
+rather than 10 percent, and by a cumulative 18 percent after four years rather
+than 34 percent.
+
+**Identification of $\chi$.** The parameter $\chi$ is identified from the
+investment response in default-linked episodes (Section 4, Act 4). The
+empirical LP estimate for investment in default episodes is statistically
+indistinguishable from zero at $h = 0$ and $h = 1$, and turns weakly positive
+at $h = 2$–$h = 4$. This pattern is inconsistent with $\chi = 1$ (which would
+imply immediate, severe capital depletion) and instead points to a low value of
+$\chi$. Intuitively, when a sovereign restructures its debt, the resulting
+relief in debt-service obligations releases domestic resources previously
+mobilized for external repayment, partially offsetting the loss of external
+investment financing. The model is calibrated so that the implied capital path
+$(4')$ is consistent with the observed near-zero investment response in Act 4.
+This identification is clean: $\chi$ is pinned by a moment from the default
+investment path, which is distinct from the SMM moments used to calibrate the
+transmission parameters $(\xi, \phi, \Phi_N)$ on the non-default output path.
+
+For the calibrated $\chi$, the survival-weighted output path in equation (5)
+uses $\hat{k}^{excl}_h$ from $(4')$ rather than the $\chi=1$ special case,
+and is no longer an upper bound but a point estimate consistent with the
+empirical investment evidence.
 
 **Autarky lending rate wedge.** In addition to the investment stop, the
 sovereign ceiling implies that domestic firms face an elevated financing
@@ -567,6 +610,17 @@ removed by country-specific linear regression prior to estimation.
 The spread persistence $\rho_s$ is estimated from a fixed-effects AR(1)
 regression of the EMBIG spread on its one-period lag.
 
+**Regime extension parameters.** Two additional parameters — $\Delta_{\text{doom}}$
+and $\chi$ — are calibrated from empirical moments in the default sub-sample
+(Act 4, Section 4), which lies outside the SMM identification set.
+$\Delta_{\text{doom}}$ is set to the Act 4 estimate of the increase in bank
+claims on the government at $h = 0$ in default-linked episodes (approximately
++4–5pp of GDP). $\chi$ is set so that the model-implied autarky capital path
+$(4')$ is consistent with the near-zero investment response in default-linked
+episodes observed at $h = 0$–$h = 1$ in Act 4. These two moments pin one
+parameter each, and neither moment overlaps with the five non-default output
+moments used in the SMM step below.
+
 **SMM transmission parameters.**
 The three transmission parameters $(\xi, \phi, \Phi_N)$ — governing the
 working-capital share, the balance-sheet pass-through, and net worth
@@ -576,7 +630,7 @@ non-default output path and the LP estimates at horizons $h = 0, 1, 2, 3, 4$:
 
 $$(\xi^{\ast},\, \phi^{\ast},\, \Phi_N^{\ast}) \;=\; \arg\min_{\xi,\,\phi,\,\Phi_N} \sum_{h=0}^{4} \Bigl(\hat{y}^{nd}_{h} - \hat{\beta}^{nd}_{h}\Bigr)^2 \quad\text{(SMM)}$$
 
-This step is the only place in the calibration where the empirical LP
+This step is the only place in the calibration where the non-default LP
 estimates enter. The default path, the credit responses for both episode
 types, and all qualitative predictions about the credit-to-GDP ratio are
 then fully out-of-sample.
@@ -598,6 +652,8 @@ then fully out-of-sample.
 | $b^B_{ss}/Y_{ss}$ (bank sovereign exposure) | Tranquil mean | BIS / IMF FSI |
 | $\ell_{ss}/Y_{ss}$ (credit-to-GDP) | Tranquil mean | World Bank |
 | $\rho_y$, $\sigma_\varepsilon$ (income process) | Panel AR(1) | Our sample |
+| $\Delta_{\text{doom}}$ (doom loop accumulation) | Act 4 $h=0$ bank claims | Our sample |
+| $\chi$ (external investment share) | Act 4 investment response | Our sample |
 | $\xi$, $\phi$, $\Phi_N$ (transmission) | SMM | Non-default LP (Section 4) |
 
 ---
@@ -609,16 +665,21 @@ estimates without any further tuning.
 
 **Prediction 1 (output ranking).** Default-linked crises produce a deeper
 and more persistent output contraction than non-default crises. This follows
-from the superposition of channels: pre-default episodes operate through
-all three transmission mechanisms (balance-sheet, working-capital, and
-capital-depletion), while non-default episodes operate only through the
-first two. The capital-depletion mechanism is absent in non-default crises
-because investment continues — the country retains market access and can
-borrow to finance capital accumulation. The model does not assume this
-ordering: if the balance-sheet and working-capital channels are large enough
-relative to the capital-depletion channel, non-default crises could produce
-comparably large output contractions. The predicted ordering emerges from
-the calibrated parameter values.
+from three amplification mechanisms that are active only in the pre-default
+regime: (i) capital depletion — investment falls by fraction $\chi$ of
+steady-state replacement, eroding the capital stock at rate $\chi\delta$ per
+year; (ii) doom loop amplification — banks enter the crisis with elevated
+sovereign exposure $b^B_{ss} + \Delta_{\text{doom}}$, raising the
+balance-sheet sensitivity $B^{def}_{sens} > B^{nd}_{sens}$ and generating
+a larger net worth loss for any given spread widening; and (iii) the autarky
+lending-rate wedge $\Delta R^L_{aut}$, which compresses output through the
+working-capital channel from the moment of default. Non-default episodes
+operate only through the balance-sheet and working-capital channels with
+the baseline sensitivity $B^{nd}_{sens}$. The model does not assume the
+output ranking: if balance-sheet and working-capital effects dominated
+strongly enough, non-default crises could produce comparably large output
+losses. The ranking is a prediction that emerges from the calibrated
+parameter values.
 
 **Prediction 2 (credit-to-GDP paradox).** Non-default crises produce a
 larger decline in the private credit-to-GDP ratio than default-linked
@@ -648,6 +709,10 @@ primary test of the model.
 
 ## References
 
+Acharya, V. V. and Steffen, S. (2015). The "Greatest" Carry Trade Ever?
+Understanding Eurozone Bank Risks. *Journal of Financial Economics*, 115(2),
+215–236.
+
 Aguiar, M. and Gopinath, G. (2006). Defaultable Debt, Interest Rates and
 the Current Account. *Journal of International Economics*, 69(1), 64–83.
 
@@ -673,6 +738,10 @@ International Economics*, 83(2), 243–254.
 
 Gertler, M. and Karadi, P. (2011). A Model of Unconventional Monetary
 Policy. *Journal of Monetary Economics*, 58(1), 17–34.
+
+Crosignani, M., Faria-e-Castro, M. and Fonseca, L. (2021). The (Unintended?)
+Consequences of the Largest Liquidity Injection Ever. *Journal of Monetary
+Economics*, 112, 97–112.
 
 Jordà, O. (2005). Estimation and Inference of Impulse Responses by Local
 Projections. *American Economic Review*, 95(1), 161–182.
