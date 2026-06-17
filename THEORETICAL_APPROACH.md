@@ -545,15 +545,21 @@ default. This prediction follows directly from the resource constraint and
 equation (3), without any assumption about the magnitude of the adjustment.
 
 **Prediction 4 (symmetric bank transmission).** The model fixes bank
-sovereign holdings at $b^B_{ss}$ in both regimes, so the balance-sheet
-sensitivity $B_{sens}$ is identical across crisis types. The model therefore
-predicts *no systematic difference* in how bank net worth responds to a unit
-increase in the sovereign spread depending on whether a default follows. If
-the data show that bank sovereign holdings increase significantly before
-default but not in the without-default regime, equation (LL.5a) is misspecified:
-the effective $B_{sens}$ is larger for default-linked episodes, and the
-fixed-portfolio model understates the balance-sheet amplification in that
-regime.
+sovereign holdings at $b^B_{ss}$ in both regime types, so the balance-sheet
+sensitivity $B_{sens}$ is identical across spread crises without default and
+spread crises linked to a default. Concretely: during the spread crisis
+window — while the sovereign spread is elevated and before any default occurs
+— the model implies that banks do not systematically accumulate additional
+sovereign bonds in either type of episode. The model therefore predicts *no
+difference* in the change in bank sovereign holdings between the two crisis
+types over the event window $h = 0, 1, \ldots, H$. If the data reveal that
+banks increase their sovereign bond holdings during spread crises linked to a
+default — loading up on high-yield sovereign debt while the spread is elevated
+and a default is approaching — but not during spread crises without default,
+then the fixed-portfolio assumption in equation (LL.5a) is misspecified for
+the default-linked regime: the effective $B_{sens}$ is larger for those
+episodes, and the model understates the balance-sheet amplification in
+spread crises linked to a default relative to spread crises without default.
 
 ---
 
