@@ -106,15 +106,18 @@ exceeds the value of repayment. The optimal policy is:
 
 $$d(B_t, y_t) = \mathbf{1}\Bigl\lbrace  V^D(y_t) > V^R(B_t, y_t) \Bigr\rbrace$$
 
-The default set $\mathcal{D}(B_t) = \{ y_t : V^D(y_t) > V^R(B_t, y_t) \}$
-is the set of income realizations for which default is optimal given debt
-level $B_t$. Because $V^R$ is increasing in $y_t$ (higher income makes
-repayment easier) while $V^D$ is non-decreasing in $y_t$ (default always
-relieves the debt burden), the default set takes the form of a lower interval:
+The default set $\mathcal{D}(B_t)$ is the set of income realizations for
+which default is optimal given debt level $B_t$:
+
+$$\mathcal{D}(B_t) = \bigl\lbrace y_t \;:\; V^D(y_t) > V^R(B_t, y_t) \bigr\rbrace$$
+
+Because $V^R$ is increasing in $y_t$ (higher income makes repayment easier)
+while $V^D$ is non-decreasing in $y_t$ (default always relieves the debt
+burden), the default set takes the form of a lower interval
 $\mathcal{D}(B_t) = (-\infty, \hat{y}(B_t)]$ for some threshold $\hat{y}$.
 The government defaults on bad income draws and repays on good ones.
 
-The value function satisfies $V(B_t, y_t) = \max\{ V^R(B_t, y_t),\, V^D(y_t) \}$.
+The value function satisfies $V(B_t, y_t) = \max( V^R(B_t, y_t),\, V^D(y_t) )$.
 
 ---
 
@@ -305,7 +308,7 @@ point increase in the lending rate reduces the capital stock by approximately
 ## 3.6 Log-Linearized Transmission: The Full System
 
 Combining the banking and production blocks, the complete log-linear
-system that maps the sovereign spread path $(\hat{s}_h)_{h=0}^{H}$ into
+system that maps a sovereign spread path $\hat{s}_h$ (for $h = 0, 1, \ldots, H$) into
 output and credit responses consists of four equations, indexed by horizon
 $h$ measured in years after crisis onset.
 
