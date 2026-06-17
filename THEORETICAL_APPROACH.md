@@ -17,14 +17,19 @@ transmission block does not feed back into the default decision. This
 recursive structure keeps the model analytically tractable and ensures that
 each block can be separately identified.
 
-Crucially, the model is constructed without reference to the local projection
-estimates it will be compared against. All parameters are calibrated either
-from the prior literature or from moments of the data that are orthogonal to
-the impulse response functions — specifically, long-run averages of sovereign
-spreads, default frequencies, debt-to-GDP ratios, and bank balance sheet
-ratios computed over tranquil periods. The comparison of model-implied impulse
-responses to the LP estimates in Section 4 then constitutes a genuine
-out-of-sample test: the model makes predictions that could be falsified.
+The model is calibrated in two steps. All parameters in Block 1 (the default
+model) and the steady-state ratios in Block 2 are set from the prior
+literature or from tranquil-period averages of sovereign spreads, default
+frequencies, debt-to-GDP ratios, and bank balance sheet ratios — moments
+that are orthogonal to the local projection impulse responses. The three
+transmission parameters governing the working-capital share, balance-sheet
+pass-through, and net worth persistence are then jointly calibrated by SMM
+to fit the non-default output path of the local projections. This is the
+only point at which LP estimates enter the calibration. The default output
+path, the credit responses for both episode types, and all predictions
+about differential transmission are out-of-sample: they are implied by the
+model's structure and the calibrated parameters but were not used to set
+those parameters.
 
 ---
 
@@ -144,8 +149,8 @@ the government faces an upward-sloping supply curve for credit. Second, lower
 current income $y_t$ shifts the transition distribution toward low future
 income, also raising default risk and the spread. Third, partial recovery
 $\theta > 0$ limits the spread to a finite level even when the default
-probability approaches one, consistent with the observation that sovereign
-bonds trade at positive prices even during debt crises.
+probability approaches one: since creditors recover a fraction $\theta$ of
+face value in default, they are willing to hold the bond at a positive price.
 
 The sovereign spread is the excess yield on government bonds over the
 risk-free rate:
@@ -218,38 +223,24 @@ net worth shock. We calibrate $\lambda$ directly from the data as the ratio
 of total bank assets (sovereign bonds plus loans) to bank equity in tranquil
 periods (Section 3.9).
 
-**Passive bank behavior as a conservative baseline.** In the model, banks
-hold a fixed stock of sovereign bonds $b^B_{ss}$ at all times and in both
-regimes. The balance-sheet sensitivity of net worth to spread changes is
-therefore identical across non-default and pre-default episodes:
+**Symmetric bank behavior.** In the model, banks hold a fixed stock of
+sovereign bonds $b^B_{ss}$ at all times. The balance-sheet sensitivity of
+net worth to spread changes is therefore identical across non-default and
+pre-default episodes:
 
 $$B_{sens} = \frac{b^B_{ss}/N_{ss}}{(1 + s_{ss})^2}$$
 
-and equation LL.5a applies uniformly. This is a deliberate and conservative
-choice: the model imposes *no asymmetry* in bank behavior across crisis types
-before confronting the data. The consequence is that the balance-sheet channel
-generates the same net worth loss per unit of spread increase regardless of
-whether a default ultimately occurs.
-
-This baseline abstracts from the *gambling for resurrection* motive (Acharya
-and Steffen 2015): undercapitalized banks on the path to default may
-rationally concentrate sovereign exposure, loading up on high-yield sovereign
-bonds because the upside from repayment rebuilds equity while the downside —
-default — would have caused insolvency regardless. If this mechanism is
-operative, it would amplify the balance-sheet channel in pre-default episodes
-relative to non-default ones, generating a larger net worth contraction and a
-deeper sovereign-bank doom loop (Brunnermeier et al. 2016; Crosignani et al.
-2021). The model as specified cannot generate this asymmetry: it predicts the
-same balance-sheet transmission in both regimes.
-
-This creates a testable prediction. If the data reveal that bank sovereign
-holdings *increase* systematically during default-linked crises but not during
-non-default ones — precisely the pattern in Act 4 of this paper — then the
-passive-bank model is falsified in the direction of the doom loop. The
-comparison between the model's symmetric balance-sheet prediction and the
-empirical asymmetry in Act 4 constitutes an out-of-sample test of the
-gambling-for-resurrection mechanism. The model does not assume the doom loop
-exists; the data either confirm or reject it.
+and equation LL.5a applies uniformly to both regimes. This symmetry is not
+a simplification chosen to favor any particular result — it is the
+prediction of a model in which banks hold a fixed portfolio. The model
+abstracts from the *gambling for resurrection* motive (Acharya and Steffen
+2015), which would lead undercapitalized banks to concentrate sovereign
+exposure before default and amplify the balance-sheet channel in pre-default
+episodes. Whether such accumulation occurs is an empirical question the model
+does not resolve: the predicted symmetric balance-sheet transmission is itself
+a testable implication, and a finding that bank sovereign holdings move
+asymmetrically across regime types would indicate a margin the model does not
+capture (Brunnermeier et al. 2016; Crosignani et al. 2021).
 
 **Lending rate and the sovereign ceiling.** Banks fund firm investment at the
 lending rate $R^L_t$. Following the sovereign ceiling doctrine — the empirical
@@ -498,11 +489,17 @@ have output approximately back at the steady-state level:
 
 $$\bar{y}^{def}_h = (1-\mu)^h \cdot \left[\alpha \hat{k}^{excl}_h - \varepsilon_p \cdot \Delta R^L_{aut}\right] \times 100 \quad\text{(5)}$$
 
-The autarky wedge $\Delta R^L_{aut}$ is the only parameter not set
-independently: it is pinned to match the $h=0$ output observation for
-default episodes, which captures the instantaneous disruption of financial
-intermediation at the moment of default. All subsequent horizons ($h \geq 1$)
-are genuine out-of-sample predictions.
+The autarky wedge $\Delta R^L_{aut}$ normalizes the level of the
+model-implied default output path at $h = 0$. Because the model does not
+endogenously determine the magnitude of the financial disruption at the moment
+of market exclusion — that would require a fully specified crisis equilibrium —
+$\Delta R^L_{aut}$ is set to the value that aligns the model's $h = 0$
+prediction with the $h = 0$ LP estimate for default episodes. This is an
+identification normalization, not a free fit: it pins the level of the default
+path at one point, after which the entire trajectory for $h \geq 1$ is
+determined solely by the model's dynamics (capital depletion via equation (4')
+and survival weighting via $\mu$). The predictions at $h = 1, 2, 3, 4$ are
+therefore fully out-of-sample and constitute the primary test of the model.
 
 ---
 
@@ -635,6 +632,7 @@ then fully out-of-sample.
 | $\ell_{ss}/Y_{ss}$ (credit-to-GDP) | Tranquil mean | World Bank |
 | $\rho_y$, $\sigma_\varepsilon$ (income process) | Panel AR(1) | Our sample |
 | $\chi$ (external investment share) | Tranquil-period BOP data | IMF WEO / WDI |
+| $\Delta R^L_{aut}$ (autarky rate wedge) | Level normalization at $h=0$ | Default LP $h=0$ only |
 | $\xi$, $\phi$, $\Phi_N$ (transmission) | SMM | Non-default LP (Section 4) |
 
 ---
@@ -658,14 +656,10 @@ to both). The model does not assume this ranking: if the balance-sheet and
 working-capital effects were large enough relative to the capital-depletion
 mechanism, non-default crises could produce comparably large output losses.
 The ranking is a prediction that emerges from the calibrated parameter values.
-
-Notably, the model generates the output ranking without relying on any
-asymmetry in bank behavior across regimes. If the data in Section 4 show
-that default crises also feature systematically larger bank-sovereign
-accumulation — the doom loop — this would represent an additional amplifier
-that the model does not include. In that case, the data would be *more*
-supportive of the output ranking than the model alone predicts, further
-strengthening the empirical case.
+The model could be falsified in either direction: if the balance-sheet and
+working-capital channels turn out to be strong enough in non-default episodes,
+the data might show no significant difference in output losses across regime
+types, or even a reversal.
 
 **Prediction 2 (credit-to-GDP paradox).** Non-default crises produce a
 larger decline in the private credit-to-GDP ratio than default-linked
@@ -681,15 +675,18 @@ even rise. This prediction is an implication of the model's structure —
 the relative magnitude of the balance-sheet channel versus the
 capital-depletion channel — and is not imposed by the calibration.
 
-**Prediction 3 (default path is out-of-sample).** With transmission
-parameters fixed by the SMM step on non-default episodes, the model
-generates a predicted default path $\{\bar{y}^{def}_h\}$ for $h \geq 1$
-(only $h=0$ is pinned by the autarky wedge). The shape — an initial
-sharp contraction deepening at $h=1$ as capital depletion accumulates,
-followed by partial recovery as countries exit autarky at rate $\mu$ —
-is a structural prediction. The correspondence between this path and the
-empirical LP estimate for default-linked episodes in Section 4 is the
-primary test of the model.
+**Prediction 3 (default path magnitude and persistence).** With transmission
+parameters fixed by the SMM step on non-default episodes, and with $h = 0$
+normalized by the autarky wedge, the model generates a predicted default output
+path $\{\bar{y}^{def}_h\}$ for $h = 1, 2, 3, 4$ that is fully
+out-of-sample. The quantitative predictions at each horizon are determined
+by the calibrated capital depletion rate $\chi\delta$, the survival
+probability $(1-\mu)^h$, and the transmission parameters $(\xi, \phi, \Phi_N)$
+fixed by the non-default SMM step. None of these parameters were set with
+reference to the default LP estimates at $h \geq 1$. The model can therefore
+be falsified at any of these horizons: the predicted magnitudes may be too
+large, too small, or may decline at the wrong rate relative to the empirical
+LP path.
 
 ---
 
