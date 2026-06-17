@@ -283,27 +283,29 @@ deviation and the parameter:
 $$\eta = \frac{\delta}{(1-\alpha)(R^L_{ss} - (1-\delta))}$$
 
 is the capital-investment sensitivity. The derivation of $\eta$ follows
-directly from the capital accumulation identity: log-linearizing
-$K_{t+1} = (1-\delta)K_t + I_t$ around the steady state gives
-$\hat{k}_{t+1} = (1-\delta)\hat{k}_t + \delta \hat{i}_t$, and
-log-linearizing the investment demand condition pins the sensitivity of
-$\hat{i}_t$ to the lending rate change, yielding the factor
+directly from the capital accumulation identity. Log-linearizing
+$K_{t+1} = (1-\delta)K_t + I_t$ around the steady state yields:
+
+$$\hat{k}_{t+1} = (1-\delta)\hat{k}_t + \delta \hat{i}_t$$
+
+Log-linearizing the investment demand condition then pins the sensitivity of
+investment $\hat{i}_t$ to the lending rate change, yielding the factor
 $\delta / [(1-\alpha)(R^L_{ss} - (1-\delta))]$. The presence of
 $\delta$ in the numerator is critical: it reflects the fact that only the
 fraction $\delta$ of the capital stock is replaced each period, so a
-change in the lending rate affects the *flow* of investment, not the *stock*
-of capital, proportionally to the depreciation rate. For our calibrated
-parameters ($\alpha = 0.33$, $\delta = 0.10$, $R^L_{ss} \approx 1.08$),
-$\eta \approx 0.67$, implying that a 100 basis point increase in the
-lending rate reduces the capital stock by approximately 0.67 percent after
-one year.
+change in the lending rate affects the flow of new investment, not the
+existing stock of capital, proportionally to the depreciation rate. For our
+calibrated parameters ($\alpha = 0.33$, $\delta = 0.10$,
+$R^L_{ss} \approx 1.08$), $\eta \approx 0.67$, implying that a 100 basis
+point increase in the lending rate reduces the capital stock by approximately
+0.67 percent after one year.
 
 ---
 
 ## 3.6 Log-Linearized Transmission: The Full System
 
 Combining the banking and production blocks, the complete log-linear
-system that maps the sovereign spread path $\{\hat{s}_h\}_{h=0}^{H}$ into
+system that maps the sovereign spread path $(\hat{s}_h)_{h=0}^{H}$ into
 output and credit responses consists of four equations, indexed by horizon
 $h$ measured in years after crisis onset.
 
@@ -455,7 +457,7 @@ crossing constitutes a model crisis onset. We classify each onset as:
 For each type, we compute the average spread path over the event window
 $h \in \{-2, -1, 0, 1, 2, 3, 4\}$ by averaging the spread $s_{t+h}$ across
 all onsets of that type. This yields two model-implied spread paths,
-$\{\hat{s}^{nd}_h\}$ and $\{\hat{s}^{def}_h\}$, which serve as the inputs
+$\hat{s}^{nd}_h$ and $\hat{s}^{def}_h$, which serve as the inputs
 to the Block 2 transmission system. The model generates these two paths
 endogenously from the same calibrated economy, so the difference between
 them — pre-default episodes have a higher and more persistent spread, since
@@ -523,13 +525,13 @@ The spread persistence $\rho_s$ is estimated from a fixed-effects AR(1)
 regression of the EMBIG spread on its one-period lag.
 
 **SMM transmission parameters.**
-The three transmission parameters $\{\xi, \phi, \Phi_N\}$ — governing the
+The three transmission parameters $(\xi, \phi, \Phi_N)$ — governing the
 working-capital share, the balance-sheet pass-through, and net worth
 persistence — are jointly calibrated by Simulated Method of Moments (SMM)
 to minimize the sum of squared deviations between the model-implied
 non-default output path and the LP estimates at horizons $h = 0, 1, 2, 3, 4$:
 
-$$\{\xi^*, \phi^*, \Phi_N^*\} = \arg\min_{\xi, \phi, \Phi_N} \sum_{h=0}^{4} \left(\hat{y}^{nd,model}_h - \hat{\beta}^{nd,LP}_h\right)^2 \quad\text{(SMM)}$$
+$$(\xi^*, \phi^*, \Phi_N^*) = \arg\min_{\xi,\, \phi,\, \Phi_N} \sum_{h=0}^{4} \left(\hat{y}^{nd,model}_h - \hat{\beta}^{nd,LP}_h\right)^2 \quad\text{(SMM)}$$
 
 This step is the only place in the calibration where the empirical LP
 estimates enter. The default path, the credit responses for both episode
