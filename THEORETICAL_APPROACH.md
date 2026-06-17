@@ -491,75 +491,82 @@ assumption.
 
 ## 3.9 Testable Predictions
 
-The following predictions are derived directly from the model's equations.
-They are not summaries of empirical patterns: they are logical implications
-of the model's structure that Section 4 will either confirm or reject.
+The model generates three predictions that follow as logical deductions from
+its equations. Each prediction concerns a qualitative pattern — a ranking, a
+ratio, or a timing difference — that the model implies must hold for any
+admissible parameterization satisfying $\chi > 0$, $\Delta R^L_{aut} > 0$,
+and $\lambda > 1$. They are not calibrated to match empirical moments: they
+constitute genuine restrictions on the data that Section 4 will evaluate.
 
-**Prediction 1 (output ranking and timing).** Inspecting equations (LL.2a),
-(LL.3a), and (5), the default regime adds two channels absent in the
-without-default regime: capital depletion at rate $\chi\delta$ per period
-(equation 4') and the autarky lending-rate wedge $\Delta R^L_{aut}$. The
-without-default regime operates exclusively through the balance-sheet
-(LL.5a) and working-capital (LL.2a) channels, which apply symmetrically
-to both regimes. Therefore, the model mechanically implies that the output
-loss in a spread crisis linked to a default is at least as large as in a
-spread crisis without default, with strict inequality whenever $\chi > 0$
-or $\Delta R^L_{aut} > 0$. Furthermore, the profile of losses differs: in
-the without-default regime the working-capital channel is front-loaded (it
-depends on $\hat{s}_h$ contemporaneously in LL.2a), while in the default
-regime the capital-depletion channel is back-loaded (it compounds through
-the recursion in 4'). The model therefore predicts that the gap between the
-two output paths should *widen* over the horizon $h = 0, 1, \ldots, H$, not
-narrow. This prediction could be falsified if the empirical output paths
-converge or if the without-default path deepens more than the default path
-at longer horizons.
+**Prediction 1 (output cost ranking and intertemporal profile).** Sovereign
+spread crises linked to a default generate strictly larger and more persistent
+output losses than spread crises without default. This prediction is a
+necessary implication of the model's structure, independent of parameter
+values. Formally, let $\hat{y}^{nd}_h$ and $\hat{y}^{def}_h$ denote the
+output responses under the two regimes at horizon $h$. The without-default
+path is governed entirely by the balance-sheet channel (LL.5a) and the
+working-capital channel (LL.2a). The default path adds two additional
+mechanisms: the autarky lending-rate wedge $\Delta R^L_{aut} > 0$, which
+generates an immediate output contraction at $h=0$ through (LL.2a), and
+capital depletion at effective rate $\chi\delta > 0$ per period, which
+accumulates through the recursion (4') and feeds back into output via
+$\alpha \hat{k}^{excl}_h$ in (LL.2a). Since both additional terms enter
+negatively at every horizon $h \geq 0$, the model implies $\hat{y}^{def}_h
+\leq \hat{y}^{nd}_h$ for all $h$, with strict inequality for all $h \geq 1$
+as long as $\chi > 0$. Moreover, the gap $\hat{y}^{nd}_h - \hat{y}^{def}_h$
+is non-decreasing in $h$: the capital-depletion term in (4') compounds
+geometrically at rate $(1-\chi\delta)^h$, so the default regime falls further
+below the without-default path as the horizon grows. The model therefore
+predicts not only that default-linked crises are more costly, but that their
+relative cost increases over time — a divergence between the two output paths
+that cannot be rationalized by the working-capital channel alone.
 
-**Prediction 2 (credit relative to output).** From equation (IR.4), private
-credit is proportional to bank net worth: $\hat{\ell}_h = (\lambda N_{ss} /
-\ell_{ss})\, \hat{n}_h$. From equation (LL.2a), output depends on both the
-capital stock $\hat{k}_h$ and the net worth-adjusted lending rate. In the
-without-default regime, $\hat{k}_h$ adjusts slowly (it accumulates through
-LL.3a with a one-period lag), so the output contraction at short horizons is
-dominated by the working-capital term $\varepsilon_p(\gamma\hat{s}_h -
-\Omega\hat{n}_h)$, which is of similar magnitude to the credit contraction.
-In the default regime, $\hat{k}^{excl}_h$ falls monotonically through (4'),
-contributing an additional negative term to output at every horizon. The
-model therefore implies that the ratio of credit contraction to output
-contraction is *larger* in spread crises without default than in spread crises
-linked to a default: output has an extra source of deterioration in the
-default regime that credit does not share. Equivalently, the credit-to-GDP
-ratio should contract more in the without-default regime. This is a structural
-prediction that could be falsified if credit contracts disproportionately more
-than output in default episodes.
+**Prediction 2 (dominance of transmission channels by regime type).** The
+balance-sheet channel dominates transmission in spread crises without default,
+while the capital-depletion channel dominates in spread crises linked to a
+default. This prediction emerges from the structure of the system (LL.2a),
+(LL.3a), (LL.5a), (IR.4): in the without-default regime, the capital stock
+$\hat{k}_h$ accumulates losses only through the lending-rate wedge, which
+depends on the spread path $\hat{s}^{nd}_h$, typically returning toward zero
+within a few periods of the onset. The dominant and persistent source of
+output deterioration is therefore the net worth recursion LL.5a — the
+balance-sheet channel — which also drives the credit response through (IR.4).
+In the default regime, $\hat{k}^{excl}_h$ follows the autonomous depletion
+path (4'), which is independent of the spread path after onset: even if the
+spread normalizes, capital continues to erode at rate $\chi\delta$. The
+dominant persistent source of output loss is therefore the capital-depletion
+channel, not the balance-sheet channel. A direct implication is that private
+credit — which loads only on net worth through (IR.4), not on the capital
+stock — should contract more sharply relative to output in spread crises
+without default than in spread crises linked to a default: the credit-to-GDP
+ratio falls more in the without-default regime because the numerator (credit)
+and the denominator (output) are both driven by the same net worth shock,
+whereas in the default regime the denominator receives an additional negative
+shock from capital depletion that credit does not.
 
-**Prediction 3 (current account adjustment).** In the default regime, the
-investment stop (equation 3) forces a reduction in domestic absorption
-relative to income: with investment falling by $\chi\delta K_t$ per period,
-the resource constraint requires a corresponding improvement in the net
-export position — a current account adjustment. In the without-default
-regime, investment continues at its equilibrium level (the country retains
-market access) and no forced external adjustment is implied by the model's
-equations. The model therefore predicts a sharper and earlier current account
-improvement in spread crises linked to a default than in spread crises without
-default. This prediction follows directly from the resource constraint and
-equation (3), without any assumption about the magnitude of the adjustment.
-
-**Prediction 4 (symmetric bank transmission).** The model fixes bank
-sovereign holdings at $b^B_{ss}$ in both regime types, so the balance-sheet
-sensitivity $B_{sens}$ is identical across spread crises without default and
-spread crises linked to a default. Concretely: during the spread crisis
-window — while the sovereign spread is elevated and before any default occurs
-— the model implies that banks do not systematically accumulate additional
-sovereign bonds in either type of episode. The model therefore predicts *no
-difference* in the change in bank sovereign holdings between the two crisis
-types over the event window $h = 0, 1, \ldots, H$. If the data reveal that
-banks increase their sovereign bond holdings during spread crises linked to a
-default — loading up on high-yield sovereign debt while the spread is elevated
-and a default is approaching — but not during spread crises without default,
-then the fixed-portfolio assumption in equation (LL.5a) is misspecified for
-the default-linked regime: the effective $B_{sens}$ is larger for those
-episodes, and the model understates the balance-sheet amplification in
-spread crises linked to a default relative to spread crises without default.
+**Prediction 3 (persistence of losses beyond the crisis window).** Both
+crisis types generate output losses that persist beyond the period during which
+the sovereign spread is elevated. In the without-default regime, persistence
+arises from the capital channel: equation (LL.3a) implies that any investment
+contraction at horizon $h$ reduces the capital stock at $h+1$, which reduces
+output at $h+1$ through the term $\alpha \hat{k}_h$ in (LL.2a), independently
+of whether the spread has returned to its steady-state value. Output therefore
+remains below its pre-crisis path even after spreads normalize — a prediction
+that rules out a purely contemporaneous transmission mechanism in this regime.
+In the default regime, persistence has a different source: the capital
+depletion path (4') is entirely decoupled from the spread path after the onset
+of autarky. Output continues to fall as long as the country remains excluded,
+regardless of what happens to the sovereign spread. The model therefore
+predicts that both output paths exhibit negative levels relative to
+pre-crisis trend at $h = 3$ and $h = 4$, but for structurally distinct
+reasons — capital-accumulation inertia in the without-default regime and
+market-exclusion depletion in the default regime. This distinction implies
+that the persistence of losses in the without-default regime is bounded by
+the speed of capital adjustment, while persistence in the default regime is
+bounded by the re-entry probability $\mu$: as $\mu \to 1$ (rapid re-entry),
+the survival weight $(1-\mu)^h$ collapses quickly and the average output loss
+in the default regime recovers faster than the capital-accumulation channel
+alone would predict in the without-default regime.
 
 ---
 
