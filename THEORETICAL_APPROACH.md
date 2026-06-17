@@ -310,7 +310,7 @@ $$\eta = \frac{\delta}{(1-\alpha)(R^L_{ss} - (1-\delta))}$$
 is the capital-investment sensitivity. The derivation of $\eta$ follows
 directly from the capital accumulation identity. Log-linearizing
 $K_{t+1} = (1-\delta)K_t + I_t$ around the steady state yields
-$\hat{k}_{t+1} = (1-\delta)\hat{k}_t + \delta \hat{i}_t$.
+$\hat{k}_{t+1} = (1-\delta)\hat{k}_{t} + \delta \hat{i}_{t}{}$.
 Log-linearizing the investment demand condition then pins the sensitivity of
 investment $\hat{i}_{t}{}$ to the lending rate change, yielding the factor
 $\delta / [(1-\alpha)(R^L_{ss} - (1-\delta))]$. The presence of $\delta$
