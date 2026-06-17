@@ -1,11 +1,10 @@
 # 3. Theoretical Framework
 
-To interpret the empirical findings and discipline their quantitative
-magnitudes, we develop a two-block model of sovereign risk and real
-transmission. The first block is a nonlinear sovereign default model in the
-tradition of Arellano (2008), which endogenously generates the sovereign
-spread and classifies crisis episodes as either linked to a default or without default based
-on the government's optimal default decision. The second block is a
+We develop a two-block model of sovereign risk and real transmission. The
+first block is a nonlinear sovereign default model in the tradition of
+Arellano (2008), which endogenously generates the sovereign spread and
+classifies crisis episodes as either linked to a default or without default
+based on the government's optimal default decision. The second block is a
 log-linearized banking and production system, adapted from Bocola (2016),
 which maps the sovereign spread path into output and credit responses through
 three distinct channels: a balance-sheet channel operating through bank net
@@ -28,20 +27,6 @@ the LP estimates in Section 4 should be read as testing the transmission
 mechanism *conditional on a given spread path*, not as a prediction of the
 joint equilibrium of sovereign risk and real activity.
 
-The model is calibrated in two steps. All parameters in Block 1 (the default
-model) and the steady-state ratios in Block 2 are set from the prior
-literature or from tranquil-period averages of sovereign spreads, default
-frequencies, debt-to-GDP ratios, and bank balance sheet ratios — moments
-that are orthogonal to the local projection impulse responses. The three
-transmission parameters governing the working-capital share, balance-sheet
-pass-through, and net worth persistence are then jointly calibrated by SMM
-to fit the output path of spread crises without default in the local projections. This is the
-only point at which LP estimates enter the calibration. The default output
-path, the credit responses for both episode types, and all predictions
-about differential transmission are out-of-sample: they are implied by the
-model's structure and the calibrated parameters but were not used to set
-those parameters.
-
 ---
 
 ## 3.1 Economic Environment
@@ -59,12 +44,11 @@ using a Cobb-Douglas technology and borrow working capital from banks to
 finance their wage bill.
 
 The economy is subject to two types of aggregate shock. The first is a
-persistent endowment shock $y_t$, which follows a log-AR(1) process
-estimated from the panel data (Section 3.9). This shock drives the
-government's incentive to default: a sufficiently bad income draw makes
-autarky preferable to debt repayment. The second is the endogenous sovereign
-spread $s_t$, which rises in response to deteriorating fundamentals and
-transmits to the real economy through the banking and production blocks.
+persistent endowment shock $y_t$, which follows a log-AR(1) process. This
+shock drives the government's incentive to default: a sufficiently bad income
+draw makes autarky preferable to debt repayment. The second is the endogenous
+sovereign spread $s_t$, which rises in response to deteriorating fundamentals
+and transmits to the real economy through the banking and production blocks.
 
 ---
 
@@ -83,11 +67,11 @@ the representative household:
 
 $$V_t = \mathbb{E}_t \sum_{j=0}^{\infty} (\beta')^j u(c_{t+j})$$
 
-where $u(c) = c^{1-\sigma}/(1-\sigma)$ with $\sigma = 2$ is a constant
-relative risk aversion utility function. The CRRA specification is standard
-in the quantitative sovereign default literature and implies that the
-government has a stronger incentive to default when income is low, since the
-marginal utility of consumption is high at precisely those times.
+where $u(c) = c^{1-\sigma}/(1-\sigma)$ is a constant relative risk aversion
+utility function. The CRRA specification is standard in the quantitative
+sovereign default literature and implies that the government has a stronger
+incentive to default when income is low, since the marginal utility of
+consumption is high at precisely those times.
 
 **Repayment.** If the government repays, it chooses next-period debt $B_{t+1}$
 to maximize continuation value, subject to the budget constraint:
@@ -104,13 +88,13 @@ $$V^R(B_t, y_t) = \max_{B_{t+1}} \Bigl\lbrace  u\left(y_t - B_t + q(B_{t+1}, y_t
 in the current period and is excluded from international capital markets.
 Following Arellano (2008), the default output cost is asymmetric: the
 autarky income is $y_t^{def} = \min(y_t,\, \bar{h} \cdot \bar{y})$, where
-$\bar{y} = \mathbb{E}[y]$ is mean income and $\bar{h} = 0.965$. This
-formulation captures the empirical regularity that defaults occur precisely
-when output is already low, so the output cost of exclusion is small for
-countries in severe distress but non-trivial for those with moderate income.
-The excluded sovereign re-enters international markets with probability $\mu$
-each period, at which point it restarts with zero debt. The value of
-default is:
+$\bar{y} = \mathbb{E}[y]$ is mean income and $\bar{h} \in (0,1)$ is a
+threshold parameter. This formulation captures the empirical regularity that
+defaults occur precisely when output is already low, so the output cost of
+exclusion is small for countries in severe distress but non-trivial for those
+with moderate income. The excluded sovereign re-enters international markets
+with probability $\mu$ each period, at which point it restarts with zero debt.
+The value of default is:
 
 $$V^D(y_t) = u(y_t^{def}) + \beta' \Bigl\lbrace  \mu \cdot \mathbb{E}_{y'|y}\left[V(0, y')\right] + (1-\mu) \cdot \mathbb{E}_{y'|y}\left[V^D(y')\right] \Bigr\rbrace$$
 
@@ -152,16 +136,15 @@ where $\delta(B_{t+1}, y_t)$ is the next-period default probability:
 
 $$\delta(B_{t+1}, y_t) = \mathbb{E}_{y'|y}\left[ d(B_{t+1}, y') \right]$$
 
-This is evaluated at the borrowing level $B_{t+1}$ and current income $y_t$,
-which determines the distribution of $y'$ via the transition matrix. This pricing equation
-embeds three features of the data. First, higher debt $B_{t+1}$ raises
-default risk, lowering the bond price and raising the cost of borrowing —
-the government faces an upward-sloping supply curve for credit. Second, lower
-current income $y_t$ shifts the transition distribution toward low future
-income, also raising default risk and the spread. Third, partial recovery
-$\theta > 0$ limits the spread to a finite level even when the default
-probability approaches one: since creditors recover a fraction $\theta$ of
-face value in default, they are willing to hold the bond at a positive price.
+This pricing equation embeds three features. First, higher debt $B_{t+1}$
+raises default risk, lowering the bond price and raising the cost of borrowing
+— the government faces an upward-sloping supply curve for credit. Second,
+lower current income $y_t$ shifts the transition distribution toward low
+future income, also raising default risk and the spread. Third, partial
+recovery $\theta > 0$ limits the spread to a finite level even when the
+default probability approaches one: since creditors recover a fraction
+$\theta$ of face value in default, they are willing to hold the bond at a
+positive price.
 
 The sovereign spread is the excess yield on government bonds over the
 risk-free rate:
@@ -170,9 +153,7 @@ $$s_t = \frac{1}{q(B_{t+1}, y_t)} - 1 - R^*$$
 
 When $\delta = 0$ (no default risk), $q = 1/(1+R^*)$ and $s = 0$. When
 default risk is positive, the price falls below $1/(1+R^*)$ and the spread
-becomes positive. At the calibrated parameters, the model generates a mean
-spread of 200-400 basis points and a standard deviation consistent with the
-EMBIG data, without targeting these moments directly in the transmission block.
+becomes positive.
 
 **Equilibrium.** An equilibrium consists of value functions $V^R$, $V^D$,
 $V$, a bond price schedule $q(B', y)$, default policy $d(B, y)$, and debt
@@ -180,7 +161,7 @@ policy $B'(B, y)$ such that: (i) the default policy is optimal given the
 bond price; (ii) the debt policy is optimal given the bond price and the
 default option; (iii) the bond price reflects competitive foreign investors
 pricing in the endogenous default probability. We solve for the equilibrium
-by value function iteration over a discretized state space (Section 3.9).
+by value function iteration over a discretized state space.
 
 ---
 
@@ -217,7 +198,9 @@ worth loss for any given spread increase. The parameter $\Phi_N \in (0,1)$
 governs the persistence of net worth deviations — it reflects retained
 earnings, recapitalization frictions, and the gradual adjustment of bank
 balance sheets. The term $\Phi^O \gamma \hat{s}_{t-1}$ captures delayed
-pass-through from wholesale funding costs, discussed further below.
+pass-through from wholesale funding costs: banks that rely on short-term
+market funding see their liabilities repriced when sovereign spreads rise,
+compressing net interest margins with a one-period delay.
 
 **Leverage constraint.** A binding leverage constraint limits the volume of
 loans a bank can extend to a multiple $\lambda$ of its net worth:
@@ -230,9 +213,7 @@ private credit. When a spread widening reduces bank net worth, the
 leverage constraint forces a proportional contraction in lending:
 $\hat{\ell}_t = \hat{n}_t$. The parameter $\lambda$ is the leverage
 multiplier; a higher $\lambda$ amplifies the credit response to any given
-net worth shock. We calibrate $\lambda$ directly from the data as the ratio
-of total bank assets (sovereign bonds plus loans) to bank equity in tranquil
-periods (Section 3.9).
+net worth shock.
 
 **Symmetric bank behavior.** In the model, banks hold a fixed stock of
 sovereign bonds $b^B_{ss}$ at all times. The balance-sheet sensitivity of
@@ -247,28 +228,26 @@ prediction of a model in which banks hold a fixed portfolio. The model
 abstracts from the *gambling for resurrection* motive (Acharya and Steffen
 2015), which would lead undercapitalized banks to concentrate sovereign
 exposure before default and amplify the balance-sheet channel in spread crises
-linked to a default. Whether such accumulation occurs is an empirical question the model
-does not resolve: the predicted symmetric balance-sheet transmission is itself
-a testable implication, and a finding that bank sovereign holdings move
-asymmetrically across regime types would indicate a margin the model does not
-capture (Brunnermeier et al. 2016; Crosignani et al. 2021).
+linked to a default. Whether such accumulation occurs is an empirical question
+the model does not resolve: the predicted symmetric balance-sheet transmission
+is itself a testable implication, and a finding that bank sovereign holdings
+move asymmetrically across regime types would indicate a margin the model does
+not capture (Brunnermeier et al. 2016; Crosignani et al. 2021).
 
 **Lending rate and the sovereign ceiling.** Banks fund firm investment at the
 lending rate $R^L_t$. Following the sovereign ceiling doctrine — the empirical
 regularity that banks in emerging markets cannot borrow more cheaply than
 their own sovereign (Borensztein et al. 2006) — the bank lending rate is tied
-to the sovereign spread through a pass-through coefficient $\gamma$:
+to the sovereign spread through a pass-through coefficient $\gamma \in (0,1]$:
 
 $$R^L_t = R^* + \gamma \cdot s_t \quad\text{(SC)}$$
 
-where $\gamma \in (0,1]$ measures how much of the sovereign spread is
-transmitted to the private lending rate. We set $\gamma = 0.80$ following
-Bocola (2016), consistent with the empirical pass-through estimates for
-emerging markets. In the steady state, the lending rate $R^L_{ss}$ satisfies
-$R^L_{ss} = R^* + \gamma s_{ss}$, exceeding the world risk-free
-rate by the steady-state spread premium. An additional balance-sheet
-component links the lending rate to bank net worth: when banks are
-undercapitalized, they raise lending rates to preserve margins, adding the
+The coefficient $\gamma$ measures how much of the sovereign spread is
+transmitted to the private lending rate. In the steady state, the lending
+rate $R^L_{ss}$ satisfies $R^L_{ss} = R^* + \gamma s_{ss}$, exceeding the
+world risk-free rate by the steady-state spread premium. An additional
+balance-sheet component links the lending rate to bank net worth: when banks
+are undercapitalized, they raise lending rates to preserve margins, adding the
 term $\Omega \hat{n}_{t}{}$ to the effective financing cost faced by firms, where
 $\Omega = \phi \cdot b^B_{ss} N_{ss}^{-1}{}$ is the balance-sheet pass-through
 scaled by the sovereign exposure ratio.
@@ -325,21 +304,15 @@ $$\eta = \frac{\delta}{(1-\alpha)(R^L_{ss} - (1-\delta))}$$
 
 is the capital-investment sensitivity. The derivation of $\eta$ follows
 directly from the capital accumulation identity. Log-linearizing
-$K_{t+1} = (1-\delta)K_t + I_t$ around the steady state yields:
-
-$$\hat{k}_{t+1} = (1-\delta)\hat{k}_t + \delta \hat{i}_t$$
-
+$K_{t+1} = (1-\delta)K_t + I_t$ around the steady state yields
+$\hat{k}_{t+1} = (1-\delta)\hat{k}_t + \delta \hat{i}_t$.
 Log-linearizing the investment demand condition then pins the sensitivity of
 investment $\hat{i}_{t}{}$ to the lending rate change, yielding the factor
-$\delta / [(1-\alpha)(R^L_{ss} - (1-\delta))]$. The presence of
-$\delta$ in the numerator is critical: it reflects the fact that only the
-fraction $\delta$ of the capital stock is replaced each period, so a
-change in the lending rate affects the flow of new investment, not the
-existing stock of capital, proportionally to the depreciation rate. For our
-calibrated parameters ($\alpha = 0.33$, $\delta = 0.10$, $R^L_{ss} \approx 1.08$),
-we obtain $\eta \approx 0.67$, implying that a 100 basis point increase in
-the lending rate reduces the capital stock by approximately
-0.67 percent after one year.
+$\delta / [(1-\alpha)(R^L_{ss} - (1-\delta))]$. The presence of $\delta$
+in the numerator is critical: it reflects the fact that only the fraction
+$\delta$ of the capital stock is replaced each period, so a change in the
+lending rate affects the flow of new investment, not the existing stock of
+capital, proportionally to the depreciation rate.
 
 ---
 
@@ -432,10 +405,9 @@ $$I_t = (1-\chi)\,\delta K_t \quad\text{(3)}$$
 where $\chi \in [0,1]$ is the *external investment share*: the fraction of
 steady-state replacement investment that requires access to international
 capital markets. When $\chi = 1$, all investment is externally financed and
-investment drops to zero in autarky — the polar case assumed in earlier
-formulations. When $\chi = 0$, autarky does not affect investment at all.
-For intermediate $\chi$, domestic investment partially sustains capital
-accumulation even while the sovereign is excluded.
+investment drops to zero in autarky. When $\chi = 0$, autarky does not affect
+investment at all. For intermediate $\chi$, domestic investment partially
+sustains capital accumulation even while the sovereign is excluded.
 
 Substituting into the capital law of motion $K_{t+1} = (1-\delta)K_t + I_t$:
 
@@ -451,37 +423,19 @@ Starting from $\hat{k}^{excl}_0 = 0$, the closed-form autarky capital path is:
 
 $$\hat{k}^{excl}_h = -(1-(1-\chi\delta)^h) \quad\text{(4')}$$
 
-When $\chi = 1$ this collapses to $-(1-(1-\delta)^h)$, the standard full-stop
-formula. When $\chi < 1$, capital depletion is attenuated: for $\chi = 0.5$
-and $\delta = 0.10$, capital falls by 5 percent in the first year of exclusion
-rather than 10 percent, and by a cumulative 18 percent after four years rather
-than 34 percent.
+When $\chi = 1$ this collapses to the standard full-stop formula
+$-(1-(1-\delta)^h)$. When $\chi < 1$, capital depletion is attenuated in
+proportion to the domestic financing capacity of the economy.
 
-**Identification of $\chi$ from external financing structure.** The parameter
-$\chi$ measures the fraction of steady-state replacement investment that
-requires access to international capital markets — it is a structural
-characteristic of the economy, not a crisis outcome. We calibrate $\chi$
-from the share of gross fixed capital formation (GFCF) financed by external
-flows in tranquil periods: specifically, the ratio of net foreign direct
-investment plus net external debt inflows to total GFCF, averaged over
-non-crisis years in our panel using balance-of-payments data from the IMF
-World Economic Outlook and World Bank WDI. This measure is computed before
-any crisis episode and is orthogonal to the LP estimates. For the median
-emerging market economy in our sample, external financing accounts for
-approximately 30–50 percent of total investment spending, suggesting
-$\chi \in [0.30, 0.50]$ as the empirically relevant range.
-
-With $\chi$ identified from tranquil-period BOP data, the autarky capital path
-$(4')$ is a genuine out-of-sample prediction for spread crises linked to a default: the
-model says how much capital should deplete given the observed external
-financing structure, and Section 4 tests whether the data are consistent with
-this prediction. The model does not use the LP investment estimates to set
-$\chi$; it uses them to evaluate the model.
+The parameter $\chi$ is a structural characteristic of the economy — the
+share of gross fixed capital formation financed by external flows in normal
+times — and is identified from balance-of-payments data over tranquil periods,
+independently of any crisis outcome.
 
 **Autarky lending rate wedge.** In addition to the investment stop, the
 sovereign ceiling implies that domestic firms face an elevated financing
-cost during the default episode: without the government's ability to
-borrow cheaply, the private lending rate is stuck at an autarky level
+cost during the default episode. Without the government's ability to borrow
+at the sovereign rate, the private lending rate rises to an autarky level
 $R^{L,aut} = R^L_{ss} + \Delta R^L_{aut}$, where $\Delta R^L_{aut} > 0$
 is the autarky wedge. This wedge captures the disruption of financial
 intermediation that accompanies sovereign default — including bank
@@ -500,203 +454,87 @@ have output approximately back at the steady-state level:
 
 $$\bar{y}^{def}_h = (1-\mu)^h \cdot \left[\alpha \hat{k}^{excl}_h - \varepsilon_p \cdot \Delta R^L_{aut}\right] \times 100 \quad\text{(5)}$$
 
-The autarky wedge $\Delta R^L_{aut}$ normalizes the level of the
-model-implied default output path at $h = 0$. Because the model does not
-endogenously determine the magnitude of the financial disruption at the moment
-of market exclusion — that would require a fully specified crisis equilibrium —
-$\Delta R^L_{aut}$ is set to the value that aligns the model's $h = 0$
-prediction with the $h = 0$ LP estimate for default episodes. This is an
-identification normalization, not a free fit: it pins the level of the default
-path at one point, after which the entire trajectory for $h \geq 1$ is
-determined solely by the model's dynamics (capital depletion via equation (4')
-and survival weighting via $\mu$). The predictions at $h = 1, 2, 3, 4$ are
-therefore fully out-of-sample and constitute the primary test of the model.
-
 ---
 
-## 3.8 Identifying Non-Default and Pre-Default Episodes from the Model
+## 3.8 Identifying the Two Crisis Types from the Model
 
 A central requirement for the empirical test to be valid is that the two
-crisis types — spread crises without default and spread crises linked to a default — be identified from the model
-itself, not from the data. We achieve this through the simulation of the
-Block 1 economy.
+crisis types — spread crises without default and spread crises linked to a
+default — be identified from the model itself, not from the data. We achieve
+this through the simulation of the Block 1 economy.
 
-We simulate the Arellano model for $T = 100{,}000$ periods (with a 1,000
-period burn-in) to generate time series of spreads $\{s_t\}$, default
-decisions $\{d_t\}$, income $\{y_t\}$, and market access indicators
-$\{m_t\}$. We then collect all periods in which the sovereign spread crosses
-the 1,000 basis point threshold from below while the country is in good
-standing ($m_t = 1$, $s_t \geq 0.10$, $s_{t-1} < 0.10$). Each such
-crossing constitutes a model crisis onset. We classify each onset as:
+We simulate the Arellano model to generate time series of spreads $\{s_t\}$,
+default decisions $\{d_t\}$, income $\{y_t\}$, and market access indicators
+$\{m_t\}$. We collect all periods in which the sovereign spread crosses the
+1,000 basis point threshold from below while the country is in good standing
+($m_t = 1$, $s_t \geq 0.10$, $s_{t-1} < 0.10$). Each such crossing
+constitutes a model crisis onset. We classify each onset as:
 
-- **Non-default episode:** the country does not default in any of the four
-  years following the onset ($d_{t+k} = 0$ for $k = 0, 1, 2, 3, 4$).
-- **Pre-default episode:** the country defaults in at least one of the four
-  years following the onset ($\exists k \in \{0,1,2,3,4\} : d_{t+k} = 1$).
+- **Spread crisis without default:** the country does not default in any of
+  the four years following the onset
+  ($d_{t+k} = 0$ for $k = 0, 1, 2, 3, 4$).
+- **Spread crisis linked to a default:** the country defaults in at least
+  one of the four years following the onset
+  ($\exists\, k \in \{0,1,2,3,4\} : d_{t+k} = 1$).
 
 For each type, we compute the average spread path over the event window
-$h \in \{-2, -1, 0, 1, 2, 3, 4\}$ by averaging the spread $s_{t+h}$ across
-all onsets of that type. This yields two model-implied spread paths,
+$h \in \{-2, -1, 0, 1, 2, 3, 4\}$ by averaging $s_{t+h}$ across all onsets
+of that type. This yields two model-implied spread paths,
 $\hat{s}^{nd}_h$ and $\hat{s}^{def}_h$, which serve as the inputs
 to the Block 2 transmission system. The model generates these two paths
-endogenously from the same calibrated economy, so the difference between
-them — spread crises linked to a default have a higher and more persistent spread, since
+endogenously from the same economy, so the difference between them — spread
+crises linked to a default have a higher and more persistent spread, since
 the country's fundamentals are worse — is a model prediction, not an
 assumption.
 
 ---
 
-## 3.9 Calibration
-
-The model is calibrated at an annual frequency. We divide parameters into
-three groups: externally calibrated constants drawn from the prior literature;
-data-determined steady-state ratios computed from tranquil periods in our
-panel (country-years without a crisis onset or continuation); and stochastic
-process parameters estimated directly from the panel data.
-
-**Group 1: Externally calibrated parameters.**
-The household discount factor $\beta = 0.96$ implies an annual real interest
-rate of approximately 4 percent, consistent with the world risk-free rate
-$R^* = 0.04$. The government discount factor $\beta' = 0.95$ introduces
-a small degree of government impatience relative to the household, in line
-with the calibration of Arellano (2008) and Aguiar and Gopinath (2006).
-The CRRA coefficient $\sigma = 2$ is standard in the international
-macroeconomics literature (Aguiar and Gopinath 2007). The capital share
-$\alpha = 0.33$ and annual depreciation rate $\delta = 0.10$ follow
-the long-run averages for emerging market economies in the Penn World
-Tables. The recovery rate $\theta = 0.62$ corresponds to one minus the
-average haircut of 38 percent reported by Cruces and Trebesch (2013) for
-sovereign restructurings in emerging markets. The re-entry probability
-$\mu = 0.22$ implies an average exclusion period of approximately 4.5 years,
-consistent with the post-default exclusion estimates of Gelos et al. (2011).
-The bank leverage multiplier $\lambda = 10$ (assets-to-equity ratio) is
-standard for emerging market banking sectors (Bocola 2016). The
-sovereign-ceiling pass-through coefficient $\gamma = 0.80$ is taken from
-the empirical estimates of Bocola (2016) for the transmission of sovereign
-spreads to private lending rates in emerging markets.
-
-**Group 2: Data-determined steady-state ratios.**
-These parameters are computed from the subset of country-years without a
-crisis onset or continuation in our panel — which we call "tranquil" periods
-— ensuring that the steady-state calibration reflects normal economic
-conditions rather than crisis dynamics. The steady-state sovereign spread
-$s_{ss}$ is set equal to the cross-country median of the EMBIG spread during
-tranquil periods, converted from basis points to decimal. The bank sovereign
-bond exposure ratio $b^B_{ss}/Y_{ss}$ is set to the tranquil-period mean
-of the BIS locational banking statistics measure of bank claims on the
-government, normalized by GDP; where this variable is unavailable,
-we use $b^B_{ss}/Y_{ss} = 0.15$, consistent with the IMF Financial
-Soundness Indicators for emerging markets. Private credit-to-GDP
-$\ell_{ss}/Y_{ss}$ is set to the tranquil-period mean of private sector
-credit from the World Bank Financial Development Database. Bank net worth
-is derived as $N_{ss}/Y_{ss} = (b^B_{ss} + \ell_{ss})/(\lambda \cdot Y_{ss})$,
-using the balance sheet identity and the leverage constraint. Expenditure
-shares ($s_C$, $s_I$, $s_G$, $s_{CA}$) and the tax rate ($\tau$) are set
-to tranquil-period sample means. These data-determined parameters ensure
-that the model's steady state is internally consistent with the average
-characteristics of the 52 economies in our sample.
-
-**Group 3: Estimated stochastic process parameters.**
-The persistence $\rho_y$ and innovation standard deviation $\sigma_\varepsilon$
-of the income process are estimated from a panel AR(1) regression of
-country-specific detrended log real GDP per capita, where the trend is
-removed by country-specific linear regression prior to estimation.
-The spread persistence $\rho_s$ is estimated from a fixed-effects AR(1)
-regression of the EMBIG spread on its one-period lag.
-
-**External investment share.** The parameter $\chi$ is calibrated from
-tranquil-period balance-of-payments data as described in Section 3.7:
-the ratio of external financing flows (FDI plus net external debt) to
-total gross fixed capital formation, averaged over non-crisis years.
-This is a pre-crisis structural characteristic of the economy and is
-entirely orthogonal to the LP estimates.
-
-**SMM transmission parameters.**
-The three transmission parameters $(\xi, \phi, \Phi_N)$ — governing the
-working-capital share, the balance-sheet pass-through, and net worth
-persistence — are jointly calibrated by Simulated Method of Moments (SMM)
-to minimize the sum of squared deviations between the model-implied
-output path of spread crises without default and the LP estimates at horizons $h = 0, 1, 2, 3, 4$:
-
-$$(\xi^{\ast},\, \phi^{\ast},\, \Phi_N^{\ast}) \;=\; \arg\min_{\xi,\,\phi,\,\Phi_N} \sum_{h=0}^{4} \Bigl(\hat{y}^{nd}_{h} - \hat{\beta}^{nd}_{h}\Bigr)^2 \quad\text{(SMM)}$$
-
-This step is the only place in the calibration where the LP for spread crises without default
-estimates enter. The default path, the credit responses for both episode
-types, and all qualitative predictions about the credit-to-GDP ratio are
-then fully out-of-sample.
-
-| Parameter | Value | Source |
-|-----------|-------|--------|
-| $\beta$ (household discount factor) | 0.96 | Standard EM calibration |
-| $\beta'$ (government discount factor) | 0.95 | Arellano (2008) |
-| $\sigma$ (CRRA coefficient) | 2.0 | Aguiar-Gopinath (2007) |
-| $\alpha$ (capital share) | 0.33 | Penn World Tables |
-| $\delta$ (depreciation rate) | 0.10 | Penn World Tables |
-| $R^*$ (world risk-free rate) | 0.04 | US Treasury average |
-| $\theta$ (recovery rate) | 0.62 | Cruces-Trebesch (2013) |
-| $\mu$ (re-entry probability) | 0.22 | Gelos et al. (2011) |
-| $\lambda$ (bank leverage) | 10 | Bocola (2016) |
-| $\gamma$ (sovereign ceiling pass-through) | 0.80 | Bocola (2016) |
-| $\bar{h}$ (default output cost) | 0.965 | Arellano (2008) |
-| $s_{ss}$ (steady-state spread) | Median tranquil EMBIG | Our sample |
-| $b^B_{ss}/Y_{ss}$ (bank sovereign exposure) | Tranquil mean | BIS / IMF FSI |
-| $\ell_{ss}/Y_{ss}$ (credit-to-GDP) | Tranquil mean | World Bank |
-| $\rho_y$, $\sigma_\varepsilon$ (income process) | Panel AR(1) | Our sample |
-| $\chi$ (external investment share) | Tranquil-period BOP data | IMF WEO / WDI |
-| $\Delta R^L_{aut}$ (autarky rate wedge) | Level normalization at $h=0$ | Default LP $h=0$ only |
-| $\xi$, $\phi$, $\Phi_N$ (transmission) | SMM | Non-default LP (Section 4) |
-
----
-
-## 3.10 Testable Predictions
+## 3.9 Testable Predictions
 
 The model generates three predictions that can be compared to the empirical
-estimates without any further tuning.
+estimates in Section 4 without any further tuning of the model's structure.
 
-**Prediction 1 (output ranking).** Default-linked crises produce a deeper
-and more persistent output contraction than spread crises without default. This follows
-from two mechanisms that are active only in the default regime: (i)
-capital depletion — investment falls by fraction $\chi$ of steady-state
-replacement investment, eroding the capital stock at rate $\chi\delta$ per
-year of autarky; and (ii) the autarky lending-rate wedge $\Delta R^L_{aut}$,
-which immediately compresses output through the working-capital channel from
-the moment of default. Non-default episodes operate only through the
-balance-sheet and working-capital channels, which are symmetric across
-regimes (since the model assigns identical bank sovereign exposure $b^B_{ss}$
-to both). The model does not assume this ranking: if the balance-sheet and
-working-capital effects were large enough relative to the capital-depletion
-mechanism, spread crises without default could produce comparably large output losses.
-The ranking is a prediction that emerges from the calibrated parameter values.
-The model could be falsified in either direction: if the balance-sheet and
-working-capital channels turn out to be strong enough in spread crises without default,
-the data might show no significant difference in output losses across regime
-types, or even a reversal.
+**Prediction 1 (output ranking).** Spread crises linked to a default produce
+a deeper and more persistent output contraction than spread crises without
+default. This follows from two mechanisms that are active exclusively in the
+default regime: (i) capital depletion — investment falls by fraction $\chi$
+of steady-state replacement investment, eroding the capital stock at rate
+$\chi\delta$ per year of autarky; and (ii) the autarky lending-rate wedge
+$\Delta R^L_{aut}$, which immediately compresses output through the
+working-capital channel from the moment of default. Spread crises without
+default operate only through the balance-sheet and working-capital channels,
+which are symmetric across regimes (since the model assigns identical bank
+sovereign exposure $b^B_{ss}$ to both). The model does not assume this
+ranking: if the balance-sheet and working-capital effects were large enough
+relative to the capital-depletion mechanism, spread crises without default
+could produce comparably large output losses. The model can be falsified in
+either direction: if the balance-sheet and working-capital channels prove
+strong enough in spread crises without default, the data might show no
+significant difference in output losses across crisis types, or even a
+reversal.
 
-**Prediction 2 (credit-to-GDP paradox).** Spread crises without default produce a
-larger decline in the private credit-to-GDP ratio than spread crises linked to a default. In spread crises without default, the credit contraction is the primary
-transmission channel: bank net worth falls through the balance-sheet
-mechanism, the leverage constraint binds, and private credit contracts
-faster than GDP. The credit-to-GDP ratio therefore falls. In default
-episodes, GDP falls faster than credit: the dominant channel is capital
-depletion (investment stops, the capital stock erodes, output falls
-persistently), while credit contracts but the GDP denominator contracts
-even faster. The credit-to-GDP ratio therefore falls by less, or may
-even rise. This prediction is an implication of the model's structure —
-the relative magnitude of the balance-sheet channel versus the
-capital-depletion channel — and is not imposed by the calibration.
+**Prediction 2 (credit-to-GDP paradox).** Spread crises without default
+produce a larger decline in the private credit-to-GDP ratio than spread
+crises linked to a default. In spread crises without default, the credit
+contraction is the primary transmission channel: bank net worth falls through
+the balance-sheet mechanism, the leverage constraint binds, and private
+credit contracts faster than GDP. The credit-to-GDP ratio therefore falls.
+In spread crises linked to a default, GDP falls faster than credit: the
+dominant channel is capital depletion — investment stops, the capital stock
+erodes, output falls persistently — while credit contracts but the GDP
+denominator contracts even faster. The credit-to-GDP ratio therefore falls
+by less, or may even rise. This prediction is an implication of the model's
+structure — the relative magnitude of the balance-sheet channel versus the
+capital-depletion channel — and is not imposed by any calibration choice.
 
-**Prediction 3 (default path magnitude and persistence).** With transmission
-parameters fixed by the SMM step on spread crises without default, and with $h = 0$
-normalized by the autarky wedge, the model generates a predicted default output
-path $\{\bar{y}^{def}_h\}$ for $h = 1, 2, 3, 4$ that is fully
-out-of-sample. The quantitative predictions at each horizon are determined
-by the calibrated capital depletion rate $\chi\delta$, the survival
-probability $(1-\mu)^h$, and the transmission parameters $(\xi, \phi, \Phi_N)$
-fixed by the SMM step on spread crises without default. None of these parameters were set with
-reference to the default LP estimates at $h \geq 1$. The model can therefore
-be falsified at any of these horizons: the predicted magnitudes may be too
-large, too small, or may decline at the wrong rate relative to the empirical
-LP path.
+**Prediction 3 (bank sovereign nexus).** The model predicts identical
+balance-sheet transmission in both crisis types, since bank sovereign
+holdings are fixed at $b^B_{ss}$ regardless of regime. If the data reveal
+that bank sovereign holdings increase systematically in spread crises linked
+to a default but not in spread crises without default, the fixed-portfolio
+model is falsified in the direction of the gambling-for-resurrection
+mechanism. This constitutes a test of whether the doom loop operates as an
+additional amplifier beyond what the symmetric model predicts.
 
 ---
 
@@ -722,8 +560,16 @@ Borensztein, E., Cowan, K. and Valenzuela, P. (2006). Sovereign Ceilings
 "Lite"? The Impact of Sovereign Ratings on Corporate Ratings in Emerging
 Market Economies. IMF Working Paper 06/75.
 
+Brunnermeier, M. K., Langfield, S., Pagano, M., Reis, R., Van Nieuwerburgh,
+S. and Vayanos, D. (2016). ESBies: Safety in the Tranches. *Economic Policy*,
+31(85), 175–219.
+
 Cruces, J. J. and Trebesch, C. (2013). Sovereign Defaults: The Price of
 Haircuts. *American Economic Journal: Macroeconomics*, 5(3), 85–117.
+
+Crosignani, M., Faria-e-Castro, M. and Fonseca, L. (2021). The (Unintended?)
+Consequences of the Largest Liquidity Injection Ever. *Journal of Monetary
+Economics*, 112, 97–112.
 
 Gelos, G., Sahay, R. and Sandleris, G. (2011). Sovereign Borrowing by
 Developing Countries: What Determines Market Access? *Journal of
@@ -731,10 +577,6 @@ International Economics*, 83(2), 243–254.
 
 Gertler, M. and Karadi, P. (2011). A Model of Unconventional Monetary
 Policy. *Journal of Monetary Economics*, 58(1), 17–34.
-
-Crosignani, M., Faria-e-Castro, M. and Fonseca, L. (2021). The (Unintended?)
-Consequences of the Largest Liquidity Injection Ever. *Journal of Monetary
-Economics*, 112, 97–112.
 
 Jordà, O. (2005). Estimation and Inference of Impulse Responses by Local
 Projections. *American Economic Review*, 95(1), 161–182.
