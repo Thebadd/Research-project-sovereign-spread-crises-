@@ -4,7 +4,7 @@ To interpret the empirical findings and discipline their quantitative
 magnitudes, we develop a two-block model of sovereign risk and real
 transmission. The first block is a nonlinear sovereign default model in the
 tradition of Arellano (2008), which endogenously generates the sovereign
-spread and classifies crisis episodes as either default or non-default based
+spread and classifies crisis episodes as either linked to a default or without default based
 on the government's optimal default decision. The second block is a
 log-linearized banking and production system, adapted from Bocola (2016),
 which maps the sovereign spread path into output and credit responses through
@@ -35,7 +35,7 @@ frequencies, debt-to-GDP ratios, and bank balance sheet ratios — moments
 that are orthogonal to the local projection impulse responses. The three
 transmission parameters governing the working-capital share, balance-sheet
 pass-through, and net worth persistence are then jointly calibrated by SMM
-to fit the non-default output path of the local projections. This is the
+to fit the output path of spread crises without default in the local projections. This is the
 only point at which LP estimates enter the calibration. The default output
 path, the credit responses for both episode types, and all predictions
 about differential transmission are out-of-sample: they are implied by the
@@ -236,8 +236,8 @@ periods (Section 3.9).
 
 **Symmetric bank behavior.** In the model, banks hold a fixed stock of
 sovereign bonds $b^B_{ss}$ at all times. The balance-sheet sensitivity of
-net worth to spread changes is therefore identical across non-default and
-pre-default episodes:
+net worth to spread changes is therefore identical across spread crises
+without default and spread crises linked to a default:
 
 $$B_{sens} = \frac{b^B_{ss}/N_{ss}}{(1 + s_{ss})^2}$$
 
@@ -246,8 +246,8 @@ a simplification chosen to favor any particular result — it is the
 prediction of a model in which banks hold a fixed portfolio. The model
 abstracts from the *gambling for resurrection* motive (Acharya and Steffen
 2015), which would lead undercapitalized banks to concentrate sovereign
-exposure before default and amplify the balance-sheet channel in pre-default
-episodes. Whether such accumulation occurs is an empirical question the model
+exposure before default and amplify the balance-sheet channel in spread crises
+linked to a default. Whether such accumulation occurs is an empirical question the model
 does not resolve: the predicted symmetric balance-sheet transmission is itself
 a testable implication, and a finding that bank sovereign holdings move
 asymmetrically across regime types would indicate a margin the model does not
@@ -472,7 +472,7 @@ approximately 30–50 percent of total investment spending, suggesting
 $\chi \in [0.30, 0.50]$ as the empirically relevant range.
 
 With $\chi$ identified from tranquil-period BOP data, the autarky capital path
-$(4')$ is a genuine out-of-sample prediction for default-linked episodes: the
+$(4')$ is a genuine out-of-sample prediction for spread crises linked to a default: the
 model says how much capital should deplete given the observed external
 financing structure, and Section 4 tests whether the data are consistent with
 this prediction. The model does not use the LP investment estimates to set
@@ -517,7 +517,7 @@ therefore fully out-of-sample and constitute the primary test of the model.
 ## 3.8 Identifying Non-Default and Pre-Default Episodes from the Model
 
 A central requirement for the empirical test to be valid is that the two
-crisis types — non-default and default-linked — be identified from the model
+crisis types — spread crises without default and spread crises linked to a default — be identified from the model
 itself, not from the data. We achieve this through the simulation of the
 Block 1 economy.
 
@@ -540,7 +540,7 @@ all onsets of that type. This yields two model-implied spread paths,
 $\hat{s}^{nd}_h$ and $\hat{s}^{def}_h$, which serve as the inputs
 to the Block 2 transmission system. The model generates these two paths
 endogenously from the same calibrated economy, so the difference between
-them — pre-default episodes have a higher and more persistent spread, since
+them — spread crises linked to a default have a higher and more persistent spread, since
 the country's fundamentals are worse — is a model prediction, not an
 assumption.
 
@@ -616,11 +616,11 @@ The three transmission parameters $(\xi, \phi, \Phi_N)$ — governing the
 working-capital share, the balance-sheet pass-through, and net worth
 persistence — are jointly calibrated by Simulated Method of Moments (SMM)
 to minimize the sum of squared deviations between the model-implied
-non-default output path and the LP estimates at horizons $h = 0, 1, 2, 3, 4$:
+output path of spread crises without default and the LP estimates at horizons $h = 0, 1, 2, 3, 4$:
 
 $$(\xi^{\ast},\, \phi^{\ast},\, \Phi_N^{\ast}) \;=\; \arg\min_{\xi,\,\phi,\,\Phi_N} \sum_{h=0}^{4} \Bigl(\hat{y}^{nd}_{h} - \hat{\beta}^{nd}_{h}\Bigr)^2 \quad\text{(SMM)}$$
 
-This step is the only place in the calibration where the non-default LP
+This step is the only place in the calibration where the LP for spread crises without default
 estimates enter. The default path, the credit responses for both episode
 types, and all qualitative predictions about the credit-to-GDP ratio are
 then fully out-of-sample.
@@ -654,8 +654,8 @@ The model generates three predictions that can be compared to the empirical
 estimates without any further tuning.
 
 **Prediction 1 (output ranking).** Default-linked crises produce a deeper
-and more persistent output contraction than non-default crises. This follows
-from two mechanisms that are active only in the pre-default regime: (i)
+and more persistent output contraction than spread crises without default. This follows
+from two mechanisms that are active only in the default regime: (i)
 capital depletion — investment falls by fraction $\chi$ of steady-state
 replacement investment, eroding the capital stock at rate $\chi\delta$ per
 year of autarky; and (ii) the autarky lending-rate wedge $\Delta R^L_{aut}$,
@@ -665,16 +665,15 @@ balance-sheet and working-capital channels, which are symmetric across
 regimes (since the model assigns identical bank sovereign exposure $b^B_{ss}$
 to both). The model does not assume this ranking: if the balance-sheet and
 working-capital effects were large enough relative to the capital-depletion
-mechanism, non-default crises could produce comparably large output losses.
+mechanism, spread crises without default could produce comparably large output losses.
 The ranking is a prediction that emerges from the calibrated parameter values.
 The model could be falsified in either direction: if the balance-sheet and
-working-capital channels turn out to be strong enough in non-default episodes,
+working-capital channels turn out to be strong enough in spread crises without default,
 the data might show no significant difference in output losses across regime
 types, or even a reversal.
 
-**Prediction 2 (credit-to-GDP paradox).** Non-default crises produce a
-larger decline in the private credit-to-GDP ratio than default-linked
-crises. In non-default episodes, the credit contraction is the primary
+**Prediction 2 (credit-to-GDP paradox).** Spread crises without default produce a
+larger decline in the private credit-to-GDP ratio than spread crises linked to a default. In spread crises without default, the credit contraction is the primary
 transmission channel: bank net worth falls through the balance-sheet
 mechanism, the leverage constraint binds, and private credit contracts
 faster than GDP. The credit-to-GDP ratio therefore falls. In default
@@ -687,13 +686,13 @@ the relative magnitude of the balance-sheet channel versus the
 capital-depletion channel — and is not imposed by the calibration.
 
 **Prediction 3 (default path magnitude and persistence).** With transmission
-parameters fixed by the SMM step on non-default episodes, and with $h = 0$
+parameters fixed by the SMM step on spread crises without default, and with $h = 0$
 normalized by the autarky wedge, the model generates a predicted default output
 path $\{\bar{y}^{def}_h\}$ for $h = 1, 2, 3, 4$ that is fully
 out-of-sample. The quantitative predictions at each horizon are determined
 by the calibrated capital depletion rate $\chi\delta$, the survival
 probability $(1-\mu)^h$, and the transmission parameters $(\xi, \phi, \Phi_N)$
-fixed by the non-default SMM step. None of these parameters were set with
+fixed by the SMM step on spread crises without default. None of these parameters were set with
 reference to the default LP estimates at $h \geq 1$. The model can therefore
 be falsified at any of these horizons: the predicted magnitudes may be too
 large, too small, or may decline at the wrong rate relative to the empirical
