@@ -218,6 +218,23 @@ net worth shock. We calibrate $\lambda$ directly from the data as the ratio
 of total bank assets (sovereign bonds plus loans) to bank equity in tranquil
 periods (Section 3.9).
 
+**Remark: passive bank behavior and the doom loop.** The model assumes that
+banks hold a fixed stock of sovereign bonds $b^B_{ss}$ at all times. This is
+a deliberate simplification: in reality, and as documented in Section 4 of
+this paper, banks in pre-default episodes systematically *increase* their
+sovereign holdings by 4 to 6 percentage points of GDP — the so-called
+doom loop or diabolic loop (Brunnermeier et al. 2016). This accumulation
+amplifies the balance-sheet channel specifically for default-linked episodes:
+a bank that has loaded up on sovereign bonds before the default event suffers
+a larger net worth loss when the spread spikes. By abstracting from this
+behavior, the model understates the severity of the balance-sheet channel in
+pre-default episodes relative to non-default ones. The qualitative prediction
+— that default-linked crises involve deeper financial disruption — is therefore
+conservative: the actual amplification mechanism is stronger than the model
+captures. Incorporating endogenous sovereign bond accumulation would require
+modelling the bank's portfolio choice problem and the undercapitalization
+incentive to gamble for resurrection, which we leave as an extension.
+
 **Lending rate and the sovereign ceiling.** Banks fund firm investment at the
 lending rate $R^L_t$. Following the sovereign ceiling doctrine — the empirical
 regularity that banks in emerging markets cannot borrow more cheaply than
@@ -409,6 +426,26 @@ Capital falls by $\delta$ percent in the first year of exclusion, and by a
 cumulative $(1-(1-\delta)^h)$ percent after $h$ years. For $\delta = 0.10$,
 capital is 10 percent below its steady state after one year and 34 percent
 below after four years of uninterrupted exclusion.
+
+**Remark: partial investment in default.** The assumption $I_t = 0$ is an
+upper bound on the investment disruption caused by sovereign default. In
+practice, countries in default retain some investment capacity: public
+investment continues to the extent it is financed by tax revenues rather
+than external borrowing; foreign direct investment, while depressed, does
+not stop entirely; and domestic savings can substitute partially for the
+lost external financing. A more general formulation would set
+$I_t = (1-\chi)\delta K_t$, where $\chi \in [0,1]$ is the fraction of
+steady-state investment that is lost during exclusion. The calibrated
+value $\chi = 1$ — full investment stop — maximizes capital depletion and
+therefore produces the largest possible output losses at horizons $h = 3$
+and $h = 4$. The model's default path predictions at these longer horizons
+should accordingly be interpreted as an upper bound for countries that
+remain in continuous exclusion, rather than as point estimates. The empirical
+LP average, which includes countries that re-entered markets before $h = 3$,
+will naturally show a shallower trough than the conditional model path —
+a gap that the survival weighting $(1-\mu)^h$ only partially closes. We note
+this explicitly when comparing the model default path to the LP estimates
+in Section 4.
 
 **Autarky lending rate wedge.** In addition to the investment stop, the
 sovereign ceiling implies that domestic firms face an elevated financing
