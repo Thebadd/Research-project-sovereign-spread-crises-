@@ -132,10 +132,12 @@ satisfies the zero-profit condition:
 
 $$q(B_{t+1}, y_t) = \frac{1 - \delta(B_{t+1}, y_t)\cdot(1 - \theta)}{1 + R^*}$$
 
-where $\delta(B_{t+1}, y_t) = \mathbb{E}_{y'|y}\left[ d(B_{t+1}, y') \right]$
-is the probability that the government defaults next period, evaluated at
-the borrowing level $B_{t+1}$ and the current income $y_t$, which determines
-the distribution of $y'$ via the transition matrix. This pricing equation
+where $\delta(B_{t+1}, y_t)$ is the next-period default probability:
+
+$$\delta(B_{t+1}, y_t) = \mathbb{E}_{y'|y}\left[ d(B_{t+1}, y') \right]$$
+
+This is evaluated at the borrowing level $B_{t+1}$ and current income $y_t$,
+which determines the distribution of $y'$ via the transition matrix. This pricing equation
 embeds three features of the data. First, higher debt $B_{t+1}$ raises
 default risk, lowering the bond price and raising the cost of borrowing —
 the government faces an upward-sloping supply curve for credit. Second, lower
@@ -227,13 +229,14 @@ $$R^L_t = R^* + \gamma \cdot s_t \quad\text{(SC)}$$
 where $\gamma \in (0,1]$ measures how much of the sovereign spread is
 transmitted to the private lending rate. We set $\gamma = 0.80$ following
 Bocola (2016), consistent with the empirical pass-through estimates for
-emerging markets. In the steady state, the lending rate is
-$R^L_{ss} = R^* + \gamma \cdot s_{ss}$, which exceeds the world risk-free
+emerging markets. In the steady state, the lending rate $R^L_{ss}$ satisfies
+$R^L_{ss} = R^* + \gamma s_{ss}$, exceeding the world risk-free
 rate by the steady-state spread premium. An additional balance-sheet
 component links the lending rate to bank net worth: when banks are
 undercapitalized, they raise lending rates to preserve margins, adding the
-term $\Omega \hat{n}_t$ to the effective financing cost faced by firms, where
-$\Omega = \phi \cdot (b^B_{ss}/N_{ss})$.
+term $\Omega \hat{n}_{t}{}$ to the effective financing cost faced by firms, where
+$\Omega = \phi \cdot b^B_{ss} N_{ss}^{-1}{}$ is the balance-sheet pass-through
+scaled by the sovereign exposure ratio.
 
 ---
 
@@ -292,15 +295,15 @@ $K_{t+1} = (1-\delta)K_t + I_t$ around the steady state yields:
 $$\hat{k}_{t+1} = (1-\delta)\hat{k}_t + \delta \hat{i}_t$$
 
 Log-linearizing the investment demand condition then pins the sensitivity of
-investment $\hat{i}_t$ to the lending rate change, yielding the factor
+investment $\hat{i}_{t}{}$ to the lending rate change, yielding the factor
 $\delta / [(1-\alpha)(R^L_{ss} - (1-\delta))]$. The presence of
 $\delta$ in the numerator is critical: it reflects the fact that only the
 fraction $\delta$ of the capital stock is replaced each period, so a
 change in the lending rate affects the flow of new investment, not the
 existing stock of capital, proportionally to the depreciation rate. For our
-calibrated parameters ($\alpha = 0.33$, $\delta = 0.10$,
-$R^L_{ss} \approx 1.08$), $\eta \approx 0.67$, implying that a 100 basis
-point increase in the lending rate reduces the capital stock by approximately
+calibrated parameters ($\alpha = 0.33$, $\delta = 0.10$, $R^L_{ss} \approx 1.08$),
+we obtain $\eta \approx 0.67$, implying that a 100 basis point increase in
+the lending rate reduces the capital stock by approximately
 0.67 percent after one year.
 
 ---
@@ -367,7 +370,7 @@ percentage decline in credit. Crucially, credit and output respond to the
 same underlying net worth shock but with different loadings: credit loads
 exclusively on $\hat{n}_h$ (through the leverage constraint), while output
 loads on both $\hat{k}_h$ (through the capital stock) and on
-$\varepsilon_p (\gamma \hat{s}_h - \Omega \hat{n}_h)$ (through working
+$\varepsilon_p(\gamma\hat{s}_{h} - \Omega\hat{n}_{h}){}$ (through working
 capital costs). This difference in loadings generates the divergence in
 credit-to-GDP ratios across the two types of episode, as we discuss in
 Section 3.8.
@@ -534,7 +537,7 @@ persistence — are jointly calibrated by Simulated Method of Moments (SMM)
 to minimize the sum of squared deviations between the model-implied
 non-default output path and the LP estimates at horizons $h = 0, 1, 2, 3, 4$:
 
-$$(\xi^{*}, \phi^{*}, \Phi_N^{*}) = \arg\min_{\xi,\, \phi,\, \Phi_N} \sum_{h=0}^{4} \left(\hat{y}^{nd,model}_h - \hat{\beta}^{nd,LP}_h\right)^2 \quad\text{(SMM)}$$
+$$(\xi^{\ast},\, \phi^{\ast},\, \Phi_N^{\ast}) \;=\; \arg\min_{\xi,\,\phi,\,\Phi_N} \sum_{h=0}^{4} \Bigl(\hat{y}^{nd}_{h} - \hat{\beta}^{nd}_{h}\Bigr)^2 \quad\text{(SMM)}$$
 
 This step is the only place in the calibration where the empirical LP
 estimates enter. The default path, the credit responses for both episode
