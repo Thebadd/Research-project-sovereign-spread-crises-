@@ -53,6 +53,7 @@ beta   = st_numscalar("beta");
 alpha  = st_numscalar("alpha");
 delta  = st_numscalar("delta");
 s_ss   = st_numscalar("s_ss");
+mu     = st_numscalar("mu");             // re-entry probability (needed for survival weighting)
 bBN    = st_numscalar("bB_gdp")/st_numscalar("N_gdp");   // bB_ss / N_ss
 credit_gdp = st_numscalar("credit_gdp");
 N_gdp  = st_numscalar("N_gdp");
