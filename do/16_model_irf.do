@@ -49,28 +49,28 @@ mata:
 mata clear
 
 // ─── Fixed calibration ──────────────────────────────────────────────────
-beta   = st_numscalar("beta")
-alpha  = st_numscalar("alpha")
-delta  = st_numscalar("delta")
-s_ss   = st_numscalar("s_ss")
-bBN    = st_numscalar("bB_gdp")/st_numscalar("N_gdp")   // bB_ss / N_ss
-credit_gdp = st_numscalar("credit_gdp")
-N_gdp  = st_numscalar("N_gdp")
-lambda = st_numscalar("lambda")
-Phi_O  = st_numscalar("Phi_O")
-gamma  = st_numscalar("gamma")          // sovereign ceiling, set externally
+beta   = st_numscalar("beta");
+alpha  = st_numscalar("alpha");
+delta  = st_numscalar("delta");
+s_ss   = st_numscalar("s_ss");
+bBN    = st_numscalar("bB_gdp")/st_numscalar("N_gdp");   // bB_ss / N_ss
+credit_gdp = st_numscalar("credit_gdp");
+N_gdp  = st_numscalar("N_gdp");
+lambda = st_numscalar("lambda");
+Phi_O  = st_numscalar("Phi_O");
+gamma  = st_numscalar("gamma");          // sovereign ceiling, set externally
 
 // spread path (decimal), pick horizons 0..4 (rows where horizon>=0)
-SP = st_matrix("SPATH")                 // col1 horizon, col2 s_model
-shat = J(5,1,.)
+SP = st_matrix("SPATH");                 // col1 horizon, col2 s_model
+shat = J(5,1,.);
 for (h=0; h<=4; h++) {
-    idx = selectindex(SP[.,1]:==h)
-    shat[h+1] = SP[idx,2] - s_ss        // deviation from SS spread
+    idx = selectindex(SP[.,1]:==h);
+    shat[h+1] = SP[idx,2] - s_ss;        // deviation from SS spread
 }
 
 // empirical non-default output IRF, h=0..4
-ND = st_matrix("IRF_ND")
-bnd = J(5,1,.)
+ND = st_matrix("IRF_ND");
+bnd = J(5,1,.);
 for (h=0;h<=4;h++) { idx=selectindex(ND[.,1]:==h); bnd[h+1]=ND[idx,2]; }
 
 // ─── Transmission IRF given deep params ────────────────────────────────────
@@ -107,13 +107,13 @@ xig = range(0.20,0.90,0.05)
 phg = range(0.01,0.15,0.01)
 png = range(0.30,0.95,0.05)
 
-best = 1e12; bx=.; bp=.; bn=.
+best = 1e12; bx=.; bp=.; bn=.;
 for (i=1;i<=rows(xig);i++) {
  for (j=1;j<=rows(phg);j++) {
   for (k=1;k<=rows(png);k++) {
-     yh = trans_irf(xig[i], phg[j], png[k], shat, gamma, alpha, delta, beta, bBN, Phi_O)
-     sse = sum((yh - bnd):^2)
-     if (sse < best) { best=sse; bx=xig[i]; bp=phg[j]; bn=png[k] }
+     yh = trans_irf(xig[i], phg[j], png[k], shat, gamma, alpha, delta, beta, bBN, Phi_O);
+     sse = sum((yh - bnd):^2);
+     if (sse < best) { best=sse; bx=xig[i]; bp=phg[j]; bn=png[k]; }
   }
  }
 }
@@ -123,14 +123,14 @@ printf("  phi*   = %5.3f\n", bp)
 printf("  Phi_N* = %5.3f\n", bn)
 printf("  SSE    = %8.4f\n", best)
 
-yfit = trans_irf(bx, bp, bn, shat, gamma, alpha, delta, beta, bBN, Phi_O)
-printf("\n  h   data(nd)   model\n")
-for (h=0;h<=4;h++) printf(" %2.0f   %7.3f   %7.3f\n", h, bnd[h+1], yfit[h+1])
+yfit = trans_irf(bx, bp, bn, shat, gamma, alpha, delta, beta, bBN, Phi_O);
+printf("\n  h   data(nd)   model\n");
+for (h=0;h<=4;h++) printf(" %2.0f   %7.3f   %7.3f\n", h, bnd[h+1], yfit[h+1]);
 
-st_matrix("YFIT", yfit)
-st_numscalar("xi_fit", bx)
-st_numscalar("phi_fit", bp)
-st_numscalar("PhiN_fit", bn)
+st_matrix("YFIT", yfit);
+st_numscalar("xi_fit", bx);
+st_numscalar("phi_fit", bp);
+st_numscalar("PhiN_fit", bn);
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  DEFAULT PATH (validation, out-of-sample)
@@ -141,29 +141,29 @@ st_numscalar("PhiN_fit", bn)
 //  it is pinned to the SINGLE h=0 default moment, then h=1..4 are checked
 //  WITHOUT further tuning -> genuine out-of-sample validation.
 // ═══════════════════════════════════════════════════════════════════════════
-DEF = st_matrix("IRF_DEF")
-bdef = J(5,1,.)
+DEF = st_matrix("IRF_DEF");
+bdef = J(5,1,.);
 for (h=0;h<=4;h++) { idx=selectindex(DEF[.,1]:==h); bdef[h+1]=DEF[idx,2]; }
 
 // recompute eps_p at fitted params
-RL_ss = 1/beta + bp*bBN
-nexp  = (1-alpha)/alpha
-eps_p = bx*nexp*RL_ss/(1+bx*(RL_ss-1))
+RL_ss = 1/beta + bp*bBN;
+nexp  = (1-alpha)/alpha;
+eps_p = bx*nexp*RL_ss/(1+bx*(RL_ss-1));
 
 // pin dRL_aut to h=0 default: bdef[1] = alpha*0 - eps_p*dRL_aut*100
-dRL_aut = -bdef[1]/(eps_p*100)
-printf("\n=== DEFAULT PATH VALIDATION ===\n")
-printf("  Autarky lending-rate wedge dRL_aut (pinned to h=0) = %6.4f\n", dRL_aut)
+dRL_aut = -bdef[1]/(eps_p*100);
+printf("\n=== DEFAULT PATH VALIDATION ===\n");
+printf("  Autarky lending-rate wedge dRL_aut (pinned to h=0) = %6.4f\n", dRL_aut);
 
-ydef = J(5,1,.)
-printf("\n  h   data(def)  model(def)   [h>=1 = out-of-sample]\n")
+ydef = J(5,1,.);
+printf("\n  h   data(def)  model(def)   [h>=1 = out-of-sample]\n");
 for (h=0;h<=4;h++) {
-    kdef = h*ln(1-delta)
-    ydef[h+1] = (alpha*kdef - eps_p*dRL_aut)*100
-    tag = (h==0 ? "(pinned)" : "(oos)")
-    printf(" %2.0f   %7.3f   %7.3f    %s\n", h, bdef[h+1], ydef[h+1], tag)
+    kdef = h*ln(1-delta);
+    ydef[h+1] = (alpha*kdef - eps_p*dRL_aut)*100;
+    tag = (h==0 ? "(pinned)" : "(oos)");
+    printf(" %2.0f   %7.3f   %7.3f    %s\n", h, bdef[h+1], ydef[h+1], tag);
 }
-st_matrix("YDEF", ydef)
+st_matrix("YDEF", ydef);
 
 end
 
