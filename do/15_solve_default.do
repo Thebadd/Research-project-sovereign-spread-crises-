@@ -218,8 +218,8 @@ for (t=1; t<=Tsim; t++) {
     if (excl==0) {
         // in good standing: check default
         if (defp[ib,iyn]==1) {
-            dsim[t]=1; excl=1; inmkt[t]=0; ssim[t]=.
-            ib=1                  // debt wiped to grid zero on default
+            dsim[t]=1; excl=1; inmkt[t]=0; ssim[t]=.;
+            ib=1;                 // debt wiped to grid zero on default
         }
         else {
             dsim[t]=0; inmkt[t]=1
@@ -233,8 +233,8 @@ for (t=1; t<=Tsim; t++) {
     }
     else {
         // excluded: re-enter w.p. mu
-        inmkt[t]=0; ssim[t]=.
-        if (runiform(1,1) < mu) { excl=0; ib=1 }
+        inmkt[t]=0; ssim[t]=.;
+        if (runiform(1,1) < mu) { excl=0; ib=1; }
     }
     iy = iyn
 }
