@@ -531,7 +531,7 @@ persistence — are jointly calibrated by Simulated Method of Moments (SMM)
 to minimize the sum of squared deviations between the model-implied
 non-default output path and the LP estimates at horizons $h = 0, 1, 2, 3, 4$:
 
-$$(\xi^*, \phi^*, \Phi_N^*) = \arg\min_{\xi,\, \phi,\, \Phi_N} \sum_{h=0}^{4} \left(\hat{y}^{nd,model}_h - \hat{\beta}^{nd,LP}_h\right)^2 \quad\text{(SMM)}$$
+$$(\xi^{*}, \phi^{*}, \Phi_N^{*}) = \arg\min_{\xi,\, \phi,\, \Phi_N} \sum_{h=0}^{4} \left(\hat{y}^{nd,model}_h - \hat{\beta}^{nd,LP}_h\right)^2 \quad\text{(SMM)}$$
 
 This step is the only place in the calibration where the empirical LP
 estimates enter. The default path, the credit responses for both episode
