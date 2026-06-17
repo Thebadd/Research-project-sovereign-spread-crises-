@@ -71,7 +71,7 @@ for (h=0; h<=4; h++) {
 // empirical non-default output IRF, h=0..4
 ND = st_matrix("IRF_ND")
 bnd = J(5,1,.)
-for (h=0;h<=4;h++) { idx=selectindex(ND[.,1]:==h); bnd[h+1]=ND[idx,2] }
+for (h=0;h<=4;h++) { idx=selectindex(ND[.,1]:==h); bnd[h+1]=ND[idx,2]; }
 
 // ─── Transmission IRF given deep params ────────────────────────────────────
 // returns 5x1 model output IRF (in pp) for h=0..4
@@ -143,7 +143,7 @@ st_numscalar("PhiN_fit", bn)
 // ═══════════════════════════════════════════════════════════════════════════
 DEF = st_matrix("IRF_DEF")
 bdef = J(5,1,.)
-for (h=0;h<=4;h++) { idx=selectindex(DEF[.,1]:==h); bdef[h+1]=DEF[idx,2] }
+for (h=0;h<=4;h++) { idx=selectindex(DEF[.,1]:==h); bdef[h+1]=DEF[idx,2]; }
 
 // recompute eps_p at fitted params
 RL_ss = 1/beta + bp*bBN
