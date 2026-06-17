@@ -82,7 +82,7 @@ where $q(B_{t+1}, y_t)$ is the equilibrium bond price, which is endogenous
 and depends on the borrowing level and current income because both affect the
 probability of future default. The value of repayment is:
 
-$$V^R(B_t, y_t) = \max_{B_{t+1}} \Bigl\{ u\left(y_t - B_t + q(B_{t+1}, y_t) \cdot B_{t+1}\right) + \beta' \,\mathbb{E}_{y'|y}\left[V(B_{t+1}, y')\right] \Bigr\}$$
+$$V^R(B_t, y_t) = \max_{B_{t+1}} \Bigl\lbrace  u\left(y_t - B_t + q(B_{t+1}, y_t) \cdot B_{t+1}\right) + \beta' \,\mathbb{E}_{y'|y}\left[V(B_{t+1}, y')\right] \Bigr\rbrace$$
 
 **Default.** If the government defaults, it receives income $y_t^{def}$
 in the current period and is excluded from international capital markets.
@@ -96,7 +96,7 @@ The excluded sovereign re-enters international markets with probability $\mu$
 each period, at which point it restarts with zero debt. The value of
 default is:
 
-$$V^D(y_t) = u(y_t^{def}) + \beta' \Bigl\{ \mu \cdot \mathbb{E}_{y'|y}\left[V(0, y')\right] + (1-\mu) \cdot \mathbb{E}_{y'|y}\left[V^D(y')\right] \Bigr\}$$
+$$V^D(y_t) = u(y_t^{def}) + \beta' \Bigl\lbrace  \mu \cdot \mathbb{E}_{y'|y}\left[V(0, y')\right] + (1-\mu) \cdot \mathbb{E}_{y'|y}\left[V^D(y')\right] \Bigr\rbrace$$
 
 Note that $V^D$ does not depend on $B_t$: once the government defaults, the
 stock of outstanding debt is irrelevant because it is being repudiated.
@@ -104,7 +104,7 @@ stock of outstanding debt is irrelevant because it is being repudiated.
 **Default decision.** The government defaults whenever the value of default
 exceeds the value of repayment. The optimal policy is:
 
-$$d(B_t, y_t) = \mathbf{1}\Bigl\{ V^D(y_t) > V^R(B_t, y_t) \Bigr\}$$
+$$d(B_t, y_t) = \mathbf{1}\Bigl\lbrace  V^D(y_t) > V^R(B_t, y_t) \Bigr\rbrace$$
 
 The default set $\mathcal{D}(B_t) = \{ y_t : V^D(y_t) > V^R(B_t, y_t) \}$
 is the set of income realizations for which default is optimal given debt
