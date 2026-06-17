@@ -157,9 +157,14 @@ printf("  Autarky lending-rate wedge dRL_aut (pinned to h=0) = %6.4f\n", dRL_aut
 
 ydef = J(5,1,.);
 printf("\n  h   data(def)  model(def)   [h>=1 = out-of-sample]\n");
+// kdef and autarky wedge weighted by (1-mu)^h = prob. still excluded at h.
+// The LP averages across countries at different stages of exclusion;
+// by h=2-4 many have re-entered markets and begun recovering.
+// Weighting by survival probability accounts for this averaging.
 for (h=0;h<=4;h++) {
-    kdef = h*ln(1-delta);
-    ydef[h+1] = (alpha*kdef - eps_p*dRL_aut)*100;
+    surv = (1-mu)^h;
+    kdef = surv * h * ln(1-delta);
+    ydef[h+1] = (alpha*kdef - eps_p*dRL_aut*surv)*100;
     tag = (h==0 ? "(pinned)" : "(oos)");
     printf(" %2.0f   %7.3f   %7.3f    %s\n", h, bdef[h+1], ydef[h+1], tag);
 }
