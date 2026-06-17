@@ -15,10 +15,9 @@ generates the spread paths that feed into the transmission block, but the
 transmission block does not feed back into the default decision. Crucially,
 the equilibrium of Block 1 endogenously produces two classes of high-spread
 episode — those that are eventually resolved without default and those that
-lead to debt restructuring — through the same optimal default rule $d(B_t,
-y_t)$. The two crisis types are therefore model objects, not assumptions
-imposed from outside. This
-recursive structure keeps the model analytically tractable and ensures that
+lead to debt restructuring — through the same optimal default rule
+$`d(B_t, y_t)`$. The two crisis types are therefore model objects, not assumptions
+imposed from outside. This recursive structure keeps the model analytically tractable and ensures that
 each block can be separately identified.
 
 This separation abstracts from the amplification loop in which real outcomes
@@ -36,10 +35,10 @@ joint equilibrium of sovereign risk and real activity.
 
 ## 3.1 Economic Environment
 
-Time is discrete and indexed by $t$. The economy is populated by a
+Time is discrete and indexed by $`t`$. The economy is populated by a
 representative household, a government, a unit measure of competitive banks,
 and a representative firm. The economy is small and open, facing a
-world risk-free rate $R^*$. The household supplies labor inelastically,
+world risk-free rate $`R^*`$. The household supplies labor inelastically,
 consumes, and saves through bank deposits. The government issues
 one-period discount bonds to foreign investors to smooth consumption, and
 retains the option to default on its obligations. Banks intermediate between
@@ -49,61 +48,61 @@ using a Cobb-Douglas technology and borrow working capital from banks to
 finance their wage bill.
 
 The economy is subject to two types of aggregate shock. The first is a
-persistent endowment shock $y_t$, which follows a log-AR(1) process. This
+persistent endowment shock $`y_t`$, which follows a log-AR(1) process. This
 shock drives the government's incentive to default: a sufficiently bad income
 draw makes autarky preferable to debt repayment. The second is the endogenous
-sovereign spread $s_t$, which rises in response to deteriorating fundamentals
+sovereign spread $`s_t`$, which rises in response to deteriorating fundamentals
 and transmits to the real economy through the banking and production blocks.
 
 ---
 
 ## 3.2 The Sovereign's Problem
 
-The government is benevolent but discounts the future at rate $\beta' < \beta$,
-where $\beta$ is the household's discount factor. This impatience — standard
+The government is benevolent but discounts the future at rate $`\beta' < \beta`$,
+where $`\beta`$ is the household's discount factor. This impatience — standard
 in the sovereign default literature (Arellano 2008; Aguiar and Gopinath 2006)
 — generates a realistic default frequency without requiring implausibly large
-output costs. The government issues one-period discount bonds $B_t$ with face
-value normalized to one. A bond sold at price $q_t$ raises $q_t \cdot B_t$
-units of resources today and promises to repay $B_t$ next period.
+output costs. The government issues one-period discount bonds $`B_t`$ with face
+value normalized to one. A bond sold at price $`q_t`$ raises $`q_t \cdot B_t`$
+units of resources today and promises to repay $`B_t`$ next period.
 
 **Preferences.** The government maximizes the expected discounted utility of
 the representative household:
 
 $$V_t = \mathbb{E}_t \sum_{j=0}^{\infty} (\beta')^j u(c_{t+j})$$
 
-where $u(c) = c^{1-\sigma}/(1-\sigma)$ is a constant relative risk aversion
+where $`u(c) = c^{1-\sigma}/(1-\sigma)`$ is a constant relative risk aversion
 utility function. The CRRA specification is standard in the quantitative
 sovereign default literature and implies that the government has a stronger
 incentive to default when income is low, since the marginal utility of
 consumption is high at precisely those times.
 
-**Repayment.** If the government repays, it chooses next-period debt $B_{t+1}$
+**Repayment.** If the government repays, it chooses next-period debt $`B_{t+1}`$
 to maximize continuation value, subject to the budget constraint:
 
 $$c_t = y_t - B_t + q(B_{t+1}, y_t) \cdot B_{t+1}$$
 
-where $q(B_{t+1}, y_t)$ is the equilibrium bond price, which is endogenous
+where $`q(B_{t+1}, y_t)`$ is the equilibrium bond price, which is endogenous
 and depends on the borrowing level and current income because both affect the
 probability of future default. The value of repayment is:
 
 $$V^R(B_t, y_t) = \max_{B_{t+1}} \Bigl\lbrace  u\left(y_t - B_t + q(B_{t+1}, y_t) \cdot B_{t+1}\right) + \beta' \,\mathbb{E}_{y'|y}\left[V(B_{t+1}, y')\right] \Bigr\rbrace$$
 
-**Default.** If the government defaults, it receives income $y_t^{def}$
+**Default.** If the government defaults, it receives income $`y_t^{def}`$
 in the current period and is excluded from international capital markets.
 Following Arellano (2008), the default output cost is asymmetric: the
-autarky income is $y_t^{def} = \min(y_t,\, \bar{h} \cdot \bar{y})$, where
-$\bar{y} = \mathbb{E}[y]$ is mean income and $\bar{h} \in (0,1)$ is a
+autarky income is $`y_t^{def} = \min(y_t,\, \bar{h} \cdot \bar{y})`$, where
+$`\bar{y} = \mathbb{E}[y]`$ is mean income and $`\bar{h} \in (0,1)`$ is a
 threshold parameter. This formulation captures the empirical regularity that
 defaults occur precisely when output is already low, so the output cost of
 exclusion is small for countries in severe distress but non-trivial for those
 with moderate income. The excluded sovereign re-enters international markets
-with probability $\mu$ each period, at which point it restarts with zero debt.
+with probability $`\mu`$ each period, at which point it restarts with zero debt.
 The value of default is:
 
 $$V^D(y_t) = u(y_t^{def}) + \beta' \Bigl\lbrace  \mu \cdot \mathbb{E}_{y'|y}\left[V(0, y')\right] + (1-\mu) \cdot \mathbb{E}_{y'|y}\left[V^D(y')\right] \Bigr\rbrace$$
 
-Note that $V^D$ does not depend on $B_t$: once the government defaults, the
+Note that $`V^D`$ does not depend on $`B_t`$: once the government defaults, the
 stock of outstanding debt is irrelevant because it is being repudiated.
 
 **Default decision.** The government defaults whenever the value of default
@@ -111,44 +110,44 @@ exceeds the value of repayment. The optimal policy is:
 
 $$d(B_t, y_t) = \mathbf{1}\Bigl\lbrace  V^D(y_t) > V^R(B_t, y_t) \Bigr\rbrace$$
 
-The default set $\mathcal{D}(B_t)$ is the set of income realizations for
-which default is optimal given debt level $B_t$:
+The default set $`\mathcal{D}(B_t)`$ is the set of income realizations for
+which default is optimal given debt level $`B_t`$:
 
 $$\mathcal{D}(B_t) = \bigl\lbrace y_t \;:\; V^D(y_t) > V^R(B_t, y_t) \bigr\rbrace$$
 
-Because $V^R$ is increasing in $y_t$ (higher income makes repayment easier)
-while $V^D$ is non-decreasing in $y_t$ (default always relieves the debt
+Because $`V^R`$ is increasing in $`y_t`$ (higher income makes repayment easier)
+while $`V^D`$ is non-decreasing in $`y_t`$ (default always relieves the debt
 burden), the default set takes the form of a lower interval
-$\mathcal{D}(B_t) = (-\infty, \hat{y}(B_t)]$ for some threshold $\hat{y}$.
+$`\mathcal{D}(B_t) = (-\infty, \hat{y}(B_t)]`$ for some threshold $`\hat{y}`$.
 The government defaults on bad income draws and repays on good ones.
 
-The value function satisfies $V(B_t, y_t) = \max( V^R(B_t, y_t),\, V^D(y_t) )$.
+The value function satisfies $`V(B_t, y_t) = \max( V^R(B_t, y_t),\, V^D(y_t) )`$.
 
 ---
 
 ## 3.3 Bond Pricing and the Sovereign Spread
 
 Foreign investors are risk-neutral and have access to the world risk-free
-rate $R^*$. Competition drives bond prices to the zero-profit level. A bond
+rate $`R^*`$. Competition drives bond prices to the zero-profit level. A bond
 that promises to pay one unit next period delivers 1 unit if the sovereign
-repays and $\theta \in (0,1)$ units if it defaults, where $\theta$ is the
-recovery rate (one minus the haircut). The bond price $q(B_{t+1}, y_t)$
+repays and $`\theta \in (0,1)`$ units if it defaults, where $`\theta`$ is the
+recovery rate (one minus the haircut). The bond price $`q(B_{t+1}, y_t)`$
 satisfies the zero-profit condition:
 
 $$q(B_{t+1}, y_t) = \frac{1 - \delta(B_{t+1}, y_t)\cdot(1 - \theta)}{1 + R^*}$$
 
-where $\delta(B_{t+1}, y_t)$ is the next-period default probability:
+where $`\delta(B_{t+1}, y_t)`$ is the next-period default probability:
 
 $$\delta(B_{t+1}, y_t) = \mathbb{E}_{y'|y}\left[ d(B_{t+1}, y') \right]$$
 
-This pricing equation embeds three features. First, higher debt $B_{t+1}$
+This pricing equation embeds three features. First, higher debt $`B_{t+1}`$
 raises default risk, lowering the bond price and raising the cost of borrowing
 — the government faces an upward-sloping supply curve for credit. Second,
-lower current income $y_t$ shifts the transition distribution toward low
+lower current income $`y_t`$ shifts the transition distribution toward low
 future income, also raising default risk and the spread. Third, partial
-recovery $\theta > 0$ limits the spread to a finite level even when the
+recovery $`\theta > 0`$ limits the spread to a finite level even when the
 default probability approaches one: since creditors recover a fraction
-$\theta$ of face value in default, they are willing to hold the bond at a
+$`\theta`$ of face value in default, they are willing to hold the bond at a
 positive price.
 
 The sovereign spread is the excess yield on government bonds over the
@@ -156,13 +155,13 @@ risk-free rate:
 
 $$s_t = \frac{1}{q(B_{t+1}, y_t)} - 1 - R^*$$
 
-When $\delta = 0$ (no default risk), $q = 1/(1+R^*)$ and $s = 0$. When
-default risk is positive, the price falls below $1/(1+R^*)$ and the spread
+When $`\delta = 0`$ (no default risk), $`q = 1/(1+R^*)`$ and $`s = 0`$. When
+default risk is positive, the price falls below $`1/(1+R^*)`$ and the spread
 becomes positive.
 
-**Equilibrium.** An equilibrium consists of value functions $V^R$, $V^D$,
-$V$, a bond price schedule $q(B', y)$, default policy $d(B, y)$, and debt
-policy $B'(B, y)$ such that: (i) the default policy is optimal given the
+**Equilibrium.** An equilibrium consists of value functions $`V^R`$, $`V^D`$,
+$`V`$, a bond price schedule $`q(B', y)`$, default policy $`d(B, y)`$, and debt
+policy $`B'(B, y)`$ such that: (i) the default policy is optimal given the
 bond price; (ii) the debt policy is optimal given the bond price and the
 default option; (iii) the bond price reflects competitive foreign investors
 pricing in the endogenous default probability. We solve for the equilibrium
@@ -173,42 +172,42 @@ by value function iteration over a discretized state space.
 ## 3.4 Banking Sector and Financial Intermediation
 
 Banks are the key link between the sovereign bond market and the domestic
-real economy. Each bank holds two assets: sovereign bonds $b^B_t$ and loans
-to firms $\ell_t$. These are funded by equity (net worth) $N_t$ and
-short-term deposits $d_t$. The bank balance sheet identity is:
+real economy. Each bank holds two assets: sovereign bonds $`b^B_t`$ and loans
+to firms $`\ell_t`$. These are funded by equity (net worth) $`N_t`$ and
+short-term deposits $`d_t`$. The bank balance sheet identity is:
 
 $$b^B_t + \ell_t = N_t + d_t$$
 
 **Net worth.** Bank net worth evolves according to realized returns on
-assets minus the cost of liabilities. Sovereign bonds pay off $q_{t+1}$
+assets minus the cost of liabilities. Sovereign bonds pay off $`q_{t+1}`$
 tomorrow per unit of face value held today. When the sovereign spread widens,
 the market value of sovereign bonds held by banks falls, inflicting a
 capital loss on bank equity. Specifically, a bank that entered the period
-with sovereign bond holdings $b^B_{t-1}$ at purchase price $q_{t-1}$ suffers
-a mark-to-market loss of $b^B_{t-1} \cdot \Delta q_t$ when the bond price
-falls by $\Delta q_t = q_t - q_{t-1}$. In log-linear terms, the deviation of
-net worth from its steady-state value $N_{ss}$ satisfies:
+with sovereign bond holdings $`b^B_{t-1}`$ at purchase price $`q_{t-1}`$ suffers
+a mark-to-market loss of $`b^B_{t-1} \cdot \Delta q_t`$ when the bond price
+falls by $`\Delta q_t = q_t - q_{t-1}`$. In log-linear terms, the deviation of
+net worth from its steady-state value $`N_{ss}`$ satisfies:
 
 $$\hat{n}_t = \Phi_N \hat{n}_{t-1} - B_{sens} \hat{s}_t - \Phi^O \gamma \hat{s}_{t-1} \quad\text{(LL.5a)}$$
 
-where $\hat{n}_t = (N_t - N_{ss})/N_{ss}$ denotes the proportional deviation
-of net worth from steady state, and $\hat{s}_t = s_t - s_{ss}$ is the
+where $`\hat{n}_t = (N_t - N_{ss})/N_{ss}`$ denotes the proportional deviation
+of net worth from steady state, and $`\hat{s}_t = s_t - s_{ss}`$ is the
 spread deviation measured in decimal units. The coefficient
-$B_{sens} = (b^B_{ss}/N_{ss})/(1 + s_{ss})^2$ captures the balance-sheet
+$`B_{sens} = (b^B_{ss}/N_{ss})/(1 + s_{ss})^2`$ captures the balance-sheet
 sensitivity of net worth to spread changes: it is proportional to the
-ratio of sovereign bond holdings to equity, $b^B_{ss}/N_{ss}$, which
+ratio of sovereign bond holdings to equity, $`b^B_{ss}/N_{ss}`$, which
 measures how leveraged the bank is with respect to sovereign risk. A bank
 with large sovereign bond holdings relative to equity suffers a large net
-worth loss for any given spread increase. The parameter $\Phi_N \in (0,1)$
+worth loss for any given spread increase. The parameter $`\Phi_N \in (0,1)`$
 governs the persistence of net worth deviations — it reflects retained
 earnings, recapitalization frictions, and the gradual adjustment of bank
-balance sheets. The term $\Phi^O \gamma \hat{s}_{t-1}$ captures delayed
+balance sheets. The term $`\Phi^O \gamma \hat{s}_{t-1}`$ captures delayed
 pass-through from wholesale funding costs: banks that rely on short-term
 market funding see their liabilities repriced when sovereign spreads rise,
 compressing net interest margins with a one-period delay.
 
 **Leverage constraint.** A binding leverage constraint limits the volume of
-loans a bank can extend to a multiple $\lambda$ of its net worth:
+loans a bank can extend to a multiple $`\lambda`$ of its net worth:
 
 $$\ell_t = \lambda \cdot N_t \quad\text{(IR.4)}$$
 
@@ -216,12 +215,12 @@ This constraint — standard in the bank-capital literature (Gertler and
 Karadi 2011; Bocola 2016) — is the key mechanism linking sovereign risk to
 private credit. When a spread widening reduces bank net worth, the
 leverage constraint forces a proportional contraction in lending:
-$\hat{\ell}_t = \hat{n}_t$. The parameter $\lambda$ is the leverage
-multiplier; a higher $\lambda$ amplifies the credit response to any given
+$`\hat{\ell}_t = \hat{n}_t`$. The parameter $`\lambda`$ is the leverage
+multiplier; a higher $`\lambda`$ amplifies the credit response to any given
 net worth shock.
 
 **Symmetric bank behavior.** In the model, banks hold a fixed stock of
-sovereign bonds $b^B_{ss}$ at all times. The balance-sheet sensitivity of
+sovereign bonds $`b^B_{ss}`$ at all times. The balance-sheet sensitivity of
 net worth to spread changes is therefore identical across spread crises
 without default and spread crises linked to a default:
 
@@ -240,57 +239,57 @@ move asymmetrically across regime types would indicate a margin the model does
 not capture (Brunnermeier et al. 2016; Crosignani et al. 2021).
 
 **Lending rate and the sovereign ceiling.** Banks fund firm investment at the
-lending rate $R^L_t$. Following the sovereign ceiling doctrine — the empirical
+lending rate $`R^L_t`$. Following the sovereign ceiling doctrine — the empirical
 regularity that banks in emerging markets cannot borrow more cheaply than
 their own sovereign (Borensztein et al. 2006) — the bank lending rate is tied
-to the sovereign spread through a pass-through coefficient $\gamma \in (0,1]$:
+to the sovereign spread through a pass-through coefficient $`\gamma \in (0,1]`$:
 
 $$R^L_t = R^* + \gamma \cdot s_t \quad\text{(SC)}$$
 
-The coefficient $\gamma$ measures how much of the sovereign spread is
+The coefficient $`\gamma`$ measures how much of the sovereign spread is
 transmitted to the private lending rate. In the steady state, the lending
-rate $R^L_{ss}$ satisfies $R^L_{ss} = R^* + \gamma s_{ss}$, exceeding the
+rate $`R^L_{ss}`$ satisfies $`R^L_{ss} = R^* + \gamma s_{ss}`$, exceeding the
 world risk-free rate by the steady-state spread premium. An additional
 balance-sheet component links the lending rate to bank net worth: when banks
 are undercapitalized, they raise lending rates to preserve margins, adding the
-term $\Omega \hat{n}_{t}{}$ to the effective financing cost faced by firms, where
-$\Omega = \phi \cdot b^B_{ss} N_{ss}^{-1}{}$ is the balance-sheet pass-through
+term $`\Omega \hat{n}_{t}`$ to the effective financing cost faced by firms, where
+$`\Omega = \phi \cdot b^B_{ss} N_{ss}^{-1}`$ is the balance-sheet pass-through
 scaled by the sovereign exposure ratio.
 
 ---
 
 ## 3.5 Firm Production and the Working-Capital Channel
 
-The representative firm produces output $Y_t$ using capital $K_t$ and
-labor $L_t$ with a Cobb-Douglas production function:
+The representative firm produces output $`Y_t`$ using capital $`K_t`$ and
+labor $`L_t`$ with a Cobb-Douglas production function:
 
 $$Y_t = A \cdot K_t^\alpha \cdot L_t^{1-\alpha}$$
 
-where $\alpha$ is the capital share and $A$ is total factor productivity
+where $`\alpha`$ is the capital share and $`A`$ is total factor productivity
 (normalized to one in the steady state). Labor is supplied inelastically by
-the household at a competitive wage $w_t = (1-\alpha) Y_t / L_t$.
+the household at a competitive wage $`w_t = (1-\alpha) Y_t / L_t`$.
 
 **Working-capital requirement.** Following Neumeyer and Perri (2005), a
-fraction $\xi$ of the wage bill must be financed in advance through bank
+fraction $`\xi`$ of the wage bill must be financed in advance through bank
 loans, before production takes place. This requires the firm to borrow
-$\xi \cdot w_t \cdot L_t$ at the bank lending rate $R^L_t$. The total
+$`\xi \cdot w_t \cdot L_t`$ at the bank lending rate $`R^L_t`$. The total
 cost of labor, including financing costs, is:
 
 $$\tilde{w}_t = w_t \cdot \left[1 + \xi \cdot (R^L_t - 1)\right]$$
 
-An increase in the sovereign spread raises $R^L_t$, which raises the
+An increase in the sovereign spread raises $`R^L_t`$, which raises the
 effective cost of labor and reduces the firm's optimal employment and output.
 Log-linearizing around the steady state, the elasticity of output with
 respect to the lending rate is:
 
 $$\varepsilon_p = \frac{\xi \cdot \frac{1-\alpha}{\alpha} \cdot R^L_{ss}}{1 + \xi(R^L_{ss} - 1)}$$
 
-This elasticity is increasing in $\xi$ (a higher working-capital share
-makes output more sensitive to interest rates) and in $R^L_{ss}$ (a higher
+This elasticity is increasing in $`\xi`$ (a higher working-capital share
+makes output more sensitive to interest rates) and in $`R^L_{ss}`$ (a higher
 steady-state lending rate amplifies the effect of any given rate change).
 
 **Investment and capital accumulation.** Firms also invest in physical
-capital. Investment $I_t$ is financed through bank loans and must satisfy
+capital. Investment $`I_t`$ is financed through bank loans and must satisfy
 the zero-profit condition for capital:
 
 $$\alpha \frac{Y_t}{K_t} = R^L_t - (1-\delta)$$
@@ -298,24 +297,24 @@ $$\alpha \frac{Y_t}{K_t} = R^L_t - (1-\delta)$$
 where the right-hand side is the net return to capital (gross lending rate
 minus one plus depreciation net of the replacement cost). Log-linearizing
 this condition and combining with the capital accumulation identity
-$K_{t+1} = (1-\delta)K_t + I_t$, we obtain the capital recursion:
+$`K_{t+1} = (1-\delta)K_t + I_t`$, we obtain the capital recursion:
 
 $$\hat{k}_{t+1} = (1-\delta)\hat{k}_t - \eta \left(\gamma \hat{s}_t - \Omega \hat{n}_t\right) \quad\text{(LL.3a)}$$
 
-where $\hat{k}_t = (K_t - K_{ss})/K_{ss}$ is the proportional capital
+where $`\hat{k}_t = (K_t - K_{ss})/K_{ss}`$ is the proportional capital
 deviation and the parameter:
 
 $$\eta = \frac{\delta}{(1-\alpha)(R^L_{ss} - (1-\delta))}$$
 
-is the capital-investment sensitivity. The derivation of $\eta$ follows
+is the capital-investment sensitivity. The derivation of $`\eta`$ follows
 directly from the capital accumulation identity. Log-linearizing
-$K_{t+1} = (1-\delta)K_t + I_t$ around the steady state yields
-$\hat{k}_{t+1} = (1-\delta)\hat{k}_{t} + \delta \hat{i}_{t}{}$.
+$`K_{t+1} = (1-\delta)K_t + I_t`$ around the steady state yields
+$`\hat{k}_{t+1} = (1-\delta)\hat{k}_{t} + \delta \hat{i}_{t}`$.
 Log-linearizing the investment demand condition then pins the sensitivity of
-investment $\hat{i}_{t}{}$ to the lending rate change, yielding the factor
-$\delta / [(1-\alpha)(R^L_{ss} - (1-\delta))]$. The presence of $\delta$
+investment $`\hat{i}_{t}`$ to the lending rate change, yielding the factor
+$`\delta / [(1-\alpha)(R^L_{ss} - (1-\delta))]`$. The presence of $`\delta`$
 in the numerator is critical: it reflects the fact that only the fraction
-$\delta$ of the capital stock is replaced each period, so a change in the
+$`\delta`$ of the capital stock is replaced each period, so a change in the
 lending rate affects the flow of new investment, not the existing stock of
 capital, proportionally to the depreciation rate.
 
@@ -324,13 +323,13 @@ capital, proportionally to the depreciation rate.
 ## 3.6 Log-Linearized Transmission: The Full System
 
 Combining the banking and production blocks, the complete log-linear
-system that maps a sovereign spread path $\hat{s}_h$ (for $h = 0, 1, \ldots, H$) into
+system that maps a sovereign spread path $`\hat{s}_h`$ (for $`h = 0, 1, \ldots, H`$) into
 output and credit responses consists of four equations, indexed by horizon
-$h$ measured in years after crisis onset.
+$`h`$ measured in years after crisis onset.
 
-**Horizon $h = 0$ (impact).**
+**Horizon $`h = 0`$ (impact).**
 At the moment of onset, the capital stock has not yet adjusted
-($\hat{k}_0 = 0$). The impact responses of net worth and output are:
+($`\hat{k}_0 = 0`$). The impact responses of net worth and output are:
 
 $$\hat{n}_0 = -B_{sens} \cdot \hat{s}_0 \quad\text{(1)}$$
 
@@ -339,11 +338,11 @@ $$\hat{y}_0 = -\varepsilon_p \left(\gamma \hat{s}_0 - \Omega \hat{n}_0\right) \q
 Equation (1) states that a spread increase at onset reduces bank net worth
 proportionally to sovereign bond exposure. Equation (2) states that output
 falls through the working-capital channel: higher lending rates raise
-effective labor costs, contracting output. The term $\Omega \hat{n}_0$
+effective labor costs, contracting output. The term $`\Omega \hat{n}_0`$
 partially offsets the rate increase — when banks are also losing net worth,
 they raise rates further, amplifying the output contraction.
 
-**Horizons $h \geq 1$ (dynamic propagation).**
+**Horizons $`h \geq 1`$ (dynamic propagation).**
 For subsequent periods, the full recursion governs the dynamic evolution:
 
 $$\hat{n}_h = \Phi_N \hat{n}_{h-1} - B_{sens} \hat{s}_h - \Phi^O \gamma \hat{s}_{h-1} \quad\text{(LL.5a)}$$
@@ -355,10 +354,10 @@ $$\hat{y}_h = \alpha \hat{k}_h - \varepsilon_p\left(\gamma \hat{s}_h - \Omega \h
 $$\hat{\ell}_h = \frac{\lambda N_{ss}}{\ell_{ss}} \hat{n}_h \quad\text{(IR.4)}$$
 
 The recursion in LL.5a propagates bank net worth losses forward: the
-parameter $\Phi_N$ governs how quickly banks repair their balance sheets
-through retained earnings and new equity. A high $\Phi_N$ means that a net
-worth loss at $h=0$ persists for many periods, generating prolonged credit
-tightening. The additional term $\Phi^O \gamma \hat{s}_{h-1}$ captures a
+parameter $`\Phi_N`$ governs how quickly banks repair their balance sheets
+through retained earnings and new equity. A high $`\Phi_N`$ means that a net
+worth loss at $`h=0`$ persists for many periods, generating prolonged credit
+tightening. The additional term $`\Phi^O \gamma \hat{s}_{h-1}`$ captures a
 lagged effect from wholesale funding costs — banks that rely on short-term
 market funding also see their liabilities repriced when sovereign spreads
 rise, compressing net interest margins with a one-period delay.
@@ -366,25 +365,25 @@ rise, compressing net interest margins with a one-period delay.
 The capital recursion LL.3a shows how the lending-rate wedge depresses
 investment and erodes the capital stock over time. Unlike the net worth
 channel (which operates through the balance sheet), the capital channel
-is persistent by construction: a higher lending rate at $h=0$ reduces
-investment at $h=0$, which lowers the capital stock at $h=1$, which
-lowers output at $h=1$ even if the spread has already returned to its
+is persistent by construction: a higher lending rate at $`h=0`$ reduces
+investment at $`h=0`$, which lowers the capital stock at $`h=1`$, which
+lowers output at $`h=1`$ even if the spread has already returned to its
 steady-state level. This inertia is the reason why spread crises can
 generate persistent output losses even when the spread itself is transitory —
 the without-default half of Proposition 3.
 
-**Output is reported in percentage points:** $y_h = \hat{y}_h \times 100$.
+**Output is reported in percentage points:** $`y_h = \hat{y}_h \times 100`$.
 
 **Credit response.** The private credit response (IR.4) is proportional to
 the net worth response, scaled by the leverage multiplier
-$\lambda N_{ss}/\ell_{ss}$. This amplification factor is greater than one
+$`\lambda N_{ss}/\ell_{ss}`$. This amplification factor is greater than one
 when leverage is high (bank assets are large relative to equity), meaning
 that a given percentage decline in net worth translates into a larger
 percentage decline in credit. Crucially, credit and output respond to the
 same underlying net worth shock but with different loadings: credit loads
-exclusively on $\hat{n}_h$ (through the leverage constraint), while output
-loads on both $\hat{k}_h$ (through the capital stock) and on
-$\varepsilon_p(\gamma\hat{s}_{h} - \Omega\hat{n}_{h}){}$ (through working
+exclusively on $`\hat{n}_h`$ (through the leverage constraint), while output
+loads on both $`\hat{k}_h`$ (through the capital stock) and on
+$`\varepsilon_p(\gamma\hat{s}_{h} - \Omega\hat{n}_{h})`$ (through working
 capital costs). This difference in loadings is what generates the divergence
 in credit-to-GDP ratios across the two regimes, formalized in Proposition 2.
 
@@ -407,32 +406,32 @@ We model this by setting:
 
 $$I_t = (1-\chi)\,\delta K_t \quad\text{(3)}$$
 
-where $\chi \in [0,1]$ is the *external investment share*: the fraction of
+where $`\chi \in [0,1]`$ is the *external investment share*: the fraction of
 steady-state replacement investment that requires access to international
-capital markets. When $\chi = 1$, all investment is externally financed and
-investment drops to zero in autarky. When $\chi = 0$, autarky does not affect
-investment at all. For intermediate $\chi$, domestic investment partially
+capital markets. When $`\chi = 1`$, all investment is externally financed and
+investment drops to zero in autarky. When $`\chi = 0`$, autarky does not affect
+investment at all. For intermediate $`\chi`$, domestic investment partially
 sustains capital accumulation even while the sovereign is excluded.
 
-Substituting into the capital law of motion $K_{t+1} = (1-\delta)K_t + I_t$:
+Substituting into the capital law of motion $`K_{t+1} = (1-\delta)K_t + I_t`$:
 
 $$K_{t+1} = (1-\delta)K_t + (1-\chi)\delta K_t = (1-\chi\delta)K_t$$
 
 The autarky capital stock therefore depreciates at the *effective* rate
-$\chi\delta$ rather than $\delta$. Log-linearizing around the steady state
-(using $I_{ss} = \delta K_{ss}$), the autarky capital recursion becomes:
+$`\chi\delta`$ rather than $`\delta`$. Log-linearizing around the steady state
+(using $`I_{ss} = \delta K_{ss}`$), the autarky capital recursion becomes:
 
 $$\hat{k}^{excl}_{h+1} = (1-\chi\delta)\,\hat{k}^{excl}_h - \chi\delta \quad\text{(4)}$$
 
-Starting from $\hat{k}^{excl}_0 = 0$, the closed-form autarky capital path is:
+Starting from $`\hat{k}^{excl}_0 = 0`$, the closed-form autarky capital path is:
 
 $$\hat{k}^{excl}_h = -(1-(1-\chi\delta)^h) \quad\text{(4')}$$
 
-When $\chi = 1$ this collapses to the standard full-stop formula
-$-(1-(1-\delta)^h)$. When $\chi < 1$, capital depletion is attenuated in
+When $`\chi = 1`$ this collapses to the standard full-stop formula
+$`-(1-(1-\delta)^h)`$. When $`\chi < 1`$, capital depletion is attenuated in
 proportion to the domestic financing capacity of the economy.
 
-The parameter $\chi$ is a structural characteristic of the economy — the
+The parameter $`\chi`$ is a structural characteristic of the economy — the
 share of gross fixed capital formation financed by external flows in normal
 times — and is identified from balance-of-payments data over tranquil periods,
 independently of any crisis outcome.
@@ -441,7 +440,7 @@ independently of any crisis outcome.
 sovereign ceiling implies that domestic firms face an elevated financing
 cost during the default episode. Without the government's ability to borrow
 at the sovereign rate, the private lending rate rises to an autarky level
-$R^{L,aut} = R^L_{ss} + \Delta R^L_{aut}$, where $\Delta R^L_{aut} > 0$
+$`R^{L,aut} = R^L_{ss} + \Delta R^L_{aut}`$, where $`\Delta R^L_{aut} > 0`$
 is the autarky wedge. This wedge captures the disruption of financial
 intermediation that accompanies sovereign default — including bank
 undercapitalization, credit rationing, and the loss of trade finance —
@@ -453,17 +452,17 @@ the average output response across all country-year observations following
 a crisis onset, including both those that remain in default and those that
 have already re-entered markets. To match this average, we weight the
 output path of still-excluded countries by the survival probability
-$(1-\mu)^h$ — the probability of being excluded for at least $h$ consecutive
-periods — and assume that re-entered countries (fraction $1-(1-\mu)^h$)
+$`(1-\mu)^h`$ — the probability of being excluded for at least $`h`$ consecutive
+periods — and assume that re-entered countries (fraction $`1-(1-\mu)^h`$)
 have output approximately back at the steady-state level:
 
 $$\bar{y}^{def}_h = (1-\mu)^h \cdot \left[\alpha \hat{k}^{excl}_h - \varepsilon_p \cdot \Delta R^L_{aut}\right] \times 100 \quad\text{(5)}$$
 
 Equation (5) is the default-regime counterpart to the transmission system of
 Section 3.6. Two features distinguish it from the without-default path and
-drive the results below: the capital term $\alpha\hat{k}^{excl}_h$ deepens
+drive the results below: the capital term $`\alpha\hat{k}^{excl}_h`$ deepens
 monotonically through (4') — the source of the output divergence in
-Proposition 1 — while the survival weight $(1-\mu)^h$ governs the speed of
+Proposition 1 — while the survival weight $`(1-\mu)^h`$ governs the speed of
 recovery, the default-regime half of Proposition 3.
 
 ---
@@ -474,22 +473,22 @@ The economic content of each equation has been stated where it was introduced.
 This section collects the three results that follow from combining those
 equations across the two regimes. Each result is a logical consequence of the
 system (LL.2a)–(LL.5a), (IR.4), and (3)–(5), holding for any parameterization
-with $\chi > 0$, $\Delta R^L_{aut} > 0$, and $\lambda > 1$; the proofs cite
+with $`\chi > 0`$, $`\Delta R^L_{aut} > 0`$, and $`\lambda > 1`$; the proofs cite
 the relevant equations rather than restating their economics.
 
 **Proposition 1 (output cost ranking and divergence).** *The output response
 in the default regime is weakly below that of the without-default regime at
-every horizon, $\hat{y}^{def}_h \leq \hat{y}^{nd}_h$ for all $h \geq 0$, with
-strict inequality for $h \geq 1$; moreover the gap $\hat{y}^{nd}_h -
-\hat{y}^{def}_h$ is non-decreasing in $h$.*
+every horizon, $`\hat{y}^{def}_h \leq \hat{y}^{nd}_h`$ for all $`h \geq 0`$, with
+strict inequality for $`h \geq 1`$; moreover the gap $\hat{y}^{nd}_h -
+\hat{y}^{def}_h$` is non-decreasing in `$h$.*
 
 *Proof.* Under a common spread path, both regimes share the balance-sheet
 (LL.5a) and working-capital (LL.2a) terms. Relative to the without-default
-case, the default output path (5) adds $-\varepsilon_p \Delta R^L_{aut} \leq 0$
-and $\alpha\hat{k}^{excl}_h$ with $\hat{k}^{excl}_h = -(1-(1-\chi\delta)^h)
-\leq 0$ from (4'). Both terms are non-positive for all $h$, giving the ranking.
-Since $(1-\chi\delta)^h$ is strictly decreasing in $h$ for $\chi > 0$,
-$\hat{k}^{excl}_h$ falls monotonically, so the gap is non-decreasing. $\blacksquare$
+case, the default output path (5) adds $`-\varepsilon_p \Delta R^L_{aut} \leq 0`$
+and $`\alpha\hat{k}^{excl}_h`$ with $\hat{k}^{excl}_h = -(1-(1-\chi\delta)^h)
+\leq 0$` from (4'). Both terms are non-positive for all `$h$, giving the ranking.
+Since $`(1-\chi\delta)^h`$ is strictly decreasing in $`h`$ for $`\chi > 0`$,
+$`\hat{k}^{excl}_h`$ falls monotonically, so the gap is non-decreasing. $`\blacksquare`$
 
 This divergence is the signature of the capital-depletion mechanism: the
 working-capital and balance-sheet channels, common to both regimes, cannot
@@ -499,31 +498,31 @@ generate two output paths that grow further apart over time.
 credit contraction to the output contraction is larger in the without-default
 regime than in the default regime.*
 
-*Proof.* Credit loads only on net worth, $\hat{\ell}_h = (\lambda N_{ss}/
-\ell_{ss})\,\hat{n}_h$ from (IR.4). Output loads on net worth through the
+*Proof.* Credit loads only on net worth,
+$`\hat{\ell}_h = (\lambda N_{ss}/\ell_{ss})\,\hat{n}_h`$ from (IR.4). Output loads on net worth through the
 working-capital term in (LL.2a) and additionally on the capital stock. In the
 without-default regime capital adjusts only through the mean-reverting wedge
 (LL.3a), so credit and output are driven by the same balance-sheet shock. In
 the default regime output carries the extra autonomous term
-$\alpha\hat{k}^{excl}_h$ from (4'), which is absent from credit. Output
+$`\alpha\hat{k}^{excl}_h`$ from (4'), which is absent from credit. Output
 therefore falls more relative to credit in the default regime, lowering the
-credit-to-output ratio. $\blacksquare$
+credit-to-output ratio. $`\blacksquare`$
 
 Equivalently, the credit-to-GDP ratio falls more when spread crises are
 resolved without default — the divergence in loadings flagged after (IR.4).
 
 **Proposition 3 (sources of output persistence).** *Output losses persist
 beyond the spread episode in both regimes, but persistence is governed by
-$\delta$ and $\eta$ in the without-default regime and by $\mu$ in the default
+$`\delta`$ and $`\eta`$ in the without-default regime and by $`\mu`$ in the default
 regime.*
 
 *Proof.* In the without-default regime, (LL.3a) propagates any investment
 decline into the capital stock independently of the contemporaneous spread,
-so output stays below trend through $\alpha\hat{k}_h$ in (LL.2a) even after
-the spread returns to $s_{ss}$; recovery speed is set by $\delta$ and $\eta$.
+so output stays below trend through $`\alpha\hat{k}_h`$ in (LL.2a) even after
+the spread returns to $`s_{ss}`$; recovery speed is set by $`\delta`$ and $`\eta`$.
 In the default regime, (4') is autonomous of the spread after autarky begins,
-and the survival-weighted path (5) decays at rate $(1-\mu)^h$, governed by the
-re-entry probability $\mu$. $\blacksquare$
+and the survival-weighted path (5) decays at rate $`(1-\mu)^h`$, governed by the
+re-entry probability $`\mu`$. $`\blacksquare`$
 
 The two regimes thus produce persistence through non-overlapping channels:
 endogenous capital inertia without default, exogenous exclusion duration with
