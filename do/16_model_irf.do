@@ -136,7 +136,8 @@ function trans_full(xi, phi, Phi_N, shat, gamma, alpha, delta, beta, bBN, Phi_O,
     RL_ss = 1/beta + phi*bBN;
     nexp  = (1-alpha)/alpha;
     eps_p = xi*nexp*RL_ss/(1 + xi*(RL_ss-1));
-    eta   = 1/((1-alpha)*(RL_ss-(1-delta)));
+    // delta factor: from k_{t+1}=(1-delta)*k_t + delta*i_t; investment sensitivity scaled by delta
+    eta   = delta/((1-alpha)*(RL_ss-(1-delta)));
     Omega = phi*bBN;
     Bsens = bBN/(1+s_ss)^2;
     H = 5;
@@ -206,15 +207,19 @@ dRL_aut = -bdef[1]/(eps_p*100);
 printf("\n=== DEFAULT PATH VALIDATION ===\n");
 printf("  dRL_aut (pinned to h=0) = %6.4f\n", dRL_aut);
 
-ydef = J(5,1,.);
-ldef = J(5,1,0);   // credit ≈ 0 (gambling for resurrection: ell=0, GDP normalises)
+ydef = J(5,1,0);
+ldef = J(5,1,0);   // credit ≈ 0 in default (gambling for resurrection)
+// Capital path for country still in autarky: I=0, so k[h+1] = (1-delta)*k[h] - delta
+// (in log-deviation: missing the SS investment term delta keeps capital falling)
+// Survival-weighted average: surv*(excluded output) + (1-surv)*0 (re-entered ≈ SS)
+k_excl = 0;
 printf("\n  h   data_y(def)  model_y   [h>=1=oos]\n");
 for (h=0;h<=4;h++) {
-    surv        = (1-mu)^h;
-    kdef        = surv * h * ln(1-delta);
-    ydef[h+1]   = (alpha*kdef - eps_p*dRL_aut*surv)*100;
+    surv      = (1-mu)^h;
+    ydef[h+1] = surv*(alpha*k_excl - eps_p*dRL_aut)*100;
     tag = (h==0 ? "(pinned)" : "(oos)");
     printf(" %g   %7.3f      %7.3f   %s\n", h, bdef[h+1], ydef[h+1], tag);
+    k_excl = (1-delta)*k_excl - delta;   // full investment stop in autarky
 }
 st_matrix("YDEF", ydef);
 st_matrix("LDEF", ldef);
