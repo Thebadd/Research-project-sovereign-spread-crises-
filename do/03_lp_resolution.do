@@ -17,7 +17,8 @@
 
 use "$clean/panel_lp.dta", clear
 
-local controls l1_gdpg l2_gdpg ca debt infl imf vix ust10y
+* VIX and ust10y are pure time-series variables, fully absorbed by i.year.
+local controls l1_gdpg l2_gdpg ca debt infl imf
 
 * ══════════════════════════════════════════════════════════════════════════
 * SPEC A-1: NON-DEFAULT EPISODES ONLY

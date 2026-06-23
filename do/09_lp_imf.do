@@ -26,8 +26,12 @@
 
 use "$clean/panel_lp.dta", clear
 
-local controls l1_gdpg l2_gdpg ca debt infl vix ust10y
-* imf excluded from controls — it is the treatment modifier
+* LP controls: vix and ust10y have zero cross-sectional variation and are
+* fully absorbed by year fixed effects (i.year). Excluded from LP specs.
+* They are retained in the probit first stage (no year FE).
+* imf excluded from all controls — it is the treatment modifier here.
+local controls_lp l1_gdpg l2_gdpg ca debt infl
+local controls_ps l1_gdpg l2_gdpg ca debt infl vix ust10y
 
 * ══════════════════════════════════════════════════════════════════════════
 * CONSTRUCT IMF INTERACTION DUMMIES
@@ -64,14 +68,14 @@ forvalues h = 0/4 {
     local row = `h' + 1
     local lag = max(1, `h'+1)
 
-    xtscc dy_`h' onset_imf `controls' i.year if sample==1, fe lag(`lag')
+    xtscc dy_`h' onset_imf `controls_lp' i.year if sample==1, fe lag(`lag')
     matrix b_imf[`row',1]    = _b[onset_imf]
     matrix lo90_imf[`row',1] = _b[onset_imf] - 1.645*_se[onset_imf]
     matrix hi90_imf[`row',1] = _b[onset_imf] + 1.645*_se[onset_imf]
     matrix lo95_imf[`row',1] = _b[onset_imf] - 1.960*_se[onset_imf]
     matrix hi95_imf[`row',1] = _b[onset_imf] + 1.960*_se[onset_imf]
 
-    xtscc dy_`h' onset_no_imf `controls' i.year if sample==1, fe lag(`lag')
+    xtscc dy_`h' onset_no_imf `controls_lp' i.year if sample==1, fe lag(`lag')
     matrix b_no_imf[`row',1]    = _b[onset_no_imf]
     matrix lo90_no_imf[`row',1] = _b[onset_no_imf] - 1.645*_se[onset_no_imf]
     matrix hi90_no_imf[`row',1] = _b[onset_no_imf] + 1.645*_se[onset_no_imf]
@@ -90,7 +94,7 @@ matrix pval_imf = J(5, 1, .)
 
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
-    xtscc dy_`h' onset_imf onset_no_imf `controls' i.year if sample==1, fe lag(`lag')
+    xtscc dy_`h' onset_imf onset_no_imf `controls_lp' i.year if sample==1, fe lag(`lag')
     test onset_imf = onset_no_imf
     matrix pval_imf[`h'+1, 1] = r(p)
     di "h=" `h' ":  beta_imf="    %6.3f _b[onset_imf] ///
@@ -114,7 +118,7 @@ forvalues h = 0/4 {
 di as result _n "=== ACT 3 IPW: FIRST STAGE — Probit of IMF program at onset ==="
 
 * Full first stage to identify significant predictors
-probit onset_imf `controls' if onset_all == 1, vce(robust)
+probit onset_imf `controls_ps' if onset_all == 1, vce(robust)
 estimates store fs_imf_full
 di as result "Full model Pseudo-R2: " e(r2_p)
 
@@ -169,7 +173,7 @@ forvalues h = 0/4 {
     * Set tranquil year weights to 1
     quietly replace ipw3 = 1 if onset_all == 0 & sample == 1
 
-    quietly areg dy_`h' onset_imf onset_no_imf `controls' i.year ///
+    quietly areg dy_`h' onset_imf onset_no_imf `controls_lp' i.year ///
         [aw=ipw3] if sample == 1 & !missing(ipw3), absorb(cid) vce(cluster cid)
 
     quietly replace ipw3 = . if onset_all == 0

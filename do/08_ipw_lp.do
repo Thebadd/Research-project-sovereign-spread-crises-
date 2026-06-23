@@ -6,6 +6,7 @@
   Steps:
     1. First-stage probit: Pr(onset_all=1 | X_{t-1})
        Controls: l1_gdpg, l2_gdpg, debt, ca, infl, vix, ust10y, imf
+       (vix and ust10y included in probit only; absorbed by year FE in LP)
     2. Predict propensity scores p_it
     3. Trim extreme scores (< 0.01 or > 0.99) to avoid explosive weights
     4. Construct stabilized IPW weights:
@@ -24,7 +25,12 @@
 
 use "$clean/panel_lp.dta", clear
 
-local controls l1_gdpg l2_gdpg ca debt infl imf vix ust10y
+* LP controls: VIX and ust10y have zero cross-sectional variation and are
+* fully absorbed by year fixed effects (i.year) in all LP regressions.
+* They are excluded from the LP spec but retained in the probit first stage,
+* which has no year FE and where global financial conditions are not absorbed.
+local controls_lp  l1_gdpg l2_gdpg ca debt infl imf
+local controls_ps  l1_gdpg l2_gdpg debt ca infl imf vix ust10y
 
 * ══════════════════════════════════════════════════════════════════════════
 * STEP 1 — FIRST-STAGE PROBIT
@@ -39,7 +45,7 @@ di as result _n "=== FIRST STAGE: Probit of crisis onset ==="
 * l1_gdpg and l2_gdpg already lagged; debt, ca, infl, imf, vix, ust10y
 * entered as-is (measured at t, predetermined relative to future outcome)
 
-probit onset_all l1_gdpg l2_gdpg debt ca infl imf vix ust10y ///
+probit onset_all `controls_ps' ///
     if sample == 1, vce(cluster cid)
 
 estimates store first_stage
@@ -139,7 +145,7 @@ forvalues h = 0/4 {
     local row = `h' + 1
 
     * Unweighted (areg absorbs country FE, cluster SE — comparable baseline)
-    quietly areg dy_`h' onset_all `controls' i.year ///
+    quietly areg dy_`h' onset_all `controls_lp' i.year ///
         if sample==1 & !missing(ipw), absorb(cid) vce(cluster cid)
     matrix b_ols[`row',1]    = _b[onset_all]
     matrix lo90_ols[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
@@ -150,7 +156,7 @@ forvalues h = 0/4 {
     local se_u = _se[onset_all]
 
     * IPW-weighted (areg used because xtreg fe requires weights constant within cid)
-    quietly areg dy_`h' onset_all `controls' i.year ///
+    quietly areg dy_`h' onset_all `controls_lp' i.year ///
         [aw=ipw] if sample==1 & !missing(ipw), absorb(cid) vce(cluster cid)
     matrix b_ipw[`row',1]    = _b[onset_all]
     matrix lo90_ipw[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
@@ -247,7 +253,8 @@ di as result "All IPW results saved."
 
 use "$clean/panel_lp.dta", clear
 
-local controls l1_gdpg l2_gdpg ca debt infl imf vix ust10y
+* LP controls: vix and ust10y absorbed by i.year — omitted
+local controls l1_gdpg l2_gdpg ca debt infl imf
 
 di as result _n "=== ACT 2 IPW: FIRST STAGE — Probit of default-linked onset ==="
 di as result    "    Sample: crisis onset years only (onset_all == 1)"
@@ -311,7 +318,7 @@ forvalues h = 0/4 {
     local row = `h' + 1
 
     * Unweighted (baseline Act 2, OLS-FE, cluster SE)
-    quietly areg dy_`h' onset_nd onset_def `controls' i.year ///
+    quietly areg dy_`h' onset_nd onset_def `controls_lp' i.year ///
         if sample == 1, absorb(cid) vce(cluster cid)
     matrix b_nd_ols[`row',1]   = _b[onset_nd]
     matrix lo90_nd_ols[`row',1] = _b[onset_nd]  - 1.645*_se[onset_nd]
@@ -325,7 +332,7 @@ forvalues h = 0/4 {
     * IPW-weighted: upweight onset observations by ipw2
     * Control observations (onset_all=0) keep weight = 1 (set ipw2=1 for them)
     quietly replace ipw2 = 1 if onset_all == 0 & sample == 1
-    quietly areg dy_`h' onset_nd onset_def `controls' i.year ///
+    quietly areg dy_`h' onset_nd onset_def `controls_lp' i.year ///
         [aw=ipw2] if sample == 1 & !missing(ipw2), absorb(cid) vce(cluster cid)
     quietly replace ipw2 = . if onset_all == 0
 

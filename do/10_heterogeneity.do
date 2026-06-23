@@ -22,7 +22,8 @@
 
 use "$clean/panel_lp.dta", clear
 
-local controls l1_gdpg l2_gdpg ca debt infl imf vix ust10y
+* VIX and ust10y absorbed by year FE — omitted from all LP specs.
+local controls l1_gdpg l2_gdpg ca debt infl imf
 
 * ══════════════════════════════════════════════════════════════════════════
 * BLOCK A — FRONTIER VS. ESTABLISHED EM
