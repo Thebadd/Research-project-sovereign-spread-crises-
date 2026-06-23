@@ -224,7 +224,7 @@ twoway ///
     xtitle("Years after crisis onset", size(medsmall))                      ///
     ytitle("Cumulative change in log real GDP p.c. (pp)", size(medsmall))   ///
     title("Baseline vs. IPW-Weighted Local Projections", size(medium))      ///
-    subtitle("All spread crises (N=61). xtreg FE, cluster SE.", size(small))///
+    subtitle("All spread crises (N=61). xtreg FE, cluster SE.", size(small)) ///
     legend(order(2 "Baseline OLS-FE" 4 "IPW-weighted")                     ///
            ring(0) pos(3) size(small))                                      ///
     note("IPW weights from probit of onset on lagged macro fundamentals."   ///
