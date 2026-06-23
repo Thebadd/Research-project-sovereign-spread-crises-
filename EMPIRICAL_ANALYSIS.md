@@ -10,10 +10,10 @@ so the identifying variation comes from the transition into crisis, not
 from the crisis persisting.
 
 The estimator is the Jordà (2005) local projection. For each horizon
-$h \in \{0, 1, 2, 3, 4\}$, we estimate a separate cross-sectional
-regression of the cumulative change in an outcome variable on a crisis
-onset indicator, country and year fixed effects, and a vector of
-pre-determined macro controls:
+$h \in \{0, 1, 2, 3, 4\}$, we estimate a separate regression of the
+cumulative change in an outcome variable on a crisis onset indicator,
+country and year fixed effects, and a vector of pre-determined macro
+controls:
 
 $$\Delta^h y_{it} = \alpha_i + \lambda_t + \beta_h \cdot D_{it} + \gamma' X_{it} + \varepsilon_{it+h}$$
 
@@ -23,11 +23,19 @@ $t-1$ so that $h = 0$ captures the impact effect and $h = 4$ the
 four-year cumulative loss. The sequence $\{\hat\beta_h\}$ traces the
 impulse response of the outcome to a crisis onset.
 
-Country fixed effects absorb all time-invariant heterogeneity across
-economies. Year fixed effects absorb all shocks common to all countries in
-a given year — global recessions, commodity cycles, shifts in global
-financial conditions — which is why global variables such as the VIX and
-the US long-term rate need not appear separately in the specification.
+The control vector $X_{it}$ includes two lags of GDP growth, the
+current account balance, the public debt-to-GDP ratio, inflation, and
+an IMF program dummy. Lagged growth controls for pre-crisis output
+momentum that would independently predict future trajectories; debt and
+the current account capture the fiscal and external vulnerability of
+the economy at onset, which jointly predict both crisis incidence and
+subsequent output performance; inflation proxies for underlying macro
+instability; and the IMF program dummy absorbs the differential
+trajectory of countries that obtain official financing during the
+episode. Global financial conditions — the VIX and the US long-term
+rate — are not included in the specification because year fixed effects
+already absorb all shocks common to all countries in a given year,
+rendering any pure time-series variable redundant.
 Standard errors follow Driscoll and Kraay (1998), correcting for
 cross-sectional dependence and for the serial correlation that
 mechanically increases with the forecast horizon.
