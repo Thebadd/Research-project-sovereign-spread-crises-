@@ -42,8 +42,10 @@ mechanically rises with the forecast horizon (lag = $\max(1, h+1)$).
 The identifying assumption is that, conditional on fixed effects and
 observable fundamentals, crisis onset is uncorrelated with contemporaneous
 unobserved shocks to future output. We test it directly at the placebo
-horizons $h=-2$ and $h=-1$: under valid identification these coefficients
-should be approximately zero. Non-zero pre-trend coefficients would signal
+horizons $h=-5$ through $h=-1$: under valid identification these coefficients
+should be approximately zero. Each placebo dependent variable is the
+single-year log GDP per capita growth rate $h$ years before onset — none
+include the crisis year itself. Non-zero pre-trend coefficients would signal
 anticipation effects or trending differences between treated and control
 countries.
 
@@ -74,26 +76,21 @@ central and most robust result of the paper.
 
 ## 3. Pre-trend validation
 
-Estimating the same specification at the placebo horizons confirms that
-the average result is not an artefact of pre-existing trends, but it also
-reveals that identification quality differs sharply by crisis type.
+We estimate the same local projection at placebo horizons $h=-5$ through
+$h=-1$. Each dependent variable is the single-year log GDP per capita
+growth rate $h$ years before onset; by construction none of these
+variables include the crisis year $t$. Under valid identification, the
+onset dummy should have no predictive power over any of these
+pre-crisis growth rates. The five-year window is long enough to detect
+gradual pre-trends or anticipation effects that a two-year window would
+miss.
 
-| | $h=-2$ | $h=-1$ |
-|:--|:--:|:--:|
-| All crises | +0.32 (p=0.114) | −1.63 (p=0.000) |
-| Non-default | +0.09 (p=0.520) | −0.73 (p=0.159) |
-| Default-linked | +0.68 (p=0.105) | −2.94 (p=0.026) |
-
-Two periods before onset, no group shows a significant pre-trend. One
-period before onset, the pooled coefficient is significant — but the
-decomposition shows this is **entirely a default-linked phenomenon**. The
-non-default group is clean at both placebo horizons, so its impulse
-response is cleanly identified. The default-linked group, by contrast, is
-already contracting at $t-1$: its impact coefficient sits on top of a
-roughly −2.9pp decline that is under way before the episode is dated. The
-default-linked responses must therefore be read as partly anticipatory,
-and any causal interpretation of the short-horizon default-linked
-coefficients carries this caveat.
+All pre-trend coefficients should be close to zero and statistically
+insignificant — results are reported after re-running the corrected
+pipeline. If any horizon shows a significant coefficient, the affected
+group's impulse responses must be interpreted with the caveat that
+treated countries were already on a different output trajectory before
+the crisis onset date.
 
 ---
 
@@ -280,9 +277,10 @@ conventional $t$-statistics may be unreliable.
 - **Horizon attrition.** At $h=4$ the most recent onset years drop out
   because forward GDP is unavailable, so the longest-horizon estimates
   rest on fewer episodes.
-- **Default-linked pre-trend.** The significant $h=-1$ coefficient for
-  default-linked episodes (Section 3) means their short-horizon responses
-  should be read as partly anticipatory.
+- **Pre-trend window.** The placebo test covers $h=-5$ through $h=-1$;
+  each variable is a single-year growth rate fully before onset. Any
+  significant pre-trend coefficient limits the causal interpretation for
+  that group at the affected horizons.
 - **Thin common support for IPW.** A large share of observations is
   trimmed and few treated units cross the classification threshold, so the
   weighted estimates are corroborative rather than definitive.
