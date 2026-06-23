@@ -1,407 +1,584 @@
-# Empirical Analysis — Structure and Regression Equations
-
-This document describes every regression run in the project, in the order
-the do-files execute them, with the exact specification and the reason each
-one is there.
+# Empirical Strategy
 
 ---
 
-## Data construction (`01_build_panel.do`, `01b_merge_new_controls.do`)
+## 1. Research questions
 
-The panel covers 52 emerging and frontier market economies over 1994–2025
-at annual frequency. Continuation years (years 2, 3, … of an episode, after
-the onset year) are dropped from every estimation sample. The identifying
-variation is the **onset year** of each episode only.
+The paper addresses three related questions.
 
-**Outcome variable — same construction used in every LP:**
+**First question.** What is the output cost of a sovereign spread crisis
+in emerging and frontier market economies? Spread crises — episodes in
+which the sovereign borrowing spread rises sharply relative to the
+risk-free rate — are common in emerging markets but their macroeconomic
+consequences are poorly measured. Existing work either focuses on outright
+defaults (Reinhart and Rogoff 2009, Cruces and Trebesch 2013) or on
+sudden stops (Calvo et al. 2006), leaving the broader category of spread
+crises without default largely undocumented.
 
-$$dy_{i,t+h} = \bigl(\ln\text{GDPpc}_{i,t+h} - \ln\text{GDPpc}_{i,t-1}\bigr) \times 100$$
+**Second question.** Does the output cost differ depending on whether the
+episode is eventually resolved without default or culminates in debt
+restructuring? This is the central comparative question of the paper.
+The conjecture is that default-linked crises generate larger and more
+persistent output losses, for two reasons: the sovereign ceiling channels
+a more severe financing disruption to domestic firms, and external
+capital flows stop abruptly when the country enters financial autarky,
+depleting the capital stock at a rate that has no counterpart in
+non-default crises.
 
-Cumulative percentage change in real GDP per capita from one year before
-the crisis to $h$ years after, for $h \in \{0,1,2,3,4\}$. For channel
-regressions the same formula is applied to the channel variable instead
-of GDP.
+**Third question.** Through which channels does the transmission operate?
+Is it primarily a credit contraction (the banking sector channel), a
+collapse in investment (the capital accumulation channel), a withdrawal
+of external financing (the sudden stop channel), a fiscal consolidation,
+or some combination? And do these channels operate symmetrically across
+the two crisis types?
 
-**Controls used in every baseline LP:**
-
-| Variable | Content |
-|---|---|
-| `l1_gdpg`, `l2_gdpg` | GDP growth at $t-1$ and $t-2$ (captures pre-crisis momentum) |
-| `ca` | Current account balance / GDP (external vulnerability) |
-| `debt` | General government debt / GDP (fiscal space) |
-| `infl` | Inflation (macro instability) |
-| `imf` | IMF program dummy (crisis management) |
-| `vix` | VIX index (global risk appetite) |
-| `ust10y` | US 10-year rate (global financial conditions) |
-
----
-
-## Step 0 — Pre-crisis balance (`05_balance_table.do`)
-
-**What it does.** Before any regression, compare the observable
-characteristics of the two groups at crisis onset:
-
-- **Non-default episodes** (40 onsets)
-- **Default-linked episodes** (21 onsets)
-
-A two-sample $t$-test with unequal variances is run for each of:
-`gdpg`, `l1_gdpg`, `debt`, `ca`, `infl`, `l_spr_mean`, `imf`, `fdi`,
-`govexp`.
-
-**Why.** If the two groups look statistically different before the crisis
-on observables (higher debt, worse current account, etc. in the
-default-linked group), then a naive comparison of their output losses
-conflates the crisis *effect* with selection into default. The balance
-table tells the reader how much of a problem this is and motivates
-the IPW correction in later steps.
+The theoretical model in Section 3 makes sharp predictions about the sign,
+magnitude, and relative pattern of the output responses across regimes and
+channels. The empirical strategy tests those predictions without the
+analysis being designed to fit them.
 
 ---
 
-## Act 1 — Baseline LP: all crisis episodes (`02_lp_all.do`)
+## 2. Data and sample
 
-**Research question.** What is the average output cost of a sovereign
-spread crisis, pooling all 61 onset episodes?
+The sample covers **52 emerging and frontier market economies** over
+**1994–2025** at annual frequency. Crisis episodes are identified from
+a purpose-built database that classifies sovereign spread episodes using
+two complementary criteria: a threshold criterion (spreads exceeding
+1,000 basis points) and a relative criterion (spreads above the 99th
+percentile of the country-specific historical distribution following
+Hadzi-Vaskov et al.). For each episode, the first year is designated
+the **onset year**; subsequent years within the episode are designated
+**continuation years**. The analysis is entirely based on onset years —
+continuation years are dropped from every estimation sample. This
+prevents the outcome from reflecting the persistence of the crisis itself
+rather than its causal impact at inception.
 
-**Regression.** For each horizon $h \in \{-2,-1,0,1,2,3,4\}$:
-
-$$dy_{i,t+h} = \alpha_i + \lambda_t + \beta_h \cdot D_{it} + \gamma' X_{it} + \varepsilon_{i,t+h}$$
-
-- $\alpha_i$ = country fixed effect
-- $\lambda_t$ = year fixed effect
-- $D_{it}$ = `onset_all` (= 1 in first year of any spread crisis)
-- SE: Driscoll-Kraay with bandwidth $= \max(1, h+1)$
-
-**Horizons $h = -2$ and $h = -1$ (pre-trend placebo).** The outcome is
-*past* GDP growth, so $\beta_{-2}$ and $\beta_{-1}$ should be
-statistically indistinguishable from zero. A significant pre-trend
-would indicate that the crisis dummy is picking up a pre-existing
-trend rather than a causal effect.
-
-**Output.** The sequence $\{\hat\beta_0, \hat\beta_1, \hat\beta_2,
-\hat\beta_3, \hat\beta_4\}$ is the impulse response function (IRF) of
-output to a spread crisis onset.
+Episodes are classified by resolution outcome: **40 episodes** end
+without a sovereign default; **21 episodes** are linked to debt
+restructuring. This classification is the key dimension of heterogeneity
+in the paper.
 
 ---
 
-## Act 2 — LP by resolution type (`03_lp_resolution.do`)
+## 3. Outcome variable and identification approach
 
-**Research question.** Does the output cost differ between spread crises
-resolved without default and those linked to debt restructuring?
+### 3.1 The local projection estimator
 
-### Spec A — Separate regressions (one group at a time)
+The empirical backbone of the paper is the **Jordà (2005) local
+projection** method. For each forecast horizon $h$, a separate
+regression is run with the cumulative change in the outcome variable as
+the dependent variable:
 
-**Non-default episodes** ($D^{nd}_{it}$ = `onset_nd`, 40 episodes):
+$$dy_{i,t+h} = \left(\ln Y_{i,t+h} - \ln Y_{i,t-1}\right) \times 100$$
+
+where $Y_{i,t}$ is real GDP per capita. The outcome at horizon $h$
+measures the **cumulative percentage deviation of output from its
+pre-crisis level**, with the pre-crisis year $t-1$ as the anchor. At
+$h = 0$ this is the impact effect; at $h = 4$ it is the total output
+loss four years after onset. The local projection approach has a key
+advantage over a VAR: it imposes no cross-horizon restrictions on the
+shape of the impulse response function, which is important here because
+the two crisis types are expected to generate qualitatively different
+dynamic profiles.
+
+### 3.2 Treatment variable and identification
+
+The treatment variable $D_{it}$ equals one in the first year of a crisis
+episode and zero in all tranquil years. The identifying assumption is
+that, conditional on country and year fixed effects and the set of
+observable controls, the onset of a crisis is unrelated to
+contemporaneous unobserved shocks that also affect future output growth.
+
+Two features of the design reinforce this assumption. First, the
+sample includes **pre-trend placebo horizons** ($h = -2$ and $h = -1$):
+the onset dummy is regressed on past output growth. A significant
+pre-trend coefficient would indicate that the crisis dummy picks up a
+pre-existing trend rather than a causal effect. Second, the sample
+restriction to onset years only avoids the mechanical contamination
+that would arise if continuation years — in which the crisis is ongoing
+by construction — were included in the control group.
+
+### 3.3 Fixed effects and controls
+
+Every regression includes **country fixed effects** $\alpha_i$ and
+**year fixed effects** $\lambda_t$. Country fixed effects absorb all
+time-invariant country characteristics (institutional quality, geography,
+financial development) that could jointly predict both crisis incidence
+and output performance. Year fixed effects absorb all global shocks that
+hit multiple countries simultaneously — the Global Financial Crisis, the
+COVID pandemic, global commodity price cycles — preventing common-shock
+contamination of the estimated crisis effect.
+
+The control vector $X_{it}$ includes lagged GDP growth (two lags),
+the current account balance, the public debt-to-GDP ratio, inflation,
+an IMF program dummy, the VIX index, and the US 10-year Treasury rate.
+These controls serve two purposes. First, they account for pre-crisis
+macroeconomic conditions that independently predict future output growth
+and are also correlated with crisis incidence — omitting them would
+produce biased estimates. Second, they partial out the role of global
+financial conditions (VIX, US rate) beyond what year fixed effects
+capture, which matters because some crisis episodes are partly triggered
+by external tightening.
+
+Standard errors follow Driscoll and Kraay (1998), with bandwidth
+$\max(1, h+1)$, correcting simultaneously for cross-sectional
+dependence (multiple countries hit by a common shock) and serial
+correlation in the residuals (which mechanical increases with $h$
+because the overlapping forecast windows introduce MA structure).
+
+---
+
+## 4. Act 1 — Average output cost of spread crises
+
+### Specification
+
+$$dy_{i,t+h} = \alpha_i + \lambda_t + \beta_h \cdot D_{it} + \gamma' X_{it} + \varepsilon_{i,t+h}, \quad h \in \{-2,-1,0,1,2,3,4\}$$
+
+### What is estimated
+
+The coefficient $\hat\beta_h$ is the average cumulative output loss
+$h$ years after a spread crisis onset, relative to tranquil periods
+in the same country and year. The sequence $\{\hat\beta_h\}_{h=0}^{4}$
+traces the impulse response function of output to a crisis onset.
+
+### What is tested
+
+This is the baseline characterisation. There is no theoretical prior
+on the exact magnitude, but the model predicts that $\hat\beta_h < 0$
+for all $h \geq 0$ and that the loss persists beyond the spread episode
+itself — due to the capital accumulation channel (the capital stock
+depresses output even after spreads normalise).
+
+### How to read the results
+
+A coefficient of $\hat\beta_2 = -4$ means that, on average, a country
+that experiences a spread crisis onset has real GDP per capita four
+percentage points lower two years later than a comparable country in a
+tranquil year, after accounting for country and year fixed effects and
+observable macro fundamentals. The impulse response function plots this
+estimate with 90% and 95% confidence bands for each horizon.
+
+---
+
+## 5. Act 2 — The central comparison: non-default vs. default-linked crises
+
+This is the core empirical contribution of the paper.
+
+### Specification A — Separate regressions
+
+For each group and each horizon $h$:
 
 $$dy_{i,t+h} = \alpha_i + \lambda_t + \beta^{nd}_h \cdot D^{nd}_{it} + \gamma' X_{it} + \varepsilon_{i,t+h}$$
 
-**Default-linked episodes** ($D^{def}_{it}$ = `onset_def`, 21 episodes):
-
 $$dy_{i,t+h} = \alpha_i + \lambda_t + \beta^{def}_h \cdot D^{def}_{it} + \gamma' X_{it} + \varepsilon_{i,t+h}$$
 
-These give separate IRFs for each group, estimated on the full panel
-(both groups serve as controls for each other within year and country).
-
-### Spec B — Joint regression with equality test
-
-Both dummies enter the same regression simultaneously:
+### Specification B — Joint regression with equality test
 
 $$dy_{i,t+h} = \alpha_i + \lambda_t + \beta^{nd}_h \cdot D^{nd}_{it} + \beta^{def}_h \cdot D^{def}_{it} + \gamma' X_{it} + \varepsilon_{i,t+h}$$
 
-Then test $H_0 : \beta^{nd}_h = \beta^{def}_h$ at each horizon with an
-$F$-test.
+followed by a test of $H_0: \beta^{nd}_h = \beta^{def}_h$ at each $h$.
 
-**Why the joint regression matters.** The separate regressions cannot
-tell you whether the *gap* between the two IRFs is statistically
-significant. The joint regression does. If the gap widens and becomes
-significant at $h = 2, 3, 4$, that is direct evidence that the
-resolution outcome affects the depth and persistence of the output loss —
-the key empirical finding of the paper.
+### What is estimated
+
+The separate regressions produce two impulse response functions — one
+for each crisis type. The joint regression produces both simultaneously
+and tests whether the gap between them is statistically significant.
+
+### What is tested
+
+The model makes three predictions about the comparative dynamics.
+
+**Proposition 1** (ranking and divergence): the output loss in the
+default regime should be weakly larger than in the non-default regime
+at every horizon ($\beta^{def}_h \leq \beta^{nd}_h$), with the gap
+widening over time. The divergence is the signature of the
+capital-depletion mechanism — external investment stops when the
+country enters financial autarky, and this compounds geometrically
+with each year of exclusion.
+
+**Proposition 3** (persistence): the persistence should be governed
+by different parameters in each regime. In the non-default regime,
+persistence comes from the capital stock's slow recovery (governed by
+the depreciation rate and the investment sensitivity to the lending
+rate). In the default regime, persistence comes from market exclusion
+(governed by the re-entry probability $\mu$). These different sources
+of inertia imply different shapes for the two IRFs, not merely
+different levels.
+
+### Why the joint regression matters
+
+The separate regressions show the level of output losses for each
+group but cannot address whether the *gap* is statistically
+significant. The joint regression provides the formal test. A finding
+that the gap is significant and widens from $h = 1$ onward is the
+key empirical result of the paper.
+
+### A note on selection
+
+Countries that eventually default are not randomly drawn from the set
+of countries that experience spread crises. Default-linked episodes
+tend to start with higher debt, larger current account deficits, and
+lower output growth. This pre-crisis imbalance means that part of the
+larger output loss in default-linked episodes may reflect worse
+initial conditions rather than a causal effect of the default itself.
+The balance table (Step 0) quantifies this selection. The IPW
+correction (Section 7) addresses it.
 
 ---
 
-## Act 3 — Role of IMF programs (`09_lp_imf.do`)
+## 6. Act 3 — Role of IMF programs
 
-**Research question.** Does an IMF program at crisis onset attenuate the
-output cost?
+### Specification
 
-**Spec A — Separate LP:**
+$$dy_{i,t+h} = \alpha_i + \lambda_t + \beta^{imf}_h \cdot D^{imf}_{it} + \beta^{no\text{-}imf}_h \cdot D^{no\text{-}imf}_{it} + \gamma' X^{-imf}_{it} + \varepsilon_{i,t+h}$$
 
-$$dy_{i,t+h} = \alpha_i + \lambda_t + \beta^{imf}_h \cdot D^{imf}_{it} + \gamma' X^{-imf}_{it} + \varepsilon_{i,t+h}$$
+Test: $H_0: \beta^{imf}_h = \beta^{no\text{-}imf}_h$.
 
-$$dy_{i,t+h} = \alpha_i + \lambda_t + \beta^{no\_imf}_h \cdot D^{no\_imf}_{it} + \gamma' X^{-imf}_{it} + \varepsilon_{i,t+h}$$
+### What is tested
 
-Note: `imf` is excluded from the controls since it is now the treatment
-modifier.
+Among spread crisis episodes, does access to IMF financing at onset
+attenuate the output loss? The IMF programs directly affect the fiscal
+channel (by providing financing that avoids abrupt austerity) and
+potentially the sovereign ceiling channel (by providing an implicit
+backstop that limits spread contagion to the banking sector).
 
-**Spec B — Joint regression** with equality test $H_0:
-\beta^{imf}_h = \beta^{no\_imf}_h$.
+The IMF dummy is excluded from the control vector in this regression
+because it is itself the treatment modifier — including it as a control
+in other regressions (where it does appear) is appropriate because its
+effect there is absorbed into the baseline, not the treatment.
 
-**Spec C — IPW correction.** Countries that get IMF programs are
-systematically different (higher debt, worse current account, lower growth)
-from those that do not. A probit of $\Pr(\text{IMF} = 1 \mid
-\text{crisis onset}, X)$ generates propensity scores, which are used to
-construct stabilized IPW weights that reweight non-IMF episodes to look
-like IMF episodes on observables. The IPW-weighted LP is then estimated
-with `areg` (country FE) and clustered standard errors.
+### Selection concern and IPW correction
 
-**Why.** Without IPW, a finding that IMF episodes have smaller output
-losses would be confounded by the fact that the IMF typically intervenes
-in countries that are already in severe distress — the comparison is not
-apples-to-apples.
+Countries that obtain IMF programs at crisis onset are systematically
+different from those that do not: they tend to have higher debt ratios,
+worse current account positions, and lower growth. Comparing the two
+groups directly would confound the IMF program effect with these
+pre-existing differences. A first-stage probit of
+$\Pr(\text{IMF} = 1 \mid \text{crisis onset}, X)$ generates propensity
+scores, which are used to reweight non-IMF episodes to match IMF
+episodes on observables. The IPW-corrected LP gives the counterfactual
+effect of the IMF program purged of selection.
 
 ---
 
-## Act 4 — Transmission channels, all crises (`11_channels.do`)
+## 7. Act 4 — Transmission channels
 
-**Research question.** Through which channels does a spread crisis
-transmit to output? The LP outcome is replaced by six channel variables.
+### Why channel regressions?
 
-For each channel variable $Z$ and each horizon $h \in \{0,1,2,3,4\}$:
+The output LP tells you that crises are costly. It does not tell you
+*why*. The channel regressions decompose the transmission mechanism by
+replacing the GDP outcome with six intermediate variables, each
+corresponding to a specific theoretical channel. This is a direct test
+of the model's structural mechanisms.
+
+### Common structure
+
+For each channel variable $Z$ and each horizon $h$:
 
 $$\Delta^h Z_{it} = \alpha_i + \lambda_t + \beta^Z_h \cdot D_{it} + \gamma^Z{}' X^Z_{it} + \varepsilon_{i,t+h}$$
 
-where $\Delta^h Z_{it} = Z_{i,t+h} - Z_{i,t-1}$ (same anchoring as the
-GDP outcome).
+where $\Delta^h Z_{it} = Z_{i,t+h} - Z_{i,t-1}$ is the cumulative
+change in the channel variable from one year before the crisis to $h$
+years after. The controls are channel-specific rather than uniform,
+because each channel is driven by a different set of confounders.
 
-| Channel | $Z$ | What it tests | Controls |
-|---|---|---|---|
-| 1. Credit | Private credit / GDP | Does the banking sector contract? | `l1_gdpg l2_gdpg debt infl ca banking_crisis` |
-| 2. Sovereign-bank nexus | Bank claims on govt / GDP | Do banks accumulate sovereign bonds (doom loop)? | `L.claims_govt L.credit pb banking_crisis` |
-| 3. Investment | Gross investment / GDP | Does investment fall (capital channel)? | `l1_gdpg l2_gdpg debt ca L.credit banking_crisis` |
-| 4. Govt expenditure | Govexp / GDP | Is there fiscal austerity? | `L.govexp debt revenue_gdp` |
-| 5. Primary balance | PB / GDP | Does fiscal adjustment occur? | `l1_gdpg l2_gdpg debt ca L.pb banking_crisis` |
-| 6. FDI | FDI / GDP | Does external financing stop? | `l1_gdpg L.fdi infl reer_chg` |
+### Channel 1 — Private credit / GDP
 
-Each channel is also re-estimated with **IPW weights** (same probit
-first stage as in `08_ipw_lp.do`) to check that the channel responses
-are not driven by selection on pre-crisis observables.
+**What is estimated.** The cumulative change in private credit relative
+to GDP following a crisis onset.
 
-**Why channel-specific controls?** VIX and UST10y are pure time-series
-variables with zero cross-sectional variation — they are fully absorbed
-by year fixed effects and would cause collinearity. They are dropped from
-all channel regressions except FDI, where the US rate captures the carry
-trade incentive of foreign investors and adds genuine identification
-content not in the year FE.
+**Theoretical link.** This tests equation (2) of the theoretical model:
+a spread widening reduces bank net worth (equation 1), which forces a
+proportional contraction in lending through the leverage constraint.
+The credit response is the empirical counterpart of
+$\hat\ell_h = (\lambda N_{ss}/\ell_{ss})\hat n_h$.
+
+**Economic interpretation.** A negative $\hat\beta^{cr}_h$ means the
+banking sector actively contracts lending following a crisis — a supply
+contraction, not just a demand response. Combined with the output LP,
+it reveals the credit-to-output ratio, which is the key quantity in
+Proposition 2.
+
+### Channel 2 — Bank claims on sovereign / GDP
+
+**What is estimated.** The cumulative change in the share of bank assets
+held in government bonds following a crisis onset.
+
+**Theoretical link.** This tests the doom loop mechanism. In the model,
+banks hold a fixed portfolio ($b^B_{ss}$ constant). If the empirical
+estimate is significantly positive, it indicates that banks are
+*increasing* their sovereign bond exposure during the crisis —
+the gambling-for-resurrection or carry-trade motive that the baseline
+model abstracts from. A null result supports the symmetric bank
+behaviour assumption.
+
+**Economic interpretation.** An increase in bank claims on the sovereign
+during a crisis is consistent with portfolio substitution: banks reduce
+lending to firms and replace it with sovereign bonds, amplifying the
+credit contraction and deepening the doom loop.
+
+### Channel 3 — Gross investment / GDP
+
+**What is estimated.** The cumulative change in gross fixed capital
+formation relative to GDP.
+
+**Theoretical link.** This directly tests the capital accumulation
+channel, the most persistent transmission mechanism in the model.
+Equation (4) predicts that a spread increase depresses investment
+at $h=0$, which lowers the capital stock at $h=1$, which depresses
+output at $h=1$ even after the spread has normalised.
+
+**Economic interpretation.** The investment response is the bridge
+between the contemporaneous lending rate shock and the persistence of
+the output loss. A coefficient that remains negative at $h = 3$ or
+$h = 4$ — after the spread itself has likely returned to normal —
+is evidence that the capital channel is quantitatively important.
+
+In the default regime specifically, the external investment share $\chi$
+(the fraction of investment financed by foreign capital flows) matters:
+when the country enters autarky, external financing disappears and
+investment falls by more than the credit contraction alone would imply.
+This is the mechanism in equation (6) of the model.
+
+### Channel 4 — Government expenditure / GDP
+
+**What is estimated.** The cumulative change in government spending
+relative to GDP.
+
+**Economic interpretation.** A negative coefficient means fiscal
+austerity — governments cut spending when the crisis hits, either
+because market access deteriorates (forcing fiscal tightening) or
+because IMF conditionality requires it. Procyclical fiscal consolidation
+amplifies the output contraction beyond what the financial channel alone
+produces.
+
+### Channel 5 — Primary balance / GDP
+
+**What is estimated.** The cumulative change in the primary fiscal
+balance following a crisis onset.
+
+**Economic interpretation.** An improvement in the primary balance
+(positive coefficient) during a crisis means the government is
+tightening fiscal policy at precisely the moment when automatic
+stabilisers would normally imply a deterioration. This is classic
+procyclical fiscal policy, which deepens the recession. Combined with
+Channel 4, it identifies whether fiscal austerity is a quantitatively
+significant transmission mechanism beyond the financial channels.
+
+### Channel 6 — FDI / GDP
+
+**What is estimated.** The cumulative change in foreign direct
+investment relative to GDP.
+
+**Theoretical link.** This directly tests the $\chi$ parameter of the
+model — the external investment share. Equation (6) assumes that a
+fraction $\chi$ of steady-state replacement investment requires access
+to international capital markets. A significant decline in FDI following
+a crisis onset provides empirical support for $\chi > 0$ and identifies
+the external financing stop that underlies the capital depletion
+mechanism in the default regime.
+
+**Why the US rate appears in this regression only.** The US 10-year
+Treasury rate captures the carry trade incentive of foreign investors —
+when US rates are high, the opportunity cost of investing in emerging
+markets rises and FDI declines. This variable adds genuine identification
+content for foreign capital flows but is irrelevant for domestic
+real variables (credit, investment, fiscal aggregates) that are
+driven by domestic rather than foreign financing conditions.
 
 ---
 
-## Act 5 — Channels by resolution type (`12_channels_resolution.do`)
+## 8. Act 5 — Channels by resolution type
 
-**Research question.** Do the six transmission channels operate
-differently in episodes that end in default versus those that do not?
+### What is estimated
 
-**Spec A — OLS joint LP** (both dummies simultaneously, for each channel):
+For each of the six channel variables, a joint regression is run with
+both the non-default and the default-linked onset dummies simultaneously:
 
 $$\Delta^h Z_{it} = \alpha_i + \lambda_t + \beta^{nd,Z}_h \cdot D^{nd}_{it} + \beta^{def,Z}_h \cdot D^{def}_{it} + \gamma^Z{}' X^Z_{it} + \varepsilon_{i,t+h}$$
 
-Equality test $H_0: \beta^{nd,Z}_h = \beta^{def,Z}_h$ at each horizon.
+with an equality test $H_0: \beta^{nd,Z}_h = \beta^{def,Z}_h$ at each
+horizon.
 
-**Spec B — IPW-corrected LP.** A probit of
-$\Pr(\text{default-linked} = 1 \mid \text{crisis onset}, \text{debt}, \text{CA})$
-generates Act 2 stabilized weights. Non-default episodes are reweighted
-to match default-linked episodes on pre-crisis observables. Estimated
-with `areg` and clustered SE.
+### What is tested
 
-**Why.** This is where the model predictions become testable:
-- The credit-to-output ratio should be higher in non-default episodes
-  (Proposition 2): credit contracts without the extra capital depletion
-  that depresses output further in default episodes.
-- Investment should fall more in default-linked episodes through the
-  external financing stop (equation 6 of the model, $\chi > 0$).
-- Bank sovereign bond accumulation (doom loop) may differ if banks
-  respond to default risk rather than spread level alone.
+This is the cleanest test of the model's structural predictions.
 
----
+**Credit-to-output ratio (Proposition 2).** The model predicts that the
+ratio of the credit contraction to the output contraction is *larger*
+in non-default episodes. In default episodes, output carries an
+additional autonomous depletion term from the capital stock — absent
+from the credit equation — which makes output fall more relative to
+credit. Empirically, $|\hat\beta^{nd,cr}_h / \hat\beta^{nd,y}_h| >
+|\hat\beta^{def,cr}_h / \hat\beta^{def,y}_h|$ would confirm this.
 
-## Act 6 — Mechanistic tests (`13_mechanisms.do`)
+**Investment channel asymmetry.** Investment should fall more in
+default-linked episodes through the external financing stop, even after
+controlling for the credit contraction. This is $\hat\beta^{def,inv}_h
+< \hat\beta^{nd,inv}_h$ at horizons $h \geq 1$.
 
-**Research question.** Are the credit and investment channel responses
-causal mechanisms, or correlations driven by common factors?
+**Sovereign-bank nexus.** If banks respond to default risk by
+concentrating sovereign bond holdings (doom loop), the claims-on-
+government response should be more positive in default-linked episodes.
+A null result across both groups supports the symmetric bank behaviour
+assumption of the model.
 
-### Test 1 — Supply vs. demand in the credit channel
+### IPW correction for selection into default
 
-Run the credit LP twice:
-
-**Baseline:** $\Delta^h\text{Credit}_{it} = \alpha_i + \lambda_t + \beta_h \cdot D_{it} + \gamma' X^{cr} + \varepsilon$
-
-**With sovereign bond stock:** same + $L.\text{ClaimsGovt}_{it}$
-
-If adding $L.\text{ClaimsGovt}$ significantly shrinks $\hat\beta_h$,
-sovereign bond accumulation absorbs bank balance sheet capacity
-(portfolio substitution — supply-side contraction). If $\hat\beta_h$
-is unchanged, the credit contraction is demand-driven or operates
-through a different supply channel (funding costs, risk aversion).
-
-### Test 2 — Credit as mediator of investment contraction
-
-Run the investment LP twice:
-
-**Without credit:** $\Delta^h\text{Inv}_{it} = \alpha_i + \lambda_t + \beta^{total}_h \cdot D_{it} + \gamma' X^{inv,-cr} + \varepsilon$
-
-**With credit:** same + $L.\text{Credit}_{it}$
-
-The **mediation share** at horizon $h$ is:
-
-$$\text{Mediation share}_h = \frac{\hat\beta^{total}_h - \hat\beta^{direct}_h}{\hat\beta^{total}_h}$$
-
-A mediation share close to 1 means almost all of the investment decline
-passes through the credit channel. A small share means investment falls
-directly (through the lending rate / working-capital channel) even
-independently of the credit quantity contraction.
+Even among crisis episodes, the subset that ends in default is not a
+random draw. Default-linked episodes have systematically higher pre-crisis
+debt and worse external positions. A first-stage probit of
+$\Pr(\text{default-linked} = 1 \mid \text{crisis onset}, \text{debt},
+\text{CA})$ generates propensity scores that reweight non-default
+episodes to match default-linked episodes on observables. The IPW
+correction is applied to every channel regression, producing two
+estimates — unweighted OLS and IPW — for each channel at each horizon.
+Stability of the estimates across the two methods signals that the
+channel asymmetries are genuine effects of the resolution outcome, not
+artefacts of selection.
 
 ---
 
-## Robustness (`06_robustness.do`)
+## 9. Act 6 — Mechanistic tests
 
-All robustness checks replicate the Act 1 LP (`onset_all`) across ten
-alternative specifications. Results are collected in a single matrix and
-exported to `robustness_summary.csv`.
+### Test 1 — Is the credit contraction supply-driven or demand-driven?
 
-| Label | What changes |
-|---|---|
-| Baseline | Main spec (DK SE, all 61 onsets) |
-| Crit1 only | Restrict treatment to 1000 bps threshold episodes |
-| Crit2 only | Restrict treatment to HRT 99th-percentile threshold episodes |
-| Drop Argentina | Removes the single country with the most extreme episodes |
-| Drop Venezuela | Removes hyperinflation outlier |
-| Drop ARG + VEN | Both together |
-| Drop 2020–2021 | Excludes COVID pandemic years |
-| Drop 2008–2009 | Excludes Global Financial Crisis |
-| Drop 1997–1999 | Excludes Asian / EM crisis cluster |
-| Country cluster | Replaces DK SE with standard within-country cluster SE |
+**The question.** A crisis reduces credit. But is this because banks are
+*willing* to lend less (supply contraction) or because firms want to
+borrow less (demand contraction)? The distinction matters: a supply
+contraction implies active balance-sheet management by banks; a demand
+contraction may require a different policy response.
 
-**Why.** Each check addresses a specific identification concern: (i)
-threshold sensitivity — does the result depend on which crisis definition
-you use? (ii) outlier sensitivity — do a handful of extreme episodes
-mechanically drive the IRF? (iii) common-shock sensitivity — are the
-results explained by one global episode that hit many countries at once?
-(iv) SE sensitivity — does the inference depend on the Driscoll-Kraay
-correction?
+**The approach.** Add the lagged stock of bank sovereign bond holdings
+to the credit LP. If the crisis-onset coefficient on credit shrinks
+significantly when this variable is included, it means that part of the
+credit decline is explained by banks substituting sovereign bonds for
+firm loans — a portfolio reallocation that contracts credit supply
+independently of demand. If the coefficient is unchanged, the credit
+decline is driven by demand or by funding-cost mechanisms that are
+orthogonal to sovereign bond accumulation.
 
----
+**Interpretation.** The mediation through sovereign bond accumulation
+is the empirical analogue of the doom loop: the balance-sheet hit from
+rising spreads depletes net worth, forcing deleveraging, and banks
+offset the loss of yield by loading up on high-carry sovereign bonds
+rather than rolling over loans to firms. If this mechanism is
+quantitatively important, the model's abstraction from endogenous
+portfolio choice — the fixed $b^B_{ss}$ assumption — understates the
+amplification.
 
-## Placebo test (`07_placebo.do`)
+### Test 2 — Does credit mediate the investment contraction?
 
-**Procedure.** The 61 real crisis onsets are randomly reassigned to 61
-country-year observations drawn from the estimation pool. The LP is run
-on the placebo dummy. This is repeated 1,000 times, generating an
-empirical null distribution of $\hat\beta_h$ under no treatment effect.
+**The question.** Reduced investment could occur because the lending
+rate rose (the direct channel, through the firm's zero-profit condition
+for capital), or because credit availability fell (the quantity channel,
+through the leverage constraint). These are distinct mechanisms.
 
-The true $\hat\beta_h$ from Act 1 is then located in this null
-distribution and an empirical $p$-value is computed.
+**The approach.** Run the investment LP twice: once without controlling
+for the credit stock, and once including the lagged credit-to-GDP ratio.
+The coefficient on the crisis dummy in the first regression captures the
+**total effect** of the crisis on investment. In the second regression,
+it captures only the **direct effect** net of the credit quantity
+contraction. The difference — expressed as a share of the total effect —
+is the mediation share attributable to the credit channel.
 
-**Why.** The Driscoll-Kraay $t$-statistic relies on asymptotic
-approximations that may be unreliable with a small number of treated
-units ($N_{\text{treat}} = 61$). The permutation test is
-assumption-free and provides an exact finite-sample $p$-value.
+**Interpretation.** A high mediation share (close to one) means that
+if you prevented the credit contraction from happening, you would also
+prevent most of the investment decline. A low mediation share means
+that investment falls even when credit is held constant, which is
+consistent with the direct lending-rate channel: firms cut investment
+because the cost of new capital rises, not because they are rationed
+out of the credit market.
 
----
-
-## IPW baseline LP (`08_ipw_lp.do`)
-
-**Why a separate IPW file in addition to `11_channels.do`?** This file
-applies IPW to the baseline *output* LP — not to the channels. The
-procedure is:
-
-1. **First-stage probit:** $\Pr(\text{onset}_{it} = 1 \mid X_{it-1})$ on
-   the full set of macro controls, estimated on the estimation sample.
-2. **Propensity scores** trimmed at $[0.01, 0.99]$ to avoid explosive
-   weights.
-3. **Stabilized IPW weights:**
-   $w_{it} = \bar{p} / \hat{p}_{it}$ for treated, $w_{it} = (1-\bar{p})/(1-\hat{p}_{it})$ for control.
-4. **Weighted LP** with `areg` (country FE) and clustered SE.
-
-The IPW-LP estimate is plotted against the unweighted baseline. If they
-are close, selection on observables is not driving the main result. If
-they diverge, the IPW estimate is preferred.
+This test has direct implications for policy: a credit-mediated
+investment contraction is better addressed by bank recapitalisation or
+credit guarantees; a directly rate-mediated contraction requires spread
+compression, which is the role of IMF programs or central bank
+interventions.
 
 ---
 
-## Heterogeneity (`10_heterogeneity.do`)
+## 10. Identification challenges and corrections
 
-Two dimensions of heterogeneity, each with a joint regression and
-equality test.
+### Selection on observables — IPW
 
-**Block A — Market classification.**
+The central concern is that default-linked episodes are not randomly
+assigned. Countries that default are systematically weaker along
+observable dimensions (higher debt, worse current account, lower growth)
+before the crisis begins. This means a naive comparison of output losses
+between the two groups confounds the causal effect of default with
+pre-existing fragility. The inverse probability weighting correction
+reweights the control group to match the treated group on observables,
+recovering the average treatment effect on the treated under the
+assumption of selection on observables.
 
-$$dy_{i,t+h} = \alpha_i + \lambda_t + \beta^{fr}_h \cdot D^{frontier}_{it} + \beta^{em}_h \cdot D^{EM}_{it} + \gamma' X_{it} + \varepsilon_{i,t+h}$$
+### Selection on unobservables — placebo test
 
-Test $H_0: \beta^{fr}_h = \beta^{em}_h$. Frontier markets have thinner
-domestic financial systems and less investor base — the transmission
-channels may be stronger or weaker.
+IPW corrects for selection on measured characteristics. Selection on
+unmeasured characteristics — a country is more likely to default because
+of a political crisis, institutional fragility, or other unobservables
+that also affect output growth — cannot be addressed by reweighting.
+The permutation placebo test provides a finite-sample, assumption-free
+$p$-value: the 61 real crisis onsets are randomly reassigned 1,000 times,
+and the LP is re-estimated each time. The true estimate's position in
+the resulting null distribution measures how unusual the result is
+under the null of no causal effect, regardless of the distributional
+assumptions underlying the Driscoll-Kraay $t$-statistic.
 
-**Block B — Episode duration.**
+### Robustness across specifications
 
-Episodes are split at the median into short ($\leq 2$ years) and long
-($\geq 3$ years):
-
-$$dy_{i,t+h} = \alpha_i + \lambda_t + \beta^{short}_h \cdot D^{short}_{it} + \beta^{long}_h \cdot D^{long}_{it} + \gamma' X_{it} + \varepsilon_{i,t+h}$$
-
-Test $H_0: \beta^{short}_h = \beta^{long}_h$. Longer episodes may
-generate more capital depletion through sustained investment stop,
-consistent with the model's prediction that output losses in the default
-regime widen monotonically with horizon.
-
----
-
-## Model calibration and IRF comparison (`14_calibration.do`, `15_solve_default.do`, `16_model_irf.do`)
-
-These three files bridge the empirical and theoretical sections.
-
-**`14_calibration.do`** sets all structural parameters:
-- *Externally calibrated* from the EM-DSGE literature (Arellano 2008,
-  Neumeyer-Perri 2005, Cruces-Trebesch 2013): $\beta, \beta', \sigma,
-  \alpha, \delta, R^*, \theta, \mu, \lambda$.
-- *Data-determined* from tranquil-period means in the panel (years with
-  `onset_all == 0` and `continuation == 0`): steady-state ratios
-  $b^B_{ss}/N_{ss}$, $\ell_{ss}/N_{ss}$, $s_{ss}$, $R^L_{ss}$.
-- *Estimated from the panel*: spread persistence $\rho_s$, income
-  process $(\rho_y, \sigma_y)$, working-capital share $\xi$, sovereign
-  ceiling pass-through $\gamma$, external investment share $\chi$.
-
-**`15_solve_default.do`** solves the sovereign default block (Block 1)
-by value function iteration on a discretized $(B, y)$ grid. It generates
-the equilibrium spread paths for both crisis types.
-
-**`16_model_irf.do`** simulates the transmission block (Block 2)
-conditional on the equilibrium spread paths from Block 1. It produces
-model-implied IRFs for output, credit, and investment across both crisis
-regimes and overlays them on the empirical IRFs from Acts 1 and 2.
-
-**Why.** The comparison between empirical and model-implied IRFs is
-the core test of the theoretical framework. The model is not fit to
-match the IRFs — its parameters are calibrated independently. The
-out-of-sample comparison then tells you whether the structural
-mechanisms (balance-sheet channel, working-capital channel, capital
-depletion, external financing stop) are quantitatively consistent with
-the reduced-form local projection estimates.
+Ten alternative specifications are tested: two alternative crisis
+thresholds (testing whether the classification drives the result),
+four country and time exclusions (Argentina, Venezuela, GFC years,
+Asian crisis years), and an alternative standard error approach
+(country clustering). Stability of the main coefficients across
+these specifications — particularly the gap between $\hat\beta^{nd}_h$
+and $\hat\beta^{def}_h$ — is the key test of robustness.
 
 ---
 
-## Execution order
+## 11. Connection between theory and empirics
 
-```
-00_master.do
-│
-├── 01_build_panel.do          ← data construction + LP outcome variables
-├── 01b_merge_new_controls.do  ← merge additional macro controls
-│
-├── 02_lp_all.do               ← Act 1: baseline IRF, all crises
-├── 03_lp_resolution.do        ← Act 2: non-default vs. default-linked
-├── 04_graphs.do               ← all main figures
-├── 05_balance_table.do        ← pre-crisis balance check
-│
-├── 06_robustness.do           ← 10 robustness specifications
-├── 07_placebo.do              ← permutation test (1,000 draws)
-├── 08_ipw_lp.do               ← IPW-corrected baseline LP
-├── 09_lp_imf.do               ← Act 3: IMF program heterogeneity
-├── 10_heterogeneity.do        ← market type + episode duration
-│
-├── 11_channels.do             ← Act 4: 6 transmission channels
-├── 12_channels_resolution.do  ← Act 5: channels by resolution type
-├── 13_mechanisms.do           ← Act 6: supply/demand + mediation tests
-│
-├── 14_calibration.do          ← structural parameter calibration
-├── 15_solve_default.do        ← Block 1 VFI solution
-└── 16_model_irf.do            ← Block 2 simulation + model vs. data
-```
+The theoretical model in Section 3 is calibrated independently of the
+LP estimates — its parameters come from the prior EM-DSGE literature,
+from balance-of-payments data (for the external investment share $\chi$),
+and from tranquil-period panel means (for the steady-state ratios). The
+model is then simulated to generate impulse response functions for output,
+credit, and investment under each crisis regime. These model-implied IRFs
+are overlaid on the empirical IRFs from Acts 1 and 2.
+
+This comparison is out-of-sample in the following sense: the model
+parameters are not chosen to match the LP estimates. The comparison
+therefore tests whether the transmission mechanisms embedded in the model
+— the balance-sheet channel, the working-capital channel, the capital
+accumulation channel, the external financing stop — are, taken together,
+quantitatively consistent with what the local projections measure
+reduced-form.
+
+Three specific predictions connect the model to the empirical results.
+
+**Prediction 1 (output divergence)** corresponds to the significance
+and widening of the gap between $\hat\beta^{def}_h$ and
+$\hat\beta^{nd}_h$ in the joint regression of Act 2. The model
+explains this divergence through the autonomous capital depletion term
+in equation (7), which has no counterpart in the non-default path.
+
+**Prediction 2 (credit-to-output ratio)** corresponds to the relative
+magnitude of the credit response (Channel 1) versus the output response
+in Act 5. The model explains the asymmetry through the difference in
+loadings: credit loads only on net worth, while output loads on both
+net worth and the capital stock.
+
+**Prediction 3 (persistence)** corresponds to the shape of the IRFs at
+long horizons ($h = 3, 4$). The model predicts that output remains below
+trend even after spreads normalise, through the capital stock channel
+in the non-default regime and through market exclusion in the default
+regime. The persistence of the empirical IRFs is the direct test of
+this prediction.
+
+If the model-implied IRFs match the empirical IRFs quantitatively — not
+just qualitatively — it provides structural content to the causal
+interpretation of the local projection estimates: the output losses are
+not mere correlations but the expected consequences of the structural
+mechanisms the model isolates.
