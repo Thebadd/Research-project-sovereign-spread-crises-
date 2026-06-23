@@ -309,7 +309,11 @@ foreach m in b_def_ipw lo90_def_ipw hi90_def_ipw b_nd_ipw lo90_nd_ipw hi90_nd_ip
 }
 
 di as result _n "=== ACT 2 IPW RESULTS ==="
-di "h   b_nd_OLS  b_def_OLS  b_nd_IPW  b_def_IPW  delta_nd  delta_def"
+di "h   b_nd_OLS  b_def_OLS  p_OLS   b_nd_IPW  b_def_IPW  p_IPW   delta_nd  delta_def"
+
+* Store equality-test p-values: H0 beta_nd(h) = beta_def(h), OLS and IPW
+matrix pval_act2_ols = J(5, 1, .)
+matrix pval_act2_ipw = J(5, 1, .)
 
 * Restore full panel for LP (need all country-years, not just onsets)
 * IPW2 weight is non-missing only for onset observations — apply via if condition
@@ -328,12 +332,18 @@ forvalues h = 0/4 {
     matrix hi90_def_ols[`row',1] = _b[onset_def] + 1.645*_se[onset_def]
     local b_nd_u  = _b[onset_nd]
     local b_def_u = _b[onset_def]
+    quietly test onset_nd = onset_def
+    matrix pval_act2_ols[`row',1] = r(p)
+    local p_u = r(p)
 
     * IPW-weighted: upweight onset observations by ipw2
     * Control observations (onset_all=0) keep weight = 1 (set ipw2=1 for them)
     quietly replace ipw2 = 1 if onset_all == 0 & sample == 1
     quietly areg dy_`h' onset_nd onset_def `controls_lp' i.year ///
         [aw=ipw2] if sample == 1 & !missing(ipw2), absorb(cid) vce(cluster cid)
+    quietly test onset_nd = onset_def
+    matrix pval_act2_ipw[`row',1] = r(p)
+    local p_w = r(p)
     quietly replace ipw2 = . if onset_all == 0
 
     matrix b_nd_ipw[`row',1]    = _b[onset_nd]
@@ -345,8 +355,8 @@ forvalues h = 0/4 {
     local b_nd_w  = _b[onset_nd]
     local b_def_w = _b[onset_def]
 
-    di "h=" `h' "  " %7.3f `b_nd_u'  "    " %7.3f `b_def_u' ///
-           "    " %7.3f `b_nd_w'  "    " %7.3f `b_def_w' ///
+    di "h=" `h' "  " %7.3f `b_nd_u'  "    " %7.3f `b_def_u' "   " %5.3f `p_u' ///
+           "    " %7.3f `b_nd_w'  "    " %7.3f `b_def_w' "   " %5.3f `p_w' ///
            "    " %7.3f (`b_nd_w'  - `b_nd_u') ///
            "    " %7.3f (`b_def_w' - `b_def_u')
 }

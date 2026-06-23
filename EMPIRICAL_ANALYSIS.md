@@ -166,12 +166,30 @@ stabilized weights are applied in the projection.
   $h=4$: −3.51 → −5.01). Selection on observables, if anything,
   *understates* the cost — the baseline estimate is conservative.
 - **Act 2 (default vs. non-default).** Reweighting the non-default group
-  to match the default-linked group on fundamentals **shrinks the
-  default-linked excess loss at every horizon** (the weighted-minus-OLS
-  difference for default-linked is +0.5, +0.2, +0.3, +0.5, +0.4). A
-  meaningful share of the OLS default-linked penalty therefore reflects
-  pre-crisis fundamentals rather than the resolution itself. After the
-  correction the gap is smaller and remains insignificant.
+  to match the default-linked group on fundamentals **reduces the
+  estimated loss of *both* groups** at most horizons. The full set of
+  coefficients (GDP outcome, `areg` with cluster SE):
+
+  | $h$ | $\beta^{nd}$ OLS | $\beta^{nd}$ IPW | $\beta^{def}$ OLS | $\beta^{def}$ IPW | Gap OLS | Gap IPW |
+  |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+  | 0 | −1.03 | −1.08 | −3.54 | −3.02 | −2.51 | −1.93 |
+  | 1 | −2.71 | −2.58 | −5.82 | −5.58 | −3.11 | −3.01 |
+  | 2 | −2.46 | −2.14 | −4.58 | −4.30 | −2.12 | −2.16 |
+  | 3 | −1.76 | −1.32 | −3.37 | −2.83 | −1.61 | −1.52 |
+  | 4 | −3.07 | −2.34 | −2.88 | −2.51 | +0.19 | −0.17 |
+
+  The default-linked excess loss is attenuated at impact (gap −2.51 →
+  −1.93) and at $h=3$, but the gap is essentially unchanged at $h=1$–$2$
+  and remains near zero at $h=4$, because reweighting shrinks the
+  non-default loss by *more* at longer horizons (its weighted-minus-OLS
+  difference grows from −0.05 at $h=0$ to +0.73 at $h=4$). A meaningful
+  part of the OLS default-linked penalty therefore reflects pre-crisis
+  fundamentals rather than the resolution itself, while default-linked
+  remains the deeper response at $h=0$–$3$. The equality test was not
+  computed in the original Act 2 IPW run, so an explicit IPW gap $p$-value
+  is not reported here; given the OLS gap was insignificant at every
+  horizon ($p$ = 0.10–0.95) and the IPW gaps are similar or smaller with
+  comparable standard errors, it is very unlikely to reach significance.
 
 Both exercises rest on thin common support — 476 of roughly 1,275 sample
 observations are trimmed, and the first stage classifies only a handful of
