@@ -32,6 +32,7 @@ global tabs  "$root/output/tables"
 * ── Run pipeline ────────────────────────────────────────────────────────────
 do "$do/01_build_panel.do"
 do "$do/01b_merge_new_controls.do"
+do "$do/01c_merge_nexus.do"
 do "$do/02_lp_all.do"
 do "$do/03_lp_resolution.do"
 do "$do/04_graphs.do"
@@ -42,6 +43,7 @@ do "$do/08_ipw_lp.do"
 * do "$do/09_lp_imf.do"   // removed: IMF selection unpredictable from observables
 * do "$do/10_heterogeneity.do"  // removed: frontier variable poorly coded, duration data incomplete
 do "$do/11_channels.do"
+do "$do/11b_nexus_channels.do"
 do "$do/12_channels_resolution.do"
 do "$do/13_mechanisms.do"
 
