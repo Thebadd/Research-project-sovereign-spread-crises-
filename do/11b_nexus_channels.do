@@ -259,4 +259,77 @@ preserve
     di as result "Table saved: $tabs/nexus_channels_resolution.csv"
 restore
 
+* ══════════════════════════════════════════════════════════════════════════
+* 5. SAVE RESOLUTION IRF DATASETS (one per channel x spec x group)
+* ══════════════════════════════════════════════════════════════════════════
+foreach ch of local channels {
+    foreach spec in ols ipw {
+        foreach grp in nd def {
+            preserve
+                clear
+                set obs 5
+                gen horizon = _n - 1
+                foreach m in b lo90 hi90 {
+                    svmat `m'_`grp'_`spec'_`ch', names(`m')
+                    rename `m'1 `m'
+                }
+                gen channel  = "`ch'"
+                gen spec_tag = "`spec'"
+                gen group    = "`grp'"
+                save "$clean/irf_nx_`grp'_`spec'_`ch'.dta", replace
+            restore
+        }
+    }
+}
+
+* ══════════════════════════════════════════════════════════════════════════
+* 6. RESOLUTION FIGURES (non-default vs default-linked), OLS then IPW
+* ══════════════════════════════════════════════════════════════════════════
+local c_nd  "23 55 94"     // navy  — non-default
+local c_def "180 60 40"    // brick — default-linked
+local titles `" "Claims on Govt / Assets" "Claims on Private / Assets" "'
+
+foreach spec in ols ipw {
+    local i = 1
+    foreach ch of local channels {
+        local tlab : word `i' of `titles'
+        use "$clean/irf_nx_nd_`spec'_`ch'.dta", clear
+        append using "$clean/irf_nx_def_`spec'_`ch'.dta"
+        if `i' == 2 {
+            local legopt legend(order(3 "Non-default" 4 "Default-linked") ///
+                         ring(0) pos(7) cols(1) size(vsmall) region(lcolor(gs12)))
+        }
+        else {
+            local legopt legend(off)
+        }
+        twoway ///
+            (rarea lo90 hi90 horizon if group=="nd",  color("`c_nd'%20")  lwidth(none)) ///
+            (rarea lo90 hi90 horizon if group=="def", color("`c_def'%20") lwidth(none)) ///
+            (connected b horizon if group=="nd",  lcolor("`c_nd'")  mcolor("`c_nd'") ///
+                msymbol(circle) lwidth(medthick)) ///
+            (connected b horizon if group=="def", lcolor("`c_def'") mcolor("`c_def'") ///
+                msymbol(square) lwidth(medthick) lpattern(dash)), ///
+            yline(0, lcolor(gs10) lpattern(dash) lwidth(thin)) ///
+            xlabel(0(1)4, labsize(small)) ylabel(, format(%5.1f) labsize(small)) ///
+            xtitle("Years after onset", size(vsmall)) ///
+            ytitle("Cumulative change (pp)", size(vsmall)) ///
+            title(`tlab', size(small) color(navy)) ///
+            `legopt' graphregion(color(white)) plotregion(color(white)) ///
+            name(nxr_`spec'_`i', replace)
+        local ++i
+    }
+    if "`spec'" == "ols" local stitle "OLS (DK SE)"
+    else                 local stitle "IPW (cluster SE)"
+    graph combine nxr_`spec'_1 nxr_`spec'_2, cols(2) ///
+        title("Nexus Channels by Resolution — `stitle'", size(medlarge) color(navy)) ///
+        note("90% CI. Country & year FE. Non-default vs. default-linked. IMF MFS 2001-2024.", ///
+             size(vsmall)) ///
+        graphregion(color(white)) xsize(10) ysize(4)
+    graph export "$figs/fig11b_nexus_resolution_`spec'.pdf", replace
+    forvalues i = 1/2 {
+        capture graph drop nxr_`spec'_`i'
+    }
+    di as result "Figure saved: fig11b_nexus_resolution_`spec'.pdf"
+}
+
 di as result _n "11b_nexus_channels.do complete."
