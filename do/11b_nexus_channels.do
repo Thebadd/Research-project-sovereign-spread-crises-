@@ -119,7 +119,9 @@ graph combine nx_1 nx_2, cols(2) ///
     note("90%/95% CI. DK SE. Country & year FE. IMF MFS, 2001-2024.", size(vsmall)) ///
     graphregion(color(white)) xsize(10) ysize(4)
 graph export "$figs/fig11b_nexus_pooled.pdf", replace
-forvalues i = 1/2 { capture graph drop nx_`i' }
+forvalues i = 1/2 {
+    capture graph drop nx_`i'
+}
 di as result "Figure saved: fig11b_nexus_pooled.pdf"
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -215,7 +217,9 @@ preserve
     set obs 10                          // 5 horizons x 2 channels
     gen channel = ""
     gen horizon = .
-    foreach v in b_nd_ols b_def_ols p_ols b_nd_ipw b_def_ipw p_ipw { gen `v' = . }
+    foreach v in b_nd_ols b_def_ols p_ols b_nd_ipw b_def_ipw p_ipw {
+        gen `v' = .
+    }
     local row = 1
     foreach ch of local channels {
         forvalues h = 0/4 {
