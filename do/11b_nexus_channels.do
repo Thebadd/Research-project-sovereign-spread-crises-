@@ -128,6 +128,19 @@ di as result "Figure saved: fig11b_nexus_pooled.pdf"
 * 3. ACT 2 IPW WEIGHTS (rebuilt as in 08_ipw_lp.do / 12_channels_resolution)
 *    Parsimonious first stage: Pr(default-linked | crisis onset) on debt, CA
 * ══════════════════════════════════════════════════════════════════════════
+* Reload the panel: the figure loop above left an IRF dataset in memory.
+use "$clean/panel_lp.dta", clear
+sort cid year
+xtset cid year
+foreach var in claimsgov_assets claimpriv_assets {
+    capture drop `var'_base
+    gen `var'_base = L.`var'
+    forvalues h = 0/4 {
+        capture drop ch_`var'_`h'
+        gen ch_`var'_`h' = F`h'.`var' - `var'_base
+    }
+}
+
 capture drop pscore2 trimmed2 ipw2
 quietly probit onset_def debt ca if onset_all == 1, vce(robust)
 predict pscore2 if onset_all == 1, pr
