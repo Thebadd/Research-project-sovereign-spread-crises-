@@ -179,10 +179,14 @@ foreach ch of local channels {
             matrix hi90_def_ols_`ch'[`row',1]= _b[onset_def] + 1.645*_se[onset_def]
             quietly test onset_nd = onset_def
             matrix pval_ols_`ch'[`row',1] = r(p)
-            local b_nd_o = _b[onset_nd] ; local b_def_o = _b[onset_def] ; local p_o = r(p)
+            local b_nd_o = _b[onset_nd]
+            local b_def_o = _b[onset_def]
+            local p_o = r(p)
         }
         else {
-            local b_nd_o = . ; local b_def_o = . ; local p_o = .
+            local b_nd_o = .
+            local b_def_o = .
+            local p_o = .
         }
 
         * IPW (areg, cluster) — control obs get weight 1
@@ -199,10 +203,13 @@ foreach ch of local channels {
             matrix lo90_def_ipw_`ch'[`row',1]= _b[onset_def] - 1.645*_se[onset_def]
             matrix hi90_def_ipw_`ch'[`row',1]= _b[onset_def] + 1.645*_se[onset_def]
             matrix pval_ipw_`ch'[`row',1] = `p_w'
-            local b_nd_w = _b[onset_nd] ; local b_def_w = _b[onset_def]
+            local b_nd_w = _b[onset_nd]
+            local b_def_w = _b[onset_def]
         }
         else {
-            local b_nd_w = . ; local b_def_w = . ; local p_w = .
+            local b_nd_w = .
+            local b_def_w = .
+            local p_w = .
         }
         quietly replace ipw2 = . if onset_all == 0
 
