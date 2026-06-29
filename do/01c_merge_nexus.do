@@ -127,6 +127,8 @@ save `nexus_cy'
 * 6. MERGE INTO PANEL
 * ══════════════════════════════════════════════════════════════════════════
 use "$clean/panel_lp.dta", clear
+* Drop any prior nexus columns so this do-file is safe to re-run
+capture drop claimsgov_assets claimpriv_assets netclaimsgov_assets
 merge m:1 country year using `nexus_cy', keep(master match) nogen
 
 sort cid year
