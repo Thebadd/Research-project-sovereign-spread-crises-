@@ -414,7 +414,9 @@ graph combine `fignamesA', cols(3) ///
     graphregion(color(white)) xsize(11) ysize(7)
 graph export "$figs/fig13f_exposure_interactions.pdf", replace
 di as result "Figure saved: fig13f_exposure_interactions.pdf"
-foreach nm of local fignamesA { capture graph drop `nm' }
+foreach nm of local fignamesA {
+    capture graph drop `nm'
+}
 
 * ══════════════════════════════════════════════════════════════════════════
 * FIGURE B — by-type: d_nd vs d_def across horizons (grid)
@@ -460,6 +462,8 @@ graph combine `fignamesB', cols(3) ///
     graphregion(color(white)) xsize(11) ysize(7)
 graph export "$figs/fig13g_exposure_by_resolution.pdf", replace
 di as result "Figure saved: fig13g_exposure_by_resolution.pdf"
-foreach nm of local fignamesB { capture graph drop `nm' }
+foreach nm of local fignamesB {
+    capture graph drop `nm'
+}
 
 di as result _n "13b_exposure_heterogeneity.do complete."
