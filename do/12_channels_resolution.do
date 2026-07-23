@@ -221,8 +221,7 @@ esttab t4_credit_0 t4_credit_1 t4_credit_2 t4_credit_3 t4_credit_4 ///
     coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
     mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
     stats(pdiff N N_g, labels("p (nd = def)" "Observations" "Countries") fmt(3 0 0)) ///
-    title("Table 4. Transmission channels by crisis resolution: non-default vs. default-linked") ///
-    addnotes("Panel A: Private credit/GDP")
+    title("Table 4. Channels by resolution (nd vs. def) -- Panel A: Private credit/GDP")
 
 esttab t4_claims_govt_0 t4_claims_govt_1 t4_claims_govt_2 t4_claims_govt_3 t4_claims_govt_4 ///
     using "$tabs/table4_channels_resolution.rtf", append ///

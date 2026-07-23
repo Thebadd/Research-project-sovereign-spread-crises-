@@ -309,8 +309,7 @@ esttab t3_credit_0 t3_credit_1 t3_credit_2 t3_credit_3 t3_credit_4 ///
     keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
     mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
     stats(N N_g, labels("Observations" "Countries") fmt(0 0)) ///
-    title("Table 3. Transmission channels of sovereign spread crises (all episodes)") ///
-    addnotes("Panel A: Private credit/GDP")
+    title("Table 3. Transmission channels (all episodes) -- Panel A: Private credit/GDP")
 
 * Panels B-F — append to the same file
 esttab t3_claims_govt_0 t3_claims_govt_1 t3_claims_govt_2 t3_claims_govt_3 t3_claims_govt_4 ///
