@@ -118,6 +118,8 @@ foreach ch of local channels {
 
 * ── Loop over channels ───────────────────────────────────────────────────
 
+eststo clear   // capture OLS resolution-split estimates for Table 4
+
 foreach ch of local channels {
 
     local ctrl `ctrl_`ch''
@@ -148,6 +150,10 @@ foreach ch of local channels {
             matrix hi95_def_ols_`ch'[`row',1]= _b[onset_def] + 1.960*_se[onset_def]
             test onset_nd = onset_def
             matrix pval_ols_`ch'[`row',1] = r(p)
+            local pd_`ch'_`h' = r(p)   // store before eststo (which can reset r())
+            * Capture OLS estimates + p(diff) for the publication table (Table 4)
+            eststo t4_`ch'_`h'
+            estadd scalar pdiff = `pd_`ch'_`h''
             local b_nd_o  = _b[onset_nd]
             local b_def_o = _b[onset_def]
             local p_o     = r(p)
@@ -195,6 +201,76 @@ foreach ch of local channels {
            "  " %7.3f `b_nd_w'  "  " %7.3f `b_def_w' "  " %5.3f `p_w'
     }
 }
+
+* ══════════════════════════════════════════════════════════════════════════
+* TABLE EXPORT — TABLE 4: Transmission channels by resolution type
+*   Word/RTF, multi-panel: one panel per channel, columns = horizons h=0..4.
+*   Each panel reports non-default and default-linked onset coefficients
+*   (entered jointly, DK SE in parentheses) plus the p-value of their equality.
+*   OLS spec (matches Tables 1-3). First panel replaces; the rest append.
+*   Requires: ssc install estout
+* ══════════════════════════════════════════════════════════════════════════
+
+local t4note "Dependent variable: cumulative change in the channel variable (pp) from t-1 to t+h. Both onset dummies enter jointly. Jorda (2005) local projections; country and year fixed effects; channel-specific controls; continuation years excluded. Driscoll-Kraay standard errors in parentheses. p(nd=def) is the p-value of the equality test. * p<0.10, ** p<0.05, *** p<0.01."
+
+* Panel A — Private credit/GDP (replace: creates the file)
+esttab t4_credit_0 t4_credit_1 t4_credit_2 t4_credit_3 t4_credit_4 ///
+    using "$tabs/table4_channels_resolution.rtf", replace ///
+    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+    keep(onset_nd onset_def) order(onset_nd onset_def) ///
+    coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
+    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+    stats(pdiff N N_g, labels("p (nd = def)" "Observations" "Countries") fmt(3 0 0)) ///
+    title("Table 4. Transmission channels by crisis resolution: non-default vs. default-linked") ///
+    addnotes("Panel A: Private credit/GDP")
+
+esttab t4_claims_govt_0 t4_claims_govt_1 t4_claims_govt_2 t4_claims_govt_3 t4_claims_govt_4 ///
+    using "$tabs/table4_channels_resolution.rtf", append ///
+    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+    keep(onset_nd onset_def) order(onset_nd onset_def) ///
+    coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
+    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+    stats(pdiff N N_g, labels("p (nd = def)" "Observations" "Countries") fmt(3 0 0)) ///
+    title("Panel B: Bank claims on govt/GDP")
+
+esttab t4_inv_0 t4_inv_1 t4_inv_2 t4_inv_3 t4_inv_4 ///
+    using "$tabs/table4_channels_resolution.rtf", append ///
+    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+    keep(onset_nd onset_def) order(onset_nd onset_def) ///
+    coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
+    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+    stats(pdiff N N_g, labels("p (nd = def)" "Observations" "Countries") fmt(3 0 0)) ///
+    title("Panel C: Investment/GDP")
+
+esttab t4_govexp_0 t4_govexp_1 t4_govexp_2 t4_govexp_3 t4_govexp_4 ///
+    using "$tabs/table4_channels_resolution.rtf", append ///
+    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+    keep(onset_nd onset_def) order(onset_nd onset_def) ///
+    coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
+    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+    stats(pdiff N N_g, labels("p (nd = def)" "Observations" "Countries") fmt(3 0 0)) ///
+    title("Panel D: Govt expenditure/GDP")
+
+esttab t4_pb_0 t4_pb_1 t4_pb_2 t4_pb_3 t4_pb_4 ///
+    using "$tabs/table4_channels_resolution.rtf", append ///
+    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+    keep(onset_nd onset_def) order(onset_nd onset_def) ///
+    coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
+    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+    stats(pdiff N N_g, labels("p (nd = def)" "Observations" "Countries") fmt(3 0 0)) ///
+    title("Panel E: Primary balance/GDP")
+
+esttab t4_fdi_0 t4_fdi_1 t4_fdi_2 t4_fdi_3 t4_fdi_4 ///
+    using "$tabs/table4_channels_resolution.rtf", append ///
+    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+    keep(onset_nd onset_def) order(onset_nd onset_def) ///
+    coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
+    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+    stats(pdiff N N_g, labels("p (nd = def)" "Observations" "Countries") fmt(3 0 0)) ///
+    title("Panel F: FDI/GDP") ///
+    addnotes("`t4note'")
+
+di as result "Table 4 saved: $tabs/table4_channels_resolution.rtf"
 
 * ══════════════════════════════════════════════════════════════════════════
 * 5. SAVE IRF DATASETS

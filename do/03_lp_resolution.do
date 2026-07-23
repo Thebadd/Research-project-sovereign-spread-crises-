@@ -98,6 +98,8 @@ di as result _n "=== JOINT REGRESSION: test beta_nd = beta_def ==="
 
 matrix pval_diff = J(5, 1, .)   // h=0..4 only (not pre-trend)
 
+eststo clear   // clear any stored estimates before capturing for Table 2
+
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
     xtscc dy_`h' onset_nd onset_def `controls' i.year if sample==1, fe lag(`lag')
@@ -105,11 +107,37 @@ forvalues h = 0/4 {
     * Test equality
     test onset_nd = onset_def
     matrix pval_diff[`h'+1, 1] = r(p)
+    local pd = r(p)   // store before eststo (which can reset r())
+
+    * Capture estimates + p(diff) for the publication table (Table 2)
+    eststo t2_h`h'
+    estadd scalar pdiff = `pd'
 
     di "h=" `h' ":  beta_nd=" %6.3f _b[onset_nd] ///
                "  beta_def=" %6.3f _b[onset_def] ///
                "  p(diff)="  %5.3f r(p)
 }
+
+* ══════════════════════════════════════════════════════════════════════════
+* TABLE EXPORT — TABLE 2: Output cost by resolution type
+*   Word/RTF. Columns = horizons h=0..4; rows = non-default and default-linked
+*   onset coefficients (entered jointly). Extra row: p-value of H0 beta_nd=beta_def.
+*   Requires: ssc install estout
+* ══════════════════════════════════════════════════════════════════════════
+
+esttab t2_h0 t2_h1 t2_h2 t2_h3 t2_h4 using "$tabs/table2_output_resolution.rtf", replace ///
+    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+    keep(onset_nd onset_def) order(onset_nd onset_def) ///
+    coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
+    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+    stats(pdiff N N_g, labels("p (beta_nd = beta_def)" "Observations" "Countries") fmt(3 0 0)) ///
+    title("Table 2. Output cost by crisis resolution: non-default vs. default-linked") ///
+    addnotes("Dependent variable: cumulative change in log real GDP per capita (pp) from t-1 to t+h." ///
+             "Both onset dummies enter jointly. Jorda (2005) local projections; country and year fixed effects; continuation years excluded." ///
+             "Driscoll-Kraay standard errors in parentheses. p(beta_nd=beta_def) is the p-value of the equality test." ///
+             "* p<0.10, ** p<0.05, *** p<0.01.")
+
+di as result "Table 2 saved: $tabs/table2_output_resolution.rtf"
 
 * ══════════════════════════════════════════════════════════════════════════
 * BUILD IRF DATASETS

@@ -172,11 +172,14 @@ di as result "========================================================"
 * ── Channel 1: Credit ────────────────────────────────────────────────────
 di as result _n "=== CHANNEL 1: PRIVATE CREDIT / GDP ==="
 
+eststo clear   // capture channel estimates for Table 3 (real loops only, not diagnostic)
+
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
     capture xtscc ch_credit_`h' onset_all `ctrl_credit' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
+        eststo t3_credit_`h'
         matrix b_credit[`h'+1,1]    = _b[onset_all]
         matrix lo90_credit[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
         matrix hi90_credit[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
@@ -196,6 +199,7 @@ forvalues h = 0/4 {
     capture xtscc ch_claims_govt_`h' onset_all `ctrl_claims_govt' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
+        eststo t3_claims_govt_`h'
         matrix b_claims_govt[`h'+1,1]    = _b[onset_all]
         matrix lo90_claims_govt[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
         matrix hi90_claims_govt[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
@@ -215,6 +219,7 @@ forvalues h = 0/4 {
     capture xtscc ch_inv_`h' onset_all `ctrl_inv' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
+        eststo t3_inv_`h'
         matrix b_inv[`h'+1,1]    = _b[onset_all]
         matrix lo90_inv[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
         matrix hi90_inv[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
@@ -234,6 +239,7 @@ forvalues h = 0/4 {
     capture xtscc ch_govexp_`h' onset_all `ctrl_govexp' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
+        eststo t3_govexp_`h'
         matrix b_govexp[`h'+1,1]    = _b[onset_all]
         matrix lo90_govexp[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
         matrix hi90_govexp[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
@@ -253,6 +259,7 @@ forvalues h = 0/4 {
     capture xtscc ch_pb_`h' onset_all `ctrl_pb' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
+        eststo t3_pb_`h'
         matrix b_pb[`h'+1,1]    = _b[onset_all]
         matrix lo90_pb[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
         matrix hi90_pb[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
@@ -272,6 +279,7 @@ forvalues h = 0/4 {
     capture xtscc ch_fdi_`h' onset_all `ctrl_fdi' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
+        eststo t3_fdi_`h'
         matrix b_fdi[`h'+1,1]    = _b[onset_all]
         matrix lo90_fdi[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
         matrix hi90_fdi[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
@@ -282,6 +290,71 @@ forvalues h = 0/4 {
     }
     else di as error "h=" `h' ": xtscc failed for fdi (rc=" _rc ")"
 }
+
+* ══════════════════════════════════════════════════════════════════════════
+* TABLE EXPORT — TABLE 3: Transmission channels (pooled, all episodes)
+*   Word/RTF, multi-panel: one panel per channel, columns = horizons h=0..4.
+*   Each panel reports the onset coefficient (DK SE in parentheses) on the
+*   cumulative change in the channel variable. First panel uses replace;
+*   remaining panels append to the same file.
+*   Requires: ssc install estout
+* ══════════════════════════════════════════════════════════════════════════
+
+local t3note "Dependent variable: cumulative change in the channel variable (pp) from t-1 to t+h. Jorda (2005) local projections; country and year fixed effects; channel-specific controls; continuation years excluded. Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01."
+
+* Panel A — Private credit/GDP (replace: creates the file)
+esttab t3_credit_0 t3_credit_1 t3_credit_2 t3_credit_3 t3_credit_4 ///
+    using "$tabs/table3_channels.rtf", replace ///
+    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+    keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
+    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+    stats(N N_g, labels("Observations" "Countries") fmt(0 0)) ///
+    title("Table 3. Transmission channels of sovereign spread crises (all episodes)") ///
+    addnotes("Panel A: Private credit/GDP")
+
+* Panels B-F — append to the same file
+esttab t3_claims_govt_0 t3_claims_govt_1 t3_claims_govt_2 t3_claims_govt_3 t3_claims_govt_4 ///
+    using "$tabs/table3_channels.rtf", append ///
+    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+    keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
+    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+    stats(N N_g, labels("Observations" "Countries") fmt(0 0)) ///
+    title("Panel B: Bank claims on govt/GDP")
+
+esttab t3_inv_0 t3_inv_1 t3_inv_2 t3_inv_3 t3_inv_4 ///
+    using "$tabs/table3_channels.rtf", append ///
+    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+    keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
+    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+    stats(N N_g, labels("Observations" "Countries") fmt(0 0)) ///
+    title("Panel C: Investment/GDP")
+
+esttab t3_govexp_0 t3_govexp_1 t3_govexp_2 t3_govexp_3 t3_govexp_4 ///
+    using "$tabs/table3_channels.rtf", append ///
+    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+    keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
+    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+    stats(N N_g, labels("Observations" "Countries") fmt(0 0)) ///
+    title("Panel D: Govt expenditure/GDP")
+
+esttab t3_pb_0 t3_pb_1 t3_pb_2 t3_pb_3 t3_pb_4 ///
+    using "$tabs/table3_channels.rtf", append ///
+    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+    keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
+    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+    stats(N N_g, labels("Observations" "Countries") fmt(0 0)) ///
+    title("Panel E: Primary balance/GDP")
+
+esttab t3_fdi_0 t3_fdi_1 t3_fdi_2 t3_fdi_3 t3_fdi_4 ///
+    using "$tabs/table3_channels.rtf", append ///
+    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+    keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
+    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+    stats(N N_g, labels("Observations" "Countries") fmt(0 0)) ///
+    title("Panel F: FDI/GDP") ///
+    addnotes("`t3note'")
+
+di as result "Table 3 saved: $tabs/table3_channels.rtf"
 
 * ══════════════════════════════════════════════════════════════════════════
 * 4. SAVE IRF DATASETS

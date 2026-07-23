@@ -13,7 +13,7 @@
   Required packages (run once):
     ssc install xtscc
     ssc install coefplot
-    ssc install esttab   (part of estout)
+    ssc install estout   (provides esttab/eststo — used for result tables)
     ssc install boottest
 ===========================================================================*/
 
