@@ -74,13 +74,17 @@ xtset cid year
 *   credit, claims_govt, claimsgov_assets, inv, fdi
 * Non-default-mechanism exposures (cost / rollover):
 *   claimpriv_assets (bank private-lending share -> lending-rate pass-through)
-*   stdebt_share     (short-term debt / ext. debt -> rollover risk)   [01d]
-*   intpay_gni       (interest payments / GNI      -> interest burden) [01d]
+*   stdebt_share     (short-term debt / ext. debt -> rollover risk)      [01d]
+*   debt_service     (debt service / exports      -> liquidity burden)   [01d]
+*   intpay_gni       (interest payments / GNI      -> avg interest cost)  [01d]
+* Note: stdebt_share, debt_service and intpay_gni all proxy the same external-
+* debt refinancing-burden construct and are collinear — read them as ALTERNATIVE
+* measures (robustness), not independent channels.
 * (reserves_extdebt is merged by 01d but excluded here: the reserves/ext-debt
 *  measure gave a noisy, wrong-signed default estimate on a tiny default cell.)
 * The 01d (IDS) variables are skipped automatically if not merged yet.
 local expvars    credit claims_govt claimsgov_assets claimpriv_assets inv fdi ///
-                 stdebt_share intpay_gni
+                 stdebt_share debt_service intpay_gni
 local lbl_credit           "Private credit/GDP"
 local lbl_claims_govt      "Bank claims on govt/GDP"
 local lbl_claimsgov_assets "Bank sovereign exposure (nexus)"
@@ -88,7 +92,8 @@ local lbl_claimpriv_assets "Bank private lending share"
 local lbl_inv              "Investment/GDP"
 local lbl_fdi              "FDI/GDP"
 local lbl_stdebt_share     "Short-term debt share (rollover)"
-local lbl_intpay_gni       "Interest burden (% GNI)"
+local lbl_debt_service     "Debt service (% exports)"
+local lbl_intpay_gni       "Interest burden avg (% GNI)"
 
 * Keep only exposures that actually exist in the panel; skip (with a warning)
 * any that have not been merged yet, so this file always runs.
