@@ -33,6 +33,7 @@ global tabs  "$root/output/tables"
 do "$do/01_build_panel.do"
 do "$do/01b_merge_new_controls.do"
 do "$do/01c_merge_nexus.do"
+do "$do/01d_merge_vulnerability.do"   // IDS: rollover, reserves, interest burden
 do "$do/02_lp_all.do"
 do "$do/03_lp_resolution.do"
 do "$do/04_graphs.do"
