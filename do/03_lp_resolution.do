@@ -125,7 +125,7 @@ forvalues h = 0/4 {
 *   Requires: ssc install estout
 * ══════════════════════════════════════════════════════════════════════════
 
-esttab t2_h0 t2_h1 t2_h2 t2_h3 t2_h4 using "$tabs/table2_output_resolution.rtf", replace ///
+capture esttab t2_h0 t2_h1 t2_h2 t2_h3 t2_h4 using "$tabs/table2_output_resolution.rtf", replace ///
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
     keep(onset_nd onset_def) order(onset_nd onset_def) ///
     coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
@@ -137,7 +137,9 @@ esttab t2_h0 t2_h1 t2_h2 t2_h3 t2_h4 using "$tabs/table2_output_resolution.rtf",
              "Driscoll-Kraay standard errors in parentheses. p(beta_nd=beta_def) is the p-value of the equality test." ///
              "* p<0.10, ** p<0.05, *** p<0.01.")
 
-di as result "Table 2 saved: $tabs/table2_output_resolution.rtf"
+if _rc == 608 di as error "  ** table2_output_resolution.rtf is OPEN IN WORD — close it and re-run to refresh."
+else if _rc di as error "  ** Table 2: esttab failed (rc=" _rc ")"
+else di as result "Table 2 saved: $tabs/table2_output_resolution.rtf"
 
 * ══════════════════════════════════════════════════════════════════════════
 * BUILD IRF DATASETS

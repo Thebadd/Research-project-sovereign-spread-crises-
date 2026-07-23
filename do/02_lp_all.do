@@ -89,7 +89,7 @@ forvalues h = 0/4 {
 *   Requires: ssc install estout
 * ══════════════════════════════════════════════════════════════════════════
 
-esttab t1_h0 t1_h1 t1_h2 t1_h3 t1_h4 using "$tabs/table1_output_all.rtf", replace ///
+capture esttab t1_h0 t1_h1 t1_h2 t1_h3 t1_h4 using "$tabs/table1_output_all.rtf", replace ///
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
     keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
     mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
@@ -99,7 +99,9 @@ esttab t1_h0 t1_h1 t1_h2 t1_h3 t1_h4 using "$tabs/table1_output_all.rtf", replac
              "Jorda (2005) local projections. Country and year fixed effects; continuation years excluded." ///
              "Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
 
-di as result "Table 1 saved: $tabs/table1_output_all.rtf"
+if _rc == 608 di as error "  ** table1_output_all.rtf is OPEN IN WORD — close it and re-run to refresh."
+else if _rc di as error "  ** Table 1: esttab failed (rc=" _rc ")"
+else di as result "Table 1 saved: $tabs/table1_output_all.rtf"
 
 * ────────────────────────────────────────────────────────────────────────
 * BUILD IRF DATASET FOR GRAPHING

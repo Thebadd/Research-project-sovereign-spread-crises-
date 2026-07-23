@@ -152,8 +152,9 @@ foreach ch of local channels {
             matrix pval_ols_`ch'[`row',1] = r(p)
             local pd_`ch'_`h' = r(p)   // store before eststo (which can reset r())
             * Capture OLS estimates + p(diff) for the publication table (Table 4)
-            eststo t4_`ch'_`h'
+            eststo t4_`ch'_`h', title("h=`h'")
             estadd scalar pdiff = `pd_`ch'_`h''
+            local elist_`ch' `elist_`ch'' t4_`ch'_`h'
             local b_nd_o  = _b[onset_nd]
             local b_def_o = _b[onset_def]
             local p_o     = r(p)
@@ -213,63 +214,56 @@ foreach ch of local channels {
 
 local t4note "Dependent variable: cumulative change in the channel variable (pp) from t-1 to t+h. Both onset dummies enter jointly. Jorda (2005) local projections; country and year fixed effects; channel-specific controls; continuation years excluded. Driscoll-Kraay standard errors in parentheses. p(nd=def) is the p-value of the equality test. * p<0.10, ** p<0.05, *** p<0.01."
 
-* Panel A — Private credit/GDP (replace: creates the file)
-esttab t4_credit_0 t4_credit_1 t4_credit_2 t4_credit_3 t4_credit_4 ///
-    using "$tabs/table4_channels_resolution.rtf", replace ///
-    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
-    keep(onset_nd onset_def) order(onset_nd onset_def) ///
-    coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
-    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
-    stats(pdiff N N_g, labels("p (nd = def)" "Observations" "Countries") fmt(3 0 0)) ///
-    title("Table 4. Channels by resolution (nd vs. def) -- Panel A: Private credit/GDP")
+* Per-channel panel titles (Panel A carries the overall table caption)
+local ptitle_credit      "Table 4. Channels by resolution (nd vs. def) -- Panel A: Private credit/GDP"
+local ptitle_claims_govt "Panel B: Bank claims on govt/GDP"
+local ptitle_inv         "Panel C: Investment/GDP"
+local ptitle_govexp      "Panel D: Govt expenditure/GDP"
+local ptitle_pb          "Panel E: Primary balance/GDP"
+local ptitle_fdi         "Panel F: FDI/GDP"
 
-esttab t4_claims_govt_0 t4_claims_govt_1 t4_claims_govt_2 t4_claims_govt_3 t4_claims_govt_4 ///
-    using "$tabs/table4_channels_resolution.rtf", append ///
-    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
-    keep(onset_nd onset_def) order(onset_nd onset_def) ///
-    coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
-    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
-    stats(pdiff N N_g, labels("p (nd = def)" "Observations" "Countries") fmt(3 0 0)) ///
-    title("Panel B: Bank claims on govt/GDP")
+* Write one panel per channel to a single RTF. First successful panel uses
+* "replace"; the rest "append". Each esttab is wrapped in capture so a locked
+* file (open in Word) or a missing estimate warns and is skipped instead of
+* halting the do-file.
+local writemode replace
+local t4fail 0
 
-esttab t4_inv_0 t4_inv_1 t4_inv_2 t4_inv_3 t4_inv_4 ///
-    using "$tabs/table4_channels_resolution.rtf", append ///
-    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
-    keep(onset_nd onset_def) order(onset_nd onset_def) ///
-    coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
-    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
-    stats(pdiff N N_g, labels("p (nd = def)" "Observations" "Countries") fmt(3 0 0)) ///
-    title("Panel C: Investment/GDP")
+foreach ch in credit claims_govt inv govexp pb fdi {
 
-esttab t4_govexp_0 t4_govexp_1 t4_govexp_2 t4_govexp_3 t4_govexp_4 ///
-    using "$tabs/table4_channels_resolution.rtf", append ///
-    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
-    keep(onset_nd onset_def) order(onset_nd onset_def) ///
-    coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
-    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
-    stats(pdiff N N_g, labels("p (nd = def)" "Observations" "Countries") fmt(3 0 0)) ///
-    title("Panel D: Govt expenditure/GDP")
+    if "`elist_`ch''" == "" {
+        di as error "  ** Table 4: no estimates for channel `ch' — panel skipped"
+        local t4fail 1
+        continue
+    }
 
-esttab t4_pb_0 t4_pb_1 t4_pb_2 t4_pb_3 t4_pb_4 ///
-    using "$tabs/table4_channels_resolution.rtf", append ///
-    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
-    keep(onset_nd onset_def) order(onset_nd onset_def) ///
-    coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
-    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
-    stats(pdiff N N_g, labels("p (nd = def)" "Observations" "Countries") fmt(3 0 0)) ///
-    title("Panel E: Primary balance/GDP")
+    local t4extra
+    if "`ch'" == "fdi" local t4extra addnotes("`t4note'")
 
-esttab t4_fdi_0 t4_fdi_1 t4_fdi_2 t4_fdi_3 t4_fdi_4 ///
-    using "$tabs/table4_channels_resolution.rtf", append ///
-    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
-    keep(onset_nd onset_def) order(onset_nd onset_def) ///
-    coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
-    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
-    stats(pdiff N N_g, labels("p (nd = def)" "Observations" "Countries") fmt(3 0 0)) ///
-    title("Panel F: FDI/GDP") ///
-    addnotes("`t4note'")
+    capture esttab `elist_`ch'' using "$tabs/table4_channels_resolution.rtf", `writemode' ///
+        b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+        keep(onset_nd onset_def) order(onset_nd onset_def) ///
+        coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
+        mtitles nonumber ///
+        stats(pdiff N N_g, labels("p (nd = def)" "Observations" "Countries") fmt(3 0 0)) ///
+        title("`ptitle_`ch''") `t4extra'
 
-di as result "Table 4 saved: $tabs/table4_channels_resolution.rtf"
+    if _rc == 608 {
+        di as error "  ** table4_channels_resolution.rtf is OPEN IN WORD — close it and re-run."
+        local t4fail 1
+        continue
+    }
+    else if _rc {
+        di as error "  ** Table 4: esttab failed for panel `ch' (rc=" _rc ")"
+        local t4fail 1
+        continue
+    }
+
+    local writemode append
+}
+
+if `t4fail' == 0 di as result "Table 4 saved: $tabs/table4_channels_resolution.rtf"
+else di as error "Table 4 written with warnings (see messages above)."
 
 * ══════════════════════════════════════════════════════════════════════════
 * 5. SAVE IRF DATASETS

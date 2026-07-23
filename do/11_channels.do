@@ -162,7 +162,10 @@ foreach ch of local channels {
     local ctrl `ctrl_`ch''
     di as result _n "--- CHANNEL: `ch' ---"
     di as result "Controls: `ctrl'"
-    xtscc ch_`ch'_0 onset_all `ctrl' i.year if sample==1, fe lag(1)
+    * Guarded: a channel that fails here must NOT halt the whole file
+    * (this block is display-only; estimation happens in the loops below).
+    capture xtscc ch_`ch'_0 onset_all `ctrl' i.year if sample==1, fe lag(1)
+    if _rc != 0 di as error "  diagnostic xtscc failed for `ch' (rc=" _rc ") — skipped"
 }
 
 di as result _n "========================================================"
@@ -179,7 +182,8 @@ forvalues h = 0/4 {
     capture xtscc ch_credit_`h' onset_all `ctrl_credit' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
-        eststo t3_credit_`h'
+        eststo t3_credit_`h', title("h=`h'")
+        local elist_credit `elist_credit' t3_credit_`h'
         matrix b_credit[`h'+1,1]    = _b[onset_all]
         matrix lo90_credit[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
         matrix hi90_credit[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
@@ -199,7 +203,8 @@ forvalues h = 0/4 {
     capture xtscc ch_claims_govt_`h' onset_all `ctrl_claims_govt' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
-        eststo t3_claims_govt_`h'
+        eststo t3_claims_govt_`h', title("h=`h'")
+        local elist_claims_govt `elist_claims_govt' t3_claims_govt_`h'
         matrix b_claims_govt[`h'+1,1]    = _b[onset_all]
         matrix lo90_claims_govt[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
         matrix hi90_claims_govt[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
@@ -219,7 +224,8 @@ forvalues h = 0/4 {
     capture xtscc ch_inv_`h' onset_all `ctrl_inv' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
-        eststo t3_inv_`h'
+        eststo t3_inv_`h', title("h=`h'")
+        local elist_inv `elist_inv' t3_inv_`h'
         matrix b_inv[`h'+1,1]    = _b[onset_all]
         matrix lo90_inv[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
         matrix hi90_inv[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
@@ -239,7 +245,8 @@ forvalues h = 0/4 {
     capture xtscc ch_govexp_`h' onset_all `ctrl_govexp' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
-        eststo t3_govexp_`h'
+        eststo t3_govexp_`h', title("h=`h'")
+        local elist_govexp `elist_govexp' t3_govexp_`h'
         matrix b_govexp[`h'+1,1]    = _b[onset_all]
         matrix lo90_govexp[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
         matrix hi90_govexp[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
@@ -259,7 +266,8 @@ forvalues h = 0/4 {
     capture xtscc ch_pb_`h' onset_all `ctrl_pb' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
-        eststo t3_pb_`h'
+        eststo t3_pb_`h', title("h=`h'")
+        local elist_pb `elist_pb' t3_pb_`h'
         matrix b_pb[`h'+1,1]    = _b[onset_all]
         matrix lo90_pb[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
         matrix hi90_pb[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
@@ -279,7 +287,8 @@ forvalues h = 0/4 {
     capture xtscc ch_fdi_`h' onset_all `ctrl_fdi' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
-        eststo t3_fdi_`h'
+        eststo t3_fdi_`h', title("h=`h'")
+        local elist_fdi `elist_fdi' t3_fdi_`h'
         matrix b_fdi[`h'+1,1]    = _b[onset_all]
         matrix lo90_fdi[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
         matrix hi90_fdi[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
@@ -302,58 +311,58 @@ forvalues h = 0/4 {
 
 local t3note "Dependent variable: cumulative change in the channel variable (pp) from t-1 to t+h. Jorda (2005) local projections; country and year fixed effects; channel-specific controls; continuation years excluded. Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01."
 
-* Panel A — Private credit/GDP (replace: creates the file)
-esttab t3_credit_0 t3_credit_1 t3_credit_2 t3_credit_3 t3_credit_4 ///
-    using "$tabs/table3_channels.rtf", replace ///
-    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
-    keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
-    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
-    stats(N N_g, labels("Observations" "Countries") fmt(0 0)) ///
-    title("Table 3. Transmission channels (all episodes) -- Panel A: Private credit/GDP")
+* Per-channel panel titles (Panel A carries the overall table caption)
+local ptitle_credit      "Table 3. Transmission channels (all episodes) -- Panel A: Private credit/GDP"
+local ptitle_claims_govt "Panel B: Bank claims on govt/GDP"
+local ptitle_inv         "Panel C: Investment/GDP"
+local ptitle_govexp      "Panel D: Govt expenditure/GDP"
+local ptitle_pb          "Panel E: Primary balance/GDP"
+local ptitle_fdi         "Panel F: FDI/GDP"
 
-* Panels B-F — append to the same file
-esttab t3_claims_govt_0 t3_claims_govt_1 t3_claims_govt_2 t3_claims_govt_3 t3_claims_govt_4 ///
-    using "$tabs/table3_channels.rtf", append ///
-    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
-    keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
-    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
-    stats(N N_g, labels("Observations" "Countries") fmt(0 0)) ///
-    title("Panel B: Bank claims on govt/GDP")
+* Write one panel per channel to a single RTF. First successful panel uses
+* "replace" (creates the file); the rest "append". Each esttab is wrapped in
+* capture so a locked file (open in Word) or a missing estimate warns and is
+* skipped instead of halting the whole do-file.
+local writemode replace
+local t3fail 0
 
-esttab t3_inv_0 t3_inv_1 t3_inv_2 t3_inv_3 t3_inv_4 ///
-    using "$tabs/table3_channels.rtf", append ///
-    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
-    keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
-    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
-    stats(N N_g, labels("Observations" "Countries") fmt(0 0)) ///
-    title("Panel C: Investment/GDP")
+foreach ch in credit claims_govt inv govexp pb fdi {
 
-esttab t3_govexp_0 t3_govexp_1 t3_govexp_2 t3_govexp_3 t3_govexp_4 ///
-    using "$tabs/table3_channels.rtf", append ///
-    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
-    keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
-    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
-    stats(N N_g, labels("Observations" "Countries") fmt(0 0)) ///
-    title("Panel D: Govt expenditure/GDP")
+    * Skip channel entirely if no horizon estimate was stored
+    if "`elist_`ch''" == "" {
+        di as error "  ** Table 3: no estimates for channel `ch' — panel skipped"
+        local t3fail 1
+        continue
+    }
 
-esttab t3_pb_0 t3_pb_1 t3_pb_2 t3_pb_3 t3_pb_4 ///
-    using "$tabs/table3_channels.rtf", append ///
-    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
-    keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
-    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
-    stats(N N_g, labels("Observations" "Countries") fmt(0 0)) ///
-    title("Panel E: Primary balance/GDP")
+    * Attach the methodology note to the last channel only
+    local t3extra
+    if "`ch'" == "fdi" local t3extra addnotes("`t3note'")
 
-esttab t3_fdi_0 t3_fdi_1 t3_fdi_2 t3_fdi_3 t3_fdi_4 ///
-    using "$tabs/table3_channels.rtf", append ///
-    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
-    keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
-    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
-    stats(N N_g, labels("Observations" "Countries") fmt(0 0)) ///
-    title("Panel F: FDI/GDP") ///
-    addnotes("`t3note'")
+    capture esttab `elist_`ch'' using "$tabs/table3_channels.rtf", `writemode' ///
+        b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+        keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
+        mtitles nonumber ///
+        stats(N N_g, labels("Observations" "Countries") fmt(0 0)) ///
+        title("`ptitle_`ch''") `t3extra'
 
-di as result "Table 3 saved: $tabs/table3_channels.rtf"
+    if _rc == 608 {
+        di as error "  ** table3_channels.rtf is OPEN IN WORD — close it and re-run to refresh."
+        local t3fail 1
+        continue
+    }
+    else if _rc {
+        di as error "  ** Table 3: esttab failed for panel `ch' (rc=" _rc ")"
+        local t3fail 1
+        continue
+    }
+
+    * After the first successful write, switch to append mode
+    local writemode append
+}
+
+if `t3fail' == 0 di as result "Table 3 saved: $tabs/table3_channels.rtf"
+else di as error "Table 3 written with warnings (see messages above)."
 
 * ══════════════════════════════════════════════════════════════════════════
 * 4. SAVE IRF DATASETS
