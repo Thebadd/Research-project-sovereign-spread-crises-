@@ -81,12 +81,17 @@ pairwise-difference block, (c) consolidate into one multi-panel table.
 
 ## 5. The four upgrades to build (roadmap — all approved, not yet implemented)
 
-**A. Table 2-style main table (presentation only).**
+**A. Table 2-style main table (presentation only). [IN PROGRESS]**
 Consolidate the channel results into one multi-panel table: panels = outcomes,
 columns = horizons, rows = types; add an Observations/Countries/Episodes line
 per coefficient and a pairwise-difference block. Touches the table-export blocks
 in `do/11_channels.do`, `do/12_channels_resolution.do` (and the main
 `do/02_lp_all.do`, `do/03_lp_resolution.do`). No new estimation.
+Done so far: Episodes line added to Tables 1–4; a difference block
+(Difference = beta(def) − beta(nd), Clogg et al. 1995 z, p(Clogg z), p(Wald))
+added to the resolution tables (Table 2 in `03`, Table 4 in `12`). The Clogg z
+is the analytic half of upgrade D; the bootstrap 95% CI is still to come.
+Still to do: optionally fold Tables 1–4 into a single stacked multi-panel file.
 
 **B. AIPW estimator (Jordà–Taylor 2016).**
 Upgrade the IPW second stage in `do/08_ipw_lp.do` (and reuse in channel files)

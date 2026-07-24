@@ -151,9 +151,28 @@ foreach ch of local channels {
             test onset_nd = onset_def
             matrix pval_ols_`ch'[`row',1] = r(p)
             local pd_`ch'_`h' = r(p)   // store before eststo (which can reset r())
-            * Capture OLS estimates + p(diff) for the publication table (Table 4)
+
+            * Difference block (Clogg et al. 1995) + episode counts
+            local bnd  = _b[onset_nd]
+            local bdef = _b[onset_def]
+            local snd  = _se[onset_nd]
+            local sdef = _se[onset_def]
+            local bdiff = `bdef' - `bnd'
+            local zdiff = `bdiff' / sqrt(`snd'^2 + `sdef'^2)
+            local pz    = 2*(1 - normal(abs(`zdiff')))
+            quietly count if onset_nd  == 1 & sample == 1 & !missing(ch_`ch'_`h')
+            local nepnd = r(N)
+            quietly count if onset_def == 1 & sample == 1 & !missing(ch_`ch'_`h')
+            local nepdef = r(N)
+
+            * Capture OLS estimates + difference block for the publication table (Table 4)
             eststo t4_`ch'_`h', title("h=`h'")
-            estadd scalar pdiff = `pd_`ch'_`h''
+            estadd scalar bdiff  = `bdiff'
+            estadd scalar zdiff  = `zdiff'
+            estadd scalar pzdiff = `pz'
+            estadd scalar pdiff  = `pd_`ch'_`h''
+            estadd scalar nepnd  = `nepnd'
+            estadd scalar nepdef = `nepdef'
             local elist_`ch' `elist_`ch'' t4_`ch'_`h'
             local b_nd_o  = _b[onset_nd]
             local b_def_o = _b[onset_def]
@@ -245,7 +264,12 @@ foreach ch in credit claims_govt inv govexp pb fdi {
         keep(onset_nd onset_def) order(onset_nd onset_def) ///
         coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
         mtitles nonumber ///
-        stats(pdiff N N_g, labels("p (nd = def)" "Observations" "Countries") fmt(3 0 0)) ///
+        stats(bdiff zdiff pzdiff pdiff nepnd nepdef N N_g, ///
+              labels("Difference (default - non-default)" "  Clogg et al. (1995) z" ///
+                     "  p (Clogg z)" "  p (Wald, nd = def)" ///
+                     "Episodes (non-default)" "Episodes (default)" ///
+                     "Observations" "Countries") ///
+              fmt(3 3 3 3 0 0 0 0)) ///
         title("`ptitle_`ch''") `t4extra'
 
     if _rc == 608 {

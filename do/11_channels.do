@@ -182,7 +182,10 @@ forvalues h = 0/4 {
     capture xtscc ch_credit_`h' onset_all `ctrl_credit' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
+        quietly count if onset_all==1 & sample==1 & !missing(ch_credit_`h')
+        local nep = r(N)
         eststo t3_credit_`h', title("h=`h'")
+        estadd scalar nep = `nep'
         local elist_credit `elist_credit' t3_credit_`h'
         matrix b_credit[`h'+1,1]    = _b[onset_all]
         matrix lo90_credit[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
@@ -203,7 +206,10 @@ forvalues h = 0/4 {
     capture xtscc ch_claims_govt_`h' onset_all `ctrl_claims_govt' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
+        quietly count if onset_all==1 & sample==1 & !missing(ch_claims_govt_`h')
+        local nep = r(N)
         eststo t3_claims_govt_`h', title("h=`h'")
+        estadd scalar nep = `nep'
         local elist_claims_govt `elist_claims_govt' t3_claims_govt_`h'
         matrix b_claims_govt[`h'+1,1]    = _b[onset_all]
         matrix lo90_claims_govt[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
@@ -224,7 +230,10 @@ forvalues h = 0/4 {
     capture xtscc ch_inv_`h' onset_all `ctrl_inv' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
+        quietly count if onset_all==1 & sample==1 & !missing(ch_inv_`h')
+        local nep = r(N)
         eststo t3_inv_`h', title("h=`h'")
+        estadd scalar nep = `nep'
         local elist_inv `elist_inv' t3_inv_`h'
         matrix b_inv[`h'+1,1]    = _b[onset_all]
         matrix lo90_inv[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
@@ -245,7 +254,10 @@ forvalues h = 0/4 {
     capture xtscc ch_govexp_`h' onset_all `ctrl_govexp' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
+        quietly count if onset_all==1 & sample==1 & !missing(ch_govexp_`h')
+        local nep = r(N)
         eststo t3_govexp_`h', title("h=`h'")
+        estadd scalar nep = `nep'
         local elist_govexp `elist_govexp' t3_govexp_`h'
         matrix b_govexp[`h'+1,1]    = _b[onset_all]
         matrix lo90_govexp[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
@@ -266,7 +278,10 @@ forvalues h = 0/4 {
     capture xtscc ch_pb_`h' onset_all `ctrl_pb' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
+        quietly count if onset_all==1 & sample==1 & !missing(ch_pb_`h')
+        local nep = r(N)
         eststo t3_pb_`h', title("h=`h'")
+        estadd scalar nep = `nep'
         local elist_pb `elist_pb' t3_pb_`h'
         matrix b_pb[`h'+1,1]    = _b[onset_all]
         matrix lo90_pb[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
@@ -287,7 +302,10 @@ forvalues h = 0/4 {
     capture xtscc ch_fdi_`h' onset_all `ctrl_fdi' i.year ///
         if sample==1, fe lag(`lag')
     if _rc == 0 {
+        quietly count if onset_all==1 & sample==1 & !missing(ch_fdi_`h')
+        local nep = r(N)
         eststo t3_fdi_`h', title("h=`h'")
+        estadd scalar nep = `nep'
         local elist_fdi `elist_fdi' t3_fdi_`h'
         matrix b_fdi[`h'+1,1]    = _b[onset_all]
         matrix lo90_fdi[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
@@ -343,7 +361,7 @@ foreach ch in credit claims_govt inv govexp pb fdi {
         b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
         keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
         mtitles nonumber ///
-        stats(N N_g, labels("Observations" "Countries") fmt(0 0)) ///
+        stats(nep N N_g, labels("Episodes (onsets)" "Observations" "Countries") fmt(0 0 0)) ///
         title("`ptitle_`ch''") `t3extra'
 
     if _rc == 608 {

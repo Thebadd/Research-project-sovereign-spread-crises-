@@ -104,18 +104,44 @@ forvalues h = 0/4 {
     local lag = max(1, `h'+1)
     xtscc dy_`h' onset_nd onset_def `controls' i.year if sample==1, fe lag(`lag')
 
-    * Test equality
+    * Coefficients and SEs
+    local bnd  = _b[onset_nd]
+    local bdef = _b[onset_def]
+    local snd  = _se[onset_nd]
+    local sdef = _se[onset_def]
+
+    * Wald equality test (kept for continuity)
     test onset_nd = onset_def
     matrix pval_diff[`h'+1, 1] = r(p)
     local pd = r(p)   // store before eststo (which can reset r())
 
-    * Capture estimates + p(diff) for the publication table (Table 2)
-    eststo t2_h`h'
-    estadd scalar pdiff = `pd'
+    * Episode counts contributing at this horizon (onset obs, non-missing outcome)
+    quietly count if onset_nd  == 1 & sample == 1 & !missing(dy_`h')
+    local nepnd = r(N)
+    quietly count if onset_def == 1 & sample == 1 & !missing(dy_`h')
+    local nepdef = r(N)
 
-    di "h=" `h' ":  beta_nd=" %6.3f _b[onset_nd] ///
-               "  beta_def=" %6.3f _b[onset_def] ///
-               "  p(diff)="  %5.3f r(p)
+    * Clogg et al. (1995) difference: default-linked minus non-default
+    * (negative => default-linked loss is deeper). z uses the pooled SE of the
+    * two independent-within-regression coefficients.
+    local bdiff = `bdef' - `bnd'
+    local zdiff = `bdiff' / sqrt(`snd'^2 + `sdef'^2)
+    local pz    = 2*(1 - normal(abs(`zdiff')))
+
+    * Capture estimates + difference block for the publication table (Table 2)
+    eststo t2_h`h'
+    estadd scalar bdiff  = `bdiff'
+    estadd scalar zdiff  = `zdiff'
+    estadd scalar pzdiff = `pz'
+    estadd scalar pdiff  = `pd'
+    estadd scalar nepnd  = `nepnd'
+    estadd scalar nepdef = `nepdef'
+
+    di "h=" `h' ":  beta_nd=" %6.3f `bnd' ///
+               "  beta_def=" %6.3f `bdef' ///
+               "  diff(def-nd)=" %6.3f `bdiff' ///
+               "  Clogg z=" %5.2f `zdiff' ///
+               "  p(Wald)="  %5.3f `pd'
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -130,11 +156,18 @@ capture esttab t2_h0 t2_h1 t2_h2 t2_h3 t2_h4 using "$tabs/table2_output_resoluti
     keep(onset_nd onset_def) order(onset_nd onset_def) ///
     coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
     mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
-    stats(pdiff N N_g, labels("p (beta_nd = beta_def)" "Observations" "Countries") fmt(3 0 0)) ///
+    stats(bdiff zdiff pzdiff pdiff nepnd nepdef N N_g, ///
+          labels("Difference (default - non-default)" "  Clogg et al. (1995) z" ///
+                 "  p (Clogg z)" "  p (Wald, nd = def)" ///
+                 "Episodes (non-default)" "Episodes (default)" ///
+                 "Observations" "Countries") ///
+          fmt(3 3 3 3 0 0 0 0)) ///
     title("Table 2. Output cost by crisis resolution: non-default vs. default-linked") ///
     addnotes("Dependent variable: cumulative change in log real GDP per capita (pp) from t-1 to t+h." ///
              "Both onset dummies enter jointly. Jorda (2005) local projections; country and year fixed effects; continuation years excluded." ///
-             "Driscoll-Kraay standard errors in parentheses. p(beta_nd=beta_def) is the p-value of the equality test." ///
+             "Driscoll-Kraay standard errors in parentheses." ///
+             "Difference = beta(default) - beta(non-default); negative means the default-linked loss is deeper." ///
+             "Clogg z = difference / sqrt(SE_nd^2 + SE_def^2); p(Wald) is the joint equality test. Bootstrap CIs to be added (upgrade D)." ///
              "* p<0.10, ** p<0.05, *** p<0.01.")
 
 if _rc == 608 di as error "  ** table2_output_resolution.rtf is OPEN IN WORD — close it and re-run to refresh."

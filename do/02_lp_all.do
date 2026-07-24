@@ -67,7 +67,10 @@ forvalues h = 0/4 {
         if sample == 1, fe lag(`lag')
 
     * Capture estimates for the publication table (Table 1)
+    quietly count if onset_all == 1 & sample == 1 & !missing(dy_`h')
+    local nep = r(N)
     eststo t1_h`h'
+    estadd scalar nep = `nep'
 
     * Store point estimate and confidence intervals
     matrix b_all[`row', 1]    = _b[onset_all]
@@ -93,7 +96,7 @@ capture esttab t1_h0 t1_h1 t1_h2 t1_h3 t1_h4 using "$tabs/table1_output_all.rtf"
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
     keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
     mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
-    stats(N N_g, labels("Observations" "Countries") fmt(0 0)) ///
+    stats(nep N N_g, labels("Episodes (onsets)" "Observations" "Countries") fmt(0 0 0)) ///
     title("Table 1. Output cost of sovereign spread crises (all episodes)") ///
     addnotes("Dependent variable: cumulative change in log real GDP per capita (pp) from t-1 to t+h." ///
              "Jorda (2005) local projections. Country and year fixed effects; continuation years excluded." ///
