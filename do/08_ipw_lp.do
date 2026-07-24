@@ -105,6 +105,27 @@ twoway ///
     legend(off) graphregion(color(white)) plotregion(color(white))
 graph export "$figs/fig6b_common_support.pdf", replace
 
+* ── Kernel-density overlap (Asonuma et al. 2024 Fig 2 analog) ─────────────
+* Cleaner common-support view: densities of the estimated propensity score for
+* treated (onset) vs control (tranquil). Overlapping densities => the design has
+* common support, so IPW/AIPW reweighting is valid.
+capture twoway ///
+    (kdensity pscore if onset_all==1 & sample==1, ///
+        lcolor("157 36 73") lwidth(medthick)) ///
+    (kdensity pscore if onset_all==0 & sample==1, ///
+        lcolor("23 55 94") lwidth(medthick) lpattern(dash)), ///
+    xtitle("Estimated propensity score  Pr(onset=1 | X, Z)", size(small)) ///
+    ytitle("Density", size(small)) ///
+    title("Act 1 — Propensity-score overlap (common support)", size(medsmall) color(navy)) ///
+    legend(order(1 "Onset (treated)" 2 "Tranquil (control)") ring(0) pos(1) size(small)) ///
+    note("Overlapping densities => common support holds. First stage: probit of onset on controls + excluded predictors.", size(vsmall)) ///
+    graphregion(color(white)) plotregion(color(white))
+if _rc == 0 {
+    graph export "$figs/fig6c_overlap_act1.pdf", replace
+    di as result "Figure saved: fig6c_overlap_act1.pdf"
+}
+else di as error "  ** Act 1 overlap kdensity failed (rc=" _rc ")"
+
 * ══════════════════════════════════════════════════════════════════════════
 * STEP 3 — TRIM EXTREME SCORES
 * Scores very close to 0 or 1 produce explosive weights.
@@ -309,6 +330,27 @@ label var pscore2 "Pr(default-linked | crisis onset, X)"
 
 summarize pscore2, detail
 di as result "Range of pscore2: [" r(min) ", " r(max) "]"
+
+* ── Kernel-density overlap (Fig 2 analog) — THE decisive check for the thin
+* default sample: densities of Pr(default | crisis) for default vs non-default
+* onsets. Plotted BEFORE trimming to show the raw support. Overlap => the
+* default propensity is estimable off comparable non-default onsets; little
+* overlap => the resolution IPW rests on extrapolation (read with caution). ──
+capture twoway ///
+    (kdensity pscore2 if onset_def==1, lcolor("157 36 73") lwidth(medthick)) ///
+    (kdensity pscore2 if onset_nd==1,  lcolor("34 139 34") lwidth(medthick) lpattern(dash)), ///
+    xtitle("Estimated propensity score  Pr(default-linked | crisis, X, Z)", size(small)) ///
+    ytitle("Density", size(small)) ///
+    title("Act 2 — Propensity overlap: default vs non-default onsets", size(medsmall) color(navy)) ///
+    subtitle("Common-support check for the resolution IPW (small default cell)", size(small)) ///
+    legend(order(1 "Default-linked (treated)" 2 "Non-default (control)") ring(0) pos(1) size(small)) ///
+    note("Overlap => default propensity estimable off comparable non-default onsets. Thin default cell (~21 events): read with the ROC.", size(vsmall)) ///
+    graphregion(color(white)) plotregion(color(white))
+if _rc == 0 {
+    graph export "$figs/fig8b_overlap_act2.pdf", replace
+    di as result "Figure saved: fig8b_overlap_act2.pdf"
+}
+else di as error "  ** Act 2 overlap kdensity failed (rc=" _rc ") — likely too few default obs"
 
 * Trim extreme scores
 gen trimmed2 = (pscore2 < 0.05 | pscore2 > 0.95) if !missing(pscore2)
