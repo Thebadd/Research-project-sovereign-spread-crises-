@@ -98,6 +98,37 @@ Upgrade the IPW second stage in `do/08_ipw_lp.do` (and reuse in channel files)
 to doubly-robust AIPW: combine the IPW term with the regression-adjustment term
 (their Eq. 3). More credible than plain IPW; keep IPW as a robustness row.
 
+*Sample-restriction discipline (mechanical, from Asonuma et al. main text).*
+The AIPW first stage is a probit; a country with zero onsets of the relevant
+type gives no variation in the probit's dependent variable and is dropped
+automatically. So the restriction to "ever-treated" countries is a *consequence
+of the method*, not a discretionary choice — and it is *per model*:
+- `probit onset_nd …` drops every country with no non-default onset;
+- `probit onset_def …` drops every country with no default onset.
+Make the restriction explicit and report the surviving countries/episodes for
+each first stage (feeds the Episodes/Countries table lines). Three build
+requirements follow:
+1. **OLS-full vs AIPW-restricted comparison (their Fig C1).** OLS needs no first
+   stage, so it runs on all 52 countries; AIPW runs on the restricted set.
+   Produce the overlay (figure + table) showing the two coincide — this is what
+   defuses the selection-bias / external-validity objection, and is a *standard*
+   deliverable of the AIPW upgrade, not optional.
+2. **Report the restriction.** Print/report how many countries and episodes
+   survive each first-stage probit.
+3. **Same-year multiple-episode rule.** Define and document a consolidation rule
+   for any country-year carrying both `onset_nd` and `onset_def` (their Dominican
+   Republic 2004 case). Verify with `count if onset_nd==1 & onset_def==1`; even
+   if the count is zero, state the rule.
+
+*Actual restricted-sample sizes in our data (from Episode_Summary):*
+- Non-default first stage keeps **30 of 52 countries** (40 onsets) — drops 22
+  never-non-default countries.
+- Default first stage keeps only **15 of 52 countries** (21 onsets) — drops 37.
+  The default AIPW is therefore a heavily restricted, selected sample, so the
+  OLS-full vs AIPW-restricted comparison is *essential* for the default model.
+- **Zero** country-years carry both an `onset_nd` and an `onset_def`, so the
+  same-year consolidation problem does not arise here (state the rule anyway).
+
 **C. Probit predictors + ROC.**
 Extend the first-stage probit (`08`, `12`) with exclusion-restriction
 *predictors* alongside the controls — candidates given our data: US rate
@@ -126,4 +157,10 @@ C (strengthens the first stage) → B (the biggest new-code item).
 - Contagion predictor needs a distance/region weighting — we have `region`
   already; a simple region-year leave-one-out crisis share is a feasible start.
 - AIPW first stage drops never-treated by construction — our ever-treated
-  restriction is already consistent with this.
+  restriction is already consistent with this, BUT the drop is *per model*: the
+  non-default first stage keeps only countries with ≥1 non-default onset (tighter
+  than "ever had any crisis"). Handle explicitly in upgrade B (see §5.B).
+- Scope note (their equivalent: private external debt restructurings, 1975–2019,
+  76 countries): state our scope precisely — spread-crisis onsets, 52 EM/frontier
+  countries, 1994–2025, 61 episodes (40 non-default / 21 default-linked) — and be
+  clear the AIPW-restricted sample is smaller than the OLS full sample.
