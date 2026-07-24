@@ -30,7 +30,15 @@ use "$clean/panel_lp.dta", clear
 * They are excluded from the LP spec but retained in the probit first stage,
 * which has no year FE and where global financial conditions are not absorbed.
 local controls_lp  l1_gdpg l2_gdpg ca debt infl imf
-local controls_ps  l1_gdpg l2_gdpg debt ca infl imf vix ust10y
+
+* First-stage probit = controls X (same fundamentals as the LP) + excluded
+* PREDICTORS Z (Jordà–Taylor 2016). The predictors satisfy exclusion because
+* they are omitted from the LP second stage:
+*   ust10y, vix    — pure time-series push factors, absorbed by i.year in the LP
+*   l_reg_crisis_share (Z2) — regional contagion, country-varying, omitted from LP
+*   past_onsets       (Z3) — own crisis history, country-varying, omitted from LP
+local controls_x   l1_gdpg l2_gdpg debt ca infl imf
+local predictors_z ust10y vix l_reg_crisis_share past_onsets
 
 * ══════════════════════════════════════════════════════════════════════════
 * STEP 1 — FIRST-STAGE PROBIT
@@ -41,18 +49,28 @@ local controls_ps  l1_gdpg l2_gdpg debt ca infl imf vix ust10y
 
 di as result _n "=== FIRST STAGE: Probit of crisis onset ==="
 
-* For the probit, use one-period-lagged controls (t-1 predicts t onset)
-* l1_gdpg and l2_gdpg already lagged; debt, ca, infl, imf, vix, ust10y
-* entered as-is (measured at t, predetermined relative to future outcome)
+* POOLED probit (no country FE): country FE in a probit separate/perfectly
+* predict never-treated countries and carry incidental-parameters bias with few
+* events per group; the pooled model with controls + predictors is the standard
+* for rare-event propensity estimation and keeps all countries.
 
-probit onset_all `controls_ps' ///
-    if sample == 1, vce(cluster cid)
+* (a) Controls only — baseline for the ROC comparison (their Table 1 logic)
+quietly probit onset_all `controls_x' if sample == 1, vce(cluster cid)
+quietly lroc, nograph
+local roc_x = r(area)
 
+* (b) Controls + excluded predictors — the first stage used for the propensity
+probit onset_all `controls_x' `predictors_z' if sample == 1, vce(cluster cid)
 estimates store first_stage
+quietly lroc, nograph
+local roc_xz = r(area)
 
-* Pseudo R-squared and hit rate
+* First-stage diagnostics
 estat classification
 di as result "McFadden Pseudo-R2: " e(r2_p)
+di as result "Area under ROC: controls only = " %5.3f `roc_x' ///
+             "   +predictors = " %5.3f `roc_xz' ///
+             "   (gain = " %5.3f (`roc_xz'-`roc_x') ")"
 
 * Export first-stage table
 quietly esttab first_stage using "$tabs/ipw_first_stage.csv", ///
@@ -258,15 +276,27 @@ local controls l1_gdpg l2_gdpg ca debt infl imf
 
 di as result _n "=== ACT 2 IPW: FIRST STAGE — Probit of default-linked onset ==="
 di as result    "    Sample: crisis onset years only (onset_all == 1)"
-di as result    "    Parsimonious first stage: debt and CA only (2 significant"
-di as result    "    predictors from full model; 52 obs / 8 covariates = 6.5"
-di as result    "    obs per covariate is below the 10:1 rule of thumb)."
+di as result    "    Lean first stage for a small default sample (~21 events):"
+di as result    "    confounders debt + ca plus ONE excluded predictor (regional"
+di as result    "    contagion). Kept ~3 covariates; validate by ROC/overlap, not"
+di as result    "    by coefficient significance."
 
-* Parsimonious first stage: only the 2 covariates significant in the full model
-* (debt p=0.022, ca p=0.012). Ratio: 52 obs / 2 covariates = 26 — reliable.
-probit onset_def debt ca if onset_all == 1, vce(robust)
+* Confounders (debt, ca — significant in the full probit) + the excluded
+* predictor l_reg_crisis_share (Z2: regional contagion), which is omitted from
+* the LP second stage. past_onsets (Z3) is deliberately NOT added here — with
+* only ~21 default events it risks perfect prediction / separation.
+quietly probit onset_def debt ca if onset_all == 1, vce(robust)
+quietly lroc, nograph
+local roc2_x = r(area)
+
+probit onset_def debt ca l_reg_crisis_share if onset_all == 1, vce(robust)
+quietly lroc, nograph
+local roc2_xz = r(area)
 
 estimates store fs_act2
+
+di as result "Area under ROC (Act 2): confounders only = " %5.3f `roc2_x' ///
+             "   +contagion = " %5.3f `roc2_xz'
 di as result "McFadden Pseudo-R2: " e(r2_p)
 
 quietly esttab fs_act2 using "$tabs/ipw_act2_first_stage.csv", ///

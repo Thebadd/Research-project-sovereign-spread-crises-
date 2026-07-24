@@ -129,13 +129,24 @@ requirements follow:
 - **Zero** country-years carry both an `onset_nd` and an `onset_def`, so the
   same-year consolidation problem does not arise here (state the rule anyway).
 
-**C. Probit predictors + ROC.**
-Extend the first-stage probit (`08`, `12`) with exclusion-restriction
-*predictors* alongside the controls — candidates given our data: US rate
-(`ust10y`/`fedfunds`), a regional-contagion measure (share/weighted count of
-other-country crises in the region), and count of past crises per country.
-Report the area under the ROC curve (Stata `lroc`) as a first-stage diagnostic,
-as in their Table 1.
+**C. Probit predictors + ROC. [DONE]**
+Custom exclusion-restriction predictors adapted to spread crises, built in
+`do/01e_predictors.do` and wired into the first-stage probits:
+- **Z1 = US 10y (`ust10y`)** (+ `vix`): pure time-series push factors, excluded
+  from the LP because year FE absorb them — a design-enforced exclusion.
+- **Z2 = `l_reg_crisis_share`**: lagged share of OTHER same-region countries with
+  an onset (regional contagion), country-varying → omitted from the LP.
+- **Z3 = `past_onsets`**: count of own prior onsets (proneness), robustness only;
+  NOT used in the thin default probit (separation risk).
+
+Probit form: **pooled, no country FE** (FE separate/perfectly-predict never-
+treated countries and bias nonlinear FE with few events; the 15-country default
+probit would collapse). Region FE is an optional robustness only.
+
+Wired in: `08` Act 1 (`controls_x` + `predictors_z`, ROC controls-only vs
++predictors), `08`/`12`/`13` Act 2 (`debt ca` + `l_reg_crisis_share`, ROC),
+`11` Act 1 (predictors appended). Each reports the area under the ROC via `lroc`.
+Still to do: the OLS-full vs AIPW-restricted comparison lives with upgrade B.
 
 **D. Bootstrap + Clogg difference tests.**
 Replace the single Wald `p(diff)` on β_def = β_nd with (i) a bootstrap 95% CI on

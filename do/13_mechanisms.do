@@ -508,7 +508,9 @@ forvalues h = 0/4 {
 }
 
 * ── Reconstruct Act 2 IPW weights ────────────────────────────────────────
-probit onset_def debt ca if onset_all == 1, vce(robust)
+* First stage: confounders debt + ca plus the excluded contagion predictor
+* (l_reg_crisis_share, Z2), consistent with 08_ipw_lp.do. Omitted from the LP.
+probit onset_def debt ca l_reg_crisis_share if onset_all == 1, vce(robust)
 
 predict pscore2_ca if onset_all == 1, pr
 

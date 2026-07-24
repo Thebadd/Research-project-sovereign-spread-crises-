@@ -69,7 +69,9 @@ di as result _n "=== FIRST STAGE: Pr(default-linked | crisis onset) ==="
 
 capture drop pscore2 trimmed2 ipw2
 
-probit onset_def debt ca if onset_all == 1, vce(robust)
+* First stage: confounders debt + ca plus the excluded contagion predictor
+* (l_reg_crisis_share, Z2), consistent with 08_ipw_lp.do. Omitted from the LP.
+probit onset_def debt ca l_reg_crisis_share if onset_all == 1, vce(robust)
 di as result "McFadden Pseudo-R2: " e(r2_p)
 
 predict pscore2 if onset_all == 1, pr
