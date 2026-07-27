@@ -93,10 +93,25 @@ added to the resolution tables (Table 2 in `03`, Table 4 in `12`). The Clogg z
 is the analytic half of upgrade D; the bootstrap 95% CI is still to come.
 Still to do: optionally fold Tables 1–4 into a single stacked multi-panel file.
 
-**B. AIPW estimator (Jordà–Taylor 2016).**
-Upgrade the IPW second stage in `do/08_ipw_lp.do` (and reuse in channel files)
-to doubly-robust AIPW: combine the IPW term with the regression-adjustment term
-(their Eq. 3). More credible than plain IPW; keep IPW as a robustness row.
+**B. AIPW estimator (Jordà–Taylor 2016). [BUILT — do/08b_aipw.do]**
+Doubly-robust AIPW combining the IPW term with the regression-adjustment term
+(their Eq. 3). Keep plain IPW (`08`) as a robustness row.
+
+*Implementation decision (locked with David): hand-code Eq. (3), do NOT use
+`teffects aipw`.* Reasons: (i) `teffects aipw` reports only the ATE/POmeans, and
+`bootstrap: teffects` fails with rc=451 on the thin default sample (degenerate
+resamples); (ii) the paper itself hand-rolls the estimator and bootstraps via
+`bsample` + recompute. So `08b_aipw.do` defines a small program `_aipw` that:
+- Eq. (1): OLS outcome regression (country FE via `fe(idvar)`) → conditional
+  means m1, m0 (common-slope RA: m1−m0 = β_D);
+- Eq. (2): POOLED probit (no country FE — our locked design) → p̂, trimmed to
+  [.01,.99];
+- Eq. (3): the exact Asonuma algebraic form → ATE = mean of the summand.
+Inference = cluster bootstrap (`bsample, cluster(cid) idcluster()`), recompute
+Eq. (3) per draw, 2.5/97.5 percentile CI; SE column = bootstrap SD. This is the
+paper's estimand (ATE, not ATET) and their inference procedure. Act 1 uses
+country FE in the outcome model + full X,Z probit; Act 2 (61 obs) drops outcome
+FE and uses the lean `debt ca l_reg_crisis_share` probit.
 
 *Sample-restriction discipline (mechanical, from Asonuma et al. main text).*
 The AIPW first stage is a probit; a country with zero onsets of the relevant
