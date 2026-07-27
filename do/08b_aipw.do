@@ -1,14 +1,16 @@
 /*===========================================================================
   08B_AIPW.DO
-  Doubly-robust AIPW estimation (Jordà–Taylor 2016), the estimator used by
-  Asonuma et al. (2024). Upgrade over plain IPW (08_ipw_lp.do): AIPW combines
-  the inverse-probability weight with an outcome-regression adjustment and is
-  consistent if EITHER the propensity model OR the outcome model is correct.
+  Doubly-robust treatment-effects estimation (Jordà–Taylor 2016), the approach
+  used by Asonuma et al. (2024). Upgrade over plain IPW (08_ipw_lp.do): it
+  combines the inverse-probability weight with an outcome-regression adjustment
+  and is consistent if EITHER the propensity model OR the outcome model is right.
 
-  Implemented with Stata's `teffects aipw`, which returns the doubly-robust
-  effect AND correct two-step (influence-function) standard errors — so the
-  first-stage estimation error is already propagated. We report the ATET
-  (effect on the treated = the crisis episodes), matching the event-study logic.
+  Implemented with Stata's `teffects ipwra` (inverse-probability-weighted
+  regression adjustment) — the doubly-robust estimator that SUPPORTS the ATET.
+  (`teffects aipw' is also doubly robust but allows only ate/pomeans, not atet.)
+  It returns the doubly-robust effect AND correct two-step (influence-function)
+  standard errors — first-stage estimation error is already propagated. We report
+  the ATET (effect on the treated = the crisis episodes), matching event-study logic.
 
     Act 1: treatment = onset_all (onset vs tranquil). Effect = output cost of a
            spread crisis. Outcome model: controls + i.year (year FE preserve the
@@ -56,23 +58,24 @@ di as result "h    ATET      SE       [95% CI]"
 forvalues h = 0/4 {
     local row = `h' + 1
 
-    * teffects aipw needs `atet' to sit in the OUTCOME model's option slot on
-    * some builds, and does not take an explicit vce() (its VCE is always the
-    * robust two-step IF variance). We try the plain form first; if it fails we
-    * re-run once with `capture noisily' so Stata prints the REAL error text
-    * (rc alone is uninformative), then fall back to dropping i.year.
-    capture teffects aipw (dy_`h' `cx' i.year) ///
+    * We use teffects IPWRA (inverse-probability-weighted regression adjustment):
+    * it is doubly robust like AIPW but, unlike `teffects aipw', it SUPPORTS the
+    * ATET (`teffects aipw' allows only ate/pomeans — hence the earlier
+    * "option atet is not allowed"). Its VCE is always the robust two-step IF
+    * variance, so we pass no vce(). Try the year-FE form first; on failure fall
+    * back to dropping i.year, then echo the real error at h=0.
+    capture teffects ipwra (dy_`h' `cx' i.year) ///
                           (onset_all `cx' `cz', probit) ///
                           if sample==1, atet
     if _rc != 0 {
-        * fallback: no year FE in the outcome model (aipw needs overlap in every
-        * cell; sparse year dummies on the treated group can break ATET)
-        capture teffects aipw (dy_`h' `cx') ///
+        * fallback: no year FE in the outcome model (ipwra fits the outcome model
+        * separately by group; sparse year dummies on the treated group break it)
+        capture teffects ipwra (dy_`h' `cx') ///
                               (onset_all `cx' `cz', probit) ///
                               if sample==1, atet
         if _rc != 0 & `h' == 0 {
             di as error "--- Act 1 h=0 failed both forms; echoing the real error ---"
-            capture noisily teffects aipw (dy_`h' `cx') ///
+            capture noisily teffects ipwra (dy_`h' `cx') ///
                               (onset_all `cx' `cz', probit) ///
                               if sample==1, atet
         }
@@ -89,7 +92,7 @@ forvalues h = 0/4 {
         di "h=" `h' "   " %7.3f `att' "  " %6.3f `se' ///
            "   [" %6.3f (`att'-1.96*`se') ", " %6.3f (`att'+1.96*`se') "]"
     }
-    else di as error "h=" `h' ": teffects aipw (Act 1) failed, rc=" _rc
+    else di as error "h=" `h' ": teffects ipwra (Act 1) failed, rc=" _rc
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -102,12 +105,12 @@ di as result "h    ATET      SE       [95% CI]   (negative => default deeper)"
 
 forvalues h = 0/4 {
     local row = `h' + 1
-    capture teffects aipw (dy_`h' `cx2') ///
+    capture teffects ipwra (dy_`h' `cx2') ///
                           (onset_def `cz2', probit) ///
                           if onset_all==1, atet
     if _rc != 0 & `h' == 0 {
         di as error "--- Act 2 h=0 failed; echoing the real error ---"
-        capture noisily teffects aipw (dy_`h' `cx2') ///
+        capture noisily teffects ipwra (dy_`h' `cx2') ///
                           (onset_def `cz2', probit) ///
                           if onset_all==1, atet
     }
@@ -123,7 +126,7 @@ forvalues h = 0/4 {
         di "h=" `h' "   " %7.3f `att' "  " %6.3f `se' ///
            "   [" %6.3f (`att'-1.96*`se') ", " %6.3f (`att'+1.96*`se') "]"
     }
-    else di as error "h=" `h' ": teffects aipw (Act 2) failed, rc=" _rc " (likely overlap/separation on the thin default sample)"
+    else di as error "h=" `h' ": teffects ipwra (Act 2) failed, rc=" _rc " (likely overlap/separation on the thin default sample)"
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -138,7 +141,7 @@ di as result "  (this is the slow step; comment out to skip)"
 forvalues h = 0/4 {
     local row = `h' + 1
     capture bootstrap _b, reps(`nboot') cluster(cid) nodots nowarn: ///
-        teffects aipw (dy_`h' `cx') (onset_all `cx' `cz', probit) ///
+        teffects ipwra (dy_`h' `cx') (onset_all `cx' `cz', probit) ///
         if sample==1, atet
     if _rc == 0 {
         capture estat bootstrap, percentile
@@ -156,7 +159,7 @@ forvalues h = 0/4 {
 forvalues h = 0/4 {
     local row = `h' + 1
     capture bootstrap _b, reps(`nboot') cluster(cid) nodots nowarn: ///
-        teffects aipw (dy_`h' `cx2') (onset_def `cz2', probit) ///
+        teffects ipwra (dy_`h' `cx2') (onset_def `cz2', probit) ///
         if onset_all==1, atet
     if _rc == 0 {
         capture estat bootstrap, percentile
@@ -208,7 +211,7 @@ preserve
         xtitle("Years after onset", size(small)) ///
         title("AIPW (doubly-robust) output cost", size(medsmall) color(navy)) ///
         legend(order(2 "Crisis cost (all)" 4 "Extra cost of default") ring(0) pos(7) size(small)) ///
-        note("teffects aipw, ATET. CI = bootstrap percentile (cluster country) where available, else robust 95%.", size(vsmall)) ///
+        note("teffects ipwra (doubly robust), ATET. CI = bootstrap percentile (cluster country) where available, else robust 95%.", size(vsmall)) ///
         graphregion(color(white)) plotregion(color(white))
     graph export "$figs/fig_aipw.pdf", replace
     di as result "Figure saved: fig_aipw.pdf"
