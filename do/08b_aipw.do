@@ -55,9 +55,28 @@ di as result "h    ATET      SE       [95% CI]"
 
 forvalues h = 0/4 {
     local row = `h' + 1
+
+    * teffects aipw needs `atet' to sit in the OUTCOME model's option slot on
+    * some builds, and does not take an explicit vce() (its VCE is always the
+    * robust two-step IF variance). We try the plain form first; if it fails we
+    * re-run once with `capture noisily' so Stata prints the REAL error text
+    * (rc alone is uninformative), then fall back to dropping i.year.
     capture teffects aipw (dy_`h' `cx' i.year) ///
                           (onset_all `cx' `cz', probit) ///
-                          if sample==1, atet vce(robust)
+                          if sample==1, atet
+    if _rc != 0 {
+        * fallback: no year FE in the outcome model (aipw needs overlap in every
+        * cell; sparse year dummies on the treated group can break ATET)
+        capture teffects aipw (dy_`h' `cx') ///
+                              (onset_all `cx' `cz', probit) ///
+                              if sample==1, atet
+        if _rc != 0 & `h' == 0 {
+            di as error "--- Act 1 h=0 failed both forms; echoing the real error ---"
+            capture noisily teffects aipw (dy_`h' `cx') ///
+                              (onset_all `cx' `cz', probit) ///
+                              if sample==1, atet
+        }
+    }
     if _rc == 0 {
         matrix bb = e(b)
         matrix VV = e(V)
@@ -85,7 +104,13 @@ forvalues h = 0/4 {
     local row = `h' + 1
     capture teffects aipw (dy_`h' `cx2') ///
                           (onset_def `cz2', probit) ///
-                          if onset_all==1, atet vce(robust)
+                          if onset_all==1, atet
+    if _rc != 0 & `h' == 0 {
+        di as error "--- Act 2 h=0 failed; echoing the real error ---"
+        capture noisily teffects aipw (dy_`h' `cx2') ///
+                          (onset_def `cz2', probit) ///
+                          if onset_all==1, atet
+    }
     if _rc == 0 {
         matrix bb = e(b)
         matrix VV = e(V)
@@ -113,7 +138,7 @@ di as result "  (this is the slow step; comment out to skip)"
 forvalues h = 0/4 {
     local row = `h' + 1
     capture bootstrap _b, reps(`nboot') cluster(cid) nodots nowarn: ///
-        teffects aipw (dy_`h' `cx' i.year) (onset_all `cx' `cz', probit) ///
+        teffects aipw (dy_`h' `cx') (onset_all `cx' `cz', probit) ///
         if sample==1, atet
     if _rc == 0 {
         capture estat bootstrap, percentile
