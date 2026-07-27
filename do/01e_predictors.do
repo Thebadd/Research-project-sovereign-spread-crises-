@@ -48,6 +48,11 @@ gen reg_crisis_share = (reg_n_onset - onset_all) / (reg_n_members - 1) ///
     if reg_n_members > 1
 label var reg_crisis_share "Share of OTHER same-region countries with onset (year t)"
 
+* Restore the panel sort (bysort region year above re-sorted the data, which
+* breaks the L. time-series operator — hence the r(5) "not sorted" error).
+sort cid year
+xtset cid year
+
 * Predictor = one-year lag (last year's regional crises predict this year's onset)
 gen l_reg_crisis_share = L.reg_crisis_share
 label var l_reg_crisis_share "Z2: lagged regional crisis share (contagion predictor)"
