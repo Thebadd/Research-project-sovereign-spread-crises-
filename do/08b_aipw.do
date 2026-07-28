@@ -27,8 +27,10 @@
   percentiles. No analytic SE; the SE column reports the bootstrap SD.
 
   SAMPLE: restriction to ever-treated countries is mechanical — the probit drops
-  countries with no variation in D. Act 1 = onset vs tranquil; Act 2 = default vs
-  non-default among onsets (the doubly-robust analog of the Table 2/4 difference).
+  countries with no variation in D. Act 1 = onset vs tranquil. Act 2 = the
+  resolution split shown as TWO level IRFs (non-default vs tranquil, default vs
+  tranquil) — the doubly-robust analog of the Table 2 nd/def coefficients; their
+  vertical gap is the extra cost of default. Mirrors the IPW Act-2 figure (fig8).
 
   Keep 08_ipw_lp.do (plain IPW) as the robustness row. Run AFTER 01e_predictors.
 ===========================================================================*/
@@ -48,8 +50,9 @@ local nboot = 500      // bootstrap reps; raise to 1000+ for the final run
 
 * Storage: rows h=0..4
 foreach m in b se lo hi {
-    matrix A1_`m' = J(5,1,.)
-    matrix A2_`m' = J(5,1,.)
+    matrix A1_`m'    = J(5,1,.)   // Act 1: crisis cost (all onsets)
+    matrix A2nd_`m'  = J(5,1,.)   // Act 2: non-default cost vs tranquil
+    matrix A2def_`m' = J(5,1,.)   // Act 2: default-linked cost vs tranquil
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -154,103 +157,139 @@ forvalues h = 0/4 {
 }
 
 * ══════════════════════════════════════════════════════════════════════════
-* ACT 2 — AIPW extra cost of default-linked resolution (default vs non-default)
-*   Among crisis onsets. No country FE in the outcome model (61 obs). ATE.
+* ACT 2 — AIPW output cost by resolution, as TWO LEVEL lines vs tranquil
+*   (the doubly-robust analog of the Table 2 nd/def coefficients; their vertical
+*    gap = the extra default cost). Mirrors the IPW Act-2 figure (fig8): one line
+*    for non-default onsets, one for default-linked, each estimated against the
+*    tranquil control with country FE + the full (X,Z) probit — exactly like
+*    Act 1. The OTHER resolution type is dropped from each estimation so the
+*    control group is clean tranquil years, not the rival crisis type.
 * ══════════════════════════════════════════════════════════════════════════
-di as result _n "=== ACT 2 — AIPW (ATE): default-linked vs non-default ==="
-di as result "h    ATE       SE(boot)  [95% CI]   (negative => default deeper)"
+di as result _n "=== ACT 2 — AIPW (ATE) output cost by resolution (vs tranquil) ==="
+di as result "type  h    ATE       SE(boot)  [95% percentile CI]"
 
-forvalues h = 0/4 {
-    local row = `h' + 1
+* Loop over the two resolution types. `Dvar' = treatment dummy; `drop' = the
+* rival onset dummy to exclude; `stub' = storage-matrix prefix; `lab' = label.
+foreach spec in "onset_nd onset_def A2nd non-default" ///
+                "onset_def onset_nd A2def default-linked" {
+    gettoken Dvar spec  : spec
+    gettoken drop spec  : spec
+    gettoken stub lab   : spec
+    local lab = trim("`lab'")
 
-    capture _aipw dy_`h' onset_def if onset_all==1, omodel(`cx2') pmodel(`cz2')
-    if _rc {
-        di as error "h=" `h' ": Act 2 point estimate failed, rc=" _rc ///
-            " (likely overlap/separation on the thin default sample)"
-        continue
-    }
-    local pt = r(theta)
-    matrix A2_b[`row',1] = `pt'
+    forvalues h = 0/4 {
+        local row = `h' + 1
 
-    tempname pf2
-    tempfile bf2
-    quietly postfile `pf2' double theta using "`bf2'", replace
-    forvalues b = 1/`nboot' {
-        preserve
-            bsample, cluster(cid)
-            capture _aipw dy_`h' onset_def if onset_all==1, omodel(`cx2') pmodel(`cz2')
-            if _rc == 0 quietly post `pf2' (r(theta))
-        restore
-    }
-    quietly postclose `pf2'
-
-    local ndraw = 0
-    preserve
-        quietly use "`bf2'", clear
-        quietly count if !missing(theta)
-        local ndraw = r(N)
-        if `ndraw' >= 50 {
-            quietly summarize theta
-            matrix A2_se[`row',1] = r(sd)
-            _pctile theta, p(2.5 97.5)
-            matrix A2_lo[`row',1] = r(r1)
-            matrix A2_hi[`row',1] = r(r2)
+        * point estimate: this type's onsets vs tranquil (rival type dropped)
+        capture _aipw dy_`h' `Dvar' if sample==1 & `drop'==0, ///
+            omodel(`cx') pmodel(`cx' `cz') fe(cid)
+        if _rc {
+            di as error "`lab' h=" `h' ": point estimate failed, rc=" _rc
+            continue
         }
-    restore
+        local pt = r(theta)
+        matrix `stub'_b[`row',1] = `pt'
 
-    di "h=" `h' "   " %7.3f `pt' "   " ///
-       %7.3f A2_se[`row',1] "   [" %7.3f A2_lo[`row',1] ", " %7.3f A2_hi[`row',1] "]" ///
-       "   (" `ndraw' "/`nboot' draws)"
+        * cluster bootstrap (fresh FE ids), recompute Eq. (3)
+        tempname pf2
+        tempfile bf2
+        quietly postfile `pf2' double theta using "`bf2'", replace
+        forvalues b = 1/`nboot' {
+            preserve
+                capture drop _bid
+                bsample, cluster(cid) idcluster(_bid)
+                capture _aipw dy_`h' `Dvar' if sample==1 & `drop'==0, ///
+                    omodel(`cx') pmodel(`cx' `cz') fe(_bid)
+                if _rc == 0 quietly post `pf2' (r(theta))
+            restore
+        }
+        quietly postclose `pf2'
+
+        local ndraw = 0
+        preserve
+            quietly use "`bf2'", clear
+            quietly count if !missing(theta)
+            local ndraw = r(N)
+            if `ndraw' >= 50 {
+                quietly summarize theta
+                matrix `stub'_se[`row',1] = r(sd)
+                _pctile theta, p(2.5 97.5)
+                matrix `stub'_lo[`row',1] = r(r1)
+                matrix `stub'_hi[`row',1] = r(r2)
+            }
+        restore
+
+        di "`lab'  h=" `h' "  " %7.3f `pt' "   " ///
+           %7.3f `stub'_se[`row',1] "   [" %7.3f `stub'_lo[`row',1] ", " ///
+           %7.3f `stub'_hi[`row',1] "]   (" `ndraw' "/`nboot' draws)"
+    }
 }
 
 * ══════════════════════════════════════════════════════════════════════════
-* EXPORT — AIPW results CSV + comparison figure
+* EXPORT — AIPW results CSV + figures (Act 1 single line; Act 2 two-line split)
 * ══════════════════════════════════════════════════════════════════════════
 preserve
     clear
-    set obs 10
-    gen act     = cond(_n<=5, 1, 2)
-    gen horizon = mod(_n-1, 5)
-    gen aipw_b  = .
-    gen aipw_se = .
-    gen aipw_lo = .
-    gen aipw_hi = .
-    forvalues h = 0/4 {
-        replace aipw_b  = A1_b[`h'+1,1]  if act==1 & horizon==`h'
-        replace aipw_se = A1_se[`h'+1,1] if act==1 & horizon==`h'
-        replace aipw_lo = A1_lo[`h'+1,1] if act==1 & horizon==`h'
-        replace aipw_hi = A1_hi[`h'+1,1] if act==1 & horizon==`h'
-        replace aipw_b  = A2_b[`h'+1,1]  if act==2 & horizon==`h'
-        replace aipw_se = A2_se[`h'+1,1] if act==2 & horizon==`h'
-        replace aipw_lo = A2_lo[`h'+1,1] if act==2 & horizon==`h'
-        replace aipw_hi = A2_hi[`h'+1,1] if act==2 & horizon==`h'
+    * Long dataset: 3 series (all / nd / def) x 5 horizons.
+    tempname pfx
+    tempfile aipwf
+    postfile `pfx' str3 series horizon b se lo hi using "`aipwf'", replace
+    foreach map in "all A1" "nd A2nd" "def A2def" {
+        gettoken sname stub : map
+        forvalues h = 0/4 {
+            post `pfx' ("`sname'") (`h') ///
+                (`stub'_b[`h'+1,1]) (`stub'_se[`h'+1,1]) ///
+                (`stub'_lo[`h'+1,1]) (`stub'_hi[`h'+1,1])
+        }
     }
-    label define actl 1 "Act1: crisis cost" 2 "Act2: default extra cost"
-    label values act actl
-    order act horizon aipw_b aipw_se aipw_lo aipw_hi
+    postclose `pfx'
+    use "`aipwf'", clear
+    label var b  "AIPW ATE (pp)"
+    label var lo "95% percentile CI lower"
+    label var hi "95% percentile CI upper"
+    order series horizon b se lo hi
     export delimited "$tabs/aipw_results.csv", replace
     di as result "AIPW results CSV saved: $tabs/aipw_results.csv"
 
-    * Figure: AIPW IRFs, Act 1 and Act 2
+    * ── Figure A: Act 1 crisis cost (single line + CI band) ──────────────────
     local c1 "23 55 94"
-    local c2 "157 36 73"
     twoway ///
-        (rarea aipw_lo aipw_hi horizon if act==1, color("`c1'%20") lwidth(none)) ///
-        (connected aipw_b horizon if act==1, lcolor("`c1'") lwidth(medthick) msymbol(circle)) ///
-        (rarea aipw_lo aipw_hi horizon if act==2, color("`c2'%20") lwidth(none)) ///
-        (connected aipw_b horizon if act==2, lcolor("`c2'") lwidth(medthick) lpattern(dash) msymbol(square)), ///
+        (rarea lo hi horizon if series=="all", color("`c1'%20") lwidth(none)) ///
+        (connected b horizon if series=="all", lcolor("`c1'") lwidth(medthick) msymbol(circle)), ///
         yline(0, lpattern(dash) lcolor(gs8)) ///
         xlabel(0(1)4) ytitle("Cumulative GDPpc change (pp)", size(small)) ///
         xtitle("Years after onset", size(small)) ///
-        title("AIPW (Asonuma et al. Eq. 3) output cost", size(medsmall) color(navy)) ///
-        legend(order(2 "Crisis cost (all)" 4 "Extra cost of default") ring(0) pos(7) size(small)) ///
+        title("AIPW (Asonuma et al. Eq. 3) output cost — all crises", size(medsmall) color(navy)) ///
+        legend(off) ///
         note("Hand-coded AIPW (Jordà–Taylor 2016 / Asonuma et al. Eq. 3), ATE. CI = bootstrap percentile (cluster by country).", size(vsmall)) ///
         graphregion(color(white)) plotregion(color(white))
     graph export "$figs/fig_aipw.pdf", replace
     di as result "Figure saved: fig_aipw.pdf"
+
+    * ── Figure B: Act 2 resolution split (two lines + CI bands), fig8 palette ─
+    local c_nd  "0 84 166"
+    local c_def "157 36 73"
+    twoway ///
+        (rarea lo hi horizon if series=="nd",  color("`c_nd'%18")  lwidth(none)) ///
+        (rarea lo hi horizon if series=="def", color("`c_def'%18") lwidth(none)) ///
+        (connected b horizon if series=="nd",  lcolor("`c_nd'")  lwidth(medthick) msymbol(circle)) ///
+        (connected b horizon if series=="def", lcolor("`c_def'") lwidth(medthick) lpattern(dash) msymbol(square)), ///
+        yline(0, lpattern(dash) lcolor(gs8)) ///
+        xlabel(0(1)4, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
+        xtitle("Years after crisis onset", size(medsmall)) ///
+        ytitle("Cumulative change in log real GDP p.c. (pp)", size(medsmall)) ///
+        title("AIPW output cost by resolution", size(medium) color(navy)) ///
+        subtitle("Doubly-robust (Asonuma et al. Eq. 3), each vs tranquil.", size(small)) ///
+        legend(order(3 "Non-default" 4 "Default-linked") ring(0) pos(7) size(small)) ///
+        note("Two AIPW level IRFs; shaded = bootstrap 95% percentile CI (cluster by country). Gap = extra cost of default.", size(vsmall)) ///
+        graphregion(color(white)) plotregion(color(white))
+    graph export "$figs/fig_aipw_act2.pdf", replace
+    di as result "Figure saved: fig_aipw_act2.pdf"
 restore
 
 di as result _n "08b_aipw.do complete."
-di as result "Compare Act 1 AIPW to the OLS/IPW output cost (Table 1 / 08); Act 2 AIPW"
-di as result "to the OLS resolution difference (Table 2). Similar magnitudes => the"
-di as result "OLS results are not driven by selection (their Fig C1 logic)."
+di as result "fig_aipw.pdf = Act 1 crisis cost; fig_aipw_act2.pdf = the two-line"
+di as result "resolution split (non-default vs default, each vs tranquil) — the AIPW"
+di as result "twin of the IPW fig8. Compare the nd/def AIPW levels to fig8's IPW lines"
+di as result "and to the Table 2 OLS coefficients (similar ordering => selection is not"
+di as result "driving the resolution gap; their Fig C1 logic)."
