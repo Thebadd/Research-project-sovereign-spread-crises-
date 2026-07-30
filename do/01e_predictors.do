@@ -73,6 +73,16 @@ label var past_onsets "Z3: number of own onsets before year t (proneness predict
 
 drop cum_onset
 
+* Z3(def) — count of own DEFAULT-LINKED onsets strictly before year t.
+* Act 2's proneness predictor: default-repeat predicts default-type resolution.
+capture drop cum_def_onset past_def_onsets
+bysort cid (year): gen cum_def_onset = sum(onset_def)
+gen past_def_onsets = L.cum_def_onset
+replace past_def_onsets = 0 if missing(past_def_onsets)
+label var past_def_onsets "Z3(def): number of own default-linked onsets before year t"
+
+drop cum_def_onset
+
 * ══════════════════════════════════════════════════════════════════════════
 * SAVE + COVERAGE / RELEVANCE PEEK
 * ══════════════════════════════════════════════════════════════════════════
@@ -81,14 +91,14 @@ xtset cid year
 save "$clean/panel_lp.dta", replace
 
 di as result _n "=== PREDICTOR COVERAGE (sample==1) ==="
-foreach v in ust10y l_reg_crisis_share past_onsets {
+foreach v in fedfunds l_reg_crisis_share past_onsets past_def_onsets {
     quietly count if sample == 1 & !missing(`v')
     di as result "  `v': " r(N) " non-missing sample obs"
 }
 
 di as result _n "=== PREDICTOR MEANS BY ONSET STATUS (sample==1) — relevance peek ==="
 di as result "  (predictors should differ between onset and tranquil obs)"
-foreach v in ust10y l_reg_crisis_share past_onsets {
+foreach v in fedfunds l_reg_crisis_share past_onsets past_def_onsets {
     quietly summarize `v' if sample==1 & onset_all==1
     local m1 = r(mean)
     quietly summarize `v' if sample==1 & onset_all==0

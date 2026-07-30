@@ -5,8 +5,9 @@
 
   Steps:
     1. First-stage probit: Pr(onset_all=1 | X_{t-1})
-       Controls: l1_gdpg, l2_gdpg, debt, ca, infl, vix, ust10y, imf
-       (vix and ust10y included in probit only; absorbed by year FE in LP)
+       Controls X: l1_gdpg, l2_gdpg, debt, ca, infl, imf
+       Predictors Z: fedfunds (single global push), l_reg_crisis_share, past_onsets
+       (fedfunds included in probit only; absorbed by year FE in the LP)
     2. Predict propensity scores p_it
     3. Trim extreme scores (< 0.01 or > 0.99) to avoid explosive weights
     4. Construct stabilized IPW weights:
@@ -38,7 +39,11 @@ local controls_lp  l1_gdpg l2_gdpg ca debt infl imf
 *   l_reg_crisis_share (Z2) — regional contagion, country-varying, omitted from LP
 *   past_onsets       (Z3) — own crisis history, country-varying, omitted from LP
 local controls_x   l1_gdpg l2_gdpg debt ca infl imf
-local predictors_z ust10y vix l_reg_crisis_share past_onsets
+* Single global-push predictor (fed funds): fedfunds/ust10y/vix all proxy the
+* same global-financial-conditions factor, so only one is kept to avoid splitting
+* its explanatory power. fedfunds is pure time-series => absorbed by year FE in
+* the LP, so the exclusion restriction still holds.
+local predictors_z fedfunds l_reg_crisis_share past_onsets
 
 * ══════════════════════════════════════════════════════════════════════════
 * STEP 1 — FIRST-STAGE PROBIT
@@ -297,27 +302,33 @@ local controls l1_gdpg l2_gdpg ca debt infl imf
 
 di as result _n "=== ACT 2 IPW: FIRST STAGE — Probit of default-linked onset ==="
 di as result    "    Sample: crisis onset years only (onset_all == 1)"
-di as result    "    Lean first stage for a small default sample (~21 events):"
-di as result    "    confounders debt + ca plus ONE excluded predictor (regional"
-di as result    "    contagion). Kept ~3 covariates; validate by ROC/overlap, not"
-di as result    "    by coefficient significance."
+di as result    "    Act 2 uses the SAME controls X as Act 1 + predictors Z2"
+di as result    "    (fed funds, regional contagion, past DEFAULT onsets)."
 
-* Confounders (debt, ca — significant in the full probit) + the excluded
-* predictor l_reg_crisis_share (Z2: regional contagion), which is omitted from
-* the LP second stage. past_onsets (Z3) is deliberately NOT added here — with
-* only ~21 default events it risks perfect prediction / separation.
-quietly probit onset_def debt ca if onset_all == 1, vce(robust)
+* Same controls X as Act 1; predictors Z2 = fed funds (global push, year-FE
+* absorbed in the LP), l_reg_crisis_share (contagion), past_def_onsets (default
+* proneness). This is a thin cell (~21 default events among ~51 onsets), so the
+* full 6+3 spec can separate: guard it and fall back to a lean spec if it fails,
+* so the propensity score is always produced.
+local predictors_z2 fedfunds l_reg_crisis_share past_def_onsets
+
+quietly probit onset_def `controls' if onset_all == 1, vce(robust)
 quietly lroc, nograph
 local roc2_x = r(area)
 
-probit onset_def debt ca l_reg_crisis_share if onset_all == 1, vce(robust)
+capture probit onset_def `controls' `predictors_z2' if onset_all == 1, vce(robust)
+if _rc {
+    di as error "  ** Act 2 full probit (X + Z2) failed on the thin sample (rc=" _rc ")."
+    di as error "  ** Falling back to a lean spec: debt ca + fed funds + contagion + past-default."
+    probit onset_def debt ca `predictors_z2' if onset_all == 1, vce(robust)
+}
 quietly lroc, nograph
 local roc2_xz = r(area)
 
 estimates store fs_act2
 
-di as result "Area under ROC (Act 2): confounders only = " %5.3f `roc2_x' ///
-             "   +contagion = " %5.3f `roc2_xz'
+di as result "Area under ROC (Act 2): controls only = " %5.3f `roc2_x' ///
+             "   +predictors Z2 = " %5.3f `roc2_xz'
 di as result "McFadden Pseudo-R2: " e(r2_p)
 
 quietly esttab fs_act2 using "$tabs/ipw_act2_first_stage.csv", ///

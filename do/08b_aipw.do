@@ -41,10 +41,10 @@ xtset cid year
 
 * Outcome-model controls X and treatment-model predictors Z (as in 08)
 local cx    l1_gdpg l2_gdpg debt ca infl imf
-local cz    ust10y vix l_reg_crisis_share past_onsets
-* Act 2 (onset subsample): leaner, no country FE (61 obs)
-local cx2   l1_gdpg l2_gdpg debt ca infl
-local cz2   debt ca l_reg_crisis_share
+* Act 1 predictors Z1: single global push (fed funds) + contagion + proneness.
+local cz    fedfunds l_reg_crisis_share past_onsets
+* Act 2 predictors Z2: same, but proneness = past DEFAULT-linked onsets.
+local cz_def fedfunds l_reg_crisis_share past_def_onsets
 
 local nboot = 500      // bootstrap reps; raise to 1000+ for the final run
 
@@ -182,7 +182,7 @@ foreach spec in "onset_nd onset_def A2nd non-default" ///
 
         * point estimate: this type's onsets vs tranquil (rival type dropped)
         capture _aipw dy_`h' `Dvar' if sample==1 & `drop'==0, ///
-            omodel(`cx') pmodel(`cx' `cz') fe(cid)
+            omodel(`cx') pmodel(`cx' `cz_def') fe(cid)
         if _rc {
             di as error "`lab' h=" `h' ": point estimate failed, rc=" _rc
             continue
@@ -199,7 +199,7 @@ foreach spec in "onset_nd onset_def A2nd non-default" ///
                 capture drop _bid
                 bsample, cluster(cid) idcluster(_bid)
                 capture _aipw dy_`h' `Dvar' if sample==1 & `drop'==0, ///
-                    omodel(`cx') pmodel(`cx' `cz') fe(_bid)
+                    omodel(`cx') pmodel(`cx' `cz_def') fe(_bid)
                 if _rc == 0 quietly post `pf2' (r(theta))
             restore
         }

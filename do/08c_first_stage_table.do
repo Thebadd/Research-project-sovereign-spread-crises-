@@ -12,7 +12,9 @@
 
   Rows are grouped, as in their Table 1, into:
     PREDICTORS (excluded from the LP/AIPW outcome eq.):
-        ust10y  vix  l_reg_crisis_share  past_onsets
+        fed funds rate (global push) + regional contagion + past onsets.
+        Col 1 (all onsets) uses past_onsets; the resolution columns use
+        past_def_onsets (count of past DEFAULT-linked onsets).
     BASELINE CONTROLS (also in the outcome eq.):
         l1_gdpg  l2_gdpg  debt  ca  infl  imf
 
@@ -28,9 +30,11 @@
 
 use "$clean/panel_lp.dta", clear
 
-* Baseline controls X and excluded predictors Z (identical to 08 Act 1)
-local X   l1_gdpg l2_gdpg debt ca infl imf
-local Z   ust10y vix l_reg_crisis_share past_onsets
+* Baseline controls X (all columns) and predictors: Z1 for Act 1 (all onsets),
+* Z2 for the resolution columns (proneness = past DEFAULT-linked onsets).
+local X    l1_gdpg l2_gdpg debt ca infl imf
+local Z1   fedfunds l_reg_crisis_share past_onsets
+local Z2   fedfunds l_reg_crisis_share past_def_onsets
 
 eststo clear
 
@@ -49,9 +53,9 @@ program define _fscol
     estadd scalar auroc = r(area)
 end
 
-_fscol fs_all "onset_all" "sample==1"                    "`X'" "`Z'"
-_fscol fs_nd  "onset_nd"  "sample==1 & onset_def==0"      "`X'" "`Z'"
-_fscol fs_def "onset_def" "sample==1 & onset_nd==0"       "`X'" "`Z'"
+_fscol fs_all "onset_all" "sample==1"                    "`X'" "`Z1'"
+_fscol fs_nd  "onset_nd"  "sample==1 & onset_def==0"      "`X'" "`Z2'"
+_fscol fs_def "onset_def" "sample==1 & onset_nd==0"       "`X'" "`Z2'"
 
 * ── Console echo of the diagnostics ──────────────────────────────────────────
 di as result _n "=== FIRST-STAGE PROBIT DIAGNOSTICS (predictors jointly) ==="
@@ -67,19 +71,19 @@ foreach c in fs_all fs_nd fs_def {
 capture esttab fs_all fs_nd fs_def using "$tabs/table_first_stage.rtf", replace ///
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
     mtitles("All onsets" "Non-default" "Default-linked") ///
-    order(ust10y vix l_reg_crisis_share past_onsets ///
+    order(fedfunds l_reg_crisis_share past_onsets past_def_onsets ///
           l1_gdpg l2_gdpg debt ca infl imf) ///
-    coeflabel(ust10y "US 10y Treasury yield" ///
-              vix "VIX (global risk)" ///
+    coeflabel(fedfunds "US fed funds rate" ///
               l_reg_crisis_share "Regional contagion (t-1)" ///
-              past_onsets "Number of past onsets" ///
+              past_onsets "Past onsets (any type)" ///
+              past_def_onsets "Past default-linked onsets" ///
               l1_gdpg "GDP growth (t-1)" ///
               l2_gdpg "GDP growth (t-2)" ///
               debt "Public debt / GDP" ///
               ca "Current account / GDP" ///
               infl "CPI inflation" ///
               imf "IMF program") ///
-    refcat(ust10y "Predictors" l1_gdpg "Baseline controls", nolabel) ///
+    refcat(fedfunds "Predictors" l1_gdpg "Baseline controls", nolabel) ///
     stats(chi2p pp auroc N, ///
           labels("Chi-squared (predictors)" "  p-value" "Area under ROC curve" "Observations") ///
           fmt(2 3 3 0)) ///
