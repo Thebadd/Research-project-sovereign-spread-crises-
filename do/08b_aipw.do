@@ -42,9 +42,9 @@ xtset cid year
 * Outcome-model controls X and treatment-model predictors Z (as in 08)
 local cx    l1_gdpg l2_gdpg debt ca infl imf
 * Act 1 predictors Z1: single global push (fed funds) + contagion + proneness.
-local cz    fedfunds l_reg_crisis_share past_onsets
+local cz    vix l_reg_crisis_share past_onsets
 * Act 2 predictors Z2: same, but proneness = past DEFAULT-linked onsets.
-local cz_def fedfunds l_reg_crisis_share past_def_onsets
+local cz_def vix l_reg_crisis_share past_def_onsets
 
 local nboot = 500      // bootstrap reps; raise to 1000+ for the final run
 

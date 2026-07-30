@@ -73,10 +73,10 @@ capture drop pscore2 trimmed2 ipw2
 * past DEFAULT onsets), consistent with 08_ipw_lp.do. Thin cell (~21 events) =>
 * guard the full spec and fall back to a lean one if it separates.
 capture probit onset_def l1_gdpg l2_gdpg debt ca infl imf ///
-    fedfunds l_reg_crisis_share past_def_onsets if onset_all == 1, vce(robust)
+    vix l_reg_crisis_share past_def_onsets if onset_all == 1, vce(robust)
 if _rc {
     di as error "  ** full Act 2 probit separated (rc=" _rc "); lean fallback."
-    probit onset_def debt ca fedfunds l_reg_crisis_share past_def_onsets ///
+    probit onset_def debt ca vix l_reg_crisis_share past_def_onsets ///
         if onset_all == 1, vce(robust)
 }
 di as result "McFadden Pseudo-R2: " e(r2_p)

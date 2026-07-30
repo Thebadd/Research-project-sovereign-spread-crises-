@@ -12,7 +12,7 @@
 
   Rows are grouped, as in their Table 1, into:
     PREDICTORS (excluded from the LP/AIPW outcome eq.):
-        fed funds rate (global push) + regional contagion + past onsets.
+        VIX (global push) + regional contagion + past onsets.
         Col 1 (all onsets) uses past_onsets; the resolution columns use
         past_def_onsets (count of past DEFAULT-linked onsets).
     BASELINE CONTROLS (also in the outcome eq.):
@@ -33,8 +33,8 @@ use "$clean/panel_lp.dta", clear
 * Baseline controls X (all columns) and predictors: Z1 for Act 1 (all onsets),
 * Z2 for the resolution columns (proneness = past DEFAULT-linked onsets).
 local X    l1_gdpg l2_gdpg debt ca infl imf
-local Z1   fedfunds l_reg_crisis_share past_onsets
-local Z2   fedfunds l_reg_crisis_share past_def_onsets
+local Z1   vix l_reg_crisis_share past_onsets
+local Z2   vix l_reg_crisis_share past_def_onsets
 
 eststo clear
 
@@ -71,9 +71,9 @@ foreach c in fs_all fs_nd fs_def {
 capture esttab fs_all fs_nd fs_def using "$tabs/table_first_stage.rtf", replace ///
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
     mtitles("All onsets" "Non-default" "Default-linked") ///
-    order(fedfunds l_reg_crisis_share past_onsets past_def_onsets ///
+    order(vix l_reg_crisis_share past_onsets past_def_onsets ///
           l1_gdpg l2_gdpg debt ca infl imf) ///
-    coeflabel(fedfunds "US fed funds rate" ///
+    coeflabel(vix "VIX (global risk)" ///
               l_reg_crisis_share "Regional contagion (t-1)" ///
               past_onsets "Past onsets (any type)" ///
               past_def_onsets "Past default-linked onsets" ///
@@ -83,7 +83,7 @@ capture esttab fs_all fs_nd fs_def using "$tabs/table_first_stage.rtf", replace 
               ca "Current account / GDP" ///
               infl "CPI inflation" ///
               imf "IMF program") ///
-    refcat(fedfunds "Predictors" l1_gdpg "Baseline controls", nolabel) ///
+    refcat(vix "Predictors" l1_gdpg "Baseline controls", nolabel) ///
     stats(chi2p pp auroc N, ///
           labels("Chi-squared (predictors)" "  p-value" "Area under ROC curve" "Observations") ///
           fmt(2 3 3 0)) ///

@@ -6,8 +6,8 @@
   Steps:
     1. First-stage probit: Pr(onset_all=1 | X_{t-1})
        Controls X: l1_gdpg, l2_gdpg, debt, ca, infl, imf
-       Predictors Z: fedfunds (single global push), l_reg_crisis_share, past_onsets
-       (fedfunds included in probit only; absorbed by year FE in the LP)
+       Predictors Z: vix (single global push), l_reg_crisis_share, past_onsets
+       (vix included in probit only; absorbed by year FE in the LP)
     2. Predict propensity scores p_it
     3. Trim extreme scores (< 0.01 or > 0.99) to avoid explosive weights
     4. Construct stabilized IPW weights:
@@ -39,11 +39,11 @@ local controls_lp  l1_gdpg l2_gdpg ca debt infl imf
 *   l_reg_crisis_share (Z2) — regional contagion, country-varying, omitted from LP
 *   past_onsets       (Z3) — own crisis history, country-varying, omitted from LP
 local controls_x   l1_gdpg l2_gdpg debt ca infl imf
-* Single global-push predictor (fed funds): fedfunds/ust10y/vix all proxy the
+* Single global-push predictor (VIX): fedfunds/ust10y/vix all proxy the
 * same global-financial-conditions factor, so only one is kept to avoid splitting
-* its explanatory power. fedfunds is pure time-series => absorbed by year FE in
+* its explanatory power. vix is pure time-series => absorbed by year FE in
 * the LP, so the exclusion restriction still holds.
-local predictors_z fedfunds l_reg_crisis_share past_onsets
+local predictors_z vix l_reg_crisis_share past_onsets
 
 * ══════════════════════════════════════════════════════════════════════════
 * STEP 1 — FIRST-STAGE PROBIT
@@ -310,7 +310,7 @@ di as result    "    (fed funds, regional contagion, past DEFAULT onsets)."
 * proneness). This is a thin cell (~21 default events among ~51 onsets), so the
 * full 6+3 spec can separate: guard it and fall back to a lean spec if it fails,
 * so the propensity score is always produced.
-local predictors_z2 fedfunds l_reg_crisis_share past_def_onsets
+local predictors_z2 vix l_reg_crisis_share past_def_onsets
 
 quietly probit onset_def `controls' if onset_all == 1, vce(robust)
 quietly lroc, nograph
