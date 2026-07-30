@@ -51,6 +51,7 @@ do "$do/11b_nexus_channels.do"
 do "$do/12_channels_resolution.do"
 do "$do/13_mechanisms.do"
 do "$do/13b_exposure_heterogeneity.do"   // Tier-3: onset x pre-crisis channel exposure
+do "$do/13c_aipw_channels.do"            // doubly-robust AIPW for the transmission channels (matches 08b)
 
 * ── Structural model: calibration + nonlinear default block + transmission ──
 do "$do/14_calibration.do"      // calibrate params (literature + data moments)
