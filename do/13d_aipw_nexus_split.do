@@ -11,7 +11,12 @@
   Headline claim: default-linked spread crises are costliest where the
   sovereign-bank nexus is tight (banks heavily exposed to the sovereign).
 
-  Design (outcome = GDP dy_h, coherent with 08b):
+  Outcomes: GDP (dy_h, coherent with 08b) PLUS the transmission channels
+  credit, inv, claimpriv_assets, claims_govt — so we can watch each channel evolve
+  differently under high vs low nexus (which channel carries the non-default
+  cushion vs the default-linked doom-loop loss). Same Part A + Part B per outcome.
+
+  Design (per outcome, coherent with 08b/13c):
     Amplifier a_nexus = pre-crisis claimsgov_assets (L.claimsgov_assets), filled
       with the country mean where the t-1 value is missing (coverage is thin, 2001+).
     Median split over crisis onsets: highbank = a_nexus >= median(onsets).
@@ -25,7 +30,8 @@
   the point estimate stands with a printed caveat. This thinness is the honest limit
   vs Asonuma's 194 restructurings — read Part B as suggestive, Part A as the result.
 
-  Output: $tabs/aipw_nexus_split.csv ; $figs/fig_aipw_nexus_split.pdf.
+  Output: $tabs/aipw_nexus_split.csv (outcome x part x bank x horizon) ;
+          $figs/fig_aipw_nexus_split.pdf (GDP) + $figs/fig_nexus_<channel>.pdf.
   Run AFTER 01e_predictors.do (needs vix, past_onsets, past_def_onsets, nexus vars).
 ===========================================================================*/
 
@@ -63,6 +69,25 @@ foreach t in onset_all onset_nd onset_def {
     quietly count if sample==1 & `t'==1 & missing(highbank)
     local nm = r(N)
     di as result "  `t': high=" `nh' "  low=" `nl' "  unclassified=" `nm'
+}
+
+* ══════════════════════════════════════════════════════════════════════════
+* CHANNEL OUTCOMES — evolve each channel by high/low nexus (as in 13c)
+*   Outcomes: GDP (dy_h, already in panel) + credit, inv, claimpriv_assets,
+*   claims_govt (ch_v_h = F h.v - L.v). Every lagged control pre-generated as a
+*   PLAIN column so the cluster bootstrap (bsample destroys time order) is valid.
+* ══════════════════════════════════════════════════════════════════════════
+foreach v in credit inv claimpriv_assets claims_govt {
+    capture drop `v'_base
+    gen `v'_base = L.`v'
+    forvalues h = 0/4 {
+        capture drop ch_`v'_`h'
+        gen ch_`v'_`h' = F`h'.`v' - `v'_base
+    }
+}
+foreach v in credit claimpriv_assets claims_govt pb {
+    capture drop l_`v'
+    gen l_`v' = L.`v'
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -148,48 +173,64 @@ end
 * ══════════════════════════════════════════════════════════════════════════
 tempname R
 tempfile resf
-postfile `R' str4 part str4 bank byte horizon double b se lo hi ntreat nd ///
+postfile `R' str18 outcome str4 part str4 bank byte horizon double b se lo hi ntreat nd ///
     using "`resf'", replace
 
-* Rows to estimate: part-label | treatment dummy | rival dummy to drop | predictors
-*   Part A uses onset_all (rival = "" -> none); Parts nd/def drop the other type.
-foreach cell in "all onset_all . cz" ///
-                "nd  onset_nd onset_def cz_def" ///
-                "def onset_def onset_nd cz_def" {
-    gettoken part cell : cell
-    gettoken Dv   cell : cell
-    gettoken riv  cell : cell
-    gettoken pzn  cell : cell
-    * predictor set (indirect: pzn is the local NAME cz or cz_def)
-    local pz "``pzn''"
+* Outcomes: label | outcome-variable stem (dy or ch_<v>) | channel-specific
+*   outcome-model controls (om), same specs as 13c. GDP uses cx (unchanged).
+foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
+              "claimpriv_assets ch_claimpriv_assets" "claims_govt ch_claims_govt" {
+    gettoken ocl   oc : oc
+    gettoken ystem oc : oc
 
-    forvalues H = 0/1 {                       // 0 = low nexus, 1 = high nexus
-        local blab = cond(`H'==1, "high", "low")
-        di as result _n "--- Part `part' | `blab' nexus ---"
+    if      "`ocl'" == "gdp"              local om `cx'
+    else if "`ocl'" == "credit"           local om l1_gdpg l2_gdpg debt infl ca banking_crisis
+    else if "`ocl'" == "inv"              local om l1_gdpg l2_gdpg debt ca l_credit banking_crisis
+    else if "`ocl'" == "claimpriv_assets" local om l_claimpriv_assets l1_gdpg l2_gdpg debt ca banking_crisis
+    else if "`ocl'" == "claims_govt"      local om l_claims_govt l_credit pb banking_crisis
 
-        forvalues h = 0/4 {
-            * sample: tranquil (onset_all==0) + this cell's treated onsets only
-            if "`riv'" == "." {
-                local ifc sample==1 & (onset_all==0 | (`Dv'==1 & highbank==`H'))
-            }
-            else {
-                local ifc sample==1 & `riv'==0 & (onset_all==0 | (`Dv'==1 & highbank==`H'))
-            }
-            quietly count if `Dv'==1 & highbank==`H' & sample==1
-            local ntr = r(N)
+    di as result _n "############### OUTCOME: `ocl' ###############"
 
-            _aipwci dy_`h' `Dv', ifc(`ifc') omod(`cx') pz(`cx' `pz') reps(`nboot')
-            if r(ok) {
-                local b=r(b)
-                local se=r(se)
-                local lo=r(lo)
-                local hi=r(hi)
-                local nd=r(nd)
-                post `R' ("`part'") ("`blab'") (`h') (`b') (`se') (`lo') (`hi') (`ntr') (`nd')
-                di "    h=" `h' "  ATE=" %8.3f `b' "  [" %7.3f `lo' ", " %7.3f `hi' ///
-                   "]  (n_treat=" `ntr' ", " `nd' "/`nboot' draws)"
+    * Rows: part-label | treatment dummy | rival dummy to drop | predictors
+    *   Part A uses onset_all (rival = "" -> none); Parts nd/def drop the other type.
+    foreach cell in "all onset_all . cz" ///
+                    "nd  onset_nd onset_def cz_def" ///
+                    "def onset_def onset_nd cz_def" {
+        gettoken part cell : cell
+        gettoken Dv   cell : cell
+        gettoken riv  cell : cell
+        gettoken pzn  cell : cell
+        * predictor set (indirect: pzn is the local NAME cz or cz_def)
+        local pz "``pzn''"
+
+        forvalues H = 0/1 {                       // 0 = low nexus, 1 = high nexus
+            local blab = cond(`H'==1, "high", "low")
+            di as result _n "--- `ocl' | Part `part' | `blab' nexus ---"
+
+            forvalues h = 0/4 {
+                * sample: tranquil (onset_all==0) + this cell's treated onsets only
+                if "`riv'" == "." {
+                    local ifc sample==1 & (onset_all==0 | (`Dv'==1 & highbank==`H'))
+                }
+                else {
+                    local ifc sample==1 & `riv'==0 & (onset_all==0 | (`Dv'==1 & highbank==`H'))
+                }
+                quietly count if `Dv'==1 & highbank==`H' & sample==1
+                local ntr = r(N)
+
+                _aipwci `ystem'_`h' `Dv', ifc(`ifc') omod(`om') pz(`cx' `pz') reps(`nboot')
+                if r(ok) {
+                    local b=r(b)
+                    local se=r(se)
+                    local lo=r(lo)
+                    local hi=r(hi)
+                    local nd=r(nd)
+                    post `R' ("`ocl'") ("`part'") ("`blab'") (`h') (`b') (`se') (`lo') (`hi') (`ntr') (`nd')
+                    di "    h=" `h' "  ATE=" %8.3f `b' "  [" %7.3f `lo' ", " %7.3f `hi' ///
+                       "]  (n_treat=" `ntr' ", " `nd' "/`nboot' draws)"
+                }
+                else di as error "    h=" `h' ": estimate failed (too thin)."
             }
-            else di as error "    h=" `h' ": estimate failed (too thin)."
         }
     }
 }
@@ -199,10 +240,10 @@ postclose `R'
 * EXPORT — CSV + figure (panels by resolution part; high vs low nexus lines)
 * ══════════════════════════════════════════════════════════════════════════
 use "`resf'", clear
-label var b  "AIPW ATE on GDPpc (pp)"
+label var b  "AIPW ATE on outcome (pp)"
 label var ntreat "Treated onsets in cell"
 label var nd "Valid bootstrap draws"
-order part bank horizon b se lo hi ntreat nd
+order outcome part bank horizon b se lo hi ntreat nd
 export delimited "$tabs/aipw_nexus_split.csv", replace
 di as result _n "Nexus-split AIPW results CSV saved: $tabs/aipw_nexus_split.csv"
 
@@ -213,28 +254,42 @@ replace partid = 3 if part=="def"
 label define pl 1 "All onsets" 2 "Non-default" 3 "Default-linked"
 label values partid pl
 
+* ── One high-vs-low figure per outcome (GDP keeps its historical look) ───────
 local c_hi "157 36 73"    // high nexus = red (the doom-loop)
 local c_lo "0 84 166"     // low  nexus = blue
-capture twoway ///
-    (rarea lo hi horizon if bank=="high", color("`c_hi'%16") lwidth(none)) ///
-    (rarea lo hi horizon if bank=="low",  color("`c_lo'%16") lwidth(none)) ///
-    (connected b horizon if bank=="high", lcolor("`c_hi'") lwidth(medthick) msymbol(square) lpattern(dash)) ///
-    (connected b horizon if bank=="low",  lcolor("`c_lo'") lwidth(medthick) msymbol(circle)), ///
-    by(partid, yrescale ///
-        note("AIPW (Asonuma Eq. 3), ATE on GDPpc. Split by pre-crisis bank claims-on-govt / assets (median). Shaded = bootstrap 95% CI where >=50 draws.", size(vsmall)) ///
-        title("Output cost by sovereign-bank nexus", size(medsmall) color(navy))) ///
-    yline(0, lpattern(dash) lcolor(gs8)) ///
-    xlabel(0(1)4) xtitle("Years after onset", size(small)) ///
-    ytitle("Cumulative GDPpc change (pp)", size(small)) ///
-    legend(order(3 "High nexus" 4 "Low nexus") size(small)) ///
-    graphregion(color(white)) plotregion(color(white))
-if _rc == 0 {
-    graph export "$figs/fig_aipw_nexus_split.pdf", replace
-    di as result "Figure saved: fig_aipw_nexus_split.pdf"
+foreach oc in gdp credit inv claimpriv_assets claims_govt {
+    if "`oc'" == "gdp" {
+        local ptit "Output cost by sovereign-bank nexus"
+        local ytit "Cumulative GDPpc change (pp)"
+        local fnm  "fig_aipw_nexus_split"       // unchanged filename for GDP
+    }
+    else {
+        local ptit "`oc' channel by sovereign-bank nexus"
+        local ytit "Cumulative change in `oc' (pp)"
+        local fnm  "fig_nexus_`oc'"
+    }
+    capture twoway ///
+        (rarea lo hi horizon if bank=="high" & outcome=="`oc'", color("`c_hi'%16") lwidth(none)) ///
+        (rarea lo hi horizon if bank=="low"  & outcome=="`oc'", color("`c_lo'%16") lwidth(none)) ///
+        (connected b horizon if bank=="high" & outcome=="`oc'", lcolor("`c_hi'") lwidth(medthick) msymbol(square) lpattern(dash)) ///
+        (connected b horizon if bank=="low"  & outcome=="`oc'", lcolor("`c_lo'") lwidth(medthick) msymbol(circle)), ///
+        by(partid, yrescale ///
+            note("AIPW (Asonuma Eq. 3), ATE. Split by pre-crisis bank claims-on-govt / assets (median). Shaded = bootstrap 95% CI where >=50 draws.", size(vsmall)) ///
+            title("`ptit'", size(medsmall) color(navy))) ///
+        yline(0, lpattern(dash) lcolor(gs8)) ///
+        xlabel(0(1)4) xtitle("Years after onset", size(small)) ///
+        ytitle("`ytit'", size(small)) ///
+        legend(order(3 "High nexus" 4 "Low nexus") size(small)) ///
+        graphregion(color(white)) plotregion(color(white))
+    if _rc == 0 {
+        graph export "$figs/`fnm'.pdf", replace
+        di as result "Figure saved: `fnm'.pdf"
+    }
+    else di as error "  ** `fnm' failed (rc=" _rc ")"
 }
-else di as error "  ** fig_aipw_nexus_split failed (rc=" _rc ")"
 
 di as result _n "13d_aipw_nexus_split.do complete."
-di as result "Headline (Part def): compare the HIGH-nexus vs LOW-nexus default lines —"
-di as result "high-nexus default crises should be the deepest (the doom-loop amplifies"
-di as result "the default cost). Read Part B with its small-cell / draw-count caveat."
+di as result "GDP headline (Part def): high-nexus default crises are the deepest (doom-loop"
+di as result "amplifies the default cost). The channel outcomes trace the mechanism: expect"
+di as result "claims_govt to RISE under def x high (banks absorbing the sovereign = the loss"
+di as result "channel). Read Part B with its small-cell / draw-count caveat."
