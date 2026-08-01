@@ -71,6 +71,21 @@ foreach t in onset_all onset_nd onset_def {
     di as result "  `t': high=" `nh' "  low=" `nl' "  unclassified=" `nm'
 }
 
+* ── Confound check: which countries fall in each nexus bin? ──────────────────
+*   If the high/low split just proxies income / financial development, the two
+*   bins will be dominated by systematically different countries. Print the
+*   country composition of the bins (over onsets) and the mean nexus by bin so
+*   the split can be inspected, not taken on faith.
+di as result _n "=== NEXUS-BIN COUNTRY COMPOSITION (crisis onsets) ==="
+capture noisily tabulate country highbank if sample==1 & onset_all==1, ///
+    row nofreq
+di as result _n "  Mean pre-crisis nexus (claims-on-govt/assets) by bin, over onsets:"
+capture noisily tabstat a_nexus if sample==1 & onset_all==1, ///
+    by(highbank) statistics(mean min max n) format(%6.2f)
+di as result "  (Read alongside any income/development ranking of these countries:"
+di as result "   if the two columns are not obviously split by development, the nexus"
+di as result "   result is not merely a development proxy.)"
+
 * ══════════════════════════════════════════════════════════════════════════
 * CHANNEL OUTCOMES — evolve each channel by high/low nexus (as in 13c)
 *   Outcomes: GDP (dy_h, already in panel) + credit, inv, claimpriv_assets,

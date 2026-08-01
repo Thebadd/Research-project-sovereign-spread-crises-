@@ -253,7 +253,65 @@ output cost (Section 4) through different plumbing.
 
 ---
 
-## 8. Robustness and inference
+## 8. The sovereign-bank nexus: a two-dimensional amplifier
+
+Section 7 showed that default-linked banks *accumulate* government debt. We
+now ask whether the strength of that sovereign-bank linkage *conditions*
+the output cost itself — an analog of Asonuma et al.'s bank-intermediation
+split (their Fig. 6), but sharpened from bank *size* to bank *exposure to
+this sovereign*. We measure the nexus by pre-crisis bank claims on
+government as a share of bank assets (`claimsgov_assets`, predetermined at
+$t-1$, country-mean filled where the year-before value is missing), split
+the onsets at their median into a **high-** and a **low-nexus** group, and
+re-estimate the doubly-robust AIPW output cost separately within each
+group (control = tranquil years only), coherent with the estimator of
+Section 5. The median cutoff is about 14% of assets; the cells are small
+(non-default: 14 low / 17 high; default-linked: 9 low / 6 high), so the
+default rows are read as directional.
+
+The result is a **sign flip**: the nexus is protective when the debt is
+honored and destructive when it is not.
+
+| GDPpc cost (AIPW ATE, pp) | Low nexus | High nexus |
+|:--|:--:|:--:|
+| **Non-default** | −5.3 to −9.5, all significant | **≈ 0, insignificant at every $h$** |
+| **Default-linked** | −5.8 → −2.3 (loses significance by $h=3$) | **−6.3 → −10.9, all significant (deepest cell)** |
+
+In non-default crises a tight nexus is a **cushion**: high-nexus output is
+statistically indistinguishable from zero, while the cost in that quadrant
+falls entirely on low-nexus countries that must refinance in external
+markets. In default-linked crises the same tight nexus is an
+**amplifier**: high-nexus episodes are the deepest in the entire design.
+
+The channel outcomes, re-estimated on the same high/low split, identify
+the mechanism as a **within-bank portfolio reallocation** concentrated in
+the default-linked, high-nexus cell:
+
+- **Bank claims on government rise most there** — +9 to +12 pp at
+  $h=1$–$2$, versus about half that in low-nexus defaults and ≈0 in
+  non-default episodes. Already-exposed banks absorb *more* sovereign paper
+  precisely as it is being restructured.
+- **Bank claims on the private sector fall there** — −4.9 to −6.1 pp
+  ($h=1$–$3$, tightly estimated), against a much milder low-nexus response.
+  The money that flows toward the sovereign is withdrawn from firms.
+
+Crucially, the *generic* macro channels do **not** single out this cell.
+Private credit/GDP contracts in most crisis cells but if anything *more*
+under low nexus, and investment is weak everywhere; neither shows a
+default×high-nexus spike. The amplification is therefore a **banking
+balance-sheet-composition** phenomenon — visible in the bank-level
+claims measures, diluted in the economy-wide credit aggregate — not a
+generic collapse of credit or capital formation. This is the doom loop
+made concrete: where banks are heavily pre-committed to the sovereign, a
+default forces them to reshuffle their portfolio toward government and away
+from the real economy, and that reallocation is what turns a restructuring
+into the deepest recessions in the sample. The mechanism is summarised
+schematically in Figure `fig_nexus_mechanism_2x2` and estimated in
+`aipw_nexus_split.csv` (the by-outcome high/low IRFs in `fig_nexus_*`).
+
+---
+
+## 9. Robustness and inference
 
 The baseline is checked against alternative crisis-classification
 thresholds, exclusion of the most extreme episodes (Argentina, Venezuela),
@@ -268,8 +326,15 @@ conventional $t$-statistics may be unreliable.
 
 ---
 
-## 9. Limitations
+## 10. Limitations
 
+- **Thin nexus cells.** The default×nexus quadrants of Section 8 hold only
+  6–9 treated onsets, so those estimates are directional, not precise, and
+  a share of bootstrap draws is lost in the smallest cells. The high/low
+  split could also proxy income or financial development; the run prints
+  the country composition of each bin and the mean nexus per bin
+  (`tabulate country highbank`) so this can be inspected rather than
+  assumed away.
 - **Small treated samples**, particularly default-linked (21 onsets; the
   channel-by-resolution cells contain only 12–19 default-linked
   observations). Insignificant difference tests frequently reflect low
@@ -287,9 +352,9 @@ conventional $t$-statistics may be unreliable.
 
 ---
 
-## 10. Summary
+## 11. Summary
 
-The analysis establishes three findings. First, a spread crisis imposes a
+The analysis establishes four findings. First, a spread crisis imposes a
 large and **persistent** output cost — about −1.9pp on impact, troughing
 near −3.8pp, and still −3pp after four years, robustly and if anything
 conservatively estimated. Second, default-linked crises appear deeper on
@@ -298,5 +363,10 @@ within four years, and is partly explained by pre-crisis fundamentals once
 selection is addressed. Third, the two crisis types propagate through
 **different channels** — a private credit-and-investment contraction in
 non-default episodes versus sovereign-bank balance-sheet linkages and
-fiscal retrenchment in default-linked episodes — which is arguably the
-most novel empirical contribution of the paper.
+fiscal retrenchment in default-linked episodes. Fourth, the sovereign-bank
+nexus is a **two-dimensional amplifier**: a tight pre-crisis linkage
+cushions non-default crises (output ≈ 0) but deepens default-linked ones
+(output −6 to −11pp) through a within-bank reallocation from private
+lending toward the sovereign — the resolution-conditional doom loop, which
+together with the channel decomposition is arguably the most novel
+empirical contribution of the paper.
