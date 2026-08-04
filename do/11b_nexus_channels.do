@@ -33,12 +33,16 @@ foreach var in claimsgov_assets claimpriv_assets {
         gen ch_`var'_`h' = F`h'.`var' - `var'_base
         label var ch_`var'_`h' "Cum. change `var': F`h' vs t-1 (pp)"
     }
+    * own-outcome pre-crisis change (Asonuma's g_0), matching 13c/13d. Needs a
+    * second lag, so it costs some coverage on the thin 2001+ nexus sample.
+    capture drop pre_`var'
+    gen pre_`var' = L.`var' - L2.`var'
 }
 
 * ── Channel-specific controls (lean, to preserve the short 2001+ sample) ──
 local channels        claimsgov_assets claimpriv_assets
-local ctrl_claimsgov_assets  L.claimsgov_assets l1_gdpg debt pb banking_crisis
-local ctrl_claimpriv_assets  L.claimpriv_assets l1_gdpg l2_gdpg debt ca banking_crisis
+local ctrl_claimsgov_assets  L.claimsgov_assets l1_gdpg debt pb banking_crisis pre_claimsgov_assets
+local ctrl_claimpriv_assets  L.claimpriv_assets l1_gdpg l2_gdpg debt ca banking_crisis pre_claimpriv_assets
 
 * ── Coverage at onset ─────────────────────────────────────────────────────
 di as result _n "=== NEXUS CHANNEL COVERAGE AT ONSET (h=0) ==="
@@ -139,6 +143,8 @@ foreach var in claimsgov_assets claimpriv_assets {
         capture drop ch_`var'_`h'
         gen ch_`var'_`h' = F`h'.`var' - `var'_base
     }
+    capture drop pre_`var'
+    gen pre_`var' = L.`var' - L2.`var'
 }
 
 capture drop pscore2 trimmed2 ipw2

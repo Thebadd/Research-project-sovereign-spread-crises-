@@ -59,6 +59,9 @@ foreach var in credit claims_govt inv {
         capture drop ch_`var'_`h'
         gen ch_`var'_`h' = F`h'.`var' - `var'_base
     }
+    * own-outcome pre-crisis change (Asonuma's g_0), added to every spec below.
+    capture drop pre_`var'
+    gen pre_`var' = L.`var' - L2.`var'
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -83,7 +86,7 @@ forvalues h = 0/4 {
 
     * Baseline: current 11_channels spec
     capture xtscc ch_credit_`h' onset_all ///
-        l1_gdpg l2_gdpg debt infl ca banking_crisis ///
+        l1_gdpg l2_gdpg debt infl ca banking_crisis pre_credit ///
         i.year if sample==1, fe lag(`lag')
 
     if _rc == 0 {
@@ -96,7 +99,7 @@ forvalues h = 0/4 {
 
     * With L.claims_govt added
     capture xtscc ch_credit_`h' onset_all ///
-        l1_gdpg l2_gdpg debt infl ca banking_crisis L.claims_govt ///
+        l1_gdpg l2_gdpg debt infl ca banking_crisis L.claims_govt pre_credit ///
         i.year if sample==1, fe lag(`lag')
 
     if _rc == 0 {
@@ -202,6 +205,8 @@ foreach var in inv {
         capture drop ch_`var'_`h'
         gen ch_`var'_`h' = F`h'.`var' - `var'_base
     }
+    capture drop pre_`var'
+    gen pre_`var' = L.`var' - L2.`var'
 }
 
 di as result _n "========================================================"
@@ -221,7 +226,7 @@ forvalues h = 0/4 {
 
     * Without L.credit (total effect)
     capture xtscc ch_inv_`h' onset_all ///
-        l1_gdpg l2_gdpg debt ca banking_crisis ///
+        l1_gdpg l2_gdpg debt ca banking_crisis pre_inv ///
         i.year if sample==1, fe lag(`lag')
 
     if _rc == 0 {
@@ -234,7 +239,7 @@ forvalues h = 0/4 {
 
     * With L.credit (direct effect net of credit)
     capture xtscc ch_inv_`h' onset_all ///
-        l1_gdpg l2_gdpg debt ca banking_crisis L.credit ///
+        l1_gdpg l2_gdpg debt ca banking_crisis L.credit pre_inv ///
         i.year if sample==1, fe lag(`lag')
 
     if _rc == 0 {
@@ -355,6 +360,8 @@ forvalues h = 0/4 {
     capture drop ch_ca_`h'
     gen ch_ca_`h' = F`h'.ca - ca_base
 }
+capture drop pre_ca
+gen pre_ca = L.ca - L2.ca
 
 di as result _n "========================================================"
 di as result "TEST 3: CURRENT ACCOUNT LP (Aguiar-Gopinath mechanism)"
@@ -374,7 +381,7 @@ forvalues h = 0/4 {
 
     * Aggregate — with lagged CA for persistence
     capture xtscc ch_ca_`h' onset_all ///
-        l1_gdpg l2_gdpg debt L.ca ///
+        l1_gdpg l2_gdpg debt L.ca pre_ca ///
         i.year if sample==1, fe lag(`lag')
     if _rc == 0 {
         matrix b_all[`row',1]    = _b[onset_all]
@@ -387,7 +394,7 @@ forvalues h = 0/4 {
 
     * Split by episode type — with lagged CA
     capture xtscc ch_ca_`h' onset_nd onset_def ///
-        l1_gdpg l2_gdpg debt L.ca ///
+        l1_gdpg l2_gdpg debt L.ca pre_ca ///
         i.year if sample==1, fe lag(`lag')
     if _rc == 0 {
         matrix b_nd[`row',1]    = _b[onset_nd]
@@ -506,6 +513,8 @@ forvalues h = 0/4 {
     capture drop ch_ca_`h'
     gen ch_ca_`h' = F`h'.ca - ca_base
 }
+capture drop pre_ca
+gen pre_ca = L.ca - L2.ca
 
 * ── Reconstruct Act 2 IPW weights ────────────────────────────────────────
 * First stage: same controls X as Act 1 + predictors Z2 (fed funds, contagion,
@@ -547,7 +556,7 @@ forvalues h = 0/4 {
     local row = `h' + 1
 
     capture areg ch_ca_`h' onset_nd onset_def ///
-        l1_gdpg l2_gdpg debt L.ca ///
+        l1_gdpg l2_gdpg debt L.ca pre_ca ///
         i.year if sample == 1, absorb(cid) vce(cluster cid)
     if _rc == 0 {
         matrix b_nd_ols[`row',1]     = _b[onset_nd]
@@ -561,7 +570,7 @@ forvalues h = 0/4 {
     }
 
     capture areg ch_ca_`h' onset_nd onset_def ///
-        l1_gdpg l2_gdpg debt L.ca ///
+        l1_gdpg l2_gdpg debt L.ca pre_ca ///
         [aw=ipw2_ca] if sample == 1 & !missing(ipw2_ca), absorb(cid) vce(cluster cid)
     if _rc == 0 {
         matrix b_nd_ipw[`row',1]     = _b[onset_nd]
