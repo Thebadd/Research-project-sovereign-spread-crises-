@@ -194,6 +194,32 @@ treated observations above the 0.5 threshold — so the IPW results are
 corroborative rather than decisive. They nonetheless reinforce Section 4:
 the apparent "default is worse" pattern is partly compositional.
 
+**Fixed-effects specification.** The two stages are treated asymmetrically,
+by design. The *first-stage propensity model* (probit) is **pooled — no
+fixed effects**: a country dummy in a rare-event nonlinear model perfectly
+predicts the many countries that never experience an onset of a given type
+(especially default-linked, 21 events) and drops them, collapsing an
+already-small sample; the pooled probit keeps every country, and persistent
+cross-country differences are instead proxied by the crisis-proneness
+predictor (count of the country's own past onsets). The *second-stage
+outcome model* carries **country fixed effects**, which are harmless in a
+linear projection (they subtract country means, drop no observations) and
+absorb time-invariant heterogeneity. The baseline and IPW local projections
+additionally include **year fixed effects**, which nonparametrically absorb
+global shocks and enforce the exclusion restriction — the global-push
+predictor (VIX) enters the first-stage probit but is mechanically removed
+from the outcome equation by the year dummies, so it can affect output only
+through the crisis. The AIPW outcome model omits year fixed effects because
+the global cycle is already handled through the propensity predictors,
+making them redundant there. This differs deliberately from Asonuma et al.,
+who — with 194 restructuring events across 76 countries — can afford
+country fixed effects in *both* stages (and use no year fixed effects,
+controlling for the global cycle with observed regressors such as the US
+federal funds rate); our smaller event count makes the pooled first stage
+the feasible and standard choice for rare-event propensity estimation, with
+doubly-robust AIPW requiring correct specification of only one of the two
+models.
+
 ---
 
 ## 6. Transmission channels
