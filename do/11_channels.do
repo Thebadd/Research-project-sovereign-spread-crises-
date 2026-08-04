@@ -59,6 +59,10 @@ foreach var in credit claims_govt inv govexp pb fdi {
         gen ch_`var'_`h' = F`h'.`var' - `var'_base
         label var ch_`var'_`h' "Cum. change `var': F`h' vs t-1"
     }
+    * pre-crisis change in the channel itself (Asonuma's g_0 = L.var - L2.var):
+    * own-outcome pre-trend control, matching the AIPW spec in 13c.
+    capture drop pre_`var'
+    gen pre_`var' = L.`var' - L2.`var'
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -132,12 +136,12 @@ foreach var in credit claims_govt inv govexp pb fdi {
 local channels credit claims_govt inv govexp pb fdi
 
 * Controls per channel — channel-specific, not identical across all
-local ctrl_credit      l1_gdpg l2_gdpg debt infl ca banking_crisis
-local ctrl_claims_govt L.claims_govt L.credit pb banking_crisis
-local ctrl_inv         l1_gdpg l2_gdpg debt ca L.credit banking_crisis
-local ctrl_govexp      L.govexp debt revenue_gdp
-local ctrl_pb          l1_gdpg l2_gdpg debt ca L.pb banking_crisis
-local ctrl_fdi         l1_gdpg L.fdi infl reer_chg
+local ctrl_credit      l1_gdpg l2_gdpg debt infl ca banking_crisis pre_credit
+local ctrl_claims_govt L.claims_govt L.credit pb banking_crisis pre_claims_govt
+local ctrl_inv         l1_gdpg l2_gdpg debt ca L.credit banking_crisis pre_inv
+local ctrl_govexp      L.govexp debt revenue_gdp pre_govexp
+local ctrl_pb          l1_gdpg l2_gdpg debt ca L.pb banking_crisis pre_pb
+local ctrl_fdi         l1_gdpg L.fdi infl reer_chg pre_fdi
 
 foreach ch of local channels {
     foreach m in b lo90 hi90 lo95 hi95 {
@@ -560,12 +564,12 @@ summarize ipw_ch if sample == 1, detail
 
 * ── 7b. Re-declare control locals (same as section 3) ────────────────────
 
-local ctrl_credit      l1_gdpg l2_gdpg debt infl ca banking_crisis
-local ctrl_claims_govt L.claims_govt L.credit pb banking_crisis
-local ctrl_inv         l1_gdpg l2_gdpg debt ca L.credit banking_crisis
-local ctrl_govexp      L.govexp debt revenue_gdp
-local ctrl_pb          l1_gdpg l2_gdpg debt ca L.pb banking_crisis
-local ctrl_fdi         l1_gdpg L.fdi infl reer_chg
+local ctrl_credit      l1_gdpg l2_gdpg debt infl ca banking_crisis pre_credit
+local ctrl_claims_govt L.claims_govt L.credit pb banking_crisis pre_claims_govt
+local ctrl_inv         l1_gdpg l2_gdpg debt ca L.credit banking_crisis pre_inv
+local ctrl_govexp      L.govexp debt revenue_gdp pre_govexp
+local ctrl_pb          l1_gdpg l2_gdpg debt ca L.pb banking_crisis pre_pb
+local ctrl_fdi         l1_gdpg L.fdi infl reer_chg pre_fdi
 
 * ── 7c. IPW-weighted LP: store results ───────────────────────────────────
 
