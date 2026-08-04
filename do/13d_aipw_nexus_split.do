@@ -30,7 +30,14 @@
   the point estimate stands with a printed caveat. This thinness is the honest limit
   vs Asonuma's 194 restructurings — read Part B as suggestive, Part A as the result.
 
-  Output: $tabs/aipw_nexus_split.csv (outcome x part x bank x horizon) ;
+  Coherence with the Asonuma replication (their Fig 6 / IPWRA engine): (a) each
+  channel outcome model controls for the channel's own pre-crisis change pre_<v>
+  (their g_0); (b) besides the two level IRFs we bootstrap the HIGH - LOW nexus
+  DIFFERENCE within each cell (their within-type high-vs-low contrast) so the
+  sign-flip is formally tested, not just eyeballed from two bands.
+
+  Output: $tabs/aipw_nexus_split.csv (outcome x part x bank x horizon, levels) ;
+          $tabs/aipw_nexus_diff.csv  (outcome x part x horizon, high-low gap + CI) ;
           $figs/fig_aipw_nexus_split.pdf (GDP) + $figs/fig_nexus_<channel>.pdf.
   Run AFTER 01e_predictors.do (needs vix, past_onsets, past_def_onsets, nexus vars).
 ===========================================================================*/
@@ -99,6 +106,10 @@ foreach v in credit inv claimpriv_assets claims_govt {
         capture drop ch_`v'_`h'
         gen ch_`v'_`h' = F`h'.`v' - `v'_base
     }
+    * (a) pre-crisis change in the channel itself (Asonuma's g_0 = L.var - L2.var):
+    *     controls for the channel's own pre-trend momentum in each outcome model.
+    capture drop pre_`v'
+    gen pre_`v' = L.`v' - L2.`v'
 }
 foreach v in credit claimpriv_assets claims_govt pb {
     capture drop l_`v'
@@ -184,12 +195,75 @@ program define _aipwci, rclass
 end
 
 * ══════════════════════════════════════════════════════════════════════════
+* PROGRAM — (b) bootstrap the HIGH - LOW nexus DIFFERENCE within one cell
+*   (Asonuma's within-type high-vs-low contrast). Both cells are re-estimated on
+*   the SAME cluster resample each draw, so the difference distribution is valid.
+*   _aipwdiff <yvar> <Dvar>, ifch(<high cond>) ifcl(<low cond>) omod() pz() reps()
+*   returns r(ok) r(dh) [point high-low] r(lo) r(hi) r(nd) r(bh) r(bl)
+* ══════════════════════════════════════════════════════════════════════════
+capture program drop _aipwdiff
+program define _aipwdiff, rclass
+    syntax anything, IFCH(string) IFCL(string) OMOD(string) PZ(string) REPS(integer)
+    gettoken yv Dv : anything
+    * point estimates on the real data
+    capture _aipw `yv' `Dv' if `ifch', omodel(`omod') pmodel(`pz') fe(cid)
+    if _rc { return scalar ok = 0 ; exit }
+    local bh = r(theta)
+    capture _aipw `yv' `Dv' if `ifcl', omodel(`omod') pmodel(`pz') fe(cid)
+    if _rc { return scalar ok = 0 ; exit }
+    local bl = r(theta)
+    local dh = `bh' - `bl'
+    * bootstrap the difference (one resample -> both cells -> their gap)
+    tempname pf
+    tempfile bf
+    quietly postfile `pf' double diff using "`bf'", replace
+    forvalues b = 1/`reps' {
+        preserve
+            capture drop _bid
+            bsample, cluster(cid) idcluster(_bid)
+            capture _aipw `yv' `Dv' if `ifch', omodel(`omod') pmodel(`pz') fe(_bid)
+            local th = cond(_rc==0, r(theta), .)
+            capture _aipw `yv' `Dv' if `ifcl', omodel(`omod') pmodel(`pz') fe(_bid)
+            local tl = cond(_rc==0, r(theta), .)
+            if !missing(`th') & !missing(`tl') quietly post `pf' (`th' - `tl')
+        restore
+    }
+    quietly postclose `pf'
+    local lo = .
+    local hi = .
+    local nd = 0
+    preserve
+        quietly use "`bf'", clear
+        quietly count if !missing(diff)
+        local nd = r(N)
+        if `nd' >= 50 {
+            _pctile diff, p(2.5 97.5)
+            local lo = r(r1)
+            local hi = r(r2)
+        }
+    restore
+    return scalar ok = 1
+    return scalar dh = `dh'
+    return scalar bh = `bh'
+    return scalar bl = `bl'
+    return scalar lo = `lo'
+    return scalar hi = `hi'
+    return scalar nd = `nd'
+end
+
+* ══════════════════════════════════════════════════════════════════════════
 * ESTIMATE — high/low nexus subsamples, all + resolution split; post results
 * ══════════════════════════════════════════════════════════════════════════
 tempname R
 tempfile resf
 postfile `R' str18 outcome str4 part str4 bank byte horizon double b se lo hi ntreat nd ///
     using "`resf'", replace
+
+* (b) second results file: the HIGH - LOW nexus difference per outcome x part x h
+tempname D
+tempfile diff_resf
+postfile `D' str18 outcome str4 part byte horizon double dhl bhi blo lo hi nd ///
+    using "`diff_resf'", replace
 
 * Outcomes: label | outcome-variable stem (dy or ch_<v>) | channel-specific
 *   outcome-model controls (om), same specs as 13c. GDP uses cx (unchanged).
@@ -198,11 +272,13 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
     gettoken ocl   oc : oc
     gettoken ystem oc : oc
 
+    * outcome-model controls; each channel gets its own pre-crisis change pre_<v>
+    * (Asonuma g_0). GDP already carries lagged growth (l1/l2_gdpg) in cx.
     if      "`ocl'" == "gdp"              local om `cx'
-    else if "`ocl'" == "credit"           local om l1_gdpg l2_gdpg debt infl ca banking_crisis
-    else if "`ocl'" == "inv"              local om l1_gdpg l2_gdpg debt ca l_credit banking_crisis
-    else if "`ocl'" == "claimpriv_assets" local om l_claimpriv_assets l1_gdpg l2_gdpg debt ca banking_crisis
-    else if "`ocl'" == "claims_govt"      local om l_claims_govt l_credit pb banking_crisis
+    else if "`ocl'" == "credit"           local om l1_gdpg l2_gdpg debt infl ca banking_crisis pre_credit
+    else if "`ocl'" == "inv"              local om l1_gdpg l2_gdpg debt ca l_credit banking_crisis pre_inv
+    else if "`ocl'" == "claimpriv_assets" local om l_claimpriv_assets l1_gdpg l2_gdpg debt ca banking_crisis pre_claimpriv_assets
+    else if "`ocl'" == "claims_govt"      local om l_claims_govt l_credit pb banking_crisis pre_claims_govt
 
     di as result _n "############### OUTCOME: `ocl' ###############"
 
@@ -247,13 +323,55 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
                 else di as error "    h=" `h' ": estimate failed (too thin)."
             }
         }
+
+        * ── (b) HIGH - LOW nexus difference for this outcome x part ──────────
+        di as result _n "--- `ocl' | Part `part' | HIGH - LOW difference ---"
+        forvalues h = 0/4 {
+            if "`riv'" == "." {
+                local ifch sample==1 & (onset_all==0 | (`Dv'==1 & highbank==1))
+                local ifcl sample==1 & (onset_all==0 | (`Dv'==1 & highbank==0))
+            }
+            else {
+                local ifch sample==1 & `riv'==0 & (onset_all==0 | (`Dv'==1 & highbank==1))
+                local ifcl sample==1 & `riv'==0 & (onset_all==0 | (`Dv'==1 & highbank==0))
+            }
+            _aipwdiff `ystem'_`h' `Dv', ifch(`ifch') ifcl(`ifcl') ///
+                omod(`om') pz(`cx' `pz') reps(`nboot')
+            if r(ok) {
+                local dh=r(dh)
+                local bh=r(bh)
+                local bl=r(bl)
+                local lo=r(lo)
+                local hi=r(hi)
+                local nd=r(nd)
+                post `D' ("`ocl'") ("`part'") (`h') (`dh') (`bh') (`bl') (`lo') (`hi') (`nd')
+                local sig = cond(`nd'>=50 & (`lo'>0 | `hi'<0), " *", "")
+                di "    h=" `h' "  high-low=" %8.3f `dh' "  [" %7.3f `lo' ", " %7.3f `hi' ///
+                   "]  (" `nd' "/`nboot' draws)`sig'"
+            }
+            else di as error "    h=" `h' ": difference estimate failed (too thin)."
+        }
     }
 }
 postclose `R'
+postclose `D'
 
 * ══════════════════════════════════════════════════════════════════════════
 * EXPORT — CSV + figure (panels by resolution part; high vs low nexus lines)
 * ══════════════════════════════════════════════════════════════════════════
+* (b) HIGH - LOW difference table: dhl = point gap, [lo,hi] = bootstrap 95% CI;
+*     a CI excluding 0 means the nexus effect differs significantly by cell.
+use "`diff_resf'", clear
+label var dhl "AIPW (high - low nexus) difference (pp)"
+label var bhi "High-nexus ATE"
+label var blo "Low-nexus ATE"
+label var nd  "Valid bootstrap draws"
+gen byte sig95 = (nd>=50 & (lo>0 | hi<0))
+label var sig95 "High-low gap CI excludes 0"
+order outcome part horizon dhl bhi blo lo hi nd sig95
+export delimited "$tabs/aipw_nexus_diff.csv", replace
+di as result _n "Nexus high-low DIFFERENCE CSV saved: $tabs/aipw_nexus_diff.csv"
+
 use "`resf'", clear
 label var b  "AIPW ATE on outcome (pp)"
 label var ntreat "Treated onsets in cell"
@@ -308,3 +426,5 @@ di as result "GDP headline (Part def): high-nexus default crises are the deepest
 di as result "amplifies the default cost). The channel outcomes trace the mechanism: expect"
 di as result "claims_govt to RISE under def x high (banks absorbing the sovereign = the loss"
 di as result "channel). Read Part B with its small-cell / draw-count caveat."
+di as result "aipw_nexus_diff.csv formally tests the sign-flip: a high-low gap whose 95% CI"
+di as result "excludes 0 (sig95==1) means the nexus effect differs significantly in that cell."

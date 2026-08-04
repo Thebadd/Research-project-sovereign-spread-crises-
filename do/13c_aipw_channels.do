@@ -49,6 +49,10 @@ foreach v in credit claims_govt inv govexp pb fdi ///
         capture drop ch_`v'_`h'
         gen ch_`v'_`h' = F`h'.`v' - `v'_base
     }
+    * pre-crisis change in the channel itself (Asonuma's g_0 = L.var - L2.var);
+    * added to each outcome model to absorb the channel's own pre-trend momentum.
+    capture drop pre_`v'
+    gen pre_`v' = L.`v' - L2.`v'
 }
 
 * ── Pre-lag every lagged control to a PLAIN column (bsample-safe) ────────────
@@ -158,15 +162,15 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
               claimsgov_assets claimpriv_assets ca {
 
     * channel-specific OUTCOME-model controls (pre-lagged plain columns)
-    if      "`ch'" == "credit"            local om l1_gdpg l2_gdpg debt infl ca banking_crisis
-    else if "`ch'" == "claims_govt"       local om l_claims_govt l_credit pb banking_crisis
-    else if "`ch'" == "inv"               local om l1_gdpg l2_gdpg debt ca l_credit banking_crisis
-    else if "`ch'" == "govexp"            local om l_govexp debt revenue_gdp
-    else if "`ch'" == "pb"                local om l1_gdpg l2_gdpg debt ca l_pb banking_crisis
-    else if "`ch'" == "fdi"               local om l1_gdpg l_fdi infl reer_chg
-    else if "`ch'" == "claimsgov_assets"  local om l_claimsgov_assets l1_gdpg debt pb banking_crisis
-    else if "`ch'" == "claimpriv_assets"  local om l_claimpriv_assets l1_gdpg l2_gdpg debt ca banking_crisis
-    else if "`ch'" == "ca"                local om l1_gdpg l2_gdpg debt l_ca
+    if      "`ch'" == "credit"            local om l1_gdpg l2_gdpg debt infl ca banking_crisis pre_credit
+    else if "`ch'" == "claims_govt"       local om l_claims_govt l_credit pb banking_crisis pre_claims_govt
+    else if "`ch'" == "inv"               local om l1_gdpg l2_gdpg debt ca l_credit banking_crisis pre_inv
+    else if "`ch'" == "govexp"            local om l_govexp debt revenue_gdp pre_govexp
+    else if "`ch'" == "pb"                local om l1_gdpg l2_gdpg debt ca l_pb banking_crisis pre_pb
+    else if "`ch'" == "fdi"               local om l1_gdpg l_fdi infl reer_chg pre_fdi
+    else if "`ch'" == "claimsgov_assets"  local om l_claimsgov_assets l1_gdpg debt pb banking_crisis pre_claimsgov_assets
+    else if "`ch'" == "claimpriv_assets"  local om l_claimpriv_assets l1_gdpg l2_gdpg debt ca banking_crisis pre_claimpriv_assets
+    else if "`ch'" == "ca"                local om l1_gdpg l2_gdpg debt l_ca pre_ca
 
     di as result _n "=== CHANNEL: `ch' ==="
 
