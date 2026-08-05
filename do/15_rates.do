@@ -1,14 +1,16 @@
 /*===========================================================================
   15_RATES.DO   —  FROM-SCRATCH REBUILD, STAGE 5  (global-push predictors, FRED)
-  US/global financial-conditions series from FRED. These are pure time series
-  (identical across countries), merged on YEAR. In the LP they are absorbed by
-  year FE (exclusion restriction); they enter only the first-stage propensity
-  model.
+  US/global financial-conditions series from FRED. Pure time series (identical
+  across countries), merged on YEAR. Absorbed by year FE in the LP (exclusion
+  restriction); they enter only the first-stage propensity model.
 
-  Expected raw files in $raw (annual, FRED "observation_date,VALUE" layout):
-    GS10.csv     -> ust10y    US 10-year Treasury yield (%)          [PROVIDED]
-    FEDFUNDS.csv -> fedfunds  US federal funds rate (%)              [NEEDED]
-    VIXCLS.csv   -> vix        CBOE VIX, annual average               [NEEDED]
+  Expected raw files in $raw (annual; the loader accepts .csv OR .xlsx):
+    GS10      -> ust10y    US 10-year Treasury yield (%)          [.csv provided]
+    FEDFUNDS  -> fedfunds  US federal funds effective rate (%)    [.xlsx, "Annual"]
+    VIXCLS    -> vix        CBOE VIX, annual average               [.xlsx, "Annual"]
+
+  FRED .csv = "observation_date,VALUE" (string date);
+  FRED .xlsx = README + "Annual" sheet with observation_date (datetime) + VALUE.
 
   Output: merges ust10y / fedfunds / vix onto $clean/panel_build.dta (by year).
 ===========================================================================*/
@@ -16,37 +18,58 @@
 tempfile rates
 local have = 0
 
-* filename  ->  target variable
+* filename stem  ->  target variable
 foreach pair in "GS10 ust10y" "FEDFUNDS fedfunds" "VIXCLS vix" {
     gettoken fn tv : pair
+
+    * locate the file (csv preferred, else xlsx)
+    local src ""
     capture confirm file "$raw/`fn'.csv"
-    if _rc {
-        di as error "  ** `fn'.csv not found in $raw — `tv' will be missing. Add the FRED annual export."
+    if !_rc local src "csv"
+    else {
+        capture confirm file "$raw/`fn'.xlsx"
+        if !_rc local src "xlsx"
+    }
+    if "`src'" == "" {
+        di as error "  ** `fn'(.csv/.xlsx) not found in $raw — `tv' will be missing."
         continue
     }
+
     preserve
-        import delimited "$raw/`fn'.csv", varnames(1) clear
-        * FRED col 1 = observation_date (YYYY-...); col 2 = the series
+        if "`src'" == "csv"  import delimited "$raw/`fn'.csv", varnames(1) clear
+        else                 import excel "$raw/`fn'.xlsx", sheet("Annual") firstrow clear
+
+        * standardise the date column name
         capture confirm variable observation_date
         if _rc {
-            * fallback: first var is the date
             ds
             local first : word 1 of `r(varlist)'
             rename `first' observation_date
         }
-        gen int year = real(substr(observation_date,1,4))
-        * the value column is the only non-date variable
+
+        * year: handle string dates (csv) vs Stata date/datetime (xlsx import)
+        capture confirm numeric variable observation_date
+        if !_rc {
+            local fmt : format observation_date
+            if strpos("`fmt'", "%tc") > 0  gen int year = year(dofc(observation_date))
+            else                            gen int year = year(observation_date)
+        }
+        else gen int year = real(substr(observation_date, 1, 4))
+
+        * value column = the one non-date variable
         local val
         foreach v of varlist * {
-            if "`v'"!="observation_date" & "`v'"!="year" local val "`val' `v'"
+            if !inlist("`v'", "observation_date", "year") local val "`val' `v'"
         }
         local val : word 1 of `val'
         capture destring `val', replace force
         rename `val' `tv'
+
         keep year `tv'
         drop if missing(year)
-        collapse (mean) `tv', by(year)     // safety if any sub-annual rows
-        if `have'==0 {
+        collapse (mean) `tv', by(year)      // safety if any duplicate/sub-annual rows
+
+        if `have' == 0 {
             save `rates', replace
             local have = 1
         }
@@ -57,13 +80,13 @@ foreach pair in "GS10 ust10y" "FEDFUNDS fedfunds" "VIXCLS vix" {
     restore
 }
 
-if `have'==0 {
+if `have' == 0 {
     di as error "  ** No FRED files found — 15_rates.do made no change."
     exit
 }
 
-label var ust10y   "US 10y Treasury yield, % (FRED GS10)"
-capture label var fedfunds "US fed funds rate, % (FRED FEDFUNDS)"
+capture label var ust10y   "US 10y Treasury yield, % (FRED GS10)"
+capture label var fedfunds "US fed funds effective rate, % (FRED FEDFUNDS)"
 capture label var vix      "CBOE VIX, annual avg (FRED VIXCLS)"
 
 use "$clean/panel_build.dta", clear
