@@ -45,8 +45,8 @@ Classic WDI wide files (Country Code = ISO3) + REER DataBank file.
 
 | Variable | WDI code | Definition |
 |---|---|---|
-| `credit` | **FD.AST.PRVT.GD.ZS** | domestic credit to private sector **by banks**, % GDP (headline) |
-| `credit_total` | FS.AST.PRVT.GD.ZS | credit to private sector, all financial corp., % GDP (robustness) |
+| `credit` | **FS.AST.PRVT.GD.ZS** | domestic credit to private sector, all financial corp., % GDP (channel variable) |
+| `credit_bank` | FD.AST.PRVT.GD.ZS | domestic credit to private sector **by banks**, % GDP (robustness) |
 | `fdi` | BX.KLT.DINV.WD.GD.ZS | FDI net inflows, % GDP |
 | `claims_govt` | FS.AST.CGOV.GD.ZS | claims on central government, % GDP |
 | `exp_gdp` / `imp_gdp` | NE.EXP.GNFS.ZS / NE.IMP.GNFS.ZS | exports / imports, % GDP |
