@@ -9,12 +9,18 @@
   on how Stata names numeric headers.
 
   Expected files in $raw (name them exactly as below) -> variable [WDI code]:
-    domesticcredittoprivatesector.xlsx -> credit   [FS.AST.PRVT.GD.ZS]
+    domesticcreditprivatebanks.xlsx    -> credit   [FD.AST.PRVT.GD.ZS]  (BY BANKS)
+    domesticcredittoprivatesector.xlsx -> credit_total [FS.AST.PRVT.GD.ZS] (robustness)
     fdinetinflowsgdp.xlsx              -> fdi      [BX.KLT.DINV.WD.GD.ZS]
     claimsoncentralgovernmentgdp.xlsx  -> claims_govt [FS.AST.CGOV.GD.ZS]
     exportofgoodservicesgdp.xlsx       -> exp_gdp  [NE.EXP.GNFS.ZS]
     importofgoodservicesgdp.xlsx       -> imp_gdp  [NE.IMP.GNFS.ZS]
   Then open = exp_gdp + imp_gdp (trade openness, % GDP; Asonuma control).
+
+  NOTE: headline `credit` = credit to private sector BY BANKS (FD.AST.PRVT.GD.ZS),
+  matching Asonuma's bank-credit concept and the bank-intermediation theme;
+  the all-financial-corporations total (FS.*) is kept as `credit_total` only for
+  robustness. Add the by-banks file to get the headline series.
 
   Output: merges credit, fdi, claims_govt, exp_gdp, imp_gdp, open onto
           $clean/panel_build.dta (iso3 x year).
@@ -23,7 +29,8 @@
 tempfile wdi
 local have = 0
 
-foreach spec in "domesticcredittoprivatesector credit" ///
+foreach spec in "domesticcreditprivatebanks credit" ///
+                "domesticcredittoprivatesector credit_total" ///
                 "fdinetinflowsgdp fdi" ///
                 "claimsoncentralgovernmentgdp claims_govt" ///
                 "exportofgoodservicesgdp exp_gdp" ///
