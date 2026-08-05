@@ -127,6 +127,26 @@ label var onset_nd  "Onset — non-default episodes"
 label var onset_def "Onset — default-linked episodes"
 label var nondefault "1 = non-default episode onset"
 
+* ── 4b. LEGACY carry-over: IMF-program dummy ────────────────────────────────
+*   Kept as-is from the prior dataset by decision — 98% coverage, gap-free at all
+*   onsets, but its ORIGINAL SOURCE could not be recovered (undocumented upstream;
+*   likely IMF MONA / History of Lending Arrangements, and it appears to include
+*   precautionary FCLs e.g. Chile/Colombia/Mexico). This is the ONLY variable
+*   carried from the old FINAL_DATASET_STATA_V2.csv; everything else is rebuilt
+*   from official sources. Flagged accordingly in DATA_SOURCES.md.
+preserve
+    import delimited "$raw/FINAL_DATASET_STATA_V2.csv", varnames(1) clear
+    keep country year imf_program
+    rename imf_program imf
+    capture destring year imf, replace force
+    drop if missing(country) | missing(year)
+    duplicates drop country year, force
+    tempfile imfleg
+    save `imfleg'
+restore
+merge m:1 country year using `imfleg', keep(master match) nogen
+label var imf "IMF-program dummy (LEGACY carry-over; original source unrecovered)"
+
 * ── 5. Preliminary estimation-sample flag (finalised in 18 once GDP merged) ──
 gen byte sample_base = (continuation==0)
 label var sample_base "Onset + tranquil years (excl. continuation); GDP-availability added in 18"
