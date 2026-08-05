@@ -29,7 +29,9 @@ foreach v in year spr_max spr_mean crit1 crit2 crisis_any onset_all continuation
     capture confirm numeric variable `v'
     if _rc capture destring `v', replace force
 }
-drop crit1 crit2 dq_note
+drop dq_note
+label var crit1 "Criterion 1 flag (spread > 1000bps)"
+label var crit2 "Criterion 2 flag (99pct HRT)"
 drop if missing(country) | missing(year)
 
 * ── 2. ISO3 crosswalk (52 crisis countries → ISO3, the universal merge key) ──
@@ -152,7 +154,7 @@ gen byte sample_base = (continuation==0)
 label var sample_base "Onset + tranquil years (excl. continuation); GDP-availability added in 18"
 
 * ── 6. Save skeleton ────────────────────────────────────────────────────────
-order iso3 country region year spr_max spr_mean crisis_any ///
+order iso3 country region year spr_max spr_mean crit1 crit2 crisis_any ///
       onset_all onset_nd onset_def nondefault continuation ep_id ep_status ///
       classification sample_base
 sort iso3 year

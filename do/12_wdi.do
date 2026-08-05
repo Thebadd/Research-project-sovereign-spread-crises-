@@ -81,25 +81,54 @@ if `have' == 0 {
     exit
 }
 
+* ── REER (World Bank, DataBank "YYYY [YRYYYY]" wide layout — mirrors 01b) ────
+*    REER_INDEX.xlsx -> reer_index -> reer_chg (% YoY change). Merged into the
+*    same accumulator (iso3 x year). Skipped if the file is absent.
+capture confirm file "$raw/REER_INDEX.xlsx"
+if !_rc {
+    preserve
+        import excel "$raw/REER_INDEX.xlsx", sheet("Data") firstrow allstring clear
+        capture rename CountryCode iso3
+        keep if length(iso3) == 3
+        capture drop SeriesName SeriesCode CountryName
+        foreach v of varlist YR* {
+            destring `v', replace force
+        }
+        reshape long YR, i(iso3) j(year)
+        rename YR reer_index
+        keep if !missing(year) & year >= 1989
+        sort iso3 year
+        by iso3: gen double reer_chg = (reer_index/reer_index[_n-1] - 1)*100 ///
+            if !missing(reer_index[_n-1])
+        keep iso3 year reer_chg
+        drop if missing(reer_chg)
+        merge 1:1 iso3 year using `wdi', nogen
+        save `wdi', replace
+    restore
+}
+
+* ── Merge the WDI accumulator onto the growing panel ────────────────────────
+use "$clean/panel_build.dta", clear
+merge 1:1 iso3 year using `wdi', keep(master match) nogen
+
 * trade openness = exports + imports (% GDP)
 capture confirm variable exp_gdp
 local hasexp = (_rc==0)
 capture confirm variable imp_gdp
 local hasimp = (_rc==0)
 if `hasexp' & `hasimp' {
+    capture drop open
     gen double open = exp_gdp + imp_gdp
     label var open "Trade openness = exports+imports, % GDP (WDI NE.EXP+NE.IMP)"
 }
+capture label var credit       "Domestic credit to private sector BY BANKS, % GDP (WDI FD.AST.PRVT.GD.ZS)"
+capture label var credit_total "Domestic credit to private sector (all fin. corp.), % GDP (WDI FS.AST.PRVT.GD.ZS)"
+capture label var fdi          "FDI net inflows, % GDP (WDI BX.KLT.DINV.WD.GD.ZS)"
+capture label var claims_govt  "Claims on central government, % GDP (WDI FS.AST.CGOV.GD.ZS)"
+capture label var exp_gdp      "Exports of goods & services, % GDP (WDI NE.EXP.GNFS.ZS)"
+capture label var imp_gdp      "Imports of goods & services, % GDP (WDI NE.IMP.GNFS.ZS)"
+capture label var reer_chg     "REER, % YoY change (WDI, 2010=100 index)"
 
-capture label var credit      "Domestic credit to private sector, % GDP (WDI FS.AST.PRVT.GD.ZS)"
-capture label var fdi         "FDI net inflows, % GDP (WDI BX.KLT.DINV.WD.GD.ZS)"
-capture label var claims_govt "Claims on central government, % GDP (WDI FS.AST.CGOV.GD.ZS)"
-capture label var exp_gdp     "Exports of goods & services, % GDP (WDI NE.EXP.GNFS.ZS)"
-capture label var imp_gdp     "Imports of goods & services, % GDP (WDI NE.IMP.GNFS.ZS)"
-
-* ── Merge onto the growing panel ────────────────────────────────────────────
-use "$clean/panel_build.dta", clear
-merge 1:1 iso3 year using `wdi', keep(master match) nogen
 save "$clean/panel_build.dta", replace
 
 di as result _n "12_wdi.do complete. Coverage at onsets (non-missing):"

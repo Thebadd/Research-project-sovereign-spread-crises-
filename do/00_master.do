@@ -29,12 +29,27 @@ global do    "$root/do"
 global figs  "$root/output/figures"
 global tabs  "$root/output/tables"
 
-* ── Run pipeline ────────────────────────────────────────────────────────────
-do "$do/01_build_panel.do"
-do "$do/01b_merge_new_controls.do"
-do "$do/01c_merge_nexus.do"
-do "$do/01d_merge_vulnerability.do"   // IDS: rollover, reserves, interest burden
-do "$do/01e_predictors.do"            // first-stage exclusion-restriction predictors (Z2, Z3)
+* ══════════════════════════════════════════════════════════════════════════
+* DATA BUILD (10-18) — from-scratch, fully-sourced panel. Keeps ONLY the own
+* spread-crisis DB for the crisis definition; every macro series is rebuilt from
+* official sources (IMF WEO / World Bank WDI+IDS / IMF MFS / FRED / Laeven-
+* Valencia) and every transform is done in code. Replaces the old 01x chain
+* (01_build_panel .. 01e_predictors), which is retained in do/ but no longer run.
+* Provenance documented in DATA_SOURCES.md.
+* ══════════════════════════════════════════════════════════════════════════
+do "$do/10_skeleton.do"      // crisis DB -> skeleton (iso3, onsets, spreads, class., imf legacy)
+do "$do/11_weo.do"           // IMF WEO: GDP/cap, GDP, pop, infl, ca, debt, govexp, revenue, inv, pb
+do "$do/12_wdi.do"           // World Bank WDI: credit(by banks), fdi, claims_govt, trade openness, REER
+do "$do/13_ifs_nexus.do"     // IMF MFS: sovereign-bank nexus (claims on govt/private / assets)
+do "$do/14_ids.do"           // World Bank IDS: stdebt_share, reserves, intpay, debt_service
+do "$do/15_rates.do"         // FRED: ust10y, fedfunds, vix (global push predictors)
+do "$do/16_banking.do"       // Laeven-Valencia banking-crisis dummy
+do "$do/17_predictors.do"    // derived Z: contagion + proneness; numeric cid + xtset
+do "$do/18_transforms.do"    // gdpg, lags, dy_h, pre-trends, sample -> panel_lp.dta
+
+* ══════════════════════════════════════════════════════════════════════════
+* ANALYSIS (unchanged — all read $clean/panel_lp.dta produced by stage 18)
+* ══════════════════════════════════════════════════════════════════════════
 do "$do/02_lp_all.do"
 do "$do/03_lp_resolution.do"
 do "$do/04_graphs.do"
