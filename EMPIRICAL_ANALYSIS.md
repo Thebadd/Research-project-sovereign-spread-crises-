@@ -1,5 +1,13 @@
 # Empirical Analysis
 
+> **⚠️ Numbers pending regeneration.** All coefficients/figures reported below
+> come from the earlier per-capita run on the old dataset. Two changes now
+> supersede them: (i) the panel is rebuilt from official sources (`10`–`18`
+> chain), and (ii) the headline outcome is switched from GDP **per capita** to
+> **total real GDP** growth (Asonuma-aligned). Re-run `00_master.do` and refresh
+> every number here before using them. The method/text is current; the values
+> are not.
+
 ## 1. Setting and identification
 
 The analysis rests on an unbalanced panel of 52 emerging and frontier
@@ -21,10 +29,12 @@ year fixed effects, and a vector of predetermined macro controls:
 $$\Delta^h y_{it} = \alpha_i + \lambda_t + \beta_h \, D_{it} + \gamma' X_{it} + \varepsilon_{it+h}$$
 
 The dependent variable $\Delta^h y_{it}$ is the cumulative percentage
-deviation of real GDP per capita from its pre-crisis level, anchored at
-$t-1$, so that $h=0$ is the impact effect and $h=4$ the four-year
-cumulative loss. The sequence $\{\hat\beta_h\}$ traces the impulse
-response of the outcome to a crisis onset.
+deviation of real GDP (total, not per capita — aligning the outcome with
+Asonuma et al.) from its pre-crisis level, anchored at $t-1$, so that
+$h=0$ is the impact effect and $h=4$ the four-year cumulative loss. The
+sequence $\{\hat\beta_h\}$ traces the impulse response of the outcome to a
+crisis onset. A per-capita variant (`dy_pc_*`) is retained as a robustness
+check.
 
 The control vector $X_{it}$ contains two lags of GDP growth, the current
 account balance, the public debt-to-GDP ratio, inflation, and an IMF
@@ -44,7 +54,7 @@ observable fundamentals, crisis onset is uncorrelated with contemporaneous
 unobserved shocks to future output. We test it directly at the placebo
 horizons $h=-5$ through $h=-1$: under valid identification these coefficients
 should be approximately zero. Each placebo dependent variable is the
-single-year log GDP per capita growth rate $h$ years before onset — none
+single-year log real GDP growth rate $h$ years before onset — none
 include the crisis year itself. Non-zero pre-trend coefficients would signal
 anticipation effects or trending differences between treated and control
 countries.
@@ -64,7 +74,7 @@ estimated and persistent output decline.
 | 3 | −2.32 | 0.70 | 0.001 |
 | 4 | −3.00 | 1.05 | 0.004 |
 
-Real GDP per capita falls about 1.9pp on impact, reaches a trough of
+Real GDP falls about 1.9pp on impact, reaches a trough of
 −3.8pp one year after onset, and remains roughly 3pp below the pre-crisis
 trajectory four years out. All coefficients are significant at the 1%
 level under Driscoll-Kraay standard errors. The defining feature is the
@@ -77,7 +87,7 @@ central and most robust result of the paper.
 ## 3. Pre-trend validation
 
 We estimate the same local projection at placebo horizons $h=-5$ through
-$h=-1$. Each dependent variable is the single-year log GDP per capita
+$h=-1$. Each dependent variable is the single-year log real GDP
 growth rate $h$ years before onset; by construction none of these
 variables include the crisis year $t$. Under valid identification, the
 onset dummy should have no predictive power over any of these
@@ -298,7 +308,7 @@ default rows are read as directional.
 The result is a **sign flip**: the nexus is protective when the debt is
 honored and destructive when it is not.
 
-| GDPpc cost (AIPW ATE, pp) | Low nexus | High nexus |
+| Real GDP cost (AIPW ATE, pp) | Low nexus | High nexus |
 |:--|:--:|:--:|
 | **Non-default** | −5.3 to −9.5, all significant | **≈ 0, insignificant at every $h$** |
 | **Default-linked** | −5.8 → −2.3 (loses significance by $h=3$) | **−6.3 → −10.9, all significant (deepest cell)** |

@@ -21,7 +21,7 @@
                    + phi*Z + controls + e
       with the test  H0: d_nd = d_def  at each horizon.
 
-  The OUTCOME is always the SAME cumulative GDP-per-capita change as the main
+  The OUTCOME is always the SAME cumulative real-GDP change as the main
   LP (dy_h). Z is the standardized pre-crisis exposure to a channel.
 
   A negative, significant d means: a one-SD higher pre-crisis exposure to the
@@ -195,7 +195,7 @@ di as result "  d_h < 0 and significant => output falls MORE where pre-crisis"
 di as result "  exposure to the channel was higher: evidence the channel transmits."
 
 * ── TABLE 5: pooled exposure interactions (Word/RTF) ─────────────────────
-local t5note "Dependent variable: cumulative change in log real GDP per capita (pp) from t-1 to t+h (same as Table 1). Each column adds one channel's standardized pre-crisis exposure and its interaction with crisis onset. 'Onset x exposure' is the effect per 1 SD of pre-crisis exposure; a negative value means the output loss is deeper where exposure was higher. Exposure measured at t-1. Country and year fixed effects; continuation years excluded. Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01."
+local t5note "Dependent variable: cumulative change in log real GDP (pp) from t-1 to t+h (same as Table 1). Each column adds one channel's standardized pre-crisis exposure and its interaction with crisis onset. 'Onset x exposure' is the effect per 1 SD of pre-crisis exposure; a negative value means the output loss is deeper where exposure was higher. Exposure measured at t-1. Country and year fixed effects; continuation years excluded. Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01."
 
 local panel A
 local writemode replace
@@ -303,7 +303,7 @@ di as result "  the channel amplifies the output loss more in that type."
 di as result "  p(d_nd=d_def) < 0.10 => the amplification differs by resolution."
 
 * ── TABLE 6: exposure interactions by resolution type (Word/RTF) ─────────
-local t6note "Dependent variable: cumulative change in log real GDP per capita (pp) from t-1 to t+h. Both onset dummies and both exposure interactions enter jointly. 'Onset(type) x exposure' is the extra output effect per 1 SD of pre-crisis exposure in that crisis type. p(nd=def) is the p-value of the equality of the two interaction terms. Exposure measured at t-1. Country and year fixed effects; continuation years excluded. Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01."
+local t6note "Dependent variable: cumulative change in log real GDP (pp) from t-1 to t+h. Both onset dummies and both exposure interactions enter jointly. 'Onset(type) x exposure' is the extra output effect per 1 SD of pre-crisis exposure in that crisis type. p(nd=def) is the p-value of the equality of the two interaction terms. Exposure measured at t-1. Country and year fixed effects; continuation years excluded. Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01."
 
 local panel A
 local writemode replace

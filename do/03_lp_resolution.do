@@ -163,7 +163,7 @@ capture esttab t2_h0 t2_h1 t2_h2 t2_h3 t2_h4 using "$tabs/table2_output_resoluti
                  "Observations" "Countries") ///
           fmt(3 3 3 3 0 0 0 0)) ///
     title("Table 2. Output cost by crisis resolution: non-default vs. default-linked") ///
-    addnotes("Dependent variable: cumulative change in log real GDP per capita (pp) from t-1 to t+h." ///
+    addnotes("Dependent variable: cumulative change in log real GDP (pp) from t-1 to t+h." ///
              "Both onset dummies enter jointly. Jorda (2005) local projections; country and year fixed effects; continuation years excluded." ///
              "Driscoll-Kraay standard errors in parentheses." ///
              "Difference = beta(default) - beta(non-default); negative means the default-linked loss is deeper." ///

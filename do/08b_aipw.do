@@ -257,7 +257,7 @@ preserve
         (rarea lo hi horizon if series=="all", color("`c1'%20") lwidth(none)) ///
         (connected b horizon if series=="all", lcolor("`c1'") lwidth(medthick) msymbol(circle)), ///
         yline(0, lpattern(dash) lcolor(gs8)) ///
-        xlabel(0(1)4) ytitle("Cumulative GDPpc change (pp)", size(small)) ///
+        xlabel(0(1)4) ytitle("Cumulative real GDP change (pp)", size(small)) ///
         xtitle("Years after onset", size(small)) ///
         title("AIPW (Asonuma et al. Eq. 3) output cost — all crises", size(medsmall) color(navy)) ///
         legend(off) ///

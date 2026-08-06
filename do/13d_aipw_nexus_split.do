@@ -393,7 +393,7 @@ local c_lo "0 84 166"     // low  nexus = blue
 foreach oc in gdp credit inv claimpriv_assets claims_govt {
     if "`oc'" == "gdp" {
         local ptit "Output cost by sovereign-bank nexus"
-        local ytit "Cumulative GDPpc change (pp)"
+        local ytit "Cumulative real GDP change (pp)"
         local fnm  "fig_aipw_nexus_split"       // unchanged filename for GDP
     }
     else {

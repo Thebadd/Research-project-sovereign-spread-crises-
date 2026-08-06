@@ -26,19 +26,31 @@ gen double l2_gdpg = L2.gdpg
 label var l1_gdpg "L1 real GDP growth"
 label var l2_gdpg "L2 real GDP growth"
 
-* ── LP outcome: cumulative % change in log real GDP per capita ──────────────
-capture drop ln_gdppc_base dy_0 dy_1 dy_2 dy_3 dy_4 dy_m1 dy_m2
-gen double ln_gdppc_base = L.ln_gdppc
-label var ln_gdppc_base "log real GDPpc at t-1 (LP baseline)"
+* ── HEADLINE LP outcome: cumulative % change in log TOTAL real GDP ──────────
+*   Aligned with Asonuma et al. (their g_h = F h.ln(gdp_real) - L.ln(gdp_real)),
+*   i.e. cumulative real-GDP growth relative to t-1 (NOT per capita).
+capture drop ln_gdp ln_gdp_base dy_0 dy_1 dy_2 dy_3 dy_4 dy_m1 dy_m2
+gen double ln_gdp = ln(gdp_real) if gdp_real > 0 & !missing(gdp_real)
+gen double ln_gdp_base = L.ln_gdp
+label var ln_gdp_base "log real GDP at t-1 (LP baseline)"
 forvalues h = 0/4 {
-    gen double dy_`h' = (F`h'.ln_gdppc - ln_gdppc_base) * 100
-    label var dy_`h' "Cum. % change in log real GDPpc: F`h' vs t-1"
+    gen double dy_`h' = (F`h'.ln_gdp - ln_gdp_base) * 100
+    label var dy_`h' "Cum. % change in log real GDP (total): F`h' vs t-1"
 }
-* pre-trend placebos (single-year growth fully before onset)
-gen double dy_m1 = (ln_gdppc - L2.ln_gdppc) * 100
-gen double dy_m2 = (L.ln_gdppc - L3.ln_gdppc) * 100
-label var dy_m1 "Pre-trend h=-1: GDPpc(t) - GDPpc(t-2)"
-label var dy_m2 "Pre-trend h=-2: GDPpc(t-1) - GDPpc(t-3)"
+* pre-trend placebos on the same (total real GDP) series
+gen double dy_m1 = (ln_gdp - L2.ln_gdp) * 100
+gen double dy_m2 = (L.ln_gdp - L3.ln_gdp) * 100
+label var dy_m1 "Pre-trend h=-1: GDP(t) - GDP(t-2)"
+label var dy_m2 "Pre-trend h=-2: GDP(t-1) - GDP(t-3)"
+
+* ── ROBUSTNESS outcome: per-capita version (kept as dy_pc_*) ─────────────────
+capture drop ln_gdppc_base dy_pc_0 dy_pc_1 dy_pc_2 dy_pc_3 dy_pc_4
+gen double ln_gdppc_base = L.ln_gdppc
+label var ln_gdppc_base "log real GDPpc at t-1 (per-capita LP baseline)"
+forvalues h = 0/4 {
+    gen double dy_pc_`h' = (F`h'.ln_gdppc - ln_gdppc_base) * 100
+    label var dy_pc_`h' "Cum. % change in log real GDPpc: F`h' vs t-1 (robustness)"
+}
 
 * ── Lagged spreads (used in the balance table) ──────────────────────────────
 capture drop l_spr_mean l_spr_max
@@ -49,7 +61,7 @@ label var l_spr_max  "L1 EMBIG max spread (bps)"
 
 * ── Estimation sample ───────────────────────────────────────────────────────
 capture drop sample
-gen byte sample = (continuation==0) & !missing(ln_gdppc_base)
+gen byte sample = (continuation==0) & !missing(ln_gdp_base)
 label var sample "Estimation sample (onset + tranquil, excl. continuation, GDP base present)"
 
 * ── Save the analysis file (drop-in replacement consumed by 02..16) ─────────

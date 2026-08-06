@@ -98,7 +98,7 @@ capture esttab t1_h0 t1_h1 t1_h2 t1_h3 t1_h4 using "$tabs/table1_output_all.rtf"
     mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
     stats(nep N N_g, labels("Episodes (onsets)" "Observations" "Countries") fmt(0 0 0)) ///
     title("Table 1. Output cost of sovereign spread crises (all episodes)") ///
-    addnotes("Dependent variable: cumulative change in log real GDP per capita (pp) from t-1 to t+h." ///
+    addnotes("Dependent variable: cumulative change in log real GDP (pp) from t-1 to t+h." ///
              "Jorda (2005) local projections. Country and year fixed effects; continuation years excluded." ///
              "Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
 

@@ -28,8 +28,8 @@ Source: `data/raw/WEOApr2026all.xlsx`, sheet "Countries", by `INDICATOR.ID`.
 
 | Variable | WEO code | Definition |
 |---|---|---|
-| `gdppc_real` / `ln_gdppc` | NGDPRPC | real GDP per capita (const. prices); `ln_gdppc = ln(NGDPRPC)` |
-| `gdp_real` | NGDP_R | real GDP (const. prices) — used for `gdpg` |
+| `gdp_real` / `ln_gdp` | NGDP_R | real GDP (const. prices); `ln_gdp = ln(NGDP_R)` — **headline LP outcome base** |
+| `gddpc_real` / `ln_gdppc` | NGDPRPC | real GDP per capita (const. prices) — per-capita robustness outcome (`dy_pc_*`) |
 | `gdp_nominal` | NGDP | nominal GDP (for ratios) |
 | `pop` | LP | population (millions) |
 | `infl` | PCPIPCH | CPI inflation, period avg, % |
@@ -103,9 +103,10 @@ All computed in code from the sourced series.
 | `past_onsets` / `past_def_onsets` (Z3) | lagged cumulative own (default-linked) onsets |
 | `gdpg` | `100·(ln gdp_real − ln L.gdp_real)` |
 | `l1_gdpg`, `l2_gdpg` | first/second lag of `gdpg` |
-| `ln_gdppc_base` | `L.ln_gdppc` |
-| `dy_0…dy_4` | `(F h.ln_gdppc − ln_gdppc_base)·100` (LP outcome) |
-| `dy_m1`, `dy_m2` | pre-trend placebos |
+| `ln_gdp_base` | `L.ln_gdp` (total real GDP baseline) |
+| `dy_0…dy_4` | `(F h.ln_gdp − ln_gdp_base)·100` — **headline LP outcome (total real GDP growth, Asonuma-aligned)** |
+| `dy_pc_0…dy_pc_4` | per-capita version (robustness) |
+| `dy_m1`, `dy_m2` | pre-trend placebos (on total real GDP) |
 | `l_spr_mean`, `l_spr_max` | lagged spreads |
 | `cid`, `sample` | numeric country id; estimation-sample flag |
 
