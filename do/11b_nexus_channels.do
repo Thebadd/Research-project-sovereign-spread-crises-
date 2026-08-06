@@ -148,7 +148,16 @@ foreach var in claimsgov_assets claimpriv_assets {
 }
 
 capture drop pscore2 trimmed2 ipw2
-quietly probit onset_def debt ca if onset_all == 1, vce(robust)
+* Full Act-2 first-stage spec (baseline controls X + predictors Z2), with a lean
+* fallback if it fails to converge on the thin among-onsets cell. Harmonised with
+* 12_channels_resolution.do / 13_mechanisms.do (was a lean `debt ca`-only probit).
+capture probit onset_def l1_gdpg l2_gdpg debt ca infl imf ///
+    vix l_reg_crisis_share past_def_onsets if onset_all == 1, vce(robust)
+if _rc {
+    di as error "  ** full Act-2 propensity failed to converge — lean fallback (debt ca + Z2)."
+    probit onset_def debt ca vix l_reg_crisis_share past_def_onsets ///
+        if onset_all == 1, vce(robust)
+}
 predict pscore2 if onset_all == 1, pr
 gen trimmed2 = (pscore2 < 0.05 | pscore2 > 0.95) if !missing(pscore2)
 replace pscore2 = . if trimmed2 == 1
