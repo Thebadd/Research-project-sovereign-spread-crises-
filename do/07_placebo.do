@@ -20,7 +20,7 @@
 use "$clean/panel_lp.dta", clear
 
 * VIX and ust10y absorbed by year FE (i.year) — omitted.
-local controls  l1_gdpg l2_gdpg ca debt infl imf
+local controls  $ctrl_core
 local n_treat   = 61      // number of real onsets
 local n_reps    = 1000
 local seed      = 20250101

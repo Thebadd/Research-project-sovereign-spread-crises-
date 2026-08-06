@@ -107,7 +107,7 @@ local expvars `expok'
 
 * ── Baseline controls (identical to the main output LP, 02_lp_all.do) ─────
 * VIX and ust10y are absorbed by year FE; excluded as elsewhere.
-local controls l1_gdpg l2_gdpg ca debt infl imf
+local controls $ctrl_core
 
 * ══════════════════════════════════════════════════════════════════════════
 * 1. BUILD PRE-DETERMINED, STANDARDIZED EXPOSURES AND INTERACTIONS

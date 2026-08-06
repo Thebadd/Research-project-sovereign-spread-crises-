@@ -59,6 +59,23 @@ gen double l_spr_max  = L.spr_max
 label var l_spr_mean "L1 EMBIG mean spread (bps)"
 label var l_spr_max  "L1 EMBIG max spread (bps)"
 
+* ── Asonuma-aligned COMMON-CORE control set (plain predetermined columns) ───
+*   One control set used as the OUTCOME-model controls in every GDP + channel
+*   regression, mirroring Asonuma's $convar: GDP momentum, gov spending, openness,
+*   bank-credit depth, hyperinflation dummy, banking-crisis dummy + our debt/ca.
+*   Plain lagged columns so the SAME set works in xtscc LP and bsample AIPW.
+capture drop hyperinf_dummy l_govexp l_open l_credit_bank
+gen byte   hyperinf_dummy = (L.infl > 50) if !missing(L.infl)
+gen double l_govexp       = L.govexp
+gen double l_open         = L.open
+gen double l_credit_bank  = L.credit_bank
+label var hyperinf_dummy "Hyperinflation dummy (L.infl > 50) — Asonuma"
+label var l_govexp       "L1 govt expenditure, % GDP"
+label var l_open         "L1 trade openness, % GDP"
+label var l_credit_bank  "L1 bank credit to private / GDP (financial depth)"
+
+global ctrl_core "l1_gdpg l2_gdpg debt ca infl banking_crisis l_govexp l_open l_credit_bank hyperinf_dummy"
+
 * ── Estimation sample ───────────────────────────────────────────────────────
 capture drop sample
 gen byte sample = (continuation==0) & !missing(ln_gdp_base)

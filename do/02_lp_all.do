@@ -17,7 +17,7 @@ use "$clean/panel_lp.dta", clear
 * ── Controls (pre-determined at t, all lagged relative to outcome) ────────
 * VIX and ust10y have zero cross-sectional variation and are fully absorbed by
 * year fixed effects (i.year). Including them is redundant; they are omitted.
-local controls l1_gdpg l2_gdpg ca debt infl imf
+local controls $ctrl_core
 
 * ── Storage matrices (rows: h = -2, -1, 0, 1, 2, 3, 4) ──────────────────
 local nhor = 7

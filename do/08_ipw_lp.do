@@ -30,7 +30,7 @@ use "$clean/panel_lp.dta", clear
 * fully absorbed by year fixed effects (i.year) in all LP regressions.
 * They are excluded from the LP spec but retained in the probit first stage,
 * which has no year FE and where global financial conditions are not absorbed.
-local controls_lp  l1_gdpg l2_gdpg ca debt infl imf
+local controls_lp  $ctrl_core
 
 * First-stage probit = controls X (same fundamentals as the LP) + excluded
 * PREDICTORS Z (Jordà–Taylor 2016). The predictors satisfy exclusion because

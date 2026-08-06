@@ -29,6 +29,13 @@ global do    "$root/do"
 global figs  "$root/output/figures"
 global tabs  "$root/output/tables"
 
+* ── Asonuma-aligned common-core control set (outcome-model controls) ─────────
+* Used uniformly across all GDP + channel regressions. Also (re)defined in
+* 18_transforms.do; set here so analysis files run standalone after a build.
+* The plain lagged columns (l_govexp/l_open/l_credit_bank/hyperinf_dummy) are
+* created in 18_transforms.do and saved in panel_lp.dta.
+global ctrl_core "l1_gdpg l2_gdpg debt ca infl banking_crisis l_govexp l_open l_credit_bank hyperinf_dummy"
+
 * ══════════════════════════════════════════════════════════════════════════
 * DATA BUILD (10-18) — from-scratch, fully-sourced panel. Keeps ONLY the own
 * spread-crisis DB for the crisis definition; every macro series is rebuilt from

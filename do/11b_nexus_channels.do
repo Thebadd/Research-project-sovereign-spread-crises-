@@ -41,8 +41,9 @@ foreach var in claimsgov_assets claimpriv_assets {
 
 * ── Channel-specific controls (lean, to preserve the short 2001+ sample) ──
 local channels        claimsgov_assets claimpriv_assets
-local ctrl_claimsgov_assets  L.claimsgov_assets l1_gdpg debt pb banking_crisis pre_claimsgov_assets
-local ctrl_claimpriv_assets  L.claimpriv_assets l1_gdpg l2_gdpg debt ca banking_crisis pre_claimpriv_assets
+* Common-core controls ($ctrl_core, Asonuma-aligned) + each nexus channel's pre_<v>.
+local ctrl_claimsgov_assets  $ctrl_core pre_claimsgov_assets
+local ctrl_claimpriv_assets  $ctrl_core pre_claimpriv_assets
 
 * ── Coverage at onset ─────────────────────────────────────────────────────
 di as result _n "=== NEXUS CHANNEL COVERAGE AT ONSET (h=0) ==="

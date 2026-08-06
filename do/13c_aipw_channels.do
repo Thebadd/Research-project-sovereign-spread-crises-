@@ -162,15 +162,13 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
               claimsgov_assets claimpriv_assets ca {
 
     * channel-specific OUTCOME-model controls (pre-lagged plain columns)
-    if      "`ch'" == "credit"            local om l1_gdpg l2_gdpg debt infl ca banking_crisis pre_credit
-    else if "`ch'" == "claims_govt"       local om l_claims_govt l_credit pb banking_crisis pre_claims_govt
-    else if "`ch'" == "inv"               local om l1_gdpg l2_gdpg debt ca l_credit banking_crisis pre_inv
-    else if "`ch'" == "govexp"            local om l_govexp debt revenue_gdp pre_govexp
-    else if "`ch'" == "pb"                local om l1_gdpg l2_gdpg debt ca l_pb banking_crisis pre_pb
-    else if "`ch'" == "fdi"               local om l1_gdpg l_fdi infl reer_chg pre_fdi
-    else if "`ch'" == "claimsgov_assets"  local om l_claimsgov_assets l1_gdpg debt pb banking_crisis pre_claimsgov_assets
-    else if "`ch'" == "claimpriv_assets"  local om l_claimpriv_assets l1_gdpg l2_gdpg debt ca banking_crisis pre_claimpriv_assets
-    else if "`ch'" == "ca"                local om l1_gdpg l2_gdpg debt l_ca pre_ca
+    * Common-core outcome model ($ctrl_core) + channel's own pre_<v>; drop the
+    * core term equal to the channel's own lagged level (credit->l_credit_bank,
+    * govexp->l_govexp, ca->ca).
+    if      "`ch'" == "credit"            local om l1_gdpg l2_gdpg debt ca infl banking_crisis l_govexp l_open hyperinf_dummy pre_credit
+    else if "`ch'" == "govexp"            local om l1_gdpg l2_gdpg debt ca infl banking_crisis l_open l_credit_bank hyperinf_dummy pre_govexp
+    else if "`ch'" == "ca"                local om l1_gdpg l2_gdpg debt infl banking_crisis l_govexp l_open l_credit_bank hyperinf_dummy pre_ca
+    else                                  local om $ctrl_core pre_`ch'
 
     di as result _n "=== CHANNEL: `ch' ==="
 

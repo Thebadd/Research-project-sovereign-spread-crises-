@@ -274,11 +274,11 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
 
     * outcome-model controls; each channel gets its own pre-crisis change pre_<v>
     * (Asonuma g_0). GDP already carries lagged growth (l1/l2_gdpg) in cx.
-    if      "`ocl'" == "gdp"              local om `cx'
-    else if "`ocl'" == "credit"           local om l1_gdpg l2_gdpg debt infl ca banking_crisis pre_credit
-    else if "`ocl'" == "inv"              local om l1_gdpg l2_gdpg debt ca l_credit banking_crisis pre_inv
-    else if "`ocl'" == "claimpriv_assets" local om l_claimpriv_assets l1_gdpg l2_gdpg debt ca banking_crisis pre_claimpriv_assets
-    else if "`ocl'" == "claims_govt"      local om l_claims_govt l_credit pb banking_crisis pre_claims_govt
+    * Common-core outcome model ($ctrl_core); GDP uses the core as-is, channels add
+    * their own pre_<v> (credit drops l_credit_bank as its own-level term).
+    if      "`ocl'" == "gdp"              local om $ctrl_core
+    else if "`ocl'" == "credit"           local om l1_gdpg l2_gdpg debt ca infl banking_crisis l_govexp l_open hyperinf_dummy pre_credit
+    else                                  local om $ctrl_core pre_`ocl'
 
     di as result _n "############### OUTCOME: `ocl' ###############"
 

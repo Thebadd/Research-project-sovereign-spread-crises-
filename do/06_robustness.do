@@ -25,7 +25,7 @@
 use "$clean/panel_lp.dta", clear
 
 * VIX & ust10y absorbed by i.year — omitted from all LP specs
-    local controls l1_gdpg l2_gdpg ca debt infl imf
+    local controls $ctrl_core
 local horizons "0 1 2 3 4"
 
 * Master storage: rows = specs, cols = horizons 0..4
@@ -49,7 +49,7 @@ program define run_rob
     args srow treatment
 
     * VIX & ust10y absorbed by i.year — omitted from all LP specs
-    local controls l1_gdpg l2_gdpg ca debt infl imf
+    local controls $ctrl_core
 
     forvalues h = 0/4 {
         local lag = max(1, `h'+1)

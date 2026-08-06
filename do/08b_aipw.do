@@ -115,7 +115,7 @@ forvalues h = 0/4 {
     local row = `h' + 1
 
     * point estimate on the real data (outcome model with country FE = cid)
-    capture _aipw dy_`h' onset_all if sample==1, omodel(`cx') pmodel(`cx' `cz') fe(cid)
+    capture _aipw dy_`h' onset_all if sample==1, omodel($ctrl_core) pmodel(`cx' `cz') fe(cid)
     if _rc {
         di as error "h=" `h' ": Act 1 point estimate failed, rc=" _rc
         continue
@@ -131,7 +131,7 @@ forvalues h = 0/4 {
         preserve
             capture drop _bid
             bsample, cluster(cid) idcluster(_bid)
-            capture _aipw dy_`h' onset_all if sample==1, omodel(`cx') pmodel(`cx' `cz') fe(_bid)
+            capture _aipw dy_`h' onset_all if sample==1, omodel($ctrl_core) pmodel(`cx' `cz') fe(_bid)
             if _rc == 0 quietly post `pf' (r(theta))
         restore
     }
@@ -182,7 +182,7 @@ foreach spec in "onset_nd onset_def A2nd non-default" ///
 
         * point estimate: this type's onsets vs tranquil (rival type dropped)
         capture _aipw dy_`h' `Dvar' if sample==1 & `drop'==0, ///
-            omodel(`cx') pmodel(`cx' `cz_def') fe(cid)
+            omodel($ctrl_core) pmodel(`cx' `cz_def') fe(cid)
         if _rc {
             di as error "`lab' h=" `h' ": point estimate failed, rc=" _rc
             continue
@@ -199,7 +199,7 @@ foreach spec in "onset_nd onset_def A2nd non-default" ///
                 capture drop _bid
                 bsample, cluster(cid) idcluster(_bid)
                 capture _aipw dy_`h' `Dvar' if sample==1 & `drop'==0, ///
-                    omodel(`cx') pmodel(`cx' `cz_def') fe(_bid)
+                    omodel($ctrl_core) pmodel(`cx' `cz_def') fe(_bid)
                 if _rc == 0 quietly post `pf2' (r(theta))
             restore
         }

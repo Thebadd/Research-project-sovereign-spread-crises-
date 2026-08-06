@@ -136,12 +136,14 @@ foreach var in credit claims_govt inv govexp pb fdi {
 local channels credit claims_govt inv govexp pb fdi
 
 * Controls per channel — channel-specific, not identical across all
-local ctrl_credit      l1_gdpg l2_gdpg debt infl ca banking_crisis pre_credit
-local ctrl_claims_govt L.claims_govt L.credit pb banking_crisis pre_claims_govt
-local ctrl_inv         l1_gdpg l2_gdpg debt ca L.credit banking_crisis pre_inv
-local ctrl_govexp      L.govexp debt revenue_gdp pre_govexp
-local ctrl_pb          l1_gdpg l2_gdpg debt ca L.pb banking_crisis pre_pb
-local ctrl_fdi         l1_gdpg L.fdi infl reer_chg pre_fdi
+* Common-core controls (Asonuma-aligned $ctrl_core) + each channel's own pre_<v>;
+* the core term equal to the channel's own lagged level is dropped from its own reg.
+local ctrl_credit      l1_gdpg l2_gdpg debt ca infl banking_crisis l_govexp l_open hyperinf_dummy pre_credit
+local ctrl_claims_govt $ctrl_core pre_claims_govt
+local ctrl_inv         $ctrl_core pre_inv
+local ctrl_govexp      l1_gdpg l2_gdpg debt ca infl banking_crisis l_open l_credit_bank hyperinf_dummy pre_govexp
+local ctrl_pb          $ctrl_core pre_pb
+local ctrl_fdi         $ctrl_core pre_fdi
 
 foreach ch of local channels {
     foreach m in b lo90 hi90 lo95 hi95 {
@@ -564,12 +566,14 @@ summarize ipw_ch if sample == 1, detail
 
 * ── 7b. Re-declare control locals (same as section 3) ────────────────────
 
-local ctrl_credit      l1_gdpg l2_gdpg debt infl ca banking_crisis pre_credit
-local ctrl_claims_govt L.claims_govt L.credit pb banking_crisis pre_claims_govt
-local ctrl_inv         l1_gdpg l2_gdpg debt ca L.credit banking_crisis pre_inv
-local ctrl_govexp      L.govexp debt revenue_gdp pre_govexp
-local ctrl_pb          l1_gdpg l2_gdpg debt ca L.pb banking_crisis pre_pb
-local ctrl_fdi         l1_gdpg L.fdi infl reer_chg pre_fdi
+* Common-core controls (Asonuma-aligned $ctrl_core) + each channel's own pre_<v>;
+* the core term equal to the channel's own lagged level is dropped from its own reg.
+local ctrl_credit      l1_gdpg l2_gdpg debt ca infl banking_crisis l_govexp l_open hyperinf_dummy pre_credit
+local ctrl_claims_govt $ctrl_core pre_claims_govt
+local ctrl_inv         $ctrl_core pre_inv
+local ctrl_govexp      l1_gdpg l2_gdpg debt ca infl banking_crisis l_open l_credit_bank hyperinf_dummy pre_govexp
+local ctrl_pb          $ctrl_core pre_pb
+local ctrl_fdi         $ctrl_core pre_fdi
 
 * ── 7c. IPW-weighted LP: store results ───────────────────────────────────
 
