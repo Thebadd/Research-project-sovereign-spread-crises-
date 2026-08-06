@@ -32,7 +32,7 @@ twoway ///
     xlabel(0(1)4, labsize(medsmall)) ///
     ylabel(, format(%4.1f) labsize(medsmall)) ///
     xtitle("Years after crisis onset", size(medsmall)) ///
-    ytitle("Cumulative change in log real GDP p.c. (pp)", size(medsmall)) ///
+    ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
     title("Output Cost of Sovereign Spread Crises", size(medium)) ///
     subtitle("All episodes (N = 61), 52 EM economies, 1994-2025", size(small)) ///
     note("Local projections (Jorda 2005). Driscoll-Kraay SE." ///
@@ -70,7 +70,7 @@ twoway ///
     xlabel(0(1)4, labsize(medsmall)) ///
     ylabel(, format(%4.1f) labsize(medsmall)) ///
     xtitle("Years after crisis onset", size(medsmall)) ///
-    ytitle("Cumulative change in log real GDP p.c. (pp)", size(medsmall)) ///
+    ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
     title("Output Cost: Non-Default vs. Default-Linked Crises", size(medium)) ///
     subtitle("52 EM economies, 1994-2025", size(small)) ///
     legend(order(2 "Non-default (N=40)" 4 "Default-linked (N=21)") ///
@@ -100,7 +100,7 @@ twoway ///
     xlabel(-2(1)4, labsize(medsmall)) ///
     ylabel(, format(%4.1f) labsize(medsmall)) ///
     xtitle("Years relative to crisis onset", size(medsmall)) ///
-    ytitle("Cumulative change in log real GDP p.c. (pp)", size(medsmall)) ///
+    ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
     title("Pre-Trend Test + Main Horizons", size(medium)) ///
     subtitle("All spread crises (N = 61). Placebo: h = -2, -1.", size(small)) ///
     text(0 -1.5 "Pre-trend (should be ~0)", size(vsmall) color(gray)) ///
