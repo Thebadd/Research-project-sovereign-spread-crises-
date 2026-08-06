@@ -277,7 +277,7 @@ preserve
         yline(0, lpattern(dash) lcolor(gs8)) ///
         xlabel(0(1)4, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
         xtitle("Years after crisis onset", size(medsmall)) ///
-        ytitle("Cumulative change in log real GDP p.c. (pp)", size(medsmall)) ///
+        ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
         title("AIPW output cost by resolution", size(medium) color(navy)) ///
         subtitle("Doubly-robust (Asonuma et al. Eq. 3), each vs tranquil.", size(small)) ///
         legend(order(3 "Non-default" 4 "Default-linked") ring(0) pos(7) size(small)) ///

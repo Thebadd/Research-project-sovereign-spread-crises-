@@ -12,7 +12,7 @@
 
   Rows are grouped, as in their Table 1, into:
     PREDICTORS (excluded from the LP/AIPW outcome eq.):
-        VIX (global push) + regional contagion + past onsets.
+        Fed funds rate (global push) + regional contagion + past onsets.
         Col 1 (all onsets) uses past_onsets; the resolution columns use
         past_def_onsets (count of past DEFAULT-linked onsets).
     BASELINE CONTROLS (also in the outcome eq.):

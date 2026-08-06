@@ -6,8 +6,8 @@
   Steps:
     1. First-stage probit: Pr(onset_all=1 | X_{t-1})
        Controls X: l1_gdpg, l2_gdpg, debt, ca, infl, imf
-       Predictors Z: vix (single global push), l_reg_crisis_share, past_onsets
-       (vix included in probit only; absorbed by year FE in the LP)
+       Predictors Z: fedfunds (single global push), l_reg_crisis_share, past_onsets
+       (fedfunds included in probit only; absorbed by year FE in the LP)
     2. Predict propensity scores p_it
     3. Trim extreme scores (< 0.01 or > 0.99) to avoid explosive weights
     4. Construct stabilized IPW weights:
@@ -35,13 +35,13 @@ local controls_lp  $ctrl_core
 * First-stage probit = controls X (same fundamentals as the LP) + excluded
 * PREDICTORS Z (Jordà–Taylor 2016). The predictors satisfy exclusion because
 * they are omitted from the LP second stage:
-*   ust10y, vix    — pure time-series push factors, absorbed by i.year in the LP
+*   fedfunds        — pure time-series push factor, absorbed by i.year in the LP
 *   l_reg_crisis_share (Z2) — regional contagion, country-varying, omitted from LP
 *   past_onsets       (Z3) — own crisis history, country-varying, omitted from LP
 local controls_x   l1_gdpg l2_gdpg debt ca infl imf
-* Single global-push predictor (VIX): fedfunds/ust10y/vix all proxy the
+* Single global-push predictor (fed funds): fedfunds/ust10y/vix all proxy the
 * same global-financial-conditions factor, so only one is kept to avoid splitting
-* its explanatory power. vix is pure time-series => absorbed by year FE in
+* its explanatory power. fedfunds is pure time-series => absorbed by year FE in
 * the LP, so the exclusion restriction still holds.
 local predictors_z fedfunds l_reg_crisis_share past_onsets
 
@@ -266,7 +266,7 @@ twoway ///
     xlabel(0(1)4, labsize(medsmall))                                        ///
     ylabel(, format(%4.1f) labsize(medsmall))                               ///
     xtitle("Years after crisis onset", size(medsmall))                      ///
-    ytitle("Cumulative change in log real GDP p.c. (pp)", size(medsmall))   ///
+    ytitle("Cumulative change in log real GDP (pp)", size(medsmall))   ///
     title("Baseline vs. IPW-Weighted Local Projections", size(medium))      ///
     subtitle("All spread crises (N=61). xtreg FE, cluster SE.", size(small)) ///
     legend(order(2 "Baseline OLS-FE" 4 "IPW-weighted")                     ///
@@ -488,7 +488,7 @@ twoway ///
     xlabel(0(1)4, labsize(medsmall)) ///
     ylabel(, format(%4.1f) labsize(medsmall)) ///
     xtitle("Years after crisis onset", size(medsmall)) ///
-    ytitle("Cumulative change in log real GDP p.c. (pp)", size(medsmall)) ///
+    ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
     title("Resolution Split: OLS vs. IPW-Weighted LP", size(medium)) ///
     subtitle("Solid = OLS baseline. Dashed = IPW-weighted.", size(small)) ///
     legend(order(1 "Non-default (OLS)" 2 "Default-linked (OLS)" ///
