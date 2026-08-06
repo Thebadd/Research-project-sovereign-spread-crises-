@@ -9,7 +9,7 @@
     iso3 country region year  |  spr_max spr_mean crisis_any onset_all
     continuation ep_id ep_status  |  classification nondefault onset_nd onset_def
     sample_base
-  Saves: $clean/panel_skeleton.dta   (macro merged on top of this in 11+)
+  Saves: $clean/panel_build.dta   (macro merged on top of this in 11+)
 
   Source sheets (README of the workbook documents JP Morgan EMBIG Global):
     Panel_Annual    — full country-year panel, onset dating (D_it), spreads.

@@ -15,7 +15,11 @@
     claimsoncentralgovernmentgdp.xlsx  -> claims_govt [FS.AST.CGOV.GD.ZS]
     exportofgoodservicesgdp.xlsx       -> exp_gdp  [NE.EXP.GNFS.ZS]
     importofgoodservicesgdp.xlsx       -> imp_gdp  [NE.IMP.GNFS.ZS]
+    termsoftrade.xlsx                  -> tot      [TT.PRI.MRCH.XD.WD] (robustness)
+    officialexchangerate.xlsx          -> exch     [PA.NUS.FCRF]       (robustness)
   Then open = exp_gdp + imp_gdp (trade openness, % GDP; Asonuma control).
+  REER (reer_chg) is also built here from REER_INDEX.xlsx. tot/exch feed the
+  robustness controls (tot_chg, ex_dum bins) built in 18_transforms.
 
   NOTE: the channel variable `credit` = domestic credit to private sector, all
   financial corporations (FS.AST.PRVT.GD.ZS). The by-banks measure

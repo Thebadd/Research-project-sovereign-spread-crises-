@@ -37,7 +37,7 @@
   Specs compared:
     Without : ch_inv_h = αi + γt + β·onset_all
               + l1_gdpg l2_gdpg debt ca + ε
-    With    : same + L.credit   [current 11_channels.do spec]
+    With    : same + L.credit   [bespoke mediation spec]
 
   Outputs:
     Printed comparison tables at each horizon
@@ -84,7 +84,7 @@ forvalues h = 0/4 {
     local lag = max(1, `h'+1)
     local row = `h' + 1
 
-    * Baseline: current 11_channels spec
+    * Baseline: bespoke credit-mechanism spec (not identical to 11_channels' core credit spec)
     capture xtscc ch_credit_`h' onset_all ///
         l1_gdpg l2_gdpg debt infl ca banking_crisis pre_credit ///
         i.year if sample==1, fe lag(`lag')
@@ -497,7 +497,7 @@ di as result "Figure saved: fig13d_ca_split.pdf"
 
 * ══════════════════════════════════════════════════════════════════════════
 * TEST 3 ROBUSTNESS — IPW-WEIGHTED CA LP (nd vs. default)
-*   Same probit first stage as 08_ipw_lp.do Act 2: onset_def ~ debt + ca
+*   First stage: probit onset_def on X + Z2 (fedfunds, contagion, past default onsets); lean debt-ca fallback
 *   among crisis onset years. Stabilized weights, trimmed [0.05, 0.95].
 *   Estimator: areg [aw=ipw2] (xtscc does not accept pweights).
 *   Output: fig13e_ca_ipw.pdf
@@ -645,7 +645,7 @@ twoway ///
                  5 "Non-default (IPW)" 6 "Default-linked (IPW)") ///
            cols(2) size(small) region(lcolor(none) fcolor(none))) ///
     note("IPW reweights non-default episodes to match default-linked on pre-crisis" ///
-         "fundamentals (probit: debt & CA). areg, clustered SE.", size(vsmall)) ///
+         "fundamentals (probit on macro controls + fedfunds, contagion, past default onsets). areg, clustered SE.", size(vsmall)) ///
     graphregion(color(white)) plotregion(color(white))
 
 graph export "$figs/fig13e_ca_ipw.pdf", replace

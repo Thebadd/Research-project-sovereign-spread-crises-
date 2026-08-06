@@ -28,7 +28,7 @@
   Output: $tabs/aipw_channels.csv ; $figs/fig_aipw_ch_act1.pdf ;
           $figs/fig_aipw_ch_act2.pdf. Leaves 11/11b/12/13 (OLS+IPW) untouched.
   Runtime note: heavy (9 channels x ~15 fits x nboot). nboot=300 for a practical
-  run; raise to 500 for the final.  Run AFTER 01e_predictors.do.
+  run; raise to 500 for the final.  Run AFTER 17_predictors.do.
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear

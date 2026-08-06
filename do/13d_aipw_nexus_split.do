@@ -39,7 +39,7 @@
   Output: $tabs/aipw_nexus_split.csv (outcome x part x bank x horizon, levels) ;
           $tabs/aipw_nexus_diff.csv  (outcome x part x horizon, high-low gap + CI) ;
           $figs/fig_aipw_nexus_split.pdf (GDP) + $figs/fig_nexus_<channel>.pdf.
-  Run AFTER 01e_predictors.do (needs vix, past_onsets, past_def_onsets, nexus vars).
+  Run AFTER 17_predictors.do (needs fedfunds, past_onsets, past_def_onsets, nexus vars).
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear

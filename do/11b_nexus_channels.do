@@ -39,7 +39,7 @@ foreach var in claimsgov_assets claimpriv_assets {
     gen pre_`var' = L.`var' - L2.`var'
 }
 
-* ── Channel-specific controls (lean, to preserve the short 2001+ sample) ──
+* ── Outcome-model controls: common core ($ctrl_core) + each nexus channel's pre_<v> ──
 local channels        claimsgov_assets claimpriv_assets
 * Common-core controls ($ctrl_core, Asonuma-aligned) + each nexus channel's pre_<v>.
 local ctrl_claimsgov_assets  $ctrl_core pre_claimsgov_assets
@@ -131,7 +131,7 @@ di as result "Figure saved: fig11b_nexus_pooled.pdf"
 
 * ══════════════════════════════════════════════════════════════════════════
 * 3. ACT 2 IPW WEIGHTS (rebuilt as in 08_ipw_lp.do / 12_channels_resolution)
-*    Parsimonious first stage: Pr(default-linked | crisis onset) on debt, CA
+*    Full first stage: probit onset_def on X (l1_gdpg l2_gdpg debt ca infl imf) + Z2 (fedfunds l_reg_crisis_share past_def_onsets); lean debt-ca fallback.
 * ══════════════════════════════════════════════════════════════════════════
 * Reload the panel: the figure loop above left an IRF dataset in memory.
 use "$clean/panel_lp.dta", clear

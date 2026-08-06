@@ -5,9 +5,12 @@
 
     gdpg              real GDP growth, % = 100*(ln gdp_real - ln L.gdp_real)
     l1_gdpg, l2_gdpg  first/second lag of gdpg (control momentum, = cx)
-    ln_gdppc_base     L.ln_gdppc (LP baseline at t-1)
-    dy_0..dy_4        cumulative % change in log real GDPpc, F h vs t-1 (LP outcome)
-    dy_m1, dy_m2      pre-trend placebos (single-year growth fully before onset)
+    ln_gdp_base       L.ln_gdp (headline LP baseline at t-1; ln_gdppc_base = per-capita robustness)
+    dy_0..dy_4        cumulative % change in log TOTAL real GDP (ln gdp_real), F h vs t-1 (headline outcome)
+    dy_pc_0..dy_pc_4  per-capita version (robustness)
+    dy_m1, dy_m2      pre-trend placebos (two-year growth spans ending before onset)
+    hyperinf_dummy, l_govexp, l_open, l_credit_bank, $ctrl_core  common-core ingredients
+    tot_chg, exchange2, ex_dum1-5  robustness-tier controls (Asonuma additional)
     l_spr_mean/max    lagged EMBIG spread (balance table)
     sample            onset + tranquil years, excl. continuation, GDP base present
 ===========================================================================*/

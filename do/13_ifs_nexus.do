@@ -12,7 +12,7 @@
   Source: IMF MFS, aggregate ODC (deposit-taking banks ex central bank) balance
   sheet, local-currency levels, 2001-2024. All three are shares of TOTAL BANK
   ASSETS, so claimpriv_assets is the bank-only private-credit measure that is
-  internally consistent with the by-banks `credit` (FD.AST.PRVT.GD.ZS) in 12.
+  internally consistent with the by-banks `credit_bank` (FD.AST.PRVT.GD.ZS) in 12.
 
   Coverage: 2001+ only; 6 panel countries absent from the IMF file and stay
   missing: China (mainland), Ecuador, El Salvador, India, Lebanon, Vietnam.

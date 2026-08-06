@@ -12,10 +12,10 @@
 
   Spec A (OLS): joint LP with onset_nd and onset_def simultaneously
     ch_var(h) = αi + γt + β_nd(h)·onset_nd + β_def(h)·onset_def
-               + X_channel·δ + ε     [DK SE, lag=max(1,h+1)]
+               + X_core (common core + pre_<v>)·δ + ε     [DK SE, lag=max(1,h+1)]
 
   Spec B (IPW): same regression with Act 2 stabilized weights
-    IPW2: probit Pr(default-linked | crisis onset) on debt and CA
+    IPW2: probit Pr(default-linked | onset) on X + Z2 (fedfunds, contagion, past default onsets), lean debt-ca fallback
     Stabilized weights reweight non-default episodes to match
     observable pre-crisis characteristics of default-linked countries.
     areg absorb(cid) [aw=ipw2] vce(cluster cid)
@@ -66,7 +66,7 @@ foreach var in credit claims_govt inv govexp pb fdi {
 
 * ══════════════════════════════════════════════════════════════════════════
 * 3. IPW WEIGHTS — ACT 2 (replicated from 08_ipw_lp.do)
-*    Parsimonious first stage: debt + CA only (26 obs per covariate)
+*    Full first stage: X (l1_gdpg l2_gdpg debt ca infl imf) + Z2 (fedfunds l_reg_crisis_share past_def_onsets); lean debt-ca fallback
 * ══════════════════════════════════════════════════════════════════════════
 
 di as result _n "=== FIRST STAGE: Pr(default-linked | crisis onset) ==="
@@ -109,7 +109,7 @@ di as result "IPW2 weights: min=" r(min) "  max=" r(max) "  mean=" r(mean)
 
 local channels   credit claims_govt inv govexp pb fdi
 
-* Controls per channel (same as 11_channels.do)
+* Controls: common core ($ctrl_core) + each channel's own pre_<v> (same as 11_channels.do)
 * Common-core controls (Asonuma-aligned $ctrl_core) + each channel's own pre_<v>;
 * the core term equal to the channel's own lagged level is dropped from its own reg.
 local ctrl_credit      l1_gdpg debt ca banking_crisis l_govexp l_open hyperinf_dummy pre_credit
@@ -246,7 +246,7 @@ foreach ch of local channels {
 *   Requires: ssc install estout
 * ══════════════════════════════════════════════════════════════════════════
 
-local t4note "Dependent variable: cumulative change in the channel variable (pp) from t-1 to t+h. Both onset dummies enter jointly. Jorda (2005) local projections; country and year fixed effects; channel-specific controls; continuation years excluded. Driscoll-Kraay standard errors in parentheses. p(nd=def) is the p-value of the equality test. * p<0.10, ** p<0.05, *** p<0.01."
+local t4note "Dependent variable: cumulative change in the channel variable (pp) from t-1 to t+h. Both onset dummies enter jointly. Jorda (2005) local projections; country and year fixed effects; common-core controls plus the channel's own pre-crisis change; continuation years excluded. Driscoll-Kraay standard errors in parentheses. p(nd=def) is the p-value of the equality test. * p<0.10, ** p<0.05, *** p<0.01."
 
 * Per-channel panel titles (Panel A carries the overall table caption)
 local ptitle_credit      "Table 4. Channels by resolution (nd vs. def) -- Panel A: Private credit/GDP"
@@ -477,7 +477,7 @@ graph combine ipw_1 ipw_2 ipw_3 ipw_4 ipw_5 ipw_6, ///
     cols(3) rows(2) ///
     title("Transmission Channels by Resolution Type — IPW", ///
           size(medlarge) color(navy)) ///
-    note("90% CI. Clustered SE. Country & year FE. IPW: probit(def | crisis) on debt, CA.", ///
+    note("90% CI. Clustered SE. Country & year FE. IPW: probit(def | crisis) on macro controls + fedfunds, contagion, past default onsets.", ///
          size(vsmall)) ///
     graphregion(color(white)) xsize(10) ysize(7)
 

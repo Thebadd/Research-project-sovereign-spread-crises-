@@ -4,8 +4,8 @@
 
   Research question: through which channels does a spread crisis affect
   real output? We run the same LP framework as Act 1 but replace the
-  GDP outcome with six channel variables, each with controls tailored
-  to the specific mechanism.
+  GDP outcome with six channel variables, all sharing the UNIFORM common-core
+  control set ($ctrl_core) plus each channel's own pre-crisis change (pre_<v>).
 
   CHANNELS AND OUTCOMES:
   ----------------------
@@ -19,22 +19,19 @@
   SPECIFICATION (horizon h = 0,...,4):
   -------------------------------------
   Channel_var(i,t+h) - Channel_var(i,t-1) = αi + γt + β(h)·onset_all
-                                            + X_channel · δ + ε(i,t+h)
+                                            + X_core (common core + pre_<v>) · δ + ε(i,t+h)
 
   All outcomes expressed as cumulative change from t-1 (same anchoring
   as main LP). Controls are pre-determined (lagged relative to t).
   DK SE with lag = max(1, h+1) throughout.
 
-  CONTROLS BY CHANNEL (see discussion in paper):
+  CONTROLS (uniform common core, Asonuma-aligned):
   -----------------------------------------------
-  Credit:          l1_gdpg l2_gdpg debt infl ca banking_crisis
-  Sovereign-bank:  L.claims_govt L.credit pb banking_crisis
-  Investment:      l1_gdpg l2_gdpg debt ca L.credit banking_crisis
-  Govt expenditure:L.govexp debt revenue_gdp
-  Primary balance: l1_gdpg l2_gdpg debt ca L.pb banking_crisis
-  FDI:             l1_gdpg L.fdi infl reer_chg
-  NOTE: VIX and UST10Y excluded — both are pure time-series variables
-        with zero cross-sectional variation, fully absorbed by year FE.
+  $ctrl_core = l1_gdpg debt ca banking_crisis l_govexp l_open l_credit_bank
+               hyperinf_dummy      (+ each channel's own pre_<v>)
+  The core term equal to a channel's own lagged level is dropped from its own
+  regression (credit -> l_credit_bank; govexp -> l_govexp). Global time-series
+  factors (fed funds / VIX / UST10Y) are omitted — absorbed by year FE.
 
   Saves:
     "$clean/irf_ch_*.dta"        — one IRF dataset per channel
@@ -81,61 +78,22 @@ foreach var in credit claims_govt inv govexp pb fdi {
 * ══════════════════════════════════════════════════════════════════════════
 
 /*
-  CONTROL VARIABLE RATIONALE BY CHANNEL:
-  ----------------------------------------
-  Credit/GDP:
-    l1_gdpg l2_gdpg — demand for credit linked to economic cycle
-    debt            — sovereign risk spills into bank funding costs
-    infl            — affects real cost of credit
-    ca              — ADDED: current account deficit means credit depends on
-                      external financing; capital outflows contract credit
-    vix             — global risk appetite (VIX captures uncertainty; UST10Y
-                      omitted from real-variable channels: it proxies the same
-                      global financial conditions as VIX but adds collinearity
-                      without incremental content for real outcomes)
-
-  Bank claims on govt/GDP:
-    l1_gdpg         — macro conditions affect banks' portfolio decisions
-    debt            — sovereign borrowing stock determines bond supply
-    pb              — primary balance: captures flow of new issuance banks must absorb
-    vix             — global risk appetite (affects carry trade incentive)
-    NOTE: ca excluded — sovereign-bank nexus is primarily a domestic balance
-          sheet channel, less driven by external financing conditions
-
-  Investment/GDP:
-    l1_gdpg l2_gdpg — investment accelerator (two lags capture persistence)
-    debt            — fiscal crowding-out of private investment
-    ca              — external financing constraint (investment needs foreign capital)
-    L.credit        — bank credit availability (key financing source)
-    vix             — cost of capital and global uncertainty
-
-  Govt expenditure/GDP:
-    l1_gdpg         — automatic stabilizers link growth to revenues/spending
-    debt            — fiscal space constraint
-    ca              — external financing constraint on fiscal policy
-    infl            — REPLACES pb: inflation affects nominal spending, avoids
-                      mechanical relationship (pb = revenue - expenditure,
-                      govexp is a direct component of pb)
-    vix             — global conditions affecting borrowing costs
-
-  Primary balance/GDP:
-    l1_gdpg l2_gdpg — cyclical component (automatic stabilizers), Bohn rule
-    debt            — Bohn (1998) fiscal reaction: pb responds to debt level
-    ca              — external constraint forces fiscal adjustment (key for EM)
-    vix             — external borrowing costs / global risk sentiment
-
-  FDI/GDP:
-    l1_gdpg         — market size / growth attractiveness for foreign investors
-    debt            — sovereign risk signal for foreign investors
-    ca              — external position signals overall external sustainability
-    vix             — global risk appetite (dominant driver of EM capital flows)
-    ust10y          — KEPT for FDI only: level of US rates affects carry trade
-                      and cost of external financing for foreign investors
+  CONTROL SET (uniform across all six channels):
+  ----------------------------------------------
+  $ctrl_core = l1_gdpg debt ca banking_crisis l_govexp l_open l_credit_bank
+               hyperinf_dummy   + each channel's own pre_<v> (Asonuma g_0).
+  Rationale: pre-crisis GDP momentum, fiscal solvency (debt) and external
+  balance (ca), banking distress, government spending, trade openness, bank-
+  credit depth, and a hyperinflation flag — the Asonuma $convar adapted to
+  spread crises. The core term equal to a channel's own lagged level is dropped
+  from that channel's regression (credit -> l_credit_bank; govexp -> l_govexp).
+  Global push factors (fed funds / VIX / UST10Y) enter the first-stage
+  propensity model only; in the LP they are absorbed by year FE.
 */
 
 local channels credit claims_govt inv govexp pb fdi
 
-* Controls per channel — channel-specific, not identical across all
+* Controls: uniform common core ($ctrl_core) + each channel's own pre_<v>; drop the core term equal to the channel's own lagged level.
 * Common-core controls (Asonuma-aligned $ctrl_core) + each channel's own pre_<v>;
 * the core term equal to the channel's own lagged level is dropped from its own reg.
 local ctrl_credit      l1_gdpg debt ca banking_crisis l_govexp l_open hyperinf_dummy pre_credit
@@ -333,7 +291,7 @@ forvalues h = 0/4 {
 *   Requires: ssc install estout
 * ══════════════════════════════════════════════════════════════════════════
 
-local t3note "Dependent variable: cumulative change in the channel variable (pp) from t-1 to t+h. Jorda (2005) local projections; country and year fixed effects; channel-specific controls; continuation years excluded. Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01."
+local t3note "Dependent variable: cumulative change in the channel variable (pp) from t-1 to t+h. Jorda (2005) local projections; country and year fixed effects; common-core controls plus the channel's own pre-crisis change; continuation years excluded. Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01."
 
 * Per-channel panel titles (Panel A carries the overall table caption)
 local ptitle_credit      "Table 3. Transmission channels (all episodes) -- Panel A: Private credit/GDP"
@@ -538,7 +496,7 @@ foreach var in credit claims_govt inv govexp pb fdi {
 * First-stage probit: same spec as 08_ipw_lp.do
 di as result _n "=== IPW FIRST STAGE (channels): Probit of crisis onset ==="
 * Controls + excluded predictors (Z), consistent with 08_ipw_lp.do:
-* ust10y/vix (year-FE-absorbed in LP) + l_reg_crisis_share/past_onsets (omitted).
+* fedfunds (US monetary conditions) + l_reg_crisis_share/past_onsets as excluded predictors (Z).
 local controls_ps l1_gdpg l2_gdpg debt ca infl imf fedfunds l_reg_crisis_share past_onsets
 probit onset_all `controls_ps' if sample == 1, vce(cluster cid)
 di as result "McFadden Pseudo-R2: " e(r2_p)
