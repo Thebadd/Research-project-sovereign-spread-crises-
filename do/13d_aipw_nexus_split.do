@@ -277,7 +277,7 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
     * Common-core outcome model ($ctrl_core); GDP uses the core as-is, channels add
     * their own pre_<v> (credit drops l_credit_bank as its own-level term).
     if      "`ocl'" == "gdp"              local om $ctrl_core
-    else if "`ocl'" == "credit"           local om l1_gdpg l2_gdpg debt ca infl banking_crisis l_govexp l_open hyperinf_dummy pre_credit
+    else if "`ocl'" == "credit"           local om l1_gdpg l2_gdpg debt ca banking_crisis l_govexp l_open hyperinf_dummy pre_credit
     else                                  local om $ctrl_core pre_`ocl'
 
     di as result _n "############### OUTCOME: `ocl' ###############"
