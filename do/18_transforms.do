@@ -67,6 +67,19 @@ label var l_spr_max  "L1 EMBIG max spread (bps)"
 *   regression, mirroring Asonuma's $convar: GDP momentum, gov spending, openness,
 *   bank-credit depth, hyperinflation dummy, banking-crisis dummy + our debt/ca.
 *   Plain lagged columns so the SAME set works in xtscc LP and bsample AIPW.
+* Guard: these sources are built upstream — infl/govexp in stage 11 (WEO),
+* open/credit_bank in stage 12 (WDI). If any is absent, panel_build.dta was not
+* built by the full 10->18 chain (e.g. 18 was run alone on a stale file, or a
+* WDI raw file was missing). Stop with a clear message instead of a cryptic halt.
+foreach req in infl govexp open credit_bank {
+    capture confirm variable `req'
+    if _rc {
+        di as error "  ** 18_transforms: required variable '`req'' is not in panel_build.dta."
+        di as error "     Built upstream: infl/govexp -> stage 11 (11_weo); open/credit_bank -> stage 12 (12_wdi)."
+        di as error "     Fix: run the FULL chain in order (do 00_master.do), with all data/raw files present."
+        exit 111
+    }
+}
 capture drop hyperinf_dummy l_govexp l_open l_credit_bank
 gen byte   hyperinf_dummy = (L.infl > 50) if !missing(L.infl)
 gen double l_govexp       = L.govexp
@@ -83,26 +96,32 @@ global ctrl_core "l1_gdpg debt ca banking_crisis l_govexp l_open l_credit_bank h
 *   terms-of-trade change and nominal-FX-change quantile dummies, built the
 *   Asonuma way. Predetermined. Used only in robustness specs.
 capture drop tot_chg exchange2 ex_dum1 ex_dum2 ex_dum3 ex_dum4 ex_dum5
-* lagged terms-of-trade growth (Asonuma tot2 = ln(L.tot) - ln(L2.tot), x100)
-gen double tot_chg = 100*(ln(L.tot) - ln(L2.tot)) if L.tot>0 & L2.tot>0 & !missing(L.tot,L2.tot)
-label var tot_chg "L1 terms-of-trade log-change, % (WDI; robustness)"
-* lagged nominal exchange-rate change (Asonuma exchange2)
-gen double exchange2 = ln(1+L.exch) - ln(1+L2.exch) if !missing(L.exch,L2.exch)
-label var exchange2 "L1 nominal exchange-rate log-change (robustness)"
-* quantile-bin dummies of exchange2 over the estimation sample (Asonuma ex_dum1-5)
-* (sample flag is built below, so use its defining condition here)
-quietly summarize exchange2 if continuation==0 & !missing(ln_gdp_base), detail
-foreach k in 1 2 3 4 5 { gen byte ex_dum`k' = 0 if !missing(exchange2) }
-replace ex_dum1 = 1 if exchange2 < r(p5)
-replace ex_dum2 = 1 if exchange2 < r(p25)
-replace ex_dum2 = 0 if exchange2 < r(p5)
-replace ex_dum3 = 1 if exchange2 < r(p50)
-replace ex_dum3 = 0 if exchange2 < r(p25)
-replace ex_dum4 = 1 if exchange2 < r(p75)
-replace ex_dum4 = 0 if exchange2 < r(p50)
-replace ex_dum5 = 1 if exchange2 < r(p95)
-replace ex_dum5 = 0 if exchange2 < r(p75)
-label var ex_dum1 "FX-change bin < p5 (Asonuma ex_dum; robustness)"
+* terms of trade (optional robustness source) — skip if not present
+capture confirm variable tot
+if !_rc {
+    gen double tot_chg = 100*(ln(L.tot) - ln(L2.tot)) if L.tot>0 & L2.tot>0 & !missing(L.tot,L2.tot)
+    label var tot_chg "L1 terms-of-trade log-change, % (WDI; robustness)"
+}
+else di as error "  ** tot not found — skipping tot_chg (robustness only; add termsoftrade.xlsx to build it)."
+* official FX (optional robustness source) — build exchange2 + ex_dum bins, else skip
+capture confirm variable exch
+if !_rc {
+    gen double exchange2 = ln(1+L.exch) - ln(1+L2.exch) if !missing(L.exch,L2.exch)
+    label var exchange2 "L1 nominal exchange-rate log-change (robustness)"
+    quietly summarize exchange2 if continuation==0 & !missing(ln_gdp_base), detail
+    foreach k in 1 2 3 4 5 { gen byte ex_dum`k' = 0 if !missing(exchange2) }
+    replace ex_dum1 = 1 if exchange2 < r(p5)
+    replace ex_dum2 = 1 if exchange2 < r(p25)
+    replace ex_dum2 = 0 if exchange2 < r(p5)
+    replace ex_dum3 = 1 if exchange2 < r(p50)
+    replace ex_dum3 = 0 if exchange2 < r(p25)
+    replace ex_dum4 = 1 if exchange2 < r(p75)
+    replace ex_dum4 = 0 if exchange2 < r(p50)
+    replace ex_dum5 = 1 if exchange2 < r(p95)
+    replace ex_dum5 = 0 if exchange2 < r(p75)
+    label var ex_dum1 "FX-change bin < p5 (Asonuma ex_dum; robustness)"
+}
+else di as error "  ** exch not found — skipping exchange2/ex_dum (robustness only; add officialexchangerate.xlsx)."
 
 * ── Estimation sample ───────────────────────────────────────────────────────
 capture drop sample
