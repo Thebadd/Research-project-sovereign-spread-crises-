@@ -165,9 +165,9 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
     * Common-core outcome model ($ctrl_core) + channel's own pre_<v>; drop the
     * core term equal to the channel's own lagged level (credit->l_credit_bank,
     * govexp->l_govexp, ca->ca).
-    if      "`ch'" == "credit"            local om l1_gdpg l2_gdpg debt ca banking_crisis l_govexp l_open hyperinf_dummy pre_credit
-    else if "`ch'" == "govexp"            local om l1_gdpg l2_gdpg debt ca banking_crisis l_open l_credit_bank hyperinf_dummy pre_govexp
-    else if "`ch'" == "ca"                local om l1_gdpg l2_gdpg debt banking_crisis l_govexp l_open l_credit_bank hyperinf_dummy pre_ca
+    if      "`ch'" == "credit"            local om l1_gdpg debt ca banking_crisis l_govexp l_open hyperinf_dummy pre_credit
+    else if "`ch'" == "govexp"            local om l1_gdpg debt ca banking_crisis l_open l_credit_bank hyperinf_dummy pre_govexp
+    else if "`ch'" == "ca"                local om l1_gdpg debt banking_crisis l_govexp l_open l_credit_bank hyperinf_dummy pre_ca
     else                                  local om $ctrl_core pre_`ch'
 
     di as result _n "=== CHANNEL: `ch' ==="

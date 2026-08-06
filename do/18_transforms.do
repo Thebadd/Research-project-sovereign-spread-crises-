@@ -74,7 +74,7 @@ label var l_govexp       "L1 govt expenditure, % GDP"
 label var l_open         "L1 trade openness, % GDP"
 label var l_credit_bank  "L1 bank credit to private / GDP (financial depth)"
 
-global ctrl_core "l1_gdpg l2_gdpg debt ca banking_crisis l_govexp l_open l_credit_bank hyperinf_dummy"
+global ctrl_core "l1_gdpg debt ca banking_crisis l_govexp l_open l_credit_bank hyperinf_dummy"
 
 * ── Estimation sample ───────────────────────────────────────────────────────
 capture drop sample
