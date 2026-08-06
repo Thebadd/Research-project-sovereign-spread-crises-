@@ -43,6 +43,8 @@
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
+* safety: define the common core if this file is run standalone (master/18 also set it)
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg debt ca banking_crisis l_govexp l_open l_credit_bank hyperinf_dummy"
 sort cid year
 xtset cid year
 
@@ -207,10 +209,16 @@ program define _aipwdiff, rclass
     gettoken yv Dv : anything
     * point estimates on the real data
     capture _aipw `yv' `Dv' if `ifch', omodel(`omod') pmodel(`pz') fe(cid)
-    if _rc { return scalar ok = 0 ; exit }
+    if _rc {
+        return scalar ok = 0
+        exit
+    }
     local bh = r(theta)
     capture _aipw `yv' `Dv' if `ifcl', omodel(`omod') pmodel(`pz') fe(cid)
-    if _rc { return scalar ok = 0 ; exit }
+    if _rc {
+        return scalar ok = 0
+        exit
+    }
     local bl = r(theta)
     local dh = `bh' - `bl'
     * bootstrap the difference (one resample -> both cells -> their gap)

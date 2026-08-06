@@ -13,6 +13,8 @@
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
+* safety: define the common core if this file is run standalone (master/18 also set it)
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg debt ca banking_crisis l_govexp l_open l_credit_bank hyperinf_dummy"
 
 * ── Controls (pre-determined at t, all lagged relative to outcome) ────────
 * VIX and ust10y have zero cross-sectional variation and are fully absorbed by

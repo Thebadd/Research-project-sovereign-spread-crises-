@@ -18,6 +18,8 @@
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
+* safety: define the common core if this file is run standalone (master/18 also set it)
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg debt ca banking_crisis l_govexp l_open l_credit_bank hyperinf_dummy"
 
 * VIX and ust10y absorbed by year FE (i.year) — omitted.
 local controls  $ctrl_core
