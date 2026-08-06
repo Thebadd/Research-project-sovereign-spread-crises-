@@ -483,7 +483,8 @@ use "$clean/panel_lp.dta", clear
 sort cid year
 xtset cid year
 
-* Regenerate channel outcome variables (same as section 1)
+* Regenerate channel outcome variables + own pre-trend (same as section 1;
+* the reload above dropped them, and ctrl_<ch> now includes pre_<var>)
 foreach var in credit claims_govt inv govexp pb fdi {
     capture drop `var'_base
     gen `var'_base = L.`var'
@@ -491,6 +492,8 @@ foreach var in credit claims_govt inv govexp pb fdi {
         capture drop ch_`var'_`h'
         gen ch_`var'_`h' = F`h'.`var' - `var'_base
     }
+    capture drop pre_`var'
+    gen pre_`var' = L.`var' - L2.`var'
 }
 
 * First-stage probit: same spec as 08_ipw_lp.do
