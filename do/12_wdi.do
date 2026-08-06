@@ -34,7 +34,9 @@ foreach spec in "domesticcredittoprivatesector credit" ///
                 "fdinetinflowsgdp fdi" ///
                 "claimsoncentralgovernmentgdp claims_govt" ///
                 "exportofgoodservicesgdp exp_gdp" ///
-                "importofgoodservicesgdp imp_gdp" {
+                "importofgoodservicesgdp imp_gdp" ///
+                "termsoftrade tot" ///
+                "officialexchangerate exch" {
     gettoken fn tv : spec
     capture confirm file "$raw/`fn'.xlsx"
     if _rc {
@@ -128,6 +130,8 @@ capture label var claims_govt  "Claims on central government, % GDP (WDI FS.AST.
 capture label var exp_gdp      "Exports of goods & services, % GDP (WDI NE.EXP.GNFS.ZS)"
 capture label var imp_gdp      "Imports of goods & services, % GDP (WDI NE.IMP.GNFS.ZS)"
 capture label var reer_chg     "REER, % YoY change (WDI, 2010=100 index)"
+capture label var tot          "Net barter terms of trade index (WDI TT.PRI.MRCH.XD.WD; robustness)"
+capture label var exch         "Official exchange rate, LCU/USD (WDI PA.NUS.FCRF; robustness)"
 
 save "$clean/panel_build.dta", replace
 

@@ -76,6 +76,31 @@ label var l_credit_bank  "L1 bank credit to private / GDP (financial depth)"
 
 global ctrl_core "l1_gdpg debt ca banking_crisis l_govexp l_open l_credit_bank hyperinf_dummy"
 
+* ── ROBUSTNESS-tier controls (Asonuma additional controls; NOT in the core) ──
+*   terms-of-trade change and nominal-FX-change quantile dummies, built the
+*   Asonuma way. Predetermined. Used only in robustness specs.
+capture drop tot_chg exchange2 ex_dum1 ex_dum2 ex_dum3 ex_dum4 ex_dum5
+* lagged terms-of-trade growth (Asonuma tot2 = ln(L.tot) - ln(L2.tot), x100)
+gen double tot_chg = 100*(ln(L.tot) - ln(L2.tot)) if L.tot>0 & L2.tot>0 & !missing(L.tot,L2.tot)
+label var tot_chg "L1 terms-of-trade log-change, % (WDI; robustness)"
+* lagged nominal exchange-rate change (Asonuma exchange2)
+gen double exchange2 = ln(1+L.exch) - ln(1+L2.exch) if !missing(L.exch,L2.exch)
+label var exchange2 "L1 nominal exchange-rate log-change (robustness)"
+* quantile-bin dummies of exchange2 over the estimation sample (Asonuma ex_dum1-5)
+* (sample flag is built below, so use its defining condition here)
+quietly summarize exchange2 if continuation==0 & !missing(ln_gdp_base), detail
+foreach k in 1 2 3 4 5 { gen byte ex_dum`k' = 0 if !missing(exchange2) }
+replace ex_dum1 = 1 if exchange2 < r(p5)
+replace ex_dum2 = 1 if exchange2 < r(p25)
+replace ex_dum2 = 0 if exchange2 < r(p5)
+replace ex_dum3 = 1 if exchange2 < r(p50)
+replace ex_dum3 = 0 if exchange2 < r(p25)
+replace ex_dum4 = 1 if exchange2 < r(p75)
+replace ex_dum4 = 0 if exchange2 < r(p50)
+replace ex_dum5 = 1 if exchange2 < r(p95)
+replace ex_dum5 = 0 if exchange2 < r(p75)
+label var ex_dum1 "FX-change bin < p5 (Asonuma ex_dum; robustness)"
+
 * ── Estimation sample ───────────────────────────────────────────────────────
 capture drop sample
 gen byte sample = (continuation==0) & !missing(ln_gdp_base)
