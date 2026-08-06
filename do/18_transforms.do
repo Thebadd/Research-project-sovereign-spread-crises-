@@ -109,7 +109,9 @@ if !_rc {
     gen double exchange2 = ln(1+L.exch) - ln(1+L2.exch) if !missing(L.exch,L2.exch)
     label var exchange2 "L1 nominal exchange-rate log-change (robustness)"
     quietly summarize exchange2 if continuation==0 & !missing(ln_gdp_base), detail
-    foreach k in 1 2 3 4 5 { gen byte ex_dum`k' = 0 if !missing(exchange2) }
+    foreach k in 1 2 3 4 5 {
+        gen byte ex_dum`k' = 0 if !missing(exchange2)
+    }
     replace ex_dum1 = 1 if exchange2 < r(p5)
     replace ex_dum2 = 1 if exchange2 < r(p25)
     replace ex_dum2 = 0 if exchange2 < r(p5)
