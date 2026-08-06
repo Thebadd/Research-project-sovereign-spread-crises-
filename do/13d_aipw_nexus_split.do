@@ -48,8 +48,8 @@ xtset cid year
 
 local nboot  = 300
 local cx     l1_gdpg l2_gdpg debt ca infl imf
-local cz     vix l_reg_crisis_share past_onsets       // Act 1 predictors
-local cz_def vix l_reg_crisis_share past_def_onsets   // resolution predictors
+local cz     fedfunds l_reg_crisis_share past_onsets       // Act 1 predictors
+local cz_def fedfunds l_reg_crisis_share past_def_onsets   // resolution predictors
 
 * ══════════════════════════════════════════════════════════════════════════
 * AMPLIFIER: pre-crisis sovereign-bank nexus + median split over onsets

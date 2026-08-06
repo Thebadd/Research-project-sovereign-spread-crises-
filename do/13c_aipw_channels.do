@@ -37,8 +37,8 @@ xtset cid year
 
 local nboot  = 300      // bootstrap reps per (channel, series, horizon)
 local cx     l1_gdpg l2_gdpg debt ca infl imf
-local cz     vix l_reg_crisis_share past_onsets       // Act 1 predictors Z1
-local cz_def vix l_reg_crisis_share past_def_onsets   // Act 2 predictors Z2
+local cz     fedfunds l_reg_crisis_share past_onsets       // Act 1 predictors Z1
+local cz_def fedfunds l_reg_crisis_share past_def_onsets   // Act 2 predictors Z2
 
 * ── Build channel outcomes ch_v_h = F h.v - L.v (h=0..4) ─────────────────────
 foreach v in credit claims_govt inv govexp pb fdi ///

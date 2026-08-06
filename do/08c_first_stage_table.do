@@ -33,8 +33,8 @@ use "$clean/panel_lp.dta", clear
 * Baseline controls X (all columns) and predictors: Z1 for Act 1 (all onsets),
 * Z2 for the resolution columns (proneness = past DEFAULT-linked onsets).
 local X    l1_gdpg l2_gdpg debt ca infl imf
-local Z1   vix l_reg_crisis_share past_onsets
-local Z2   vix l_reg_crisis_share past_def_onsets
+local Z1   fedfunds l_reg_crisis_share past_onsets
+local Z2   fedfunds l_reg_crisis_share past_def_onsets
 
 eststo clear
 
@@ -71,9 +71,9 @@ foreach c in fs_all fs_nd fs_def {
 capture esttab fs_all fs_nd fs_def using "$tabs/table_first_stage.rtf", replace ///
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
     mtitles("All onsets" "Non-default" "Default-linked") ///
-    order(vix l_reg_crisis_share past_onsets past_def_onsets ///
+    order(fedfunds l_reg_crisis_share past_onsets past_def_onsets ///
           l1_gdpg l2_gdpg debt ca infl imf) ///
-    coeflabel(vix "VIX (global risk)" ///
+    coeflabel(fedfunds "US fed funds rate" ///
               l_reg_crisis_share "Regional contagion (t-1)" ///
               past_onsets "Past onsets (any type)" ///
               past_def_onsets "Past default-linked onsets" ///
@@ -83,14 +83,14 @@ capture esttab fs_all fs_nd fs_def using "$tabs/table_first_stage.rtf", replace 
               ca "Current account / GDP" ///
               infl "CPI inflation" ///
               imf "IMF program") ///
-    refcat(vix "Predictors" l1_gdpg "Baseline controls", nolabel) ///
+    refcat(fedfunds "Predictors" l1_gdpg "Baseline controls", nolabel) ///
     stats(chi2p pp auroc N, ///
           labels("Chi-squared (predictors)" "  p-value" "Area under ROC curve" "Observations") ///
           fmt(2 3 3 0)) ///
     title("Table 1. First-stage probit: predicting the start of a spread crisis") ///
     addnotes("Dependent variable: dummy = 1 in the onset year of the indicated crisis type; each type predicted vs tranquil years (the rival onset type is dropped)." ///
              "Pooled probit, no country fixed effects. Robust standard errors clustered by country in parentheses." ///
-             "Predictors are excluded from the LP/AIPW outcome equation (ust10y, vix absorbed by year FE; contagion and past onsets are country-varying and omitted from the second stage)." ///
+             "Predictors are excluded from the LP/AIPW outcome equation (fed funds / ust10y absorbed by year FE; contagion and past onsets are country-varying and omitted from the second stage)." ///
              "Chi-squared (predictors) is the joint Wald test that all four predictors are zero. Area under ROC is for the full model." ///
              "* p<0.10, ** p<0.05, *** p<0.01.")
 

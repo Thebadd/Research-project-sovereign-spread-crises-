@@ -153,10 +153,10 @@ capture drop pscore2 trimmed2 ipw2
 * fallback if it fails to converge on the thin among-onsets cell. Harmonised with
 * 12_channels_resolution.do / 13_mechanisms.do (was a lean `debt ca`-only probit).
 capture probit onset_def l1_gdpg l2_gdpg debt ca infl imf ///
-    vix l_reg_crisis_share past_def_onsets if onset_all == 1, vce(robust)
+    fedfunds l_reg_crisis_share past_def_onsets if onset_all == 1, vce(robust)
 if _rc {
     di as error "  ** full Act-2 propensity failed to converge — lean fallback (debt ca + Z2)."
-    probit onset_def debt ca vix l_reg_crisis_share past_def_onsets ///
+    probit onset_def debt ca fedfunds l_reg_crisis_share past_def_onsets ///
         if onset_all == 1, vce(robust)
 }
 predict pscore2 if onset_all == 1, pr

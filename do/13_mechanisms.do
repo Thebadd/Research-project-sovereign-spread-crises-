@@ -520,10 +520,10 @@ gen pre_ca = L.ca - L2.ca
 * First stage: same controls X as Act 1 + predictors Z2 (fed funds, contagion,
 * past DEFAULT onsets), consistent with 08_ipw_lp.do. Guard the thin-cell spec.
 capture probit onset_def l1_gdpg l2_gdpg debt ca infl imf ///
-    vix l_reg_crisis_share past_def_onsets if onset_all == 1, vce(robust)
+    fedfunds l_reg_crisis_share past_def_onsets if onset_all == 1, vce(robust)
 if _rc {
     di as error "  ** full Act 2 probit separated (rc=" _rc "); lean fallback."
-    probit onset_def debt ca vix l_reg_crisis_share past_def_onsets ///
+    probit onset_def debt ca fedfunds l_reg_crisis_share past_def_onsets ///
         if onset_all == 1, vce(robust)
 }
 

@@ -43,7 +43,7 @@ local controls_x   l1_gdpg l2_gdpg debt ca infl imf
 * same global-financial-conditions factor, so only one is kept to avoid splitting
 * its explanatory power. vix is pure time-series => absorbed by year FE in
 * the LP, so the exclusion restriction still holds.
-local predictors_z vix l_reg_crisis_share past_onsets
+local predictors_z fedfunds l_reg_crisis_share past_onsets
 
 * ══════════════════════════════════════════════════════════════════════════
 * STEP 1 — FIRST-STAGE PROBIT
@@ -310,7 +310,7 @@ di as result    "    (fed funds, regional contagion, past DEFAULT onsets)."
 * proneness). This is a thin cell (~21 default events among ~51 onsets), so the
 * full 6+3 spec can separate: guard it and fall back to a lean spec if it fails,
 * so the propensity score is always produced.
-local predictors_z2 vix l_reg_crisis_share past_def_onsets
+local predictors_z2 fedfunds l_reg_crisis_share past_def_onsets
 
 quietly probit onset_def `controls' if onset_all == 1, vce(robust)
 quietly lroc, nograph
