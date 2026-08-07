@@ -42,6 +42,14 @@ local cx     l1_gdpg l2_gdpg debt ca infl imf
 local cz     fedfunds l_reg_crisis_share past_onsets       // Act 1 predictors Z1
 local cz_def fedfunds l_reg_crisis_share past_def_onsets   // Act 2 predictors Z2
 
+* AIPW outcome-model core = the common core with the thin by-banks credit-depth
+* term (l_credit_bank) swapped for the well-covered TOTAL private-credit lag
+* (l_credit). On the restricted channel/nexus cells l_credit_bank's coverage hole
+* forces listwise deletion that collapses the AIPW reg/probit sample (only the
+* credit channel, whose om already omits l_credit_bank, survived otherwise).
+* l_credit is pre-lagged below, so the bootstrap stays operator-free.
+local core_aipw l1_gdpg debt ca banking_crisis l_govexp l_open l_credit hyperinf_dummy
+
 * ── Build channel outcomes ch_v_h = F h.v - L.v (h=0..4) ─────────────────────
 foreach v in credit claims_govt inv govexp pb fdi ///
              claimsgov_assets claimpriv_assets ca {
@@ -164,13 +172,13 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
               claimsgov_assets claimpriv_assets ca {
 
     * channel-specific OUTCOME-model controls (pre-lagged plain columns)
-    * Common-core outcome model ($ctrl_core) + channel's own pre_<v>; drop the
-    * core term equal to the channel's own lagged level (credit->l_credit_bank,
-    * govexp->l_govexp, ca->ca).
+    * AIPW outcome core ($core_aipw: common core with l_credit->total credit) +
+    * channel's own pre_<v>; drop the core term equal to the channel's own lagged
+    * level (credit->l_credit, govexp->l_govexp, ca->ca).
     if      "`ch'" == "credit"            local om l1_gdpg debt ca banking_crisis l_govexp l_open hyperinf_dummy pre_credit
-    else if "`ch'" == "govexp"            local om l1_gdpg debt ca banking_crisis l_open l_credit_bank hyperinf_dummy pre_govexp
-    else if "`ch'" == "ca"                local om l1_gdpg debt banking_crisis l_govexp l_open l_credit_bank hyperinf_dummy pre_ca
-    else                                  local om $ctrl_core pre_`ch'
+    else if "`ch'" == "govexp"            local om l1_gdpg debt ca banking_crisis l_open l_credit hyperinf_dummy pre_govexp
+    else if "`ch'" == "ca"                local om l1_gdpg debt banking_crisis l_govexp l_open l_credit hyperinf_dummy pre_ca
+    else                                  local om `core_aipw' pre_`ch'
 
     di as result _n "=== CHANNEL: `ch' ==="
 

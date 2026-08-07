@@ -53,6 +53,13 @@ local cx     l1_gdpg l2_gdpg debt ca infl imf
 local cz     fedfunds l_reg_crisis_share past_onsets       // Act 1 predictors
 local cz_def fedfunds l_reg_crisis_share past_def_onsets   // resolution predictors
 
+* AIPW outcome-model core = common core with the thin by-banks credit-depth term
+* (l_credit_bank) swapped for the well-covered TOTAL private-credit lag (l_credit).
+* On the thin high/low-nexus cells l_credit_bank's coverage hole forces listwise
+* deletion that collapses the AIPW sample (GDP cells failed for exactly this reason;
+* the credit channel, whose om already omits it, survived). l_credit pre-lagged below.
+local core_aipw l1_gdpg debt ca banking_crisis l_govexp l_open l_credit hyperinf_dummy
+
 * ══════════════════════════════════════════════════════════════════════════
 * AMPLIFIER: pre-crisis sovereign-bank nexus + median split over onsets
 * ══════════════════════════════════════════════════════════════════════════
@@ -282,11 +289,12 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
 
     * outcome-model controls; each channel gets its own pre-crisis change pre_<v>
     * (Asonuma g_0). GDP already carries lagged growth (l1/l2_gdpg) in cx.
-    * Common-core outcome model ($ctrl_core); GDP uses the core as-is, channels add
-    * their own pre_<v> (credit drops l_credit_bank as its own-level term).
-    if      "`ocl'" == "gdp"              local om $ctrl_core
+    * AIPW outcome core ($core_aipw: common core with total-credit lag); GDP uses
+    * the core as-is, channels add their own pre_<v> (credit drops l_credit as its
+    * own-level term).
+    if      "`ocl'" == "gdp"              local om `core_aipw'
     else if "`ocl'" == "credit"           local om l1_gdpg debt ca banking_crisis l_govexp l_open hyperinf_dummy pre_credit
-    else                                  local om $ctrl_core pre_`ocl'
+    else                                  local om `core_aipw' pre_`ocl'
 
     di as result _n "############### OUTCOME: `ocl' ###############"
 
