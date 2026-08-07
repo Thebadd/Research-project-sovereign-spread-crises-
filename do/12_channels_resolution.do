@@ -75,10 +75,10 @@ di as result _n "=== FIRST STAGE: Pr(default-linked | crisis onset) ==="
 
 capture drop pscore2 trimmed2 ipw2
 
-* First stage: same controls X as Act 1 + predictors Z2 (fed funds, contagion,
-* past DEFAULT onsets), consistent with 08_ipw_lp.do. Thin cell (~21 events) =>
-* guard the full spec and fall back to a lean one if it separates.
-capture probit onset_def l1_gdpg l2_gdpg debt ca infl imf ///
+* First stage: baseline = outcome baseline ($ctrl_core) + predictors Z2 (fed funds,
+* contagion, past DEFAULT onsets), strict parity with the LP/AIPW outcome equation.
+* Thin cell (~21 events) => guard the full spec and fall back to a lean one if it separates.
+capture probit onset_def $ctrl_core ///
     fedfunds l_reg_crisis_share past_def_onsets if onset_all == 1, vce(robust)
 if _rc {
     di as error "  ** full Act 2 probit separated (rc=" _rc "); lean fallback."

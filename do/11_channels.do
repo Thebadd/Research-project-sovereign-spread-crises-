@@ -502,7 +502,8 @@ foreach var in credit claims_govt inv govexp pb fdi {
 di as result _n "=== IPW FIRST STAGE (channels): Probit of crisis onset ==="
 * Controls + excluded predictors (Z), consistent with 08_ipw_lp.do:
 * fedfunds (US monetary conditions) + l_reg_crisis_share/past_onsets as excluded predictors (Z).
-local controls_ps l1_gdpg l2_gdpg debt ca infl imf fedfunds l_reg_crisis_share past_onsets
+* Baseline = outcome baseline ($ctrl_core) + excluded predictors Z (strict parity).
+local controls_ps $ctrl_core fedfunds l_reg_crisis_share past_onsets
 probit onset_all `controls_ps' if sample == 1, vce(cluster cid)
 di as result "McFadden Pseudo-R2: " e(r2_p)
 

@@ -49,7 +49,7 @@ sort cid year
 xtset cid year
 
 local nboot  = 300
-local cx     l1_gdpg l2_gdpg debt ca infl imf
+local cx     $ctrl_core   // retained for reference; propensity baseline now passes `om' (strict parity)
 local cz     fedfunds l_reg_crisis_share past_onsets       // Act 1 predictors
 local cz_def fedfunds l_reg_crisis_share past_def_onsets   // resolution predictors
 
@@ -325,7 +325,8 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
                 quietly count if `Dv'==1 & highbank==`H' & sample==1
                 local ntr = r(N)
 
-                _aipwci `ystem'_`h' `Dv', ifc(`ifc') omod(`om') pz(`cx' `pz') reps(`nboot')
+                * Strict parity: propensity baseline = outcome model `om' + predictors.
+                _aipwci `ystem'_`h' `Dv', ifc(`ifc') omod(`om') pz(`om' `pz') reps(`nboot')
                 if r(ok) {
                     local b=r(b)
                     local se=r(se)
@@ -352,7 +353,7 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
                 local ifcl sample==1 & `riv'==0 & (onset_all==0 | (`Dv'==1 & highbank==0))
             }
             _aipwdiff `ystem'_`h' `Dv', ifch(`ifch') ifcl(`ifcl') ///
-                omod(`om') pz(`cx' `pz') reps(`nboot')
+                omod(`om') pz(`om' `pz') reps(`nboot')
             if r(ok) {
                 local dh=r(dh)
                 local bh=r(bh)

@@ -38,7 +38,7 @@ sort cid year
 xtset cid year
 
 local nboot  = 300      // bootstrap reps per (channel, series, horizon)
-local cx     l1_gdpg l2_gdpg debt ca infl imf
+local cx     $ctrl_core   // retained for reference; propensity baseline now passes `om' (strict parity)
 local cz     fedfunds l_reg_crisis_share past_onsets       // Act 1 predictors Z1
 local cz_def fedfunds l_reg_crisis_share past_def_onsets   // Act 2 predictors Z2
 
@@ -185,8 +185,10 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
     * ── Act 1: all-crises AIPW (onset_all vs tranquil) ──────────────────────
     di as result "  Act 1 (all onsets):   h    ATE      SE      [95% CI]   draws"
     forvalues h = 0/4 {
+        * Strict parity: propensity baseline = the OUTCOME model `om' (= $ctrl_core
+        * + own pre-trend), plus Z — their g_0+$convar in both stages, $instrument added.
         _aipwci ch_`ch'_`h' onset_all, ifc(sample==1) ///
-            omod(`om') pz(`cx' `cz') reps(`nboot')
+            omod(`om') pz(`om' `cz') reps(`nboot')
         if r(ok) {
             local b=r(b)
             local se=r(se)
@@ -207,7 +209,7 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
         gettoken drop sn  : rest
         forvalues h = 0/4 {
             _aipwci ch_`ch'_`h' `Dv', ifc(sample==1 & `drop'==0) ///
-                omod(`om') pz(`cx' `cz_def') reps(`nboot')
+                omod(`om') pz(`om' `cz_def') reps(`nboot')
             if r(ok) {
                 local b=r(b)
                 local se=r(se)

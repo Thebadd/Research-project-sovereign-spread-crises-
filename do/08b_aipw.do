@@ -41,8 +41,9 @@ if "$ctrl_core"=="" global ctrl_core "l1_gdpg debt ca banking_crisis l_govexp l_
 sort cid year
 xtset cid year
 
-* Outcome-model controls X and treatment-model predictors Z (as in 08)
-local cx    l1_gdpg l2_gdpg debt ca infl imf
+* Probit BASELINE = outcome baseline ($ctrl_core), so pmodel(cx cz) = $ctrl_core + Z
+* while omodel = $ctrl_core: same baseline in both stages (their $convar design).
+local cx    $ctrl_core
 * Act 1 predictors Z1: single global push (fed funds) + contagion + proneness.
 local cz    fedfunds l_reg_crisis_share past_onsets
 * Act 2 predictors Z2: same, but proneness = past DEFAULT-linked onsets.

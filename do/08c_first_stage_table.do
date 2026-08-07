@@ -15,8 +15,9 @@
         Fed funds rate (global push) + regional contagion + past onsets.
         Col 1 (all onsets) uses past_onsets; the resolution columns use
         past_def_onsets (count of past DEFAULT-linked onsets).
-    BASELINE CONTROLS (also in the outcome eq.):
-        l1_gdpg  l2_gdpg  debt  ca  infl  imf
+    BASELINE CONTROLS (the SAME $ctrl_core used in the LP/AIPW outcome eq. —
+        strict parity with the reference paper's $convar-in-both design):
+        l1_gdpg debt ca banking_crisis l_govexp l_open l_credit hyperinf_dummy
 
   Diagnostic rows (their Table 1 bottom block):
     Chi2 (predictors)  — joint Wald test that the 4 predictors are all zero
@@ -32,7 +33,9 @@ use "$clean/panel_lp.dta", clear
 
 * Baseline controls X (all columns) and predictors: Z1 for Act 1 (all onsets),
 * Z2 for the resolution columns (proneness = past DEFAULT-linked onsets).
-local X    l1_gdpg l2_gdpg debt ca infl imf
+* Baseline = outcome baseline ($ctrl_core): the Table-1 probit shares its controls
+* with the LP/AIPW outcome equation (their $convar in both stages).
+local X    $ctrl_core
 local Z1   fedfunds l_reg_crisis_share past_onsets
 local Z2   fedfunds l_reg_crisis_share past_def_onsets
 
@@ -72,17 +75,19 @@ capture esttab fs_all fs_nd fs_def using "$tabs/table_first_stage.rtf", replace 
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
     mtitles("All onsets" "Non-default" "Default-linked") ///
     order(fedfunds l_reg_crisis_share past_onsets past_def_onsets ///
-          l1_gdpg l2_gdpg debt ca infl imf) ///
+          l1_gdpg debt ca banking_crisis l_govexp l_open l_credit hyperinf_dummy) ///
     coeflabel(fedfunds "US fed funds rate" ///
               l_reg_crisis_share "Regional contagion (t-1)" ///
               past_onsets "Past onsets (any type)" ///
               past_def_onsets "Past default-linked onsets" ///
               l1_gdpg "GDP growth (t-1)" ///
-              l2_gdpg "GDP growth (t-2)" ///
               debt "Public debt / GDP" ///
               ca "Current account / GDP" ///
-              infl "CPI inflation" ///
-              imf "IMF program") ///
+              banking_crisis "Banking crisis" ///
+              l_govexp "Govt expenditure / GDP (t-1)" ///
+              l_open "Trade openness (t-1)" ///
+              l_credit "Private credit / GDP (t-1)" ///
+              hyperinf_dummy "Hyperinflation dummy") ///
     refcat(fedfunds "Predictors" l1_gdpg "Baseline controls", nolabel) ///
     stats(chi2p pp auroc N, ///
           labels("Chi-squared (predictors)" "  p-value" "Area under ROC curve" "Observations") ///

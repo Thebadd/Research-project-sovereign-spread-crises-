@@ -151,10 +151,10 @@ foreach var in claimsgov_assets claimpriv_assets {
 }
 
 capture drop pscore2 trimmed2 ipw2
-* Full Act-2 first-stage spec (baseline controls X + predictors Z2), with a lean
-* fallback if it fails to converge on the thin among-onsets cell. Harmonised with
-* 12_channels_resolution.do / 13_mechanisms.do (was a lean `debt ca`-only probit).
-capture probit onset_def l1_gdpg l2_gdpg debt ca infl imf ///
+* Full Act-2 first-stage spec (baseline = outcome baseline $ctrl_core + predictors
+* Z2), strict parity with the outcome equation, with a lean fallback if it fails to
+* converge on the thin among-onsets cell. Harmonised with 12/13.
+capture probit onset_def $ctrl_core ///
     fedfunds l_reg_crisis_share past_def_onsets if onset_all == 1, vce(robust)
 if _rc {
     di as error "  ** full Act-2 propensity failed to converge — lean fallback (debt ca + Z2)."

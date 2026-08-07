@@ -40,7 +40,11 @@ local controls_lp  $ctrl_core
 *   fedfunds        — pure time-series push factor, absorbed by i.year in the LP
 *   l_reg_crisis_share (Z2) — regional contagion, country-varying, omitted from LP
 *   past_onsets       (Z3) — own crisis history, country-varying, omitted from LP
-local controls_x   l1_gdpg l2_gdpg debt ca infl imf
+* Strict parity with the reference paper: the probit BASELINE = the outcome
+* baseline ($ctrl_core), so the first stage and the LP share the same controls;
+* the predictors Z below are the only first-stage-specific additions (their
+* $convar in both stages, $instrument added only to the probit).
+local controls_x   $ctrl_core
 * Single global-push predictor (fed funds): fedfunds/ust10y/vix all proxy the
 * same global-financial-conditions factor, so only one is kept to avoid splitting
 * its explanatory power. fedfunds is pure time-series => absorbed by year FE in
@@ -299,8 +303,8 @@ di as result "All IPW results saved."
 
 use "$clean/panel_lp.dta", clear
 
-* LP controls: vix and ust10y absorbed by i.year — omitted
-local controls l1_gdpg l2_gdpg ca debt infl imf
+* Probit BASELINE = outcome baseline ($ctrl_core), strict parity with the paper.
+local controls $ctrl_core
 
 di as result _n "=== ACT 2 IPW: FIRST STAGE — Probit of default-linked onset ==="
 di as result    "    Sample: crisis onset years only (onset_all == 1)"
