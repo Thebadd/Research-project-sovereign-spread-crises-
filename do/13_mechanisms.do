@@ -226,7 +226,7 @@ forvalues h = 0/4 {
 
     * Without L.credit (total effect)
     capture xtscc ch_inv_`h' onset_all ///
-        l1_gdpg l2_gdpg debt ca banking_crisis pre_inv ///
+        l1_gdpg l2_gdpg l_debt l_ca l_banking pre_inv ///
         i.year if sample==1, fe lag(`lag')
 
     if _rc == 0 {
@@ -239,7 +239,7 @@ forvalues h = 0/4 {
 
     * With L.credit (direct effect net of credit)
     capture xtscc ch_inv_`h' onset_all ///
-        l1_gdpg l2_gdpg debt ca banking_crisis L.credit pre_inv ///
+        l1_gdpg l2_gdpg l_debt l_ca l_banking L.credit pre_inv ///
         i.year if sample==1, fe lag(`lag')
 
     if _rc == 0 {
@@ -523,7 +523,7 @@ capture probit onset_def $ctrl_core ///
     fedfunds l_reg_crisis_share past_def_onsets if onset_all == 1, vce(robust)
 if _rc {
     di as error "  ** full Act 2 probit separated (rc=" _rc "); lean fallback."
-    probit onset_def debt ca fedfunds l_reg_crisis_share past_def_onsets ///
+    probit onset_def l_debt l_ca fedfunds l_reg_crisis_share past_def_onsets ///
         if onset_all == 1, vce(robust)
 }
 

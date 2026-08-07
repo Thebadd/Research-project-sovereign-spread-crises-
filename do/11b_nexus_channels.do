@@ -22,7 +22,7 @@
 
 use "$clean/panel_lp.dta", clear
 * safety: define the common core if this file is run standalone (master/18 also set it)
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg debt ca banking_crisis l_govexp l_open l_credit hyperinf_dummy"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking l_govexp l_open l_credit hyperinf_dummy"
 sort cid year
 xtset cid year
 
@@ -158,7 +158,7 @@ capture probit onset_def $ctrl_core ///
     fedfunds l_reg_crisis_share past_def_onsets if onset_all == 1, vce(robust)
 if _rc {
     di as error "  ** full Act-2 propensity failed to converge — lean fallback (debt ca + Z2)."
-    probit onset_def debt ca fedfunds l_reg_crisis_share past_def_onsets ///
+    probit onset_def l_debt l_ca fedfunds l_reg_crisis_share past_def_onsets ///
         if onset_all == 1, vce(robust)
 }
 predict pscore2 if onset_all == 1, pr

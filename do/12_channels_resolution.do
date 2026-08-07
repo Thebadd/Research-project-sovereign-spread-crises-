@@ -31,7 +31,7 @@
 
 use "$clean/panel_lp.dta", clear
 * safety: define the common core if this file is run standalone (master/18 also set it)
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg debt ca banking_crisis l_govexp l_open l_credit hyperinf_dummy"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking l_govexp l_open l_credit hyperinf_dummy"
 sort cid year
 xtset cid year
 
@@ -82,7 +82,7 @@ capture probit onset_def $ctrl_core ///
     fedfunds l_reg_crisis_share past_def_onsets if onset_all == 1, vce(robust)
 if _rc {
     di as error "  ** full Act 2 probit separated (rc=" _rc "); lean fallback."
-    probit onset_def debt ca fedfunds l_reg_crisis_share past_def_onsets ///
+    probit onset_def l_debt l_ca fedfunds l_reg_crisis_share past_def_onsets ///
         if onset_all == 1, vce(robust)
 }
 di as result "McFadden Pseudo-R2: " e(r2_p)
@@ -114,10 +114,10 @@ local channels   credit claims_govt inv govexp pb fdi
 * Controls: common core ($ctrl_core) + each channel's own pre_<v> (same as 11_channels.do)
 * Common-core controls (Asonuma-aligned $ctrl_core) + each channel's own pre_<v>;
 * the core term equal to the channel's own lagged level is dropped from its own reg.
-local ctrl_credit      l1_gdpg debt ca banking_crisis l_govexp l_open hyperinf_dummy pre_credit
+local ctrl_credit      l1_gdpg l_debt l_ca l_banking l_govexp l_open hyperinf_dummy pre_credit
 local ctrl_claims_govt $ctrl_core pre_claims_govt
 local ctrl_inv         $ctrl_core pre_inv
-local ctrl_govexp      l1_gdpg debt ca banking_crisis l_open l_credit hyperinf_dummy pre_govexp
+local ctrl_govexp      l1_gdpg l_debt l_ca l_banking l_open l_credit hyperinf_dummy pre_govexp
 local ctrl_pb          $ctrl_core pre_pb
 local ctrl_fdi         $ctrl_core pre_fdi
 

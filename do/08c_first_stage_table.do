@@ -17,7 +17,7 @@
         past_def_onsets (count of past DEFAULT-linked onsets).
     BASELINE CONTROLS (the SAME $ctrl_core used in the LP/AIPW outcome eq. —
         strict parity with the reference paper's $convar-in-both design):
-        l1_gdpg debt ca banking_crisis l_govexp l_open l_credit hyperinf_dummy
+        l1_gdpg l_debt l_ca l_banking l_govexp l_open l_credit hyperinf_dummy
 
   Diagnostic rows (their Table 1 bottom block):
     Chi2 (predictors)  — joint Wald test that the 4 predictors are all zero
@@ -75,15 +75,15 @@ capture esttab fs_all fs_nd fs_def using "$tabs/table_first_stage.rtf", replace 
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
     mtitles("All onsets" "Non-default" "Default-linked") ///
     order(fedfunds l_reg_crisis_share past_onsets past_def_onsets ///
-          l1_gdpg debt ca banking_crisis l_govexp l_open l_credit hyperinf_dummy) ///
+          l1_gdpg l_debt l_ca l_banking l_govexp l_open l_credit hyperinf_dummy) ///
     coeflabel(fedfunds "US fed funds rate" ///
               l_reg_crisis_share "Regional contagion (t-1)" ///
               past_onsets "Past onsets (any type)" ///
               past_def_onsets "Past default-linked onsets" ///
               l1_gdpg "GDP growth (t-1)" ///
-              debt "Public debt / GDP" ///
-              ca "Current account / GDP" ///
-              banking_crisis "Banking crisis" ///
+              l_debt "Public debt / GDP (t-1)" ///
+              l_ca "Current account / GDP (t-1)" ///
+              l_banking "Banking crisis (t-1)" ///
               l_govexp "Govt expenditure / GDP (t-1)" ///
               l_open "Trade openness (t-1)" ///
               l_credit "Private credit / GDP (t-1)" ///

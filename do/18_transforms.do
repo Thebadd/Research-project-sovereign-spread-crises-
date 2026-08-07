@@ -80,19 +80,28 @@ foreach req in infl govexp open credit_bank {
         exit 111
     }
 }
-capture drop hyperinf_dummy l_govexp l_open l_credit_bank l_credit
+capture drop hyperinf_dummy l_govexp l_open l_credit_bank l_credit l_debt l_ca l_banking
 gen byte   hyperinf_dummy = (L.infl > 50) if !missing(L.infl)
 gen double l_govexp       = L.govexp
 gen double l_open         = L.open
 gen double l_credit_bank  = L.credit_bank
 gen double l_credit       = L.credit
+* debt, current account, and the banking-crisis flag lagged to t-1 so the ENTIRE
+* common core is predetermined (t-1) — internally coherent and matching the
+* reference paper's pre-crisis controls (avoids onset-year simultaneity/bad-control).
+gen double l_debt         = L.debt
+gen double l_ca           = L.ca
+gen byte   l_banking      = L.banking_crisis
 label var hyperinf_dummy "Hyperinflation dummy (L.infl > 50) — Asonuma"
 label var l_govexp       "L1 govt expenditure, % GDP"
 label var l_open         "L1 trade openness, % GDP"
 label var l_credit_bank  "L1 bank credit to private / GDP (financial depth, by-banks; robustness)"
 label var l_credit       "L1 private credit / GDP (financial depth, total; common core)"
+label var l_debt         "L1 public debt, % GDP (predetermined)"
+label var l_ca           "L1 current account, % GDP (predetermined)"
+label var l_banking      "L1 systemic banking-crisis dummy (predetermined)"
 
-global ctrl_core "l1_gdpg debt ca banking_crisis l_govexp l_open l_credit hyperinf_dummy"
+global ctrl_core "l1_gdpg l_debt l_ca l_banking l_govexp l_open l_credit hyperinf_dummy"
 
 * ── ROBUSTNESS-tier controls (Asonuma additional controls; NOT in the core) ──
 *   terms-of-trade change and nominal-FX-change quantile dummies, built the

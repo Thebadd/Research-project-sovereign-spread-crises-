@@ -26,7 +26,7 @@
 
 use "$clean/panel_lp.dta", clear
 * safety: define the common core if this file is run standalone (master/18 also set it)
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg debt ca banking_crisis l_govexp l_open l_credit hyperinf_dummy"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking l_govexp l_open l_credit hyperinf_dummy"
 
 * LP controls: VIX and ust10y have zero cross-sectional variation and are
 * fully absorbed by year fixed effects (i.year) in all LP regressions.
@@ -326,7 +326,7 @@ capture probit onset_def `controls' `predictors_z2' if onset_all == 1, vce(robus
 if _rc {
     di as error "  ** Act 2 full probit (X + Z2) failed on the thin sample (rc=" _rc ")."
     di as error "  ** Falling back to a lean spec: debt ca + fed funds + contagion + past-default."
-    probit onset_def debt ca `predictors_z2' if onset_all == 1, vce(robust)
+    probit onset_def l_debt l_ca `predictors_z2' if onset_all == 1, vce(robust)
 }
 quietly lroc, nograph
 local roc2_xz = r(area)

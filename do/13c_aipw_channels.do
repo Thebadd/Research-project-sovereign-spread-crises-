@@ -33,7 +33,7 @@
 
 use "$clean/panel_lp.dta", clear
 * safety: define the common core if this file is run standalone (master/18 also set it)
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg debt ca banking_crisis l_govexp l_open l_credit hyperinf_dummy"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking l_govexp l_open l_credit hyperinf_dummy"
 sort cid year
 xtset cid year
 
@@ -48,7 +48,7 @@ local cz_def fedfunds l_reg_crisis_share past_def_onsets   // Act 2 predictors Z
 * forces listwise deletion that collapses the AIPW reg/probit sample (only the
 * credit channel, whose om already omits l_credit_bank, survived otherwise).
 * l_credit is pre-lagged below, so the bootstrap stays operator-free.
-local core_aipw l1_gdpg debt ca banking_crisis l_govexp l_open l_credit hyperinf_dummy
+local core_aipw l1_gdpg l_debt l_ca l_banking l_govexp l_open l_credit hyperinf_dummy
 
 * ── Build channel outcomes ch_v_h = F h.v - L.v (h=0..4) ─────────────────────
 foreach v in credit claims_govt inv govexp pb fdi ///
@@ -175,9 +175,9 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
     * AIPW outcome core ($core_aipw: common core with l_credit->total credit) +
     * channel's own pre_<v>; drop the core term equal to the channel's own lagged
     * level (credit->l_credit, govexp->l_govexp, ca->ca).
-    if      "`ch'" == "credit"            local om l1_gdpg debt ca banking_crisis l_govexp l_open hyperinf_dummy pre_credit
-    else if "`ch'" == "govexp"            local om l1_gdpg debt ca banking_crisis l_open l_credit hyperinf_dummy pre_govexp
-    else if "`ch'" == "ca"                local om l1_gdpg debt banking_crisis l_govexp l_open l_credit hyperinf_dummy pre_ca
+    if      "`ch'" == "credit"            local om l1_gdpg l_debt l_ca l_banking l_govexp l_open hyperinf_dummy pre_credit
+    else if "`ch'" == "govexp"            local om l1_gdpg l_debt l_ca l_banking l_open l_credit hyperinf_dummy pre_govexp
+    else if "`ch'" == "ca"                local om l1_gdpg l_debt l_banking l_govexp l_open l_credit hyperinf_dummy pre_ca
     else                                  local om `core_aipw' pre_`ch'
 
     di as result _n "=== CHANNEL: `ch' ==="
