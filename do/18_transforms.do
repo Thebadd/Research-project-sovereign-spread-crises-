@@ -9,7 +9,7 @@
     dy_0..dy_4        cumulative % change in log TOTAL real GDP (ln gdp_real), F h vs t-1 (headline outcome)
     dy_pc_0..dy_pc_4  per-capita version (robustness)
     dy_m1, dy_m2      pre-trend placebos (two-year growth spans ending before onset)
-    hyperinf_dummy, l_govexp, l_open, l_credit_bank, $ctrl_core  common-core ingredients
+    hyperinf_dummy, l_govexp, l_open, l_credit (+l_credit_bank robustness), $ctrl_core  common-core ingredients
     tot_chg, exchange2, ex_dum1-5  robustness-tier controls (Asonuma additional)
     l_spr_mean/max    lagged EMBIG spread (balance table)
     sample            onset + tranquil years, excl. continuation, GDP base present
@@ -80,17 +80,19 @@ foreach req in infl govexp open credit_bank {
         exit 111
     }
 }
-capture drop hyperinf_dummy l_govexp l_open l_credit_bank
+capture drop hyperinf_dummy l_govexp l_open l_credit_bank l_credit
 gen byte   hyperinf_dummy = (L.infl > 50) if !missing(L.infl)
 gen double l_govexp       = L.govexp
 gen double l_open         = L.open
 gen double l_credit_bank  = L.credit_bank
+gen double l_credit       = L.credit
 label var hyperinf_dummy "Hyperinflation dummy (L.infl > 50) — Asonuma"
 label var l_govexp       "L1 govt expenditure, % GDP"
 label var l_open         "L1 trade openness, % GDP"
-label var l_credit_bank  "L1 bank credit to private / GDP (financial depth)"
+label var l_credit_bank  "L1 bank credit to private / GDP (financial depth, by-banks; robustness)"
+label var l_credit       "L1 private credit / GDP (financial depth, total; common core)"
 
-global ctrl_core "l1_gdpg debt ca banking_crisis l_govexp l_open l_credit_bank hyperinf_dummy"
+global ctrl_core "l1_gdpg debt ca banking_crisis l_govexp l_open l_credit hyperinf_dummy"
 
 * ── ROBUSTNESS-tier controls (Asonuma additional controls; NOT in the core) ──
 *   terms-of-trade change and nominal-FX-change quantile dummies, built the

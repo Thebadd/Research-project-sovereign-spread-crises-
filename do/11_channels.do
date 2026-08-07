@@ -27,10 +27,10 @@
 
   CONTROLS (uniform common core, Asonuma-aligned):
   -----------------------------------------------
-  $ctrl_core = l1_gdpg debt ca banking_crisis l_govexp l_open l_credit_bank
+  $ctrl_core = l1_gdpg debt ca banking_crisis l_govexp l_open l_credit
                hyperinf_dummy      (+ each channel's own pre_<v>)
   The core term equal to a channel's own lagged level is dropped from its own
-  regression (credit -> l_credit_bank; govexp -> l_govexp). Global time-series
+  regression (credit -> l_credit; govexp -> l_govexp). Global time-series
   factors (fed funds / VIX / UST10Y) are omitted — absorbed by year FE.
 
   Saves:
@@ -41,7 +41,7 @@
 
 use "$clean/panel_lp.dta", clear
 * safety: define the common core if this file is run standalone (master/18 also set it)
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg debt ca banking_crisis l_govexp l_open l_credit_bank hyperinf_dummy"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg debt ca banking_crisis l_govexp l_open l_credit hyperinf_dummy"
 sort cid year
 xtset cid year
 
@@ -82,13 +82,13 @@ foreach var in credit claims_govt inv govexp pb fdi {
 /*
   CONTROL SET (uniform across all six channels):
   ----------------------------------------------
-  $ctrl_core = l1_gdpg debt ca banking_crisis l_govexp l_open l_credit_bank
+  $ctrl_core = l1_gdpg debt ca banking_crisis l_govexp l_open l_credit
                hyperinf_dummy   + each channel's own pre_<v> (Asonuma g_0).
   Rationale: pre-crisis GDP momentum, fiscal solvency (debt) and external
-  balance (ca), banking distress, government spending, trade openness, bank-
+  balance (ca), banking distress, government spending, trade openness, private-
   credit depth, and a hyperinflation flag — the Asonuma $convar adapted to
   spread crises. The core term equal to a channel's own lagged level is dropped
-  from that channel's regression (credit -> l_credit_bank; govexp -> l_govexp).
+  from that channel's regression (credit -> l_credit; govexp -> l_govexp).
   Global push factors (fed funds / VIX / UST10Y) enter the first-stage
   propensity model only; in the LP they are absorbed by year FE.
 */
@@ -101,7 +101,7 @@ local channels credit claims_govt inv govexp pb fdi
 local ctrl_credit      l1_gdpg debt ca banking_crisis l_govexp l_open hyperinf_dummy pre_credit
 local ctrl_claims_govt $ctrl_core pre_claims_govt
 local ctrl_inv         $ctrl_core pre_inv
-local ctrl_govexp      l1_gdpg debt ca banking_crisis l_open l_credit_bank hyperinf_dummy pre_govexp
+local ctrl_govexp      l1_gdpg debt ca banking_crisis l_open l_credit hyperinf_dummy pre_govexp
 local ctrl_pb          $ctrl_core pre_pb
 local ctrl_fdi         $ctrl_core pre_fdi
 
@@ -534,7 +534,7 @@ summarize ipw_ch if sample == 1, detail
 local ctrl_credit      l1_gdpg debt ca banking_crisis l_govexp l_open hyperinf_dummy pre_credit
 local ctrl_claims_govt $ctrl_core pre_claims_govt
 local ctrl_inv         $ctrl_core pre_inv
-local ctrl_govexp      l1_gdpg debt ca banking_crisis l_open l_credit_bank hyperinf_dummy pre_govexp
+local ctrl_govexp      l1_gdpg debt ca banking_crisis l_open l_credit hyperinf_dummy pre_govexp
 local ctrl_pb          $ctrl_core pre_pb
 local ctrl_fdi         $ctrl_core pre_fdi
 

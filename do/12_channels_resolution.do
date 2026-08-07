@@ -31,7 +31,7 @@
 
 use "$clean/panel_lp.dta", clear
 * safety: define the common core if this file is run standalone (master/18 also set it)
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg debt ca banking_crisis l_govexp l_open l_credit_bank hyperinf_dummy"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg debt ca banking_crisis l_govexp l_open l_credit hyperinf_dummy"
 sort cid year
 xtset cid year
 
@@ -117,7 +117,7 @@ local channels   credit claims_govt inv govexp pb fdi
 local ctrl_credit      l1_gdpg debt ca banking_crisis l_govexp l_open hyperinf_dummy pre_credit
 local ctrl_claims_govt $ctrl_core pre_claims_govt
 local ctrl_inv         $ctrl_core pre_inv
-local ctrl_govexp      l1_gdpg debt ca banking_crisis l_open l_credit_bank hyperinf_dummy pre_govexp
+local ctrl_govexp      l1_gdpg debt ca banking_crisis l_open l_credit hyperinf_dummy pre_govexp
 local ctrl_pb          $ctrl_core pre_pb
 local ctrl_fdi         $ctrl_core pre_fdi
 
