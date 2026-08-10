@@ -25,7 +25,8 @@
     Area under ROC     — lroc on the full model
     Observations
 
-  Pooled probit, no country FE (rare-event propensity; see PAPER_FRAMING §5.C).
+  Probit with country FE (i.cid), matching the reference paper (c1-c74 in $convar);
+  never-treated countries drop out (mechanical ever-treated restriction). No year FE.
   Output: $tabs/table_first_stage.rtf. Run AFTER 01e_predictors.do.
 ===========================================================================*/
 
@@ -47,7 +48,9 @@ eststo clear
 capture program drop _fscol
 program define _fscol
     args nm dv ifcond xlist zlist
-    quietly probit `dv' `xlist' `zlist' if `ifcond', vce(cluster cid)
+    * Country FE (i.cid) in the probit, matching the reference paper (c1-c74 in
+    * $convar). Never-treated countries are perfectly predicted and dropped.
+    quietly probit `dv' `xlist' `zlist' i.cid if `ifcond', vce(cluster cid)
     eststo `nm'
     quietly test `zlist'
     estadd scalar chi2p = r(chi2)
@@ -73,6 +76,7 @@ foreach c in fs_all fs_nd fs_def {
 * ══════════════════════════════════════════════════════════════════════════
 capture esttab fs_all fs_nd fs_def using "$tabs/table_first_stage.rtf", replace ///
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
+    drop(_cons) indicate("Country fixed effects = *.cid") ///
     mtitles("All onsets" "Non-default" "Default-linked") ///
     order(fedfunds l_reg_crisis_share past_onsets past_def_onsets ///
           l1_gdpg l_debt l_ca l_banking l_govexp l_open l_credit hyperinf_dummy) ///
@@ -94,8 +98,8 @@ capture esttab fs_all fs_nd fs_def using "$tabs/table_first_stage.rtf", replace 
           fmt(2 3 3 0)) ///
     title("Table 1. First-stage probit: predicting the start of a spread crisis") ///
     addnotes("Dependent variable: dummy = 1 in the onset year of the indicated crisis type; each type predicted vs tranquil years (the rival onset type is dropped)." ///
-             "Pooled probit, no country fixed effects. Robust standard errors clustered by country in parentheses." ///
-             "Predictors are excluded from the LP/AIPW outcome equation (fed funds / ust10y absorbed by year FE; contagion and past onsets are country-varying and omitted from the second stage)." ///
+             "Probit with country fixed effects (matching the reference paper); never-treated countries are perfectly predicted and dropped. Robust standard errors clustered by country in parentheses." ///
+             "Predictors are excluded from the LP/AIPW outcome equation (they are omitted from the second stage, which carries country FE only, no year FE)." ///
              "Chi-squared (predictors) is the joint Wald test that all four predictors are zero. Area under ROC is for the full model." ///
              "* p<0.10, ** p<0.05, *** p<0.01.")
 

@@ -4,10 +4,10 @@
   Following Jordà & Taylor (2016) "The Time for Austerity"
 
   Steps:
-    1. First-stage probit: Pr(onset_all=1 | X_{t-1})
-       Controls X: l1_gdpg, l2_gdpg, debt, ca, infl, imf
+    1. First-stage probit: Pr(onset_all=1 | a_i, X_{t-1})  [country FE, i.cid]
+       Controls X: the common core ($ctrl_core), all predetermined
        Predictors Z: fedfunds (single global push), l_reg_crisis_share, past_onsets
-       (fedfunds included in probit only; absorbed by year FE in the LP)
+       (predictors enter the probit only; omitted from the country-FE-only LP)
     2. Predict propensity scores p_it
     3. Trim extreme scores (< 0.01 or > 0.99) to avoid explosive weights
     4. Construct stabilized IPW weights:
@@ -28,16 +28,15 @@ use "$clean/panel_lp.dta", clear
 * safety: define the common core if this file is run standalone (master/18 also set it)
 if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking l_govexp l_open l_credit hyperinf_dummy"
 
-* LP controls: VIX and ust10y have zero cross-sectional variation and are
-* fully absorbed by year fixed effects (i.year) in all LP regressions.
-* They are excluded from the LP spec but retained in the probit first stage,
-* which has no year FE and where global financial conditions are not absorbed.
+* LP controls = the common core. Paper-aligned: the two-stage outcome regressions
+* carry COUNTRY FE only (no year FE), so global-push predictors are excluded from
+* the outcome equation simply by being OMITTED from it (not by year-FE absorption).
 local controls_lp  $ctrl_core
 
 * First-stage probit = controls X (same fundamentals as the LP) + excluded
 * PREDICTORS Z (Jordà–Taylor 2016). The predictors satisfy exclusion because
 * they are omitted from the LP second stage:
-*   fedfunds        — pure time-series push factor, absorbed by i.year in the LP
+*   fedfunds        — pure time-series push factor, omitted from the LP outcome eq.
 *   l_reg_crisis_share (Z2) — regional contagion, country-varying, omitted from LP
 *   past_onsets       (Z3) — own crisis history, country-varying, omitted from LP
 * Strict parity with the reference paper: the probit BASELINE = the outcome
@@ -60,18 +59,18 @@ local predictors_z fedfunds l_reg_crisis_share past_onsets
 
 di as result _n "=== FIRST STAGE: Probit of crisis onset ==="
 
-* POOLED probit (no country FE): country FE in a probit separate/perfectly
-* predict never-treated countries and carry incidental-parameters bias with few
-* events per group; the pooled model with controls + predictors is the standard
-* for rare-event propensity estimation and keeps all countries.
+* COUNTRY FE probit (i.cid), matching the reference paper (c1-c74 in $convar):
+* country FE enter the propensity too. Never-treated countries are perfectly
+* predicted and dropped by probit — the paper's mechanical ever-treated
+* restriction. No year FE (their design has none).
 
 * (a) Controls only — baseline for the ROC comparison (their Table 1 logic)
-quietly probit onset_all `controls_x' if sample == 1, vce(cluster cid)
+quietly probit onset_all `controls_x' i.cid if sample == 1, vce(cluster cid)
 quietly lroc, nograph
 local roc_x = r(area)
 
 * (b) Controls + excluded predictors — the first stage used for the propensity
-probit onset_all `controls_x' `predictors_z' if sample == 1, vce(cluster cid)
+probit onset_all `controls_x' `predictors_z' i.cid if sample == 1, vce(cluster cid)
 estimates store first_stage
 quietly lroc, nograph
 local roc_xz = r(area)
@@ -195,7 +194,8 @@ forvalues h = 0/4 {
     local row = `h' + 1
 
     * Unweighted (areg absorbs country FE, cluster SE — comparable baseline)
-    quietly areg dy_`h' onset_all `controls_lp' i.year ///
+    * Country FE only, no year FE (paper-aligned two-stage outcome regression).
+    quietly areg dy_`h' onset_all `controls_lp' ///
         if sample==1 & !missing(ipw), absorb(cid) vce(cluster cid)
     matrix b_ols[`row',1]    = _b[onset_all]
     matrix lo90_ols[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
@@ -206,7 +206,7 @@ forvalues h = 0/4 {
     local se_u = _se[onset_all]
 
     * IPW-weighted (areg used because xtreg fe requires weights constant within cid)
-    quietly areg dy_`h' onset_all `controls_lp' i.year ///
+    quietly areg dy_`h' onset_all `controls_lp' ///
         [aw=ipw] if sample==1 & !missing(ipw), absorb(cid) vce(cluster cid)
     matrix b_ipw[`row',1]    = _b[onset_all]
     matrix lo90_ipw[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
@@ -316,7 +316,7 @@ foreach s in nd def {
     if "`s'" == "nd"  local rival onset_def
     else              local rival onset_nd
 
-    quietly probit onset_`s' $ctrl_core `predictors_z2' ///
+    quietly probit onset_`s' $ctrl_core `predictors_z2' i.cid ///
         if sample==1 & `rival'==0, vce(cluster cid)
     quietly lroc, nograph
     di as result "  First stage `s' vs tranquil: AUROC = " %5.3f r(area) "   (N = " e(N) ")"
@@ -350,7 +350,8 @@ forvalues h = 0/4 {
     local row = `h' + 1
 
     * OLS baseline: joint LP, tranquil = omitted category (already vs-tranquil)
-    quietly areg dy_`h' onset_nd onset_def `controls_lp' i.year ///
+    * Country FE only, no year FE (paper-aligned two-stage outcome regression).
+    quietly areg dy_`h' onset_nd onset_def `controls_lp' ///
         if sample == 1, absorb(cid) vce(cluster cid)
     matrix b_nd_ols[`row',1]    = _b[onset_nd]
     matrix lo90_nd_ols[`row',1] = _b[onset_nd]  - 1.645*_se[onset_nd]
@@ -365,7 +366,7 @@ forvalues h = 0/4 {
     local p_o = r(p)
 
     * IPW line 1: non-default vs tranquil (default dropped), weight ipw_nd
-    quietly areg dy_`h' onset_nd `controls_lp' i.year ///
+    quietly areg dy_`h' onset_nd `controls_lp' ///
         [aw=ipw_nd] if sample==1 & onset_def==0 & !missing(ipw_nd), ///
         absorb(cid) vce(cluster cid)
     matrix b_nd_ipw[`row',1]    = _b[onset_nd]
@@ -375,7 +376,7 @@ forvalues h = 0/4 {
     local se_nd_w = _se[onset_nd]
 
     * IPW line 2: default-linked vs tranquil (non-default dropped), weight ipw_def
-    quietly areg dy_`h' onset_def `controls_lp' i.year ///
+    quietly areg dy_`h' onset_def `controls_lp' ///
         [aw=ipw_def] if sample==1 & onset_nd==0 & !missing(ipw_def), ///
         absorb(cid) vce(cluster cid)
     matrix b_def_ipw[`row',1]    = _b[onset_def]

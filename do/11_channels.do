@@ -504,7 +504,8 @@ di as result _n "=== IPW FIRST STAGE (channels): Probit of crisis onset ==="
 * fedfunds (US monetary conditions) + l_reg_crisis_share/past_onsets as excluded predictors (Z).
 * Baseline = outcome baseline ($ctrl_core) + excluded predictors Z (strict parity).
 local controls_ps $ctrl_core fedfunds l_reg_crisis_share past_onsets
-probit onset_all `controls_ps' if sample == 1, vce(cluster cid)
+* Country FE (i.cid) in the probit, matching the reference paper (c1-c74 in $convar).
+probit onset_all `controls_ps' i.cid if sample == 1, vce(cluster cid)
 di as result "McFadden Pseudo-R2: " e(r2_p)
 
 predict pscore_ch if sample == 1, pr
@@ -566,13 +567,14 @@ foreach ch of local channels {
         local row = `h' + 1
 
         * Unweighted baseline (areg, for apples-to-apples SE comparison)
-        quietly areg ch_`ch'_`h' onset_all `ctrl' i.year ///
+        * Country FE only, no year FE (paper-aligned two-stage outcome regression).
+        quietly areg ch_`ch'_`h' onset_all `ctrl' ///
             if sample == 1 & !missing(ipw_ch), absorb(cid) vce(cluster cid)
         local b_ols  = _b[onset_all]
         local se_ols = _se[onset_all]
 
         * IPW-weighted
-        capture areg ch_`ch'_`h' onset_all `ctrl' i.year ///
+        capture areg ch_`ch'_`h' onset_all `ctrl' ///
             [aw=ipw_ch] if sample == 1 & !missing(ipw_ch), absorb(cid) vce(cluster cid)
         if _rc == 0 {
             matrix b_ipw_`ch'[`row',1]    = _b[onset_all]

@@ -159,7 +159,7 @@ foreach s in nd def {
     else              local rival onset_nd
 
     quietly probit onset_`s' $ctrl_core ///
-        fedfunds l_reg_crisis_share past_def_onsets if sample==1 & `rival'==0, vce(cluster cid)
+        fedfunds l_reg_crisis_share past_def_onsets i.cid if sample==1 & `rival'==0, vce(cluster cid)
     quietly lroc, nograph
     di as result "  First stage `s' vs tranquil: AUROC = " %5.3f r(area) "   (N = " e(N) ")"
 
@@ -224,7 +224,8 @@ foreach ch of local channels {
         }
 
         * IPW: two SEPARATE vs-tranquil weighted LPs (rival dropped)
-        capture areg ch_`ch'_`h' onset_nd `ctrl' i.year ///
+        * Country FE only, no year FE (paper-aligned two-stage outcome regression).
+        capture areg ch_`ch'_`h' onset_nd `ctrl' ///
             [aw=ipw_nd] if sample==1 & onset_def==0 & !missing(ipw_nd), absorb(cid) vce(cluster cid)
         if _rc == 0 {
             matrix b_nd_ipw_`ch'[`row',1]    = _b[onset_nd]
@@ -237,7 +238,7 @@ foreach ch of local channels {
             local b_nd_w = .
             local se_nd_w = .
         }
-        capture areg ch_`ch'_`h' onset_def `ctrl' i.year ///
+        capture areg ch_`ch'_`h' onset_def `ctrl' ///
             [aw=ipw_def] if sample==1 & onset_nd==0 & !missing(ipw_def), absorb(cid) vce(cluster cid)
         if _rc == 0 {
             matrix b_def_ipw_`ch'[`row',1]   = _b[onset_def]

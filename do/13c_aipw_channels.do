@@ -92,7 +92,14 @@ program define _aipw, rclass
     quietly predict double `xb' if `touse', xb
     quietly gen double `m0' = `xb' - _b[`D']*`D' if `touse'
     quietly gen double `m1' = `m0' + _b[`D']      if `touse'
-    quietly probit `D' `pmodel' if `touse'
+    * Country FE in the probit too (paper's c1-c74 in $convar): same `fe' as Eq.1
+    * (i.cid on real data, i._bid under the bootstrap); no year FE.
+    if "`fe'" != "" {
+        quietly probit `D' `pmodel' i.`fe' if `touse'
+    }
+    else {
+        quietly probit `D' `pmodel' if `touse'
+    }
     quietly predict double `ps' if `touse', pr
     quietly replace `ps' = .01 if `ps' < .01              & `touse'
     quietly replace `ps' = .99 if `ps' > .99 & !missing(`ps') & `touse'

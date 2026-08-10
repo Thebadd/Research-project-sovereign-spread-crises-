@@ -11,10 +11,11 @@
     Eq. (1) Outcome regression by OLS with country FE:
               dy_h = a_i + b*D + X*g + u        -> conditional means m1, m0
             (common-slope RA: m1 - m0 = b, the regression-adjustment term).
-    Eq. (2) Propensity probit:  Pr(D=1) = Phi(X, Z)   -> phat.
-            POOLED (no country FE): country FE cause separation and would drop
-            the thin default sample (our locked design choice; the paper uses FE
-            but has far more data). Predictors Z enter here ONLY.
+    Eq. (2) Propensity probit:  Pr(D=1) = Phi(a_i, X, Z)   -> phat.
+            COUNTRY FE in the probit too (matching the paper's c1-c74 in $convar):
+            country FE enter BOTH stages, and never-treated countries are perfectly
+            predicted and dropped — the paper's mechanical ever-treated restriction.
+            No year FE. Predictors Z are the only first-stage-specific additions.
     Eq. (3) AIPW estimator (their exact algebraic form):
         Lambda_h = (1/N) sum_i {
             [ D*dy/phat - (1-D)*dy/(1-phat) ]
@@ -62,8 +63,9 @@ foreach m in b se lo hi {
 * ══════════════════════════════════════════════════════════════════════════
 * PROGRAM — hand-coded AIPW point estimate (Eqs. 1-3), returns r(theta), r(N)
 *   _aipw dyvar Dvar [if], omodel(X) pmodel(X Z) [fe(idvar)]
-*   `fe(idvar)' adds FE to the OUTCOME regression only (Eq. 1). The probit
-*   (Eq. 2) is always pooled. Trims phat to [.01,.99] to bound the weights.
+*   `fe(idvar)' adds country FE to BOTH the outcome regression (Eq. 1) and the
+*   propensity probit (Eq. 2), matching the reference paper. Trims phat to
+*   [.01,.99] to bound the weights.
 * ══════════════════════════════════════════════════════════════════════════
 capture program drop _aipw
 program define _aipw, rclass
@@ -87,8 +89,18 @@ program define _aipw, rclass
     quietly gen double `m0' = `xb' - _b[`D']*`D' if `touse'   // set D=0
     quietly gen double `m1' = `m0' + _b[`D']      if `touse'   // set D=1
 
-    * --- Eq. (2): pooled propensity probit -> phat (trimmed) ---
-    quietly probit `D' `pmodel' if `touse'
+    * --- Eq. (2): propensity probit -> phat (trimmed) ---
+    * Country FE in BOTH stages (matching the reference paper's c1-c74 in $convar):
+    * the probit carries the same `fe' the outcome reg does (i.cid on real data,
+    * i._bid under the cluster bootstrap). Never-treated countries are perfectly
+    * predicted and dropped by probit — the paper's mechanical ever-treated
+    * restriction. No year FE (their design has none).
+    if "`fe'" != "" {
+        quietly probit `D' `pmodel' i.`fe' if `touse'
+    }
+    else {
+        quietly probit `D' `pmodel' if `touse'
+    }
     quietly predict double `ps' if `touse', pr
     quietly replace `ps' = .01 if `ps' < .01              & `touse'
     quietly replace `ps' = .99 if `ps' > .99 & !missing(`ps') & `touse'
