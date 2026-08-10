@@ -504,14 +504,11 @@ di as result _n "=== IPW FIRST STAGE (channels): Probit of crisis onset ==="
 * fedfunds (US monetary conditions) + l_reg_crisis_share/past_onsets as excluded predictors (Z).
 * Baseline = outcome baseline ($ctrl_core) + excluded predictors Z (strict parity).
 local controls_ps $ctrl_core l_fedfunds l_reg_crisis_share past_onsets
-* Country FE probit (i.cid, = the paper's c1-c74); mask perfectly-predicted obs below.
-probit onset_all `controls_ps' i.cid if sample == 1, vce(cluster cid)
-capture drop _psamp_ch
-gen byte _psamp_ch = e(sample)   // probit sample (drops perfectly-predicted countries)
+* Pooled probit (country FE separate on the thin event count; FE in the outcome only).
+probit onset_all `controls_ps' if sample == 1, vce(cluster cid)
 di as result "McFadden Pseudo-R2: " e(r2_p)
 
 predict pscore_ch if sample == 1, pr
-quietly replace pscore_ch = . if _psamp_ch==0   // mask perfectly-predicted (dropped) obs
 
 * Trim [0.01, 0.99]
 gen trimmed_ch = (pscore_ch < 0.01 | pscore_ch > 0.99) if !missing(pscore_ch)

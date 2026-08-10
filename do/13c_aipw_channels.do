@@ -92,16 +92,10 @@ program define _aipw, rclass
     quietly predict double `xb' if `touse', xb
     quietly gen double `m0' = `xb' - _b[`D']*`D' if `touse'
     quietly gen double `m1' = `m0' + _b[`D']      if `touse'
-    * Country FE in the probit (= the paper's c1-c74), same `fe' as the outcome reg;
-    * mask perfectly-predicted (dropped) obs to missing (paper's e(sample) mask). No year FE.
-    if "`fe'" != "" {
-        quietly probit `D' `pmodel' i.`fe' if `touse'
-    }
-    else {
-        quietly probit `D' `pmodel' if `touse'
-    }
+    * POOLED probit (no country FE): country dummies separate/overfit on the thin
+    * event count. Country FE enter the OUTCOME reg (Eq. 1) only; no year FE.
+    quietly probit `D' `pmodel' if `touse'
     quietly predict double `ps' if `touse', pr
-    quietly replace `ps' = . if !e(sample)
     quietly replace `ps' = .01 if `ps' < .01              & `touse'
     quietly replace `ps' = .99 if `ps' > .99 & !missing(`ps') & `touse'
     quietly gen double `summ' = ///

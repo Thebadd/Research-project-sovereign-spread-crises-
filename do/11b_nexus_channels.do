@@ -159,19 +159,15 @@ foreach s in nd def {
     else              local rival onset_nd
 
     quietly probit onset_`s' $ctrl_core ///
-        l_fedfunds l_reg_crisis_share past_def_onsets i.cid if sample==1 & `rival'==0, vce(cluster cid)
-    capture drop _psamp_`s'
-    gen byte _psamp_`s' = e(sample)   // probit sample (drops perfectly-predicted countries)
+        l_fedfunds l_reg_crisis_share past_def_onsets if sample==1 & `rival'==0, vce(cluster cid)
     quietly lroc, nograph
     di as result "  First stage `s' vs tranquil: AUROC = " %5.3f r(area) "   (N = " e(N) ")"
 
     predict pscore_`s' if sample==1 & `rival'==0, pr
-    quietly replace pscore_`s' = . if _psamp_`s'==0   // mask perfectly-predicted (dropped) obs
     quietly replace pscore_`s' = . if (pscore_`s'<0.01 | pscore_`s'>0.99) & !missing(pscore_`s')
 
     quietly summarize onset_`s' if sample==1 & `rival'==0
     local pmarg = r(mean)
-    capture drop ipw_`s'
     gen double ipw_`s' = .
     quietly replace ipw_`s' = `pmarg'     / pscore_`s'     if onset_`s'==1 & !missing(pscore_`s')
     quietly replace ipw_`s' = (1-`pmarg') / (1-pscore_`s') if onset_all==0 & !missing(pscore_`s')

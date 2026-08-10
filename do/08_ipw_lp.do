@@ -4,7 +4,7 @@
   Following Jordà & Taylor (2016) "The Time for Austerity"
 
   Steps:
-    1. First-stage probit: Pr(onset_all=1 | a_i, X_{t-1})  [country FE i.cid; paper's c1-c74]
+    1. First-stage probit: Pr(onset_all=1 | X_{t-1})  [pooled, no country FE]
        Controls X: the common core ($ctrl_core), all predetermined
        Predictors Z: l_fedfunds (single global push, t-1), l_reg_crisis_share, past_onsets
        (predictors enter the probit only; omitted from the country-FE-only LP)
@@ -59,20 +59,19 @@ local predictors_z l_fedfunds l_reg_crisis_share past_onsets
 
 di as result _n "=== FIRST STAGE: Probit of crisis onset ==="
 
-* COUNTRY FE probit (i.cid, = the paper's c1-c74 in $convar): country FE enter the
-* propensity too. Country dummies perfectly-predict never-treated countries; probit
-* DROPS those obs, and we mask their score to missing below (the paper's
-* `replace pihat=. if e(sample)==0`) so they drop cleanly from the weighted LP. No year FE.
+* POOLED probit (no country FE): country FE in a probit separate/perfectly
+* predict never-treated countries and carry incidental-parameters bias with few
+* events per group; the pooled model with controls + predictors is the standard
+* for rare-event propensity estimation and keeps all countries. Country FE enter
+* the OUTCOME regression (Eq. 1 / the LP) only, matching the paper; no year FE.
 
 * (a) Controls only — baseline for the ROC comparison (their Table 1 logic)
-quietly probit onset_all `controls_x' i.cid if sample == 1, vce(cluster cid)
+quietly probit onset_all `controls_x' if sample == 1, vce(cluster cid)
 quietly lroc, nograph
 local roc_x = r(area)
 
 * (b) Controls + excluded predictors — the first stage used for the propensity
-probit onset_all `controls_x' `predictors_z' i.cid if sample == 1, vce(cluster cid)
-capture drop _psamp
-gen byte _psamp = e(sample)   // probit estimation sample (drops perfectly-predicted countries)
+probit onset_all `controls_x' `predictors_z' if sample == 1, vce(cluster cid)
 estimates store first_stage
 quietly lroc, nograph
 local roc_xz = r(area)
@@ -95,7 +94,6 @@ quietly esttab first_stage using "$tabs/ipw_first_stage.csv", ///
 * ══════════════════════════════════════════════════════════════════════════
 
 predict pscore if sample == 1, pr
-quietly replace pscore = . if _psamp==0   // mask perfectly-predicted (dropped) obs, paper's e(sample) mask
 label var pscore "Propensity score: Pr(onset=1 | X)"
 
 * Inspect distribution of scores
@@ -319,16 +317,13 @@ foreach s in nd def {
     if "`s'" == "nd"  local rival onset_def
     else              local rival onset_nd
 
-    quietly probit onset_`s' $ctrl_core `predictors_z2' i.cid ///
+    quietly probit onset_`s' $ctrl_core `predictors_z2' ///
         if sample==1 & `rival'==0, vce(cluster cid)
-    capture drop _psamp
-    gen byte _psamp = e(sample)   // probit sample (drops perfectly-predicted countries)
     quietly lroc, nograph
     di as result "  First stage `s' vs tranquil: AUROC = " %5.3f r(area) "   (N = " e(N) ")"
 
     capture drop pscore_`s'
     predict pscore_`s' if sample==1 & `rival'==0, pr
-    quietly replace pscore_`s' = . if _psamp==0   // mask perfectly-predicted (dropped) obs
     quietly replace pscore_`s' = . if (pscore_`s'<0.01 | pscore_`s'>0.99) & !missing(pscore_`s')
 
     * stabilized weights: treated -> Pr(s)/p ; tranquil controls -> Pr(!s)/(1-p)
