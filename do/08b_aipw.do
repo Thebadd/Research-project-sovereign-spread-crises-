@@ -11,11 +11,11 @@
     Eq. (1) Outcome regression by OLS with country FE:
               dy_h = a_i + b*D + X*g + u        -> conditional means m1, m0
             (common-slope RA: m1 - m0 = b, the regression-adjustment term).
-    Eq. (2) Propensity probit:  Pr(D=1) = Phi(X, Z)   -> phat.
-            POOLED (no country FE): with ~20 events, country dummies in a probit
-            separate/overfit and collapse the propensity (our locked design choice;
-            the paper uses FE but has 194 events). Country FE enter the OUTCOME
-            regression only; no year FE. Predictors Z enter here ONLY.
+    Eq. (2) Propensity probit:  Pr(D=1) = Phi(a_i, X, Z)   -> phat.
+            COUNTRY FE in the probit (= the paper's c1-c74 in $convar), matching the
+            outcome reg. Country dummies perfectly-predict never-treated countries;
+            probit drops those obs and we mask their score to missing (paper's
+            `replace pihat=. if e(sample)==0`), so they drop cleanly. No year FE.
     Eq. (3) AIPW estimator (their exact algebraic form):
         Lambda_h = (1/N) sum_i {
             [ D*dy/phat - (1-D)*dy/(1-phat) ]
@@ -63,8 +63,9 @@ foreach m in b se lo hi {
 * ══════════════════════════════════════════════════════════════════════════
 * PROGRAM — hand-coded AIPW point estimate (Eqs. 1-3), returns r(theta), r(N)
 *   _aipw dyvar Dvar [if], omodel(X) pmodel(X Z) [fe(idvar)]
-*   `fe(idvar)' adds country FE to the OUTCOME regression only (Eq. 1). The probit
-*   (Eq. 2) is always pooled. Trims phat to [.01,.99] to bound the weights.
+*   `fe(idvar)' adds country FE to BOTH the outcome regression (Eq. 1) and the
+*   propensity probit (Eq. 2), matching the paper. Perfectly-predicted (dropped)
+*   probit obs are masked to missing. Trims phat to [.01,.99] to bound the weights.
 * ══════════════════════════════════════════════════════════════════════════
 capture program drop _aipw
 program define _aipw, rclass
@@ -88,14 +89,20 @@ program define _aipw, rclass
     quietly gen double `m0' = `xb' - _b[`D']*`D' if `touse'   // set D=0
     quietly gen double `m1' = `m0' + _b[`D']      if `touse'   // set D=1
 
-    * --- Eq. (2): POOLED propensity probit -> phat (trimmed) ---
-    * Pooled (no country FE): with ~20 events, country dummies in a probit
-    * separate/overfit (perfectly predict never-crisis countries, AUROC->1),
-    * collapsing the propensity — the standard rare-event choice keeps it pooled.
-    * Country FE enter the OUTCOME regression (Eq. 1) only, matching the paper's
-    * outcome design; no year FE.
-    quietly probit `D' `pmodel' if `touse'
+    * --- Eq. (2): propensity probit with country FE -> phat (trimmed) ---
+    * Country FE in the probit too (= the paper's c1-c74 in $convar), the same `fe'
+    * the outcome reg uses (i.cid on real data, i._bid under the bootstrap). Country
+    * dummies perfectly-predict never-treated countries; probit DROPS those obs, and
+    * we then mask their score to missing (the paper's `replace pihat=. if e(sample)==0`),
+    * so they drop cleanly from the AIPW summand. No year FE.
+    if "`fe'" != "" {
+        quietly probit `D' `pmodel' i.`fe' if `touse'
+    }
+    else {
+        quietly probit `D' `pmodel' if `touse'
+    }
     quietly predict double `ps' if `touse', pr
+    quietly replace `ps' = . if !e(sample)                 // mask perfectly-predicted (dropped) obs
     quietly replace `ps' = .01 if `ps' < .01              & `touse'
     quietly replace `ps' = .99 if `ps' > .99 & !missing(`ps') & `touse'
 
