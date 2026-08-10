@@ -22,6 +22,9 @@
     "$clean/irf_ipw.dta"        — IPW-LP IRF dataset
     "$clean/irf_compare.dta"    — baseline + IPW for overlay plot
     "$tabs/ipw_first_stage.csv" — first-stage probit results
+    "$figs/fig6c_overlap_act1.pdf"  — propensity overlap, all onsets vs tranquil
+    "$figs/fig8b_overlap_act2.pdf"  — propensity overlap BY resolution type
+                                      (Asonuma et al. 2024 Fig. 2 analog)
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -120,15 +123,18 @@ graph export "$figs/fig6b_common_support.pdf", replace
 * Cleaner common-support view: densities of the estimated propensity score for
 * treated (onset) vs control (tranquil). Overlapping densities => the design has
 * common support, so IPW/AIPW reweighting is valid.
+* Colours follow the paper's Fig 2 convention — treatment solid blue, control dashed
+* red — so this and the Act-2 panels (fig8b) read as one family.
 capture twoway ///
     (kdensity pscore if onset_all==1 & sample==1, ///
-        lcolor("157 36 73") lwidth(medthick)) ///
+        range(0 1) lcolor("23 55 94") lwidth(medthick)) ///
     (kdensity pscore if onset_all==0 & sample==1, ///
-        lcolor("23 55 94") lwidth(medthick) lpattern(dash)), ///
-    xtitle("Estimated propensity score  Pr(onset=1 | X, Z)", size(small)) ///
-    ytitle("Density", size(small)) ///
+        range(0 1) lcolor("157 36 73") lwidth(medthick) lpattern(dash)), ///
+    xlabel(0(.2)1, labsize(small)) ///
+    xtitle("Predicted probability  Pr(onset=1 | X, Z)", size(small)) ///
+    ytitle("Probability density", size(small)) ///
     title("Act 1 — Propensity-score overlap (common support)", size(medsmall) color(navy)) ///
-    legend(order(1 "Onset (treated)" 2 "Tranquil (control)") ring(0) pos(1) size(small)) ///
+    legend(order(1 "Treatment group (onset)" 2 "Control group (tranquil)") ring(0) pos(1) size(small)) ///
     note("Overlapping densities => common support holds. First stage: probit of onset on controls + excluded predictors.", size(vsmall)) ///
     graphregion(color(white)) plotregion(color(white))
 if _rc == 0 {
@@ -324,6 +330,14 @@ foreach s in nd def {
 
     capture drop pscore_`s'
     predict pscore_`s' if sample==1 & `rival'==0, pr
+
+    * Untrimmed copy for the overlap density below: the Fig-2 analog exists to
+    * DIAGNOSE common support, so it must show the raw score distribution —
+    * trimming first would hide the very positivity problem the plot reveals.
+    capture drop pscore_u_`s'
+    quietly gen double pscore_u_`s' = pscore_`s'
+    label var pscore_u_`s' "Predicted Pr(onset_`s'=1 | X,Z), untrimmed"
+
     quietly replace pscore_`s' = . if (pscore_`s'<0.01 | pscore_`s'>0.99) & !missing(pscore_`s')
 
     * stabilized weights: treated -> Pr(s)/p ; tranquil controls -> Pr(!s)/(1-p)
@@ -334,6 +348,66 @@ foreach s in nd def {
     quietly replace ipw_`s' = `pmarg'     / pscore_`s'       if onset_`s'==1 & !missing(pscore_`s')
     quietly replace ipw_`s' = (1-`pmarg') / (1-pscore_`s')   if onset_all==0 & !missing(pscore_`s')
     label var ipw_`s' "Act 2 stabilized IPW weight (`s' vs tranquil)"
+}
+
+* ── Kernel-density overlap BY RESOLUTION TYPE (Asonuma et al. 2024 Fig 2 analog) ─
+* Their Fig 2 gives ONE PANEL PER restructuring type, each plotting the density of
+* the estimated probability for the TREATMENT group (that type's onsets) and for the
+* CONTROL group (tranquil years). This is the Act-2 counterpart of fig6c (Act 1):
+* our types are non-default / default-linked instead of their preemptive variants.
+* Overlapping densities => common support holds for that type, so the vs-tranquil
+* reweighting is valid. A control density crushed against 0 with a treated density
+* far to the right would signal a positivity problem for that cell.
+* Deviation from their Fig 2, deliberate: they plot only [0.01, 0.60], but we show the
+* FULL unit interval. Truncating would hide mass in the upper tail — and a treated
+* density piling up near 1 is precisely the positivity failure that has to stay visible
+* here (it is what makes a country-FE first stage inestimable on this thin sample).
+local ovnames
+foreach s in nd def {
+    if "`s'" == "nd" {
+        local rival onset_def
+        local slab  "Non-default"
+    }
+    else {
+        local rival onset_nd
+        local slab  "Default-linked"
+    }
+
+    * Treatment = this type's onsets; control = tranquil years (rival type dropped),
+    * exactly the sample its first-stage probit and its IPW weights were built on.
+    capture twoway ///
+        (kdensity pscore_u_`s' if onset_`s'==1 & sample==1 & `rival'==0, ///
+            range(0 1) lcolor("23 55 94")  lwidth(medthick)) ///
+        (kdensity pscore_u_`s' if onset_all==0  & sample==1 & `rival'==0, ///
+            range(0 1) lcolor("157 36 73") lwidth(medthick) lpattern(dash)), ///
+        xlabel(0(.2)1, labsize(small)) ///
+        xtitle("Predicted probability", size(small)) ///
+        ytitle("Probability density", size(small)) ///
+        title("`slab'", size(medsmall) color(navy)) ///
+        legend(order(1 "Treatment group" 2 "Control group") ///
+               ring(0) pos(1) size(vsmall) region(lstyle(none)) rows(2)) ///
+        graphregion(color(white)) plotregion(color(white)) ///
+        name(ov_`s', replace)
+
+    if _rc == 0 local ovnames `ovnames' ov_`s'
+    else di as error "  ** Act 2 overlap kdensity failed for `s' (rc=" _rc ")"
+}
+
+if "`ovnames'" != "" {
+    capture graph combine `ovnames', rows(1) ///
+        graphregion(color(white)) ///
+        title("Act 2 — Propensity-score overlap by resolution type", ///
+              size(medsmall) color(navy)) ///
+        note("Kernel densities of the estimated probability of each crisis type: treatment group (that type's onsets)" ///
+             "vs control group (tranquil years), with the rival type dropped. Scores shown untrimmed over the full [0,1]." ///
+             "Analog of Asonuma et al. (2024) Fig. 2 (they plot [0.01,0.60]); fig6c is the Act-1 counterpart.", size(vsmall))
+    if _rc == 0 {
+        graph export "$figs/fig8b_overlap_act2.pdf", replace
+        capture graph export "$figs/fig8b_overlap_act2.png", replace width(1200)
+        di as result "Figure saved: fig8b_overlap_act2.pdf"
+    }
+    else di as error "  ** Act 2 overlap combine failed (rc=" _rc ")"
+    capture graph drop `ovnames'
 }
 
 * ── Estimation: OLS baseline (joint, tranquil = omitted) + two vs-tranquil IPW LPs
