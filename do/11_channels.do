@@ -503,7 +503,7 @@ di as result _n "=== IPW FIRST STAGE (channels): Probit of crisis onset ==="
 * Controls + excluded predictors (Z), consistent with 08_ipw_lp.do:
 * fedfunds (US monetary conditions) + l_reg_crisis_share/past_onsets as excluded predictors (Z).
 * Baseline = outcome baseline ($ctrl_core) + excluded predictors Z (strict parity).
-local controls_ps $ctrl_core fedfunds l_reg_crisis_share past_onsets
+local controls_ps $ctrl_core l_fedfunds l_reg_crisis_share past_onsets
 * Pooled probit (country FE separate on the thin event count; FE in the outcome only).
 probit onset_all `controls_ps' if sample == 1, vce(cluster cid)
 di as result "McFadden Pseudo-R2: " e(r2_p)

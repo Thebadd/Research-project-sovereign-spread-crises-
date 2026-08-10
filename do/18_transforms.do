@@ -92,6 +92,18 @@ gen double l_credit       = L.credit
 gen double l_debt         = L.debt
 gen double l_ca           = L.ca
 gen byte   l_banking      = L.banking_crisis
+* Global-push predictors lagged to t-1 (predetermined), matching the reference
+* paper's federal_funds2 = L.federal_funds. Plain saved columns => bootstrap-safe
+* in the AIPW (no L. operator at estimation time). Rates are pure time series, so
+* L. under xtset cid year gives the year-(t-1) value for every country. vix/ust10y
+* built too so a future push-variable swap is one line. Raw fedfunds/vix/ust10y
+* columns are kept (coverage report below still uses them).
+gen double l_fedfunds     = L.fedfunds
+gen double l_vix          = L.vix
+gen double l_ust10y       = L.ust10y
+label var l_fedfunds "L1 US fed funds rate (predetermined; = Asonuma federal_funds2)"
+label var l_vix      "L1 CBOE VIX (predetermined)"
+label var l_ust10y   "L1 US 10y Treasury yield (predetermined)"
 label var hyperinf_dummy "Hyperinflation dummy (L.infl > 50) — Asonuma"
 label var l_govexp       "L1 govt expenditure, % GDP"
 label var l_open         "L1 trade openness, % GDP"

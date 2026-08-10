@@ -46,9 +46,9 @@ xtset cid year
 * while omodel = $ctrl_core: same baseline in both stages (their $convar design).
 local cx    $ctrl_core
 * Act 1 predictors Z1: single global push (fed funds) + contagion + proneness.
-local cz    fedfunds l_reg_crisis_share past_onsets
+local cz    l_fedfunds l_reg_crisis_share past_onsets
 * Act 2 predictors Z2: same, but proneness = past DEFAULT-linked onsets.
-local cz_def fedfunds l_reg_crisis_share past_def_onsets
+local cz_def l_fedfunds l_reg_crisis_share past_def_onsets
 
 local nboot = 500      // bootstrap reps; raise to 1000+ for the final run
 

@@ -37,8 +37,8 @@ use "$clean/panel_lp.dta", clear
 * Baseline = outcome baseline ($ctrl_core): the Table-1 probit shares its controls
 * with the LP/AIPW outcome equation (their $convar in both stages).
 local X    $ctrl_core
-local Z1   fedfunds l_reg_crisis_share past_onsets
-local Z2   fedfunds l_reg_crisis_share past_def_onsets
+local Z1   l_fedfunds l_reg_crisis_share past_onsets
+local Z2   l_fedfunds l_reg_crisis_share past_def_onsets
 
 eststo clear
 
@@ -75,9 +75,9 @@ foreach c in fs_all fs_nd fs_def {
 capture esttab fs_all fs_nd fs_def using "$tabs/table_first_stage.rtf", replace ///
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
     mtitles("All onsets" "Non-default" "Default-linked") ///
-    order(fedfunds l_reg_crisis_share past_onsets past_def_onsets ///
+    order(l_fedfunds l_reg_crisis_share past_onsets past_def_onsets ///
           l1_gdpg l_debt l_ca l_banking l_govexp l_open l_credit hyperinf_dummy) ///
-    coeflabel(fedfunds "US fed funds rate" ///
+    coeflabel(l_fedfunds "US fed funds rate (t-1)" ///
               l_reg_crisis_share "Regional contagion (t-1)" ///
               past_onsets "Past onsets (any type)" ///
               past_def_onsets "Past default-linked onsets" ///
@@ -89,7 +89,7 @@ capture esttab fs_all fs_nd fs_def using "$tabs/table_first_stage.rtf", replace 
               l_open "Trade openness (t-1)" ///
               l_credit "Private credit / GDP (t-1)" ///
               hyperinf_dummy "Hyperinflation dummy") ///
-    refcat(fedfunds "Predictors" l1_gdpg "Baseline controls", nolabel) ///
+    refcat(l_fedfunds "Predictors" l1_gdpg "Baseline controls", nolabel) ///
     stats(chi2p pp auroc N, ///
           labels("Chi-squared (predictors)" "  p-value" "Area under ROC curve" "Observations") ///
           fmt(2 3 3 0)) ///

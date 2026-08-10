@@ -6,7 +6,7 @@
   Steps:
     1. First-stage probit: Pr(onset_all=1 | X_{t-1})  [pooled, no country FE]
        Controls X: the common core ($ctrl_core), all predetermined
-       Predictors Z: fedfunds (single global push), l_reg_crisis_share, past_onsets
+       Predictors Z: l_fedfunds (single global push, t-1), l_reg_crisis_share, past_onsets
        (predictors enter the probit only; omitted from the country-FE-only LP)
     2. Predict propensity scores p_it
     3. Trim extreme scores (< 0.01 or > 0.99) to avoid explosive weights
@@ -44,11 +44,11 @@ local controls_lp  $ctrl_core
 * the predictors Z below are the only first-stage-specific additions (their
 * $convar in both stages, $instrument added only to the probit).
 local controls_x   $ctrl_core
-* Single global-push predictor (fed funds): fedfunds/ust10y/vix all proxy the
-* same global-financial-conditions factor, so only one is kept to avoid splitting
-* its explanatory power. fedfunds is pure time-series => absorbed by year FE in
-* the LP, so the exclusion restriction still holds.
-local predictors_z fedfunds l_reg_crisis_share past_onsets
+* Single global-push predictor, LAGGED to t-1 (l_fedfunds = L.fedfunds), matching
+* the reference paper's federal_funds2 = L.federal_funds. fedfunds/ust10y/vix all
+* proxy the same global-financial-conditions factor, so only one is kept to avoid
+* splitting its explanatory power. Predetermined and excluded from the outcome eq.
+local predictors_z l_fedfunds l_reg_crisis_share past_onsets
 
 * ══════════════════════════════════════════════════════════════════════════
 * STEP 1 — FIRST-STAGE PROBIT
@@ -309,7 +309,7 @@ use "$clean/panel_lp.dta", clear
 * control = tranquil, never the other type). Two first stages / two weight sets:
 *   non-default vs tranquil  (drop onset_def) ;  default-linked vs tranquil (drop onset_nd)
 * Full sample (~500 tranquil controls) => the full $ctrl_core is safe (no separation).
-local predictors_z2 fedfunds l_reg_crisis_share past_def_onsets
+local predictors_z2 l_fedfunds l_reg_crisis_share past_def_onsets
 
 di as result _n "=== ACT 2 IPW: two vs-tranquil first stages (rival type dropped) ==="
 

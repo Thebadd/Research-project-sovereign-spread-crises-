@@ -69,7 +69,7 @@ foreach var in credit claims_govt inv govexp pb fdi {
 
 * ══════════════════════════════════════════════════════════════════════════
 * 3. IPW WEIGHTS — ACT 2 (replicated from 08_ipw_lp.do)
-*    Full first stage: X (l1_gdpg l2_gdpg debt ca infl imf) + Z2 (fedfunds l_reg_crisis_share past_def_onsets); lean debt-ca fallback
+*    Full first stage: X (l1_gdpg l2_gdpg debt ca infl imf) + Z2 (l_fedfunds l_reg_crisis_share past_def_onsets); lean debt-ca fallback
 * ══════════════════════════════════════════════════════════════════════════
 
 di as result _n "=== FIRST STAGE: Pr(default-linked | crisis onset) ==="
@@ -85,7 +85,7 @@ foreach s in nd def {
     else              local rival onset_nd
 
     quietly probit onset_`s' $ctrl_core ///
-        fedfunds l_reg_crisis_share past_def_onsets if sample==1 & `rival'==0, vce(cluster cid)
+        l_fedfunds l_reg_crisis_share past_def_onsets if sample==1 & `rival'==0, vce(cluster cid)
     quietly lroc, nograph
     di as result "  First stage `s' vs tranquil: AUROC = " %5.3f r(area) "   (N = " e(N) ")"
 

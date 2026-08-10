@@ -39,8 +39,8 @@ xtset cid year
 
 local nboot  = 300      // bootstrap reps per (channel, series, horizon)
 local cx     $ctrl_core   // retained for reference; propensity baseline now passes `om' (strict parity)
-local cz     fedfunds l_reg_crisis_share past_onsets       // Act 1 predictors Z1
-local cz_def fedfunds l_reg_crisis_share past_def_onsets   // Act 2 predictors Z2
+local cz     l_fedfunds l_reg_crisis_share past_onsets       // Act 1 predictors Z1
+local cz_def l_fedfunds l_reg_crisis_share past_def_onsets   // Act 2 predictors Z2
 
 * AIPW outcome-model core = the common core with the thin by-banks credit-depth
 * term (l_credit_bank) swapped for the well-covered TOTAL private-credit lag
