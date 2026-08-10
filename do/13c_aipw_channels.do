@@ -161,12 +161,85 @@ program define _aipwci, rclass
 end
 
 * ══════════════════════════════════════════════════════════════════════════
+* PROGRAM — paired bootstrap of the DIFFERENCE between two AIPW cells
+*   (cell1 - cell2) recomputed on the SAME cluster resample each draw. Here
+*   cell1 = default vs tranquil, cell2 = non-default vs tranquil, so r(dh) =
+*   def - nd = the extra channel response of default. Matches the paper's
+*   inference for the between-type contrast (they bootstrap the gap directly
+*   rather than eyeballing the distance between two separately-banded lines).
+*   _aipwpairdiff, y() d1() if1() d2() if2() omod() pz() reps()
+* ══════════════════════════════════════════════════════════════════════════
+capture program drop _aipwpairdiff
+program define _aipwpairdiff, rclass
+    syntax , Y(string) D1(string) IF1(string) D2(string) IF2(string) ///
+             OMOD(string) PZ(string) REPS(integer)
+    capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(cid)
+    if _rc {
+        return scalar ok = 0
+        exit
+    }
+    local b1 = r(theta)
+    capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(cid)
+    if _rc {
+        return scalar ok = 0
+        exit
+    }
+    local b2 = r(theta)
+    local dh = `b1' - `b2'
+    tempname pf
+    tempfile bf
+    quietly postfile `pf' double diff using "`bf'", replace
+    forvalues b = 1/`reps' {
+        preserve
+            capture drop _bid
+            bsample, cluster(cid) idcluster(_bid)
+            capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(_bid)
+            local t1 = cond(_rc==0, r(theta), .)
+            capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(_bid)
+            local t2 = cond(_rc==0, r(theta), .)
+            if !missing(`t1') & !missing(`t2') quietly post `pf' (`t1' - `t2')
+        restore
+    }
+    quietly postclose `pf'
+    local se = .
+    local lo = .
+    local hi = .
+    local nd = 0
+    preserve
+        quietly use "`bf'", clear
+        quietly count if !missing(diff)
+        local nd = r(N)
+        if `nd' >= 50 {
+            quietly summarize diff
+            local se = r(sd)
+            _pctile diff, p(2.5 97.5)
+            local lo = r(r1)
+            local hi = r(r2)
+        }
+    restore
+    return scalar ok = 1
+    return scalar dh = `dh'
+    return scalar b1 = `b1'
+    return scalar b2 = `b2'
+    return scalar se = `se'
+    return scalar lo = `lo'
+    return scalar hi = `hi'
+    return scalar nd = `nd'
+end
+
+* ══════════════════════════════════════════════════════════════════════════
 * ESTIMATE — loop over channels; Act 1 + Act 2 (nd/def); post to results file
 * ══════════════════════════════════════════════════════════════════════════
 tempname R
 tempfile resf
 postfile `R' str24 channel str4 series byte horizon double b se lo hi ///
     using "`resf'", replace
+
+* second results file: the def - nd DIFFERENCE per channel x horizon (paired boot)
+tempname Rd
+tempfile diffresf
+postfile `Rd' str24 channel byte horizon double dhl bdef bnd se lo hi nd ///
+    using "`diffresf'", replace
 
 foreach ch in credit claims_govt inv govexp pb fdi ///
               claimsgov_assets claimpriv_assets ca {
@@ -223,12 +296,47 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
             else di as error "    `sn' h=" `h' ": estimate failed (thin sample)."
         }
     }
+
+    * ── Act 2 (difference): extra channel response of default (def - nd) ────
+    *   bootstrapped directly on paired cluster resamples, so the between-type
+    *   gap gets a proper CI (the paper's inference), not an eyeballed distance.
+    di as result "  Act 2 (def - nd gap):  h    def-nd   SE      [95% CI]   draws"
+    forvalues h = 0/4 {
+        _aipwpairdiff, y(ch_`ch'_`h') ///
+            d1(onset_def) if1(sample==1 & onset_nd==0) ///
+            d2(onset_nd)  if2(sample==1 & onset_def==0) ///
+            omod(`om') pz(`om' `cz_def') reps(`nboot')
+        if r(ok) {
+            post `Rd' ("`ch'") (`h') (r(dh)) (r(b1)) (r(b2)) (r(se)) (r(lo)) (r(hi)) (r(nd))
+            local sig = cond(r(nd)>=50 & (r(lo)>0 | r(hi)<0), " *", "")
+            di "    h=" `h' "  " %8.3f r(dh) "  " %6.3f r(se) ///
+               "  [" %7.3f r(lo) ", " %7.3f r(hi) "]  " r(nd) "/`nboot'`sig'"
+        }
+        else di as error "    h=" `h' ": def-nd gap failed (thin sample)."
+    }
 }
 postclose `R'
+postclose `Rd'
 
 * ══════════════════════════════════════════════════════════════════════════
 * EXPORT — CSV + two small-multiple (by-channel) figures
 * ══════════════════════════════════════════════════════════════════════════
+* ── Difference CSV: def - nd gap per channel x horizon (paired bootstrap) ────
+preserve
+    use "`diffresf'", clear
+    label var dhl  "AIPW def - nd channel gap (pp)"
+    label var bdef "Default-linked ATE"
+    label var bnd  "Non-default ATE"
+    label var lo   "95% percentile CI lower"
+    label var hi   "95% percentile CI upper"
+    label var nd   "Valid bootstrap draws"
+    gen byte sig95 = (nd>=50 & (lo>0 | hi<0))
+    label var sig95 "Gap CI excludes 0"
+    order channel horizon dhl bdef bnd se lo hi nd sig95
+    export delimited "$tabs/aipw_channels_diff.csv", replace
+    di as result _n "AIPW channel def-nd difference CSV saved: $tabs/aipw_channels_diff.csv"
+restore
+
 use "`resf'", clear
 label var b  "AIPW ATE (pp of the channel ratio)"
 label var lo "95% percentile CI lower"
@@ -283,3 +391,6 @@ di as result _n "13c_aipw_channels.do complete."
 di as result "Compare the AIPW channel IRFs to the OLS/IPW versions in 11/12 (same"
 di as result "sign, default deeper). aipw_channels.csv has one row per channel x"
 di as result "series(all/nd/def) x horizon."
+di as result "aipw_channels_diff.csv bootstraps the def-nd GAP per channel directly"
+di as result "(the paper's between-type inference); sig95==1 flags a gap whose 95% CI"
+di as result "excludes 0 at that horizon."

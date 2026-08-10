@@ -53,9 +53,10 @@ local nboot = 500      // bootstrap reps; raise to 1000+ for the final run
 
 * Storage: rows h=0..4
 foreach m in b se lo hi {
-    matrix A1_`m'    = J(5,1,.)   // Act 1: crisis cost (all onsets)
-    matrix A2nd_`m'  = J(5,1,.)   // Act 2: non-default cost vs tranquil
-    matrix A2def_`m' = J(5,1,.)   // Act 2: default-linked cost vs tranquil
+    matrix A1_`m'     = J(5,1,.)   // Act 1: crisis cost (all onsets)
+    matrix A2nd_`m'   = J(5,1,.)   // Act 2: non-default cost vs tranquil
+    matrix A2def_`m'  = J(5,1,.)   // Act 2: default-linked cost vs tranquil
+    matrix A2diff_`m' = J(5,1,.)   // Act 2: extra cost of default (def - nd), paired bootstrap
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -100,6 +101,76 @@ program define _aipw, rclass
     quietly summarize `summ' if `touse', meanonly
     return scalar theta = r(mean)
     return scalar N     = r(N)
+end
+
+* ══════════════════════════════════════════════════════════════════════════
+* PROGRAM — paired bootstrap of the DIFFERENCE between two AIPW cells
+*   (cell1 - cell2) recomputed on the SAME cluster resample each draw, so the
+*   difference distribution is valid. This is the paper's inference for the
+*   between-type contrast: they bootstrap the extra cost of default directly
+*   rather than eyeballing the gap between two separately-banded level lines.
+*   Here cell1 = default vs tranquil, cell2 = non-default vs tranquil, so
+*   r(dh) = def - nd = the extra output cost of default.
+*   _aipwpairdiff, y() d1() if1() d2() if2() omod() pz() reps()
+* ══════════════════════════════════════════════════════════════════════════
+capture program drop _aipwpairdiff
+program define _aipwpairdiff, rclass
+    syntax , Y(string) D1(string) IF1(string) D2(string) IF2(string) ///
+             OMOD(string) PZ(string) REPS(integer)
+    * point estimates on the real data
+    capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(cid)
+    if _rc {
+        return scalar ok = 0
+        exit
+    }
+    local b1 = r(theta)
+    capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(cid)
+    if _rc {
+        return scalar ok = 0
+        exit
+    }
+    local b2 = r(theta)
+    local dh = `b1' - `b2'
+    * bootstrap the difference: one resample -> both cells -> their gap
+    tempname pf
+    tempfile bf
+    quietly postfile `pf' double diff using "`bf'", replace
+    forvalues b = 1/`reps' {
+        preserve
+            capture drop _bid
+            bsample, cluster(cid) idcluster(_bid)
+            capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(_bid)
+            local t1 = cond(_rc==0, r(theta), .)
+            capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(_bid)
+            local t2 = cond(_rc==0, r(theta), .)
+            if !missing(`t1') & !missing(`t2') quietly post `pf' (`t1' - `t2')
+        restore
+    }
+    quietly postclose `pf'
+    local se = .
+    local lo = .
+    local hi = .
+    local nd = 0
+    preserve
+        quietly use "`bf'", clear
+        quietly count if !missing(diff)
+        local nd = r(N)
+        if `nd' >= 50 {
+            quietly summarize diff
+            local se = r(sd)
+            _pctile diff, p(2.5 97.5)
+            local lo = r(r1)
+            local hi = r(r2)
+        }
+    restore
+    return scalar ok = 1
+    return scalar dh = `dh'
+    return scalar b1 = `b1'
+    return scalar b2 = `b2'
+    return scalar se = `se'
+    return scalar lo = `lo'
+    return scalar hi = `hi'
+    return scalar nd = `nd'
 end
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -229,6 +300,69 @@ foreach spec in "onset_nd onset_def A2nd non-default" ///
 }
 
 * ══════════════════════════════════════════════════════════════════════════
+* ACT 2 (difference) — EXTRA COST OF DEFAULT, bootstrapped directly (def - nd)
+*   The two lines above show the levels; this bootstraps their GAP on paired
+*   cluster resamples so the extra default cost gets a proper 95% CI — the
+*   quantity the paper actually tests, rather than eyeballing the two bands.
+* ══════════════════════════════════════════════════════════════════════════
+di as result _n "=== ACT 2 (difference) — extra cost of default (def - nd), paired bootstrap ==="
+di as result "h    def-nd    SE(boot)  [95% percentile CI]"
+
+forvalues h = 0/4 {
+    local row = `h' + 1
+    _aipwpairdiff, y(dy_`h') ///
+        d1(onset_def) if1(sample==1 & onset_nd==0) ///
+        d2(onset_nd)  if2(sample==1 & onset_def==0) ///
+        omod($ctrl_core) pz(`cx' `cz_def') reps(`nboot')
+    if r(ok) {
+        matrix A2diff_b[`row',1]  = r(dh)
+        matrix A2diff_se[`row',1] = r(se)
+        matrix A2diff_lo[`row',1] = r(lo)
+        matrix A2diff_hi[`row',1] = r(hi)
+        local sig = cond(r(nd)>=50 & (r(lo)>0 | r(hi)<0), " *", "")
+        di "h=" `h' "   " %7.3f r(dh) "   " %7.3f r(se) "   [" ///
+           %7.3f r(lo) ", " %7.3f r(hi) "]   (" r(nd) "/`nboot' draws)`sig'"
+    }
+    else di as error "h=" `h' ": difference estimate failed (too thin)."
+}
+
+* ══════════════════════════════════════════════════════════════════════════
+* EXPORT (difference) — extra-cost-of-default CSV (def - nd, paired bootstrap)
+* ══════════════════════════════════════════════════════════════════════════
+preserve
+    clear
+    tempname pfd
+    tempfile difff
+    postfile `pfd' horizon dhl se lo hi using "`difff'", replace
+    forvalues h = 0/4 {
+        post `pfd' (`h') (A2diff_b[`h'+1,1]) (A2diff_se[`h'+1,1]) ///
+            (A2diff_lo[`h'+1,1]) (A2diff_hi[`h'+1,1])
+    }
+    postclose `pfd'
+    use "`difff'", clear
+    label var dhl "AIPW extra cost of default (def - nd, pp)"
+    label var lo  "95% percentile CI lower"
+    label var hi  "95% percentile CI upper"
+    gen byte sig95 = (!missing(lo) & (lo>0 | hi<0))
+    label var sig95 "Gap CI excludes 0"
+    order horizon dhl se lo hi sig95
+    export delimited "$tabs/aipw_act2_diff.csv", replace
+    di as result "AIPW extra-cost-of-default CSV saved: $tabs/aipw_act2_diff.csv"
+restore
+
+* representative gap (h=2, near the trough) for the Act-2 figure annotation
+local g2  = A2diff_b[3,1]
+local g2l = A2diff_lo[3,1]
+local g2h = A2diff_hi[3,1]
+local gapnote ""
+if !missing(`g2') & !missing(`g2l') {
+    local g2s  : di %4.1f `g2'
+    local g2ls : di %4.1f `g2l'
+    local g2hs : di %4.1f `g2h'
+    local gapnote "Extra cost of default at h=2: `g2s' pp [`g2ls', `g2hs'] (paired bootstrap)."
+}
+
+* ══════════════════════════════════════════════════════════════════════════
 * EXPORT — AIPW results CSV + figures (Act 1 single line; Act 2 two-line split)
 * ══════════════════════════════════════════════════════════════════════════
 preserve
@@ -284,7 +418,7 @@ preserve
         title("AIPW output cost by resolution", size(medium) color(navy)) ///
         subtitle("Doubly-robust (Asonuma et al. Eq. 3), each vs tranquil.", size(small)) ///
         legend(order(3 "Non-default" 4 "Default-linked") ring(0) pos(7) size(small)) ///
-        note("Two AIPW level IRFs; shaded = bootstrap 95% percentile CI (cluster by country). Gap = extra cost of default.", size(vsmall)) ///
+        note("Two AIPW level IRFs; shaded = bootstrap 95% percentile CI (cluster by country). Gap = extra cost of default. `gapnote'", size(vsmall)) ///
         graphregion(color(white)) plotregion(color(white))
     graph export "$figs/fig_aipw_act2.pdf", replace
     di as result "Figure saved: fig_aipw_act2.pdf"
@@ -296,3 +430,6 @@ di as result "resolution split (non-default vs default, each vs tranquil) — th
 di as result "twin of the IPW fig8. Compare the nd/def AIPW levels to fig8's IPW lines"
 di as result "and to the Table 2 OLS coefficients (similar ordering => selection is not"
 di as result "driving the resolution gap; their Fig C1 logic)."
+di as result "aipw_act2_diff.csv bootstraps the def-nd GAP directly (extra cost of default),"
+di as result "matching the paper's inference for the between-type contrast; sig95==1 means the"
+di as result "gap's 95% CI excludes 0 at that horizon."
