@@ -4,7 +4,7 @@
   Following Jordà & Taylor (2016) "The Time for Austerity"
 
   Steps:
-    1. First-stage probit: Pr(onset_all=1 | a_i, X_{t-1})  [country FE, i.cid]
+    1. First-stage probit: Pr(onset_all=1 | X_{t-1})  [pooled, no country FE]
        Controls X: the common core ($ctrl_core), all predetermined
        Predictors Z: fedfunds (single global push), l_reg_crisis_share, past_onsets
        (predictors enter the probit only; omitted from the country-FE-only LP)
@@ -59,18 +59,19 @@ local predictors_z fedfunds l_reg_crisis_share past_onsets
 
 di as result _n "=== FIRST STAGE: Probit of crisis onset ==="
 
-* COUNTRY FE probit (i.cid), matching the reference paper (c1-c74 in $convar):
-* country FE enter the propensity too. Never-treated countries are perfectly
-* predicted and dropped by probit — the paper's mechanical ever-treated
-* restriction. No year FE (their design has none).
+* POOLED probit (no country FE): country FE in a probit separate/perfectly
+* predict never-treated countries and carry incidental-parameters bias with few
+* events per group; the pooled model with controls + predictors is the standard
+* for rare-event propensity estimation and keeps all countries. Country FE enter
+* the OUTCOME regression (Eq. 1 / the LP) only, matching the paper; no year FE.
 
 * (a) Controls only — baseline for the ROC comparison (their Table 1 logic)
-quietly probit onset_all `controls_x' i.cid if sample == 1, vce(cluster cid)
+quietly probit onset_all `controls_x' if sample == 1, vce(cluster cid)
 quietly lroc, nograph
 local roc_x = r(area)
 
 * (b) Controls + excluded predictors — the first stage used for the propensity
-probit onset_all `controls_x' `predictors_z' i.cid if sample == 1, vce(cluster cid)
+probit onset_all `controls_x' `predictors_z' if sample == 1, vce(cluster cid)
 estimates store first_stage
 quietly lroc, nograph
 local roc_xz = r(area)
@@ -316,7 +317,7 @@ foreach s in nd def {
     if "`s'" == "nd"  local rival onset_def
     else              local rival onset_nd
 
-    quietly probit onset_`s' $ctrl_core `predictors_z2' i.cid ///
+    quietly probit onset_`s' $ctrl_core `predictors_z2' ///
         if sample==1 & `rival'==0, vce(cluster cid)
     quietly lroc, nograph
     di as result "  First stage `s' vs tranquil: AUROC = " %5.3f r(area) "   (N = " e(N) ")"

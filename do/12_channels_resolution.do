@@ -85,7 +85,7 @@ foreach s in nd def {
     else              local rival onset_nd
 
     quietly probit onset_`s' $ctrl_core ///
-        fedfunds l_reg_crisis_share past_def_onsets i.cid if sample==1 & `rival'==0, vce(cluster cid)
+        fedfunds l_reg_crisis_share past_def_onsets if sample==1 & `rival'==0, vce(cluster cid)
     quietly lroc, nograph
     di as result "  First stage `s' vs tranquil: AUROC = " %5.3f r(area) "   (N = " e(N) ")"
 
