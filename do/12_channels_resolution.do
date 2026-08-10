@@ -14,13 +14,14 @@
     ch_var(h) = αi + γt + β_nd(h)·onset_nd + β_def(h)·onset_def
                + X_core (common core + pre_<v>)·δ + ε     [DK SE, lag=max(1,h+1)]
 
-  Spec B (IPW): same regression with Act 2 stabilized weights
-    IPW2: probit Pr(default-linked | onset) on X + Z2 (fedfunds, contagion, past default onsets), lean debt-ca fallback
-    Stabilized weights reweight non-default episodes to match
-    observable pre-crisis characteristics of default-linked countries.
-    areg absorb(cid) [aw=ipw2] vce(cluster cid)
+  Spec B (IPW): per-type-vs-tranquil (reference-paper structure). Each type is
+    scored vs TRANQUIL years with the rival type dropped — two first stages:
+      probit onset_nd  $ctrl_core + Z2 if sample & onset_def==0   -> ipw_nd
+      probit onset_def $ctrl_core + Z2 if sample & onset_nd==0    -> ipw_def
+    Two SEPARATE weighted LPs: onset_nd vs tranquil [aw=ipw_nd], onset_def vs
+    tranquil [aw=ipw_def]. areg absorb(cid) vce(cluster cid).
 
-  Equality test at each horizon: H0: β_nd(h) = β_def(h)
+  Extra cost of default = (default line) - (non-default line), Clogg z per horizon.
 
   OUTPUTS:
   --------
@@ -73,49 +74,31 @@ foreach var in credit claims_govt inv govexp pb fdi {
 
 di as result _n "=== FIRST STAGE: Pr(default-linked | crisis onset) ==="
 
-capture drop pscore2 trimmed2 ipw2
+capture drop pscore_nd pscore_def ipw_nd ipw_def
 
-* Among-onsets default propensity — LEAN, WELL-COVERED baseline (l1_gdpg l_debt
-* l_ca) + predictors Z2. The full $ctrl_core (8 vars) + Z2 perfectly separates on
-* this thin ~23-obs cell (coverage-hole lags shrink it), killing the IPW; Asonuma
-* never runs an among-onsets stage. Keep it compact + guard against separation.
-capture probit onset_def l1_gdpg l_debt l_ca ///
-    fedfunds l_reg_crisis_share past_def_onsets if onset_all == 1, vce(robust)
-if _rc {
-    di as error "  ** Act 2 probit (lean X + Z2) errored (rc=" _rc "); minimal fallback."
-    probit onset_def l_debt l_ca fedfunds l_reg_crisis_share past_def_onsets ///
-        if onset_all == 1, vce(robust)
+* PER-TYPE-vs-TRANQUIL propensities (reference-paper structure): each resolution
+* type is scored vs TRANQUIL years with the RIVAL type dropped, so the control is
+* clean tranquil country-years (not the other crisis type). Full sample => the full
+* $ctrl_core is safe (no among-onsets separation). Two weight sets: ipw_nd, ipw_def.
+foreach s in nd def {
+    if "`s'" == "nd"  local rival onset_def
+    else              local rival onset_nd
+
+    quietly probit onset_`s' $ctrl_core ///
+        fedfunds l_reg_crisis_share past_def_onsets if sample==1 & `rival'==0, vce(cluster cid)
+    quietly lroc, nograph
+    di as result "  First stage `s' vs tranquil: AUROC = " %5.3f r(area) "   (N = " e(N) ")"
+
+    predict pscore_`s' if sample==1 & `rival'==0, pr
+    quietly replace pscore_`s' = . if (pscore_`s'<0.01 | pscore_`s'>0.99) & !missing(pscore_`s')
+
+    quietly summarize onset_`s' if sample==1 & `rival'==0
+    local pmarg = r(mean)
+    gen double ipw_`s' = .
+    quietly replace ipw_`s' = `pmarg'     / pscore_`s'     if onset_`s'==1 & !missing(pscore_`s')
+    quietly replace ipw_`s' = (1-`pmarg') / (1-pscore_`s') if onset_all==0 & !missing(pscore_`s')
+    label var ipw_`s' "Act 2 stabilized IPW weight (`s' vs tranquil)"
 }
-di as result "McFadden Pseudo-R2: " e(r2_p)
-
-predict pscore2 if onset_all == 1, pr
-
-* Separation guard: `if _rc' misses perfect prediction (rc=0). If almost no
-* interior scores remain, refit the minimal spec so the IPW weights survive.
-quietly count if inrange(pscore2, 0.02, 0.98) & onset_all == 1
-if r(N) < 15 {
-    di as error "  ** Act 2 propensity separated (only `r(N)' interior) — minimal refit."
-    capture drop pscore2
-    probit onset_def l_debt l_ca fedfunds l_reg_crisis_share past_def_onsets ///
-        if onset_all == 1, vce(robust)
-    predict pscore2 if onset_all == 1, pr
-}
-
-gen trimmed2 = (pscore2 < 0.05 | pscore2 > 0.95) if !missing(pscore2)
-quietly count if trimmed2 == 1
-di as result "Observations trimmed: " r(N)
-replace pscore2 = . if trimmed2 == 1
-
-quietly summarize onset_def if onset_all == 1
-local p_def = r(mean)
-local p_nd  = 1 - `p_def'
-
-gen ipw2 = .
-replace ipw2 = `p_def' / pscore2       if onset_def == 1 & !missing(pscore2)
-replace ipw2 = `p_nd'  / (1 - pscore2) if onset_nd  == 1 & !missing(pscore2)
-
-summarize ipw2 if onset_all == 1, detail
-di as result "IPW2 weights: min=" r(min) "  max=" r(max) "  mean=" r(mean)
 
 * ══════════════════════════════════════════════════════════════════════════
 * 4. LP ESTIMATION BY CHANNEL — OLS AND IPW
@@ -214,36 +197,50 @@ foreach ch of local channels {
             di as error "OLS failed for `ch' h=`h'"
         }
 
-        * ── IPW: areg with stabilized weights ────────────────────────────
-        quietly replace ipw2 = 1 if onset_all == 0 & sample == 1
-        capture areg ch_`ch'_`h' onset_nd onset_def `ctrl' i.year ///
-            [aw=ipw2] if sample == 1 & !missing(ipw2), ///
+        * ── IPW: two SEPARATE vs-tranquil weighted LPs (rival dropped) ────
+        * non-default vs tranquil (drop onset_def), weight ipw_nd
+        capture areg ch_`ch'_`h' onset_nd `ctrl' i.year ///
+            [aw=ipw_nd] if sample==1 & onset_def==0 & !missing(ipw_nd), ///
             absorb(cid) vce(cluster cid)
-        quietly replace ipw2 = . if onset_all == 0
-
         if _rc == 0 {
             matrix b_nd_ipw_`ch'[`row',1]    = _b[onset_nd]
             matrix lo90_nd_ipw_`ch'[`row',1] = _b[onset_nd]  - 1.645*_se[onset_nd]
             matrix hi90_nd_ipw_`ch'[`row',1] = _b[onset_nd]  + 1.645*_se[onset_nd]
             matrix lo95_nd_ipw_`ch'[`row',1] = _b[onset_nd]  - 1.960*_se[onset_nd]
             matrix hi95_nd_ipw_`ch'[`row',1] = _b[onset_nd]  + 1.960*_se[onset_nd]
+            local b_nd_w  = _b[onset_nd]
+            local se_nd_w = _se[onset_nd]
+        }
+        else {
+            local b_nd_w = .
+            local se_nd_w = .
+            di as error "IPW nd-vs-tranquil failed for `ch' h=`h'"
+        }
+        * default-linked vs tranquil (drop onset_nd), weight ipw_def
+        capture areg ch_`ch'_`h' onset_def `ctrl' i.year ///
+            [aw=ipw_def] if sample==1 & onset_nd==0 & !missing(ipw_def), ///
+            absorb(cid) vce(cluster cid)
+        if _rc == 0 {
             matrix b_def_ipw_`ch'[`row',1]   = _b[onset_def]
             matrix lo90_def_ipw_`ch'[`row',1]= _b[onset_def] - 1.645*_se[onset_def]
             matrix hi90_def_ipw_`ch'[`row',1]= _b[onset_def] + 1.645*_se[onset_def]
             matrix lo95_def_ipw_`ch'[`row',1]= _b[onset_def] - 1.960*_se[onset_def]
             matrix hi95_def_ipw_`ch'[`row',1]= _b[onset_def] + 1.960*_se[onset_def]
-            test onset_nd = onset_def
-            matrix pval_ipw_`ch'[`row',1] = r(p)
-            local b_nd_w  = _b[onset_nd]
-            local b_def_w = _b[onset_def]
-            local p_w     = r(p)
+            local b_def_w  = _b[onset_def]
+            local se_def_w = _se[onset_def]
         }
         else {
-            local b_nd_w  = .
             local b_def_w = .
-            local p_w     = .
-            di as error "IPW failed for `ch' h=`h'"
+            local se_def_w = .
+            di as error "IPW def-vs-tranquil failed for `ch' h=`h'"
         }
+        * extra cost of default (IPW) = def - nd, Clogg z on the two vs-tranquil lines
+        local p_w = .
+        if !missing(`b_nd_w') & !missing(`b_def_w') {
+            local zdiff = (`b_def_w' - `b_nd_w') / sqrt(`se_nd_w'^2 + `se_def_w'^2)
+            local p_w   = 2*(1 - normal(abs(`zdiff')))
+        }
+        matrix pval_ipw_`ch'[`row',1] = `p_w'
 
         di "h=" `h' ///
            "  " %7.3f `b_nd_o'  "  " %7.3f `b_def_o' "  " %5.3f `p_o' ///
