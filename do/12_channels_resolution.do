@@ -75,19 +75,31 @@ di as result _n "=== FIRST STAGE: Pr(default-linked | crisis onset) ==="
 
 capture drop pscore2 trimmed2 ipw2
 
-* First stage: baseline = outcome baseline ($ctrl_core) + predictors Z2 (fed funds,
-* contagion, past DEFAULT onsets), strict parity with the LP/AIPW outcome equation.
-* Thin cell (~21 events) => guard the full spec and fall back to a lean one if it separates.
-capture probit onset_def $ctrl_core ///
+* Among-onsets default propensity — LEAN, WELL-COVERED baseline (l1_gdpg l_debt
+* l_ca) + predictors Z2. The full $ctrl_core (8 vars) + Z2 perfectly separates on
+* this thin ~23-obs cell (coverage-hole lags shrink it), killing the IPW; Asonuma
+* never runs an among-onsets stage. Keep it compact + guard against separation.
+capture probit onset_def l1_gdpg l_debt l_ca ///
     fedfunds l_reg_crisis_share past_def_onsets if onset_all == 1, vce(robust)
 if _rc {
-    di as error "  ** full Act 2 probit separated (rc=" _rc "); lean fallback."
+    di as error "  ** Act 2 probit (lean X + Z2) errored (rc=" _rc "); minimal fallback."
     probit onset_def l_debt l_ca fedfunds l_reg_crisis_share past_def_onsets ///
         if onset_all == 1, vce(robust)
 }
 di as result "McFadden Pseudo-R2: " e(r2_p)
 
 predict pscore2 if onset_all == 1, pr
+
+* Separation guard: `if _rc' misses perfect prediction (rc=0). If almost no
+* interior scores remain, refit the minimal spec so the IPW weights survive.
+quietly count if inrange(pscore2, 0.02, 0.98) & onset_all == 1
+if r(N) < 15 {
+    di as error "  ** Act 2 propensity separated (only `r(N)' interior) — minimal refit."
+    capture drop pscore2
+    probit onset_def l_debt l_ca fedfunds l_reg_crisis_share past_def_onsets ///
+        if onset_all == 1, vce(robust)
+    predict pscore2 if onset_all == 1, pr
+}
 
 gen trimmed2 = (pscore2 < 0.05 | pscore2 > 0.95) if !missing(pscore2)
 quietly count if trimmed2 == 1

@@ -517,17 +517,26 @@ capture drop pre_ca
 gen pre_ca = L.ca - L2.ca
 
 * ── Reconstruct Act 2 IPW weights ────────────────────────────────────────
-* First stage: baseline = outcome baseline ($ctrl_core) + predictors Z2 (fed funds,
-* contagion, past DEFAULT onsets), strict parity. Guard the thin-cell spec.
-capture probit onset_def $ctrl_core ///
+* Among-onsets default propensity — LEAN, WELL-COVERED baseline (l1_gdpg l_debt
+* l_ca) + Z2; the full $ctrl_core + Z2 perfectly separates on the thin cell.
+capture probit onset_def l1_gdpg l_debt l_ca ///
     fedfunds l_reg_crisis_share past_def_onsets if onset_all == 1, vce(robust)
 if _rc {
-    di as error "  ** full Act 2 probit separated (rc=" _rc "); lean fallback."
+    di as error "  ** Act 2 probit (lean X + Z2) errored — minimal fallback."
     probit onset_def l_debt l_ca fedfunds l_reg_crisis_share past_def_onsets ///
         if onset_all == 1, vce(robust)
 }
 
 predict pscore2_ca if onset_all == 1, pr
+* Separation guard (perfect prediction leaves rc=0): refit minimal if no interior mass.
+quietly count if inrange(pscore2_ca, 0.02, 0.98) & onset_all == 1
+if r(N) < 15 {
+    di as error "  ** Act 2 propensity separated (only `r(N)' interior) — minimal refit."
+    capture drop pscore2_ca
+    probit onset_def l_debt l_ca fedfunds l_reg_crisis_share past_def_onsets ///
+        if onset_all == 1, vce(robust)
+    predict pscore2_ca if onset_all == 1, pr
+}
 
 gen trimmed2_ca = (pscore2_ca < 0.05 | pscore2_ca > 0.95) if !missing(pscore2_ca)
 replace pscore2_ca = . if trimmed2_ca == 1

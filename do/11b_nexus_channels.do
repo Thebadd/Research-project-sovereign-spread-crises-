@@ -151,17 +151,26 @@ foreach var in claimsgov_assets claimpriv_assets {
 }
 
 capture drop pscore2 trimmed2 ipw2
-* Full Act-2 first-stage spec (baseline = outcome baseline $ctrl_core + predictors
-* Z2), strict parity with the outcome equation, with a lean fallback if it fails to
-* converge on the thin among-onsets cell. Harmonised with 12/13.
-capture probit onset_def $ctrl_core ///
+* Among-onsets default propensity — LEAN, WELL-COVERED baseline (l1_gdpg l_debt
+* l_ca) + Z2. The full $ctrl_core + Z2 perfectly separates on the thin ~23-obs
+* cell (coverage-hole lags), killing the IPW. Harmonised with 12/08.
+capture probit onset_def l1_gdpg l_debt l_ca ///
     fedfunds l_reg_crisis_share past_def_onsets if onset_all == 1, vce(robust)
 if _rc {
-    di as error "  ** full Act-2 propensity failed to converge — lean fallback (debt ca + Z2)."
+    di as error "  ** Act-2 propensity (lean X + Z2) errored — minimal fallback (l_debt l_ca + Z2)."
     probit onset_def l_debt l_ca fedfunds l_reg_crisis_share past_def_onsets ///
         if onset_all == 1, vce(robust)
 }
 predict pscore2 if onset_all == 1, pr
+* Separation guard (perfect prediction leaves rc=0): refit minimal if no interior mass.
+quietly count if inrange(pscore2, 0.02, 0.98) & onset_all == 1
+if r(N) < 15 {
+    di as error "  ** Act-2 propensity separated (only `r(N)' interior) — minimal refit."
+    capture drop pscore2
+    probit onset_def l_debt l_ca fedfunds l_reg_crisis_share past_def_onsets ///
+        if onset_all == 1, vce(robust)
+    predict pscore2 if onset_all == 1, pr
+}
 gen trimmed2 = (pscore2 < 0.05 | pscore2 > 0.95) if !missing(pscore2)
 replace pscore2 = . if trimmed2 == 1
 quietly summarize onset_def if onset_all == 1

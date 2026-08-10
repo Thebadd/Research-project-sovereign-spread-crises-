@@ -303,20 +303,20 @@ di as result "All IPW results saved."
 
 use "$clean/panel_lp.dta", clear
 
-* Probit BASELINE = outcome baseline ($ctrl_core), strict parity with the paper.
-local controls $ctrl_core
+* Among-onsets default propensity — LEAN, WELL-COVERED baseline (NOT the full
+* $ctrl_core). This first stage predicts default-vs-non-default among the ~51
+* crisis onsets only; the full 8-var $ctrl_core + 3 predictors (11 params) on that
+* thin cell PERFECTLY SEPARATES once its coverage-hole lags (l_credit/l_banking/
+* l_open) shrink the cell to ~23 obs (AUROC=1, pscore in {0,1} => IPW dies). We
+* therefore use a compact, well-covered predetermined baseline and a further lean
+* fallback. Asonuma never runs an among-onsets first stage; this cell is ours.
+local controls    l1_gdpg l_debt l_ca
+local predictors_z2 fedfunds l_reg_crisis_share past_def_onsets
 
 di as result _n "=== ACT 2 IPW: FIRST STAGE — Probit of default-linked onset ==="
 di as result    "    Sample: crisis onset years only (onset_all == 1)"
-di as result    "    Act 2 uses the SAME controls X as Act 1 + predictors Z2"
+di as result    "    Lean well-covered baseline (l1_gdpg l_debt l_ca) + predictors Z2"
 di as result    "    (fed funds, regional contagion, past DEFAULT onsets)."
-
-* Same controls X as Act 1; predictors Z2 = fed funds (global push, year-FE
-* absorbed in the LP), l_reg_crisis_share (contagion), past_def_onsets (default
-* proneness). This is a thin cell (~21 default events among ~51 onsets), so the
-* full 6+3 spec can separate: guard it and fall back to a lean spec if it fails,
-* so the propensity score is always produced.
-local predictors_z2 fedfunds l_reg_crisis_share past_def_onsets
 
 quietly probit onset_def `controls' if onset_all == 1, vce(robust)
 quietly lroc, nograph
@@ -324,8 +324,7 @@ local roc2_x = r(area)
 
 capture probit onset_def `controls' `predictors_z2' if onset_all == 1, vce(robust)
 if _rc {
-    di as error "  ** Act 2 full probit (X + Z2) failed on the thin sample (rc=" _rc ")."
-    di as error "  ** Falling back to a lean spec: debt ca + fed funds + contagion + past-default."
+    di as error "  ** Act 2 probit (lean X + Z2) errored (rc=" _rc "); minimal fallback."
     probit onset_def l_debt l_ca `predictors_z2' if onset_all == 1, vce(robust)
 }
 quietly lroc, nograph
@@ -344,6 +343,23 @@ quietly esttab fs_act2 using "$tabs/ipw_act2_first_stage.csv", ///
 * Predict propensity scores (among crisis onsets only)
 predict pscore2 if onset_all == 1, pr
 label var pscore2 "Pr(default-linked | crisis onset, X)"
+
+* ── Separation guard (the `if _rc' above does NOT catch perfect prediction:
+* Stata's probit drops perfectly-predicted obs and finishes with rc=0). If the
+* propensity has (almost) no interior mass among onsets, it separated — refit the
+* minimal Z2-based spec so pscore2 is usable and the IPW weights survive.
+quietly count if inrange(pscore2, 0.02, 0.98) & onset_all == 1
+if r(N) < 15 {
+    di as error "  ** Act 2 propensity separated (only `r(N)' interior scores) — refitting minimal spec (l_debt l_ca + Z2)."
+    capture drop pscore2
+    probit onset_def l_debt l_ca `predictors_z2' if onset_all == 1, vce(robust)
+    quietly lroc, nograph
+    local roc2_xz = r(area)
+    estimates store fs_act2
+    predict pscore2 if onset_all == 1, pr
+    label var pscore2 "Pr(default-linked | crisis onset, X)"
+    di as result "  Refit AUROC (Act 2, minimal): " %5.3f `roc2_xz'
+}
 
 summarize pscore2, detail
 di as result "Range of pscore2: [" r(min) ", " r(max) "]"
