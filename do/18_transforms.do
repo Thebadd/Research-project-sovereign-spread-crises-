@@ -148,13 +148,13 @@ label var l_infl         "L1 CPI inflation, % (raw; robustness alternative, not 
 label var l_lninfl       "L1 log gross inflation = ln(1+L.infl/100) (robustness alt., not in core)"
 label var l_govexp       "L1 govt expenditure, % GDP"
 label var l_open         "L1 trade openness, % GDP"
-label var l_credit_bank  "L1 bank credit to private / GDP (financial depth, by-banks; robustness)"
-label var l_credit       "L1 private credit / GDP (financial depth, total; common core)"
+label var l_credit_bank  "L1 bank credit to private / GDP (financial depth, by-banks; COMMON CORE)"
+label var l_credit       "L1 private credit / GDP (all fin. corps; robustness alt., NOT in core)"
 label var l_debt         "L1 public debt, % GDP (predetermined)"
 label var l_ca           "L1 current account, % GDP (predetermined)"
 label var l_banking_crisis      "L1 systemic banking-crisis dummy (predetermined)"
 
-global ctrl_core "l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit l_hyperinfl"
+global ctrl_core "l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit_bank l_hyperinfl"
 
 * ── ROBUSTNESS-tier controls (Asonuma additional controls; NOT in the core) ──
 *   terms-of-trade change and nominal-FX-change quantile dummies, built the

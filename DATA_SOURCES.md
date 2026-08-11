@@ -223,8 +223,41 @@ Venezuela ratio from ~7,000× to ~75× and is safe because the minimum is −8.5
 (Azerbaijan 1999), well above the −100% at which `ln(1+x)` breaks.
 
 **All `$ctrl_core` definitions must stay byte-identical** across `00_master.do`,
-`18_transforms.do` and the 12 standalone guards — a divergence between them is what caused
-the earlier `variable l_debt not found  r(111)` crash.
+`18_transforms.do` and the standalone guards — a divergence between them is what caused
+the earlier `variable l_debt not found  r(111)` crash. Current core (15 identical copies):
+
+```
+l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit_bank l_hyperinfl
+```
+
+### Financial depth: why the core uses `l_credit_bank`, not `l_credit`
+Two WDI series measure the same thing. `credit` (`FS.AST.PRVT.GD.ZS`) is credit to the
+private sector by **all financial corporations**; `credit_bank` (`FD.AST.PRVT.GD.ZS`) is
+**banks only**. In EM panels banks are nearly all of private credit, and the two correlate
+**0.950** where both are observed.
+
+They do not cost the same. `19_sample_audit.do` prices it:
+
+| | panel rows | onsets (all / nd / def) |
+|---|---|---|
+| `l_credit` | 1180 | 49 / 34 / 15 |
+| `l_credit_bank` | 1321 | 59 / 40 / 19 |
+
+The overlap is **1180 rows — every row where `l_credit` exists**. So `credit_bank` is a
+strict superset: never missing where `credit` is present, present in 141 rows where it is
+not. `l_credit` was also by far the most expensive control in the core, uniquely killing
+**9 onsets** (5 non-default, 4 default) where every other control killed 0–2.
+
+Switching the core to `l_credit_bank` raises the identifying sample from **38 → 46** onsets
+and, more importantly, **12 → 15** default-linked onsets — the cell the paper's headline
+result rests on. `l_credit` is still built and labelled, as the robustness alternative.
+
+An earlier version of this project swapped the other way (in `13c`/`13d`) on the belief that
+the by-banks series carried the coverage hole. That was backwards on this WDI vintage; those
+exceptions are gone and every file now uses the same depth term.
+
+Note that WDI credit missingness is **entirely at the ends** of country series (151 rows for
+`credit`, 1 interior), so interpolation recovers **zero** onsets and is not an option here.
 
 ## 9. Legacy / source unrecovered
 | Variable | Status |

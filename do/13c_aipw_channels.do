@@ -33,7 +33,7 @@
 
 use "$clean/panel_lp.dta", clear
 * safety: define the common core if this file is run standalone (master/18 also set it)
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit l_hyperinfl"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit_bank l_hyperinfl"
 sort cid year
 xtset cid year
 
@@ -42,13 +42,16 @@ local cx     $ctrl_core   // retained for reference; propensity baseline now pas
 local cz     l_fedfunds l_reg_crisis_share past_onsets       // Act 1 predictors Z1
 local cz_def l_fedfunds l_reg_crisis_share past_def_onsets   // Act 2 predictors Z2
 
-* AIPW outcome-model core = the common core with the thin by-banks credit-depth
-* term (l_credit_bank) swapped for the well-covered TOTAL private-credit lag
-* (l_credit). On the restricted channel/nexus cells l_credit_bank's coverage hole
-* forces listwise deletion that collapses the AIPW reg/probit sample (only the
-* credit channel, whose om already omits l_credit_bank, survived otherwise).
-* l_credit is pre-lagged below, so the bootstrap stays operator-free.
-local core_aipw l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit l_hyperinfl
+* AIPW outcome-model core = the common core, unchanged. The depth term is
+* l_credit_bank (WDI FD.AST.PRVT.GD.ZS, credit by banks).
+* This block used to swap it for l_credit (FS.AST.PRVT.GD.ZS, all financial
+* corporations) on the belief that the by-banks series had the coverage hole.
+* 19_sample_audit.do showed the opposite: l_credit_bank is non-missing on EVERY
+* row where l_credit is (overlap 1180 = all of l_credit) plus 141 more, and the
+* two correlate 0.950. The swap was costing observations, not saving them, so
+* the core now carries l_credit_bank everywhere and this file needs no exception.
+* Both are plain saved columns, so the bootstrap stays operator-free either way.
+local core_aipw l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit_bank l_hyperinfl
 
 * ── Build channel outcomes ch_v_h = F h.v - L.v (h=0..4) ─────────────────────
 foreach v in credit claims_govt inv govexp pb fdi ///
@@ -247,12 +250,12 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
               claimsgov_assets claimpriv_assets ca {
 
     * channel-specific OUTCOME-model controls (pre-lagged plain columns)
-    * AIPW outcome core ($core_aipw: common core with l_credit->total credit) +
+    * AIPW outcome core ($core_aipw = the common core, depth term l_credit_bank) +
     * channel's own pre_<v>; drop the core term equal to the channel's own lagged
-    * level (credit->l_credit, govexp->l_govexp, ca->ca).
+    * level (credit->the depth term, govexp->l_govexp, ca->ca).
     if      "`ch'" == "credit"            local om l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_hyperinfl pre_credit
-    else if "`ch'" == "govexp"            local om l1_gdpg l_debt l_ca l_banking_crisis l_open l_credit l_hyperinfl pre_govexp
-    else if "`ch'" == "ca"                local om l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit l_hyperinfl pre_ca
+    else if "`ch'" == "govexp"            local om l1_gdpg l_debt l_ca l_banking_crisis l_open l_credit_bank l_hyperinfl pre_govexp
+    else if "`ch'" == "ca"                local om l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_hyperinfl pre_ca
     else                                  local om `core_aipw' pre_`ch'
 
     di as result _n "=== CHANNEL: `ch' ==="
