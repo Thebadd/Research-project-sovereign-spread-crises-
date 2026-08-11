@@ -9,7 +9,7 @@
     dy_0..dy_4        cumulative % change in log TOTAL real GDP (ln gdp_real), F h vs t-1 (headline outcome)
     dy_pc_0..dy_pc_4  per-capita version (robustness)
     dy_m1, dy_m2      pre-trend placebos (two-year growth spans ending before onset)
-    hyperinf_dummy (L.infl>50, core), l_lninfl (= ln(1+L.infl/100)) and l_infl (raw)
+    l_hyperinfl (L.infl>50, core), l_lninfl (= ln(1+L.infl/100)) and l_infl (raw)
     built as continuous robustness alternatives, not in the core,
     l_govexp, l_open, l_credit (+l_credit_bank robustness), $ctrl_core  common-core ingredients
     tot_chg, exchange2, ex_dum1-5  robustness-tier controls (Asonuma additional)
@@ -82,8 +82,12 @@ foreach req in infl govexp open credit_bank {
         exit 111
     }
 }
-capture drop hyperinf_dummy l_infl l_lninfl l_govexp l_open l_credit_bank l_credit l_debt l_ca l_banking_crisis
-* INFLATION IN THE CORE = hyperinf_dummy (David's decision), matching Asonuma et al.
+capture drop l_hyperinfl l_infl l_lninfl l_govexp l_open l_credit_bank l_credit l_debt l_ca l_banking_crisis
+* INFLATION IN THE CORE = l_hyperinfl (David's decision), matching Asonuma et al.
+* LAGGED like every other core control: built from L.infl, so it flags hyperinflation at
+* t-1 and is predetermined relative to the onset year (the l_ prefix now says so).
+* The `if !missing(L.infl)' guard matters: Stata treats missing as +infinity, so without
+* it every missing-inflation row would be coded as a hyperinflation year.
 * Raw inflation cannot be used directly here: across the 52 panel countries 1994-2026 the
 * median is 9.0% while Venezuela 2018 is 65,374% (9 obs above 1000%), so a raw term would
 * let a handful of country-years set the coefficient. The dummy sidesteps that entirely by
@@ -95,7 +99,7 @@ capture drop hyperinf_dummy l_infl l_lninfl l_govexp l_open l_credit_bank l_cred
 *   recent cluster (Argentina 2019-24, Lebanon 2020-23, Turkey 2022-24, Venezuela 2019-26).
 *   With the Laeven-Valencia rebuild extending the sample past 2018 those years return.
 *   Worth re-checking the probit for "predicts failure perfectly" on the new sample.
-gen byte   hyperinf_dummy = (L.infl > 50) if !missing(L.infl)
+gen byte   l_hyperinfl    = (L.infl > 50) if !missing(L.infl)
 * Continuous alternatives, built but NOT in the core — available for a dummy-vs-continuous
 * robustness spec, and a one-token swap in the 14 $ctrl_core definitions if wanted. Use
 * l_lninfl rather than l_infl for that: the log tames the tail (Venezuela ~75x the median
@@ -125,7 +129,7 @@ gen double l_ust10y       = L.ust10y
 label var l_fedfunds "L1 US fed funds rate (predetermined; = Asonuma federal_funds2)"
 label var l_vix      "L1 CBOE VIX (predetermined)"
 label var l_ust10y   "L1 US 10y Treasury yield (predetermined)"
-label var hyperinf_dummy "Hyperinflation dummy (L.infl > 50) — common core"
+label var l_hyperinfl    "L1 hyperinflation dummy (L.infl > 50; predetermined) — common core"
 label var l_infl         "L1 CPI inflation, % (raw; robustness alternative, not in core)"
 label var l_lninfl       "L1 log gross inflation = ln(1+L.infl/100) (robustness alt., not in core)"
 label var l_govexp       "L1 govt expenditure, % GDP"
@@ -136,7 +140,7 @@ label var l_debt         "L1 public debt, % GDP (predetermined)"
 label var l_ca           "L1 current account, % GDP (predetermined)"
 label var l_banking_crisis      "L1 systemic banking-crisis dummy (predetermined)"
 
-global ctrl_core "l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit hyperinf_dummy"
+global ctrl_core "l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit l_hyperinfl"
 
 * ── ROBUSTNESS-tier controls (Asonuma additional controls; NOT in the core) ──
 *   terms-of-trade change and nominal-FX-change quantile dummies, built the
@@ -191,7 +195,7 @@ di as result "  sample rows: `r(N)'"
 quietly count if onset_all==1 & sample==1
 di as result "  onsets in sample: `r(N)'"
 di as result _n "Coverage at onsets (non-missing) for the key analysis variables:"
-foreach v in dy_0 l1_gdpg debt ca infl hyperinf_dummy l_lninfl imf credit fdi claims_govt inv govexp pb ///
+foreach v in dy_0 l1_gdpg debt ca infl l_hyperinfl l_lninfl imf credit fdi claims_govt inv govexp pb ///
              banking_crisis l_banking_crisis reer_chg revenue_gdp open claimsgov_assets ///
              claimpriv_assets vix fedfunds ust10y {
     capture confirm variable `v'
@@ -203,14 +207,14 @@ foreach v in dy_0 l1_gdpg debt ca infl hyperinf_dummy l_lninfl imf credit fdi cl
 }
 
 * ── Inflation control: confirm the log transform tamed the tail ─────────────
-* The core carries hyperinf_dummy. These lines report how many observations trip the
+* The core carries l_hyperinfl. These lines report how many observations trip the
 * 50% threshold and what the continuous alternatives look like, so the choice stays
 * visible in the run log.
 capture confirm variable l_lninfl
 if !_rc {
-    di as result _n "Inflation control (core uses hyperinf_dummy = L.infl > 50):"
-    quietly count if hyperinf_dummy==1 & sample==1
-    di as result "    hyperinf_dummy==1 in estimation sample: `r(N)'"
+    di as result _n "Inflation control (core uses l_hyperinfl = L.infl > 50):"
+    quietly count if l_hyperinfl==1 & sample==1
+    di as result "    l_hyperinfl==1 in estimation sample: `r(N)'"
     di as result "       (was 1 pre-rebuild, when the panel was truncated at 2018)"
     quietly summarize l_infl if sample==1, detail
     di as result "    raw  l_infl   median " %8.2f r(p50) "   max " %11.1f r(max)

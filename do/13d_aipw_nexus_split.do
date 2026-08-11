@@ -44,7 +44,7 @@
 
 use "$clean/panel_lp.dta", clear
 * safety: define the common core if this file is run standalone (master/18 also set it)
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit hyperinf_dummy"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit l_hyperinfl"
 sort cid year
 xtset cid year
 
@@ -58,7 +58,7 @@ local cz_def l_fedfunds l_reg_crisis_share past_def_onsets   // resolution predi
 * On the thin high/low-nexus cells l_credit_bank's coverage hole forces listwise
 * deletion that collapses the AIPW sample (GDP cells failed for exactly this reason;
 * the credit channel, whose om already omits it, survived). l_credit pre-lagged below.
-local core_aipw l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit hyperinf_dummy
+local core_aipw l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit l_hyperinfl
 
 * ══════════════════════════════════════════════════════════════════════════
 * AMPLIFIER: pre-crisis sovereign-bank nexus + median split over onsets
@@ -295,7 +295,7 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
     * the core as-is, channels add their own pre_<v> (credit drops l_credit as its
     * own-level term).
     if      "`ocl'" == "gdp"              local om `core_aipw'
-    else if "`ocl'" == "credit"           local om l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open hyperinf_dummy pre_credit
+    else if "`ocl'" == "credit"           local om l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_hyperinfl pre_credit
     else                                  local om `core_aipw' pre_`ocl'
 
     di as result _n "############### OUTCOME: `ocl' ###############"
