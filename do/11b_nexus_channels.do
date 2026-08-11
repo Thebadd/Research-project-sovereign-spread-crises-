@@ -201,27 +201,46 @@ foreach ch of local channels {
         local lag = max(1, `h'+1)
         local row = `h' + 1
 
-        * OLS (xtscc, DK)
-        capture xtscc ch_`ch'_`h' onset_nd onset_def `ctrl' i.year ///
-            if sample == 1, fe lag(`lag')
+        * OLS: TWO separate vs-tranquil LPs with the RIVAL DROPPED, matching the
+        * IPW lines below (and 03/08b). A single joint LP on the full sample left
+        * every default episode inside the non-default line's control group, so the
+        * OLS and IPW lines drawn in the same figure were not on the same samples.
+        capture xtscc ch_`ch'_`h' onset_nd `ctrl' i.year ///
+            if sample == 1 & onset_def == 0, fe lag(`lag')
         if _rc == 0 {
             matrix b_nd_ols_`ch'[`row',1]    = _b[onset_nd]
             matrix lo90_nd_ols_`ch'[`row',1] = _b[onset_nd]  - 1.645*_se[onset_nd]
             matrix hi90_nd_ols_`ch'[`row',1] = _b[onset_nd]  + 1.645*_se[onset_nd]
+            local b_nd_o  = _b[onset_nd]
+            local se_nd_o = _se[onset_nd]
+        }
+        else {
+            local b_nd_o  = .
+            local se_nd_o = .
+        }
+
+        capture xtscc ch_`ch'_`h' onset_def `ctrl' i.year ///
+            if sample == 1 & onset_nd == 0, fe lag(`lag')
+        if _rc == 0 {
             matrix b_def_ols_`ch'[`row',1]   = _b[onset_def]
             matrix lo90_def_ols_`ch'[`row',1]= _b[onset_def] - 1.645*_se[onset_def]
             matrix hi90_def_ols_`ch'[`row',1]= _b[onset_def] + 1.645*_se[onset_def]
-            quietly test onset_nd = onset_def
-            matrix pval_ols_`ch'[`row',1] = r(p)
-            local b_nd_o = _b[onset_nd]
-            local b_def_o = _b[onset_def]
-            local p_o = r(p)
+            local b_def_o  = _b[onset_def]
+            local se_def_o = _se[onset_def]
         }
         else {
-            local b_nd_o = .
-            local b_def_o = .
-            local p_o = .
+            local b_def_o  = .
+            local se_def_o = .
         }
+
+        * Extra cost of default: Clogg et al. (1995) z on the two vs-tranquil lines
+        * (independent - disjoint treated groups), replacing the joint Wald test.
+        local p_o = .
+        if !missing(`b_nd_o') & !missing(`b_def_o') {
+            local z_o = (`b_def_o' - `b_nd_o') / sqrt(`se_nd_o'^2 + `se_def_o'^2)
+            local p_o = 2*(1 - normal(abs(`z_o')))
+        }
+        matrix pval_ols_`ch'[`row',1] = `p_o'
 
         * IPW: two SEPARATE vs-tranquil weighted LPs (rival dropped)
         * Country FE only, no year FE (paper-aligned two-stage outcome regression).

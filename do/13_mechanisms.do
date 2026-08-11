@@ -392,19 +392,25 @@ forvalues h = 0/4 {
         local r2_0 = e(r2_w)
     }
 
-    * Split by episode type — with lagged CA
-    capture xtscc ch_ca_`h' onset_nd onset_def ///
+    * Split by episode type — each vs TRANQUIL with the rival dropped, matching
+    * 03's Spec A and the weighted lines below.
+    capture xtscc ch_ca_`h' onset_nd ///
         l1_gdpg l2_gdpg debt L.ca pre_ca ///
-        i.year if sample==1, fe lag(`lag')
+        i.year if sample==1 & onset_def==0, fe lag(`lag')
     if _rc == 0 {
         matrix b_nd[`row',1]    = _b[onset_nd]
         matrix lo90_nd[`row',1] = _b[onset_nd] - 1.645*_se[onset_nd]
         matrix hi90_nd[`row',1] = _b[onset_nd] + 1.645*_se[onset_nd]
+        local b1   = _b[onset_nd]
+        local se1  = _se[onset_nd]
+    }
+    capture xtscc ch_ca_`h' onset_def ///
+        l1_gdpg l2_gdpg debt L.ca pre_ca ///
+        i.year if sample==1 & onset_nd==0, fe lag(`lag')
+    if _rc == 0 {
         matrix b_def[`row',1]    = _b[onset_def]
         matrix lo90_def[`row',1] = _b[onset_def] - 1.645*_se[onset_def]
         matrix hi90_def[`row',1] = _b[onset_def] + 1.645*_se[onset_def]
-        local b1   = _b[onset_nd]
-        local se1  = _se[onset_nd]
         local b2   = _b[onset_def]
         local se2  = _se[onset_def]
         local r2_1 = e(r2_w)
@@ -516,39 +522,40 @@ forvalues h = 0/4 {
 capture drop pre_ca
 gen pre_ca = L.ca - L2.ca
 
-* ── Reconstruct Act 2 IPW weights ────────────────────────────────────────
-* Among-onsets default propensity — LEAN, WELL-COVERED baseline (l1_gdpg l_debt
-* l_ca) + Z2; the full $ctrl_core + Z2 perfectly separates on the thin cell.
-capture probit onset_def l1_gdpg l_debt l_ca ///
-    fedfunds l_reg_crisis_share past_def_onsets if onset_all == 1, vce(robust)
-if _rc {
-    di as error "  ** Act 2 probit (lean X + Z2) errored — minimal fallback."
-    probit onset_def l_debt l_ca fedfunds l_reg_crisis_share past_def_onsets ///
-        if onset_all == 1, vce(robust)
+* ── Act 2 IPW weights: PER-TYPE vs TRANQUIL ─────────────────────────────
+* This file previously kept the AMONG-ONSETS design that the rest of the pipeline
+* retired: probit onset_def ... if onset_all==1, i.e. Pr(default | crisis) with
+* non-default onsets as the control group. That is a type-vs-type comparison with
+* no analog in the reference paper, it is the thin separation-prone cell the lean
+* spec and the separation guard existed to work around, and it left this file's
+* Act 2 answering a different question from 08/11b/12/13c.
+*
+* Now the same construction as 12: each type is scored vs TRANQUIL years with the
+* rival type dropped, on the full sample, so the full $ctrl_core is safe and no
+* separation guard is needed. Two weight sets, ipw_nd and ipw_def.
+* The predictor is l_fedfunds (predetermined), not contemporaneous fedfunds —
+* this file was the last one still using the unlagged rate in a first stage.
+capture drop pscore_nd pscore_def ipw_nd ipw_def
+
+foreach s in nd def {
+    if "`s'" == "nd"  local rival onset_def
+    else              local rival onset_nd
+
+    quietly probit onset_`s' $ctrl_core ///
+        l_fedfunds l_reg_crisis_share past_def_onsets if sample==1 & `rival'==0, vce(cluster cid)
+    quietly lroc, nograph
+    di as result "  First stage `s' vs tranquil: AUROC = " %5.3f r(area) "   (N = " e(N) ")"
+
+    predict pscore_`s' if sample==1 & `rival'==0, pr
+    quietly replace pscore_`s' = . if (pscore_`s'<0.01 | pscore_`s'>0.99) & !missing(pscore_`s')
+
+    quietly summarize onset_`s' if sample==1 & `rival'==0
+    local pmarg = r(mean)
+    gen double ipw_`s' = .
+    quietly replace ipw_`s' = `pmarg'     / pscore_`s'     if onset_`s'==1 & !missing(pscore_`s')
+    quietly replace ipw_`s' = (1-`pmarg') / (1-pscore_`s') if onset_all==0 & !missing(pscore_`s')
+    label var ipw_`s' "Act 2 stabilized IPW weight (`s' vs tranquil)"
 }
-
-predict pscore2_ca if onset_all == 1, pr
-* Separation guard (perfect prediction leaves rc=0): refit minimal if no interior mass.
-quietly count if inrange(pscore2_ca, 0.02, 0.98) & onset_all == 1
-if r(N) < 15 {
-    di as error "  ** Act 2 propensity separated (only `r(N)' interior) — minimal refit."
-    capture drop pscore2_ca
-    probit onset_def l_debt l_ca fedfunds l_reg_crisis_share past_def_onsets ///
-        if onset_all == 1, vce(robust)
-    predict pscore2_ca if onset_all == 1, pr
-}
-
-gen trimmed2_ca = (pscore2_ca < 0.05 | pscore2_ca > 0.95) if !missing(pscore2_ca)
-replace pscore2_ca = . if trimmed2_ca == 1
-
-quietly summarize onset_def if onset_all == 1
-local p_def = r(mean)
-local p_nd  = 1 - `p_def'
-
-gen ipw2_ca = .
-replace ipw2_ca = `p_def' / pscore2_ca       if onset_def == 1 & !missing(pscore2_ca)
-replace ipw2_ca = `p_nd'  / (1 - pscore2_ca) if onset_nd  == 1 & !missing(pscore2_ca)
-replace ipw2_ca = 1 if onset_all == 0 & sample == 1
 
 * ── Run CA LP: OLS and IPW ───────────────────────────────────────────────
 di as result _n "========================================================"
@@ -564,31 +571,43 @@ foreach m in b_nd_ols lo90_nd_ols hi90_nd_ols b_def_ols lo90_def_ols hi90_def_ol
 forvalues h = 0/4 {
     local row = `h' + 1
 
-    capture areg ch_ca_`h' onset_nd onset_def ///
+    * OLS: two vs-tranquil lines, rival dropped (matches the IPW pair below).
+    capture areg ch_ca_`h' onset_nd ///
         l1_gdpg l2_gdpg debt L.ca pre_ca ///
-        i.year if sample == 1, absorb(cid) vce(cluster cid)
+        i.year if sample == 1 & onset_def == 0, absorb(cid) vce(cluster cid)
     if _rc == 0 {
         matrix b_nd_ols[`row',1]     = _b[onset_nd]
         matrix lo90_nd_ols[`row',1]  = _b[onset_nd]  - 1.645*_se[onset_nd]
         matrix hi90_nd_ols[`row',1]  = _b[onset_nd]  + 1.645*_se[onset_nd]
+        local b_nd_u  = _b[onset_nd]
+    }
+    capture areg ch_ca_`h' onset_def ///
+        l1_gdpg l2_gdpg debt L.ca pre_ca ///
+        i.year if sample == 1 & onset_nd == 0, absorb(cid) vce(cluster cid)
+    if _rc == 0 {
         matrix b_def_ols[`row',1]    = _b[onset_def]
         matrix lo90_def_ols[`row',1] = _b[onset_def] - 1.645*_se[onset_def]
         matrix hi90_def_ols[`row',1] = _b[onset_def] + 1.645*_se[onset_def]
-        local b_nd_u  = _b[onset_nd]
         local b_def_u = _b[onset_def]
     }
 
-    capture areg ch_ca_`h' onset_nd onset_def ///
+    * IPW: the matching pair of weighted vs-tranquil lines.
+    capture areg ch_ca_`h' onset_nd ///
         l1_gdpg l2_gdpg debt L.ca pre_ca ///
-        [aw=ipw2_ca] if sample == 1 & !missing(ipw2_ca), absorb(cid) vce(cluster cid)
+        [aw=ipw_nd] if sample==1 & onset_def==0 & !missing(ipw_nd), absorb(cid) vce(cluster cid)
     if _rc == 0 {
         matrix b_nd_ipw[`row',1]     = _b[onset_nd]
         matrix lo90_nd_ipw[`row',1]  = _b[onset_nd]  - 1.645*_se[onset_nd]
         matrix hi90_nd_ipw[`row',1]  = _b[onset_nd]  + 1.645*_se[onset_nd]
+        local b_nd_w  = _b[onset_nd]
+    }
+    capture areg ch_ca_`h' onset_def ///
+        l1_gdpg l2_gdpg debt L.ca pre_ca ///
+        [aw=ipw_def] if sample==1 & onset_nd==0 & !missing(ipw_def), absorb(cid) vce(cluster cid)
+    if _rc == 0 {
         matrix b_def_ipw[`row',1]    = _b[onset_def]
         matrix lo90_def_ipw[`row',1] = _b[onset_def] - 1.645*_se[onset_def]
         matrix hi90_def_ipw[`row',1] = _b[onset_def] + 1.645*_se[onset_def]
-        local b_nd_w  = _b[onset_nd]
         local b_def_w = _b[onset_def]
 
         di "h=" `h' "  " %7.3f `b_nd_u' "    " %7.3f `b_def_u' ///
