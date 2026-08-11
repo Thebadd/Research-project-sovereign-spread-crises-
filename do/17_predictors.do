@@ -22,11 +22,14 @@ xtset cid year
 sort cid year
 
 * ── Contagion: leave-one-out regional onset share (Z2) ──────────────────────
+* The region aggregates are restricted to carryin==0: carry-in rows are pre-EMBIG
+* lag scaffolding with no spread data, so counting them would inflate the member
+* denominator and dilute the share for the real observations.
 capture drop reg_n_onset reg_n_members reg_crisis_share l_reg_crisis_share
-bysort region year: egen reg_n_onset   = total(onset_all)
-bysort region year: egen reg_n_members = count(cid)
+bysort region year: egen reg_n_onset   = total(onset_all) if carryin==0
+bysort region year: egen reg_n_members = count(cid)       if carryin==0
 gen double reg_crisis_share = (reg_n_onset - onset_all) / (reg_n_members - 1) ///
-    if reg_n_members > 1
+    if reg_n_members > 1 & carryin==0
 label var reg_crisis_share "Share of OTHER same-region countries with onset (year t)"
 drop reg_n_onset reg_n_members
 

@@ -22,6 +22,34 @@ EMBIG Global**). Built in `10_skeleton.do`.
 | `crit1`, `crit2` | Panel_Annual | 1000bps / 99pct-HRT criterion flags |
 | `region`, `continuation`, `crisis_any` | Panel_Annual | — |
 | `iso3` | crosswalk in `10_skeleton.do` | 52-country ISO3 key |
+| `carryin` | added in `10_skeleton.do` | 1 = pre-entry scaffolding row (see below); **never in an estimation sample** |
+
+### Carry-in rows — lag scaffolding at the panel's left edge
+The panel is **unbalanced on the left**: it begins when a country enters the JP Morgan
+EMBIG index, not when its macro data begins (Armenia ≈2013, Kenya and Zambia ≈2014). Every
+macro merge in stages 11–16 is `keep(master match)` with this skeleton as master, so the
+sources' earlier coverage — WEO runs 1980–2031, WDI from 1960 — was discarded for all
+pre-entry years. The lag operators in `18_transforms.do` then fell off the start of each
+country's panel: a 2013 entrant with a 2013 onset had no `l1_gdpg`, which needs GDP at
+*t−1* **and** *t−2*. That is why `l1_gdpg` covered only 42 of 61 onsets while `gdp_real`
+covered 59, and why `l_banking_crisis` covered 52 of 61 even though `banking_crisis` is
+non-missing on every row.
+
+`10_skeleton.do` therefore appends **3 rows immediately before each country's first panel
+year** (3 covers the deepest lag in use: `L3.ln_gdp` in `dy_m2`, `L2.gdpg` in `l2_gdpg`).
+Because stages 11–16 merge on `iso3 × year` or `country × year`, they populate these rows
+automatically, and all transform logic stays in stage 18.
+
+These rows are **scaffolding only**. They are flagged `carryin == 1`, forced to
+`onset_all = onset_nd = onset_def = crisis_any = continuation = 0`, excluded from
+`sample_base` (stage 10) and from `sample` (stage 18), and excluded from the regional
+contagion aggregates in `17_predictors.do` so they cannot dilute the member denominator.
+They carry **no EMBIG quote** — `spr_max` / `spr_mean` stay missing by design — so the
+construction asserts nothing about whether those pre-entry years were tranquil. Stage 18
+prints a leak check confirming zero carry-in rows reach `sample == 1`.
+
+This is a data-plumbing fix: it changes no specification and adds no source, it only stops
+observations being deleted for want of data already on disk.
 
 ## 2. IMF World Economic Outlook — `11_weo.do`
 Source: `data/raw/WEOApr2026all.xlsx`, sheet "Countries", by `INDICATOR.ID`.

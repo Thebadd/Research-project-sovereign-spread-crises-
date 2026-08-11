@@ -190,9 +190,12 @@ if !_rc {
 else di as error "  ** exch not found — skipping exchange2/ex_dum (robustness only; add officialexchangerate.xlsx)."
 
 * ── Estimation sample ───────────────────────────────────────────────────────
+* carryin==0 excludes the pre-EMBIG scaffolding rows added in 10_skeleton: they exist
+* only so the L. operators above have a previous row to point at, and carry no spread
+* data, so they must never enter an estimation.
 capture drop sample
-gen byte sample = (continuation==0) & !missing(ln_gdp_base)
-label var sample "Estimation sample (onset + tranquil, excl. continuation, GDP base present)"
+gen byte sample = (continuation==0) & !missing(ln_gdp_base) & carryin==0
+label var sample "Estimation sample (onset + tranquil, excl. continuation & carry-in, GDP base present)"
 
 * ── Save the analysis file (drop-in replacement consumed by 02..16) ─────────
 compress
@@ -208,6 +211,13 @@ quietly count if sample==1
 di as result "  sample rows: `r(N)'"
 quietly count if onset_all==1 & sample==1
 di as result "  onsets in sample: `r(N)'"
+
+* Carry-in scaffolding must never leak into an estimation sample.
+quietly count if carryin==1
+local ncar = r(N)
+quietly count if sample==1 & carryin==1
+if r(N) == 0 di as result "  carry-in rows: `ncar' present, 0 in sample (correct)"
+else         di as error  "  ** `r(N)' CARRY-IN ROWS LEAKED INTO sample==1 — investigate"
 di as result _n "Coverage at onsets (non-missing) for the key analysis variables:"
 foreach v in dy_0 l1_gdpg debt ca infl l_hyperinfl l_lninfl imf credit fdi claims_govt inv govexp pb ///
              banking_crisis l_banking_crisis reer_chg revenue_gdp open claimsgov_assets ///
