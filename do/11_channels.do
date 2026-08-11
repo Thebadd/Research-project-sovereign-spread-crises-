@@ -568,10 +568,20 @@ foreach ch of local channels {
 
         * Unweighted baseline (areg, for apples-to-apples SE comparison)
         * Country FE only, no year FE (paper-aligned two-stage outcome regression).
-        quietly areg ch_`ch'_`h' onset_all `ctrl' ///
+        * Guarded like the IPW fit below: one failing channel must warn and be
+        * skipped, not halt the whole file (a missing control used to throw r(111)
+        * here and kill the run mid-loop, after the pooled figure had been written).
+        capture areg ch_`ch'_`h' onset_all `ctrl' ///
             if sample == 1 & !missing(ipw_ch), absorb(cid) vce(cluster cid)
-        local b_ols  = _b[onset_all]
-        local se_ols = _se[onset_all]
+        if _rc == 0 {
+            local b_ols  = _b[onset_all]
+            local se_ols = _se[onset_all]
+        }
+        else {
+            local b_ols  = .
+            local se_ols = .
+            di as error "h=" `h' ": areg OLS baseline failed for `ch' (rc=" _rc ")"
+        }
 
         * IPW-weighted
         capture areg ch_`ch'_`h' onset_all `ctrl' ///
