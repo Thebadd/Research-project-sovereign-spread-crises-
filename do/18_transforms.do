@@ -67,7 +67,7 @@ label var l_spr_max  "L1 EMBIG max spread (bps)"
 * ── Asonuma-aligned COMMON-CORE control set (plain predetermined columns) ───
 *   One control set used as the OUTCOME-model controls in every GDP + channel
 *   regression, mirroring Asonuma's $convar: GDP momentum, gov spending, openness,
-*   bank-credit depth, hyperinflation dummy, banking-crisis dummy + our debt/ca.
+*   bank-credit depth, log inflation, banking-crisis dummy + our debt/ca.
 *   Plain lagged columns so the SAME set works in xtscc LP and bsample AIPW.
 * Guard: these sources are built upstream — infl/govexp in stage 11 (WEO),
 * open/credit_bank in stage 12 (WDI). If any is absent, panel_build.dta was not
@@ -82,7 +82,7 @@ foreach req in infl govexp open credit_bank {
         exit 111
     }
 }
-capture drop hyperinf_dummy l_infl l_lninfl l_govexp l_open l_credit_bank l_credit l_debt l_ca l_banking
+capture drop hyperinf_dummy l_infl l_lninfl l_govexp l_open l_credit_bank l_credit l_debt l_ca l_banking_crisis
 * Inflation enters the core as LOG GROSS INFLATION, lagged: ln(1 + L.infl/100).
 * Raw inflation is unusable as a control here — in this panel the median is 9.0% but
 * Venezuela 2018 is 65,374% (6 obs above 1000%), so a raw term sits ~7,000x beyond the
@@ -108,7 +108,7 @@ gen double l_credit       = L.credit
 * reference paper's pre-crisis controls (avoids onset-year simultaneity/bad-control).
 gen double l_debt         = L.debt
 gen double l_ca           = L.ca
-gen byte   l_banking      = L.banking_crisis
+gen byte   l_banking_crisis = L.banking_crisis
 * Global-push predictors lagged to t-1 (predetermined), matching the reference
 * paper's federal_funds2 = L.federal_funds. Plain saved columns => bootstrap-safe
 * in the AIPW (no L. operator at estimation time). Rates are pure time series, so
@@ -130,9 +130,9 @@ label var l_credit_bank  "L1 bank credit to private / GDP (financial depth, by-b
 label var l_credit       "L1 private credit / GDP (financial depth, total; common core)"
 label var l_debt         "L1 public debt, % GDP (predetermined)"
 label var l_ca           "L1 current account, % GDP (predetermined)"
-label var l_banking      "L1 systemic banking-crisis dummy (predetermined)"
+label var l_banking_crisis      "L1 systemic banking-crisis dummy (predetermined)"
 
-global ctrl_core "l1_gdpg l_debt l_ca l_banking l_govexp l_open l_credit l_lninfl"
+global ctrl_core "l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit l_lninfl"
 
 * ── ROBUSTNESS-tier controls (Asonuma additional controls; NOT in the core) ──
 *   terms-of-trade change and nominal-FX-change quantile dummies, built the
@@ -188,7 +188,7 @@ quietly count if onset_all==1 & sample==1
 di as result "  onsets in sample: `r(N)'"
 di as result _n "Coverage at onsets (non-missing) for the key analysis variables:"
 foreach v in dy_0 l1_gdpg debt ca infl l_lninfl imf credit fdi claims_govt inv govexp pb ///
-             banking_crisis l_banking reer_chg revenue_gdp open claimsgov_assets ///
+             banking_crisis l_banking_crisis reer_chg revenue_gdp open claimsgov_assets ///
              claimpriv_assets vix fedfunds ust10y {
     capture confirm variable `v'
     if !_rc {

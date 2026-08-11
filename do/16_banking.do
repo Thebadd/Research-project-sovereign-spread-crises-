@@ -9,7 +9,7 @@
   The previous source (Banking_crisis_dummy_data_set.xlsx, World Bank GFDD series
   GFDD.OI.19) is a country-year panel whose year columns are 100% MISSING from
   2018 onward. `banking_crisis` therefore existed only 1990-2017, so
-  `l_banking = L.banking_crisis` existed only 1991-2018 — and because l_banking
+  `l_banking_crisis = L.banking_crisis` existed only 1991-2018 — and because l_banking_crisis
   sits in $ctrl_core, that single control truncated the WHOLE pipeline at 2018
   (every xtscc table showed "2019-2026 (omitted)"). Listwise deletion then cut
   the headline LP from 61 onsets to ~20, excluding Argentina 2018, Turkey 2018,
