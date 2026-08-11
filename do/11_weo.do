@@ -37,6 +37,40 @@ foreach c of local col {
     local ++y
 }
 
+* ── 1b. Last OUTTURN year for the LP outcome series ─────────────────────────
+* WEO Apr-2026 runs to 2031, so anything past the last actual observation is an
+* IMF PROJECTION, not data. That matters here specifically: an onset in 2022+
+* has its h=3/h=4 outcome (GDP at t+3, t+4) built partly from forecasts, and those
+* are exactly the horizons carrying the default premium. Column N
+* (LATEST_ACTUAL_ANNUAL_DATA) gives the boundary per country and indicator; we
+* take it from NGDPRPC, the series the LP outcome is built from.
+* Values are mostly plain years but some are fiscal-year strings ("FY2024/25"),
+* so pull the leading 4-digit year rather than destringing.
+preserve
+    capture confirm variable LATEST_ACTUAL_ANNUAL_DATA
+    if _rc == 0 {
+        keep if indid == "NGDPRPC"
+        capture confirm string variable LATEST_ACTUAL_ANNUAL_DATA
+        if _rc capture tostring LATEST_ACTUAL_ANNUAL_DATA, replace force
+        gen int gdp_last_actual = .
+        replace gdp_last_actual = real(regexs(0)) ///
+            if regexm(LATEST_ACTUAL_ANNUAL_DATA, "(19|20)[0-9][0-9]")
+        keep iso3 gdp_last_actual
+        keep if length(iso3) == 3
+        drop if missing(gdp_last_actual)
+        bysort iso3: keep if _n == 1
+        label var gdp_last_actual "Last WEO OUTTURN year for real GDP p.c. (later years are projections)"
+        tempfile lastactual
+        save `lastactual'
+        global _weo_lastactual 1
+    }
+    else {
+        di as error "  ** 11_weo: LATEST_ACTUAL_ANNUAL_DATA column not found —"
+        di as error "     forecast-contamination robustness cuts will be skipped."
+        global _weo_lastactual 0
+    }
+restore
+
 * ── 2. Keep the needed indicators + year columns ────────────────────────────
 keep iso3 indid yr*
 keep if length(iso3) == 3
@@ -87,6 +121,10 @@ save `weo'
 * ── 5. Merge onto the growing panel (skeleton drives the sample) ────────────
 use "$clean/panel_build.dta", clear
 merge 1:1 iso3 year using `weo', keep(master match) nogen
+if "$_weo_lastactual" == "1" {
+    capture drop gdp_last_actual
+    merge m:1 iso3 using `lastactual', keep(master match) nogen
+}
 save "$clean/panel_build.dta", replace
 
 * ── 6. Coverage report (onset observations with non-missing WEO macro) ──────
@@ -99,4 +137,17 @@ foreach v in gdppc_real infl ca debt govexp revenue_gdp inv pb {
     quietly count if onset_def==1 & !missing(`v')
     local nd = r(N)
     di as result "  `v': all=`na'  nd=`nn'  def=`nd'"
+}
+
+* Forecast-contamination scale: how many onsets have their h=4 outcome built from
+* projections rather than outturns. This is the caveat that hangs over the long
+* horizons, so quantify it every run rather than asserting it.
+capture confirm variable gdp_last_actual
+if _rc == 0 {
+    quietly summarize gdp_last_actual, detail
+    di as result _n "  last WEO outturn year: median " r(p50) ", min " r(min) ", max " r(max)
+    forvalues h = 0/4 {
+        quietly count if onset_all==1 & (year + `h') > gdp_last_actual & !missing(gdp_last_actual)
+        di as result "  onsets whose h=`h' outcome falls in the projection window: " r(N)
+    }
 }

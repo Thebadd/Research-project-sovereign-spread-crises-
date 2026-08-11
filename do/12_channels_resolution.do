@@ -188,7 +188,10 @@ foreach ch of local channels {
             local elist_`ch' `elist_`ch'' t4_`ch'_`h'
             local b_nd_o  = _b[onset_nd]
             local b_def_o = _b[onset_def]
-            local p_o     = r(p)
+            * NOT r(p): eststo/estadd above clear r(), so r(p) is empty by this
+            * point and the console column printed "." for every row. The equality
+            * test's p-value was stashed in pd_`ch'_`h' right after `test`.
+            local p_o     = `pd_`ch'_`h''
         }
         else {
             local b_nd_o  = .

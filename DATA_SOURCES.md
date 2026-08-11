@@ -67,6 +67,23 @@ Source: `data/raw/WEOApr2026all.xlsx`, sheet "Countries", by `INDICATOR.ID`.
 | `revenue_gdp` | GGR_NGDP | general govt revenue, % GDP |
 | `inv` | NID_NGDP | total investment, % GDP |
 | `pb` | GGXONLB_NGDP | primary balance, % GDP |
+| `gdp_last_actual` | `LATEST_ACTUAL_ANNUAL_DATA` (col. N, NGDPRPC rows) | last **outturn** year for real GDP p.c.; later years are IMF projections |
+
+### Outturns vs projections
+The Apr-2026 WEO vintage carries values through 2031, but only years up to
+`LATEST_ACTUAL_ANNUAL_DATA` are actual data — mostly **2024 or 2025**, earlier for a few
+countries. Because the LP outcome `dy_h` is GDP at *t+h*, an onset in 2022 or later has its
+h=3/h=4 outcome built partly from forecasts, and those are exactly the horizons where the
+estimated cost and the default premium are largest.
+
+`11_weo.do` therefore carries the boundary into the panel as `gdp_last_actual` (the 4-digit
+year is parsed out with a regex, since some countries report fiscal years as `FY2024/25`),
+and reports each run how many onsets have a projection-based outcome at each horizon.
+`02_lp_all.do` and `03_lp_resolution.do` use it for an **outturns-only robustness cut**
+(`(year + h) <= gdp_last_actual`), exported as Tables 1R and 2R. Those tables are a
+falsification check on the long horizons, not a replacement for the headline: the sample
+necessarily shrinks at h=3/h=4, so wider intervals there are expected and carry no
+information on their own — only a change in sign or magnitude would.
 
 ## 3. World Bank WDI — `12_wdi.do`
 Classic WDI wide files (Country Code = ISO3) + REER DataBank file.

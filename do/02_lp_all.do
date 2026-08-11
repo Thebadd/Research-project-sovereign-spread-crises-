@@ -21,6 +21,62 @@ if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_crisis l_gov
 * year fixed effects (i.year). Including them is redundant; they are omitted.
 local controls $ctrl_core
 
+* ══════════════════════════════════════════════════════════════════════════
+* HELPERS — small-sample inference and honest episode counts
+*
+* _critvals: the CIs below were built with the normal 1.645/1.960. With ~50
+*   clusters that understates the interval. Both xtscc and areg post e(df_r),
+*   so use invttail() on it and our hand-built CIs/p-values then agree with the
+*   command's own printed table. Falls back to the normal if no df is posted.
+*
+* _nepcount: "Episodes" in Table 1 counted onsets with a non-missing OUTCOME,
+*   which ignores listwise deletion on $ctrl_core — the table said 51 while the
+*   Act-1 probit reported 38 treated. Count onsets inside e(sample) instead.
+* ══════════════════════════════════════════════════════════════════════════
+
+capture program drop _critvals
+program define _critvals, rclass
+    tempname dfr
+    scalar `dfr' = e(df_r)
+    if missing(`dfr') | `dfr' <= 0 {
+        return scalar df  = .
+        return scalar c90 = 1.645
+        return scalar c95 = 1.960
+    }
+    else {
+        return scalar df  = `dfr'
+        return scalar c90 = invttail(`dfr', 0.05)
+        return scalar c95 = invttail(`dfr', 0.025)
+    }
+end
+
+capture program drop _pval
+program define _pval, rclass
+    args b se
+    tempname dfr
+    scalar `dfr' = e(df_r)
+    if missing(`dfr') | `dfr' <= 0 {
+        return scalar p = 2*(1 - normal(abs(`b'/`se')))
+    }
+    else {
+        return scalar p = 2*ttail(`dfr', abs(`b'/`se'))
+    }
+end
+
+capture program drop _nepcount
+program define _nepcount, rclass
+    syntax varname(numeric) , Outcome(varname) Controls(varlist)
+    tempvar esmp
+    quietly gen byte `esmp' = e(sample)
+    quietly count if `esmp' == 1
+    if r(N) == 0 {          // estimator posted no e(sample) — rebuild it
+        quietly replace `esmp' = (sample == 1)
+        quietly markout `esmp' `outcome' `controls'
+    }
+    quietly count if `varlist' == 1 & `esmp' == 1
+    return scalar n = r(N)
+end
+
 * ── Storage matrices (rows: h = -2, -1, 0, 1, 2, 3, 4) ──────────────────
 local nhor = 7
 foreach m in b lo90 hi90 lo95 hi95 {
@@ -57,15 +113,23 @@ foreach h_neg in 2 1 {
     xtscc dy_m`h_neg' onset_all `controls_pre' i.year ///
         if sample == 1, fe lag(1)
 
-    matrix b_all[`row', 1]    = _b[onset_all]
-    matrix lo90_all[`row', 1] = _b[onset_all] - 1.645 * _se[onset_all]
-    matrix hi90_all[`row', 1] = _b[onset_all] + 1.645 * _se[onset_all]
-    matrix lo95_all[`row', 1] = _b[onset_all] - 1.960 * _se[onset_all]
-    matrix hi95_all[`row', 1] = _b[onset_all] + 1.960 * _se[onset_all]
+    local bb = _b[onset_all]
+    local ss = _se[onset_all]
+    _critvals
+    local c90 = r(c90)
+    local c95 = r(c95)
+    _pval `bb' `ss'
+    local pp = r(p)
 
-    di "h=-`h_neg': beta = " %6.3f _b[onset_all] ///
-       "  SE = " %6.3f _se[onset_all] ///
-       "  p = " %5.3f (2*(1-normal(abs(_b[onset_all]/_se[onset_all]))))
+    matrix b_all[`row', 1]    = `bb'
+    matrix lo90_all[`row', 1] = `bb' - `c90' * `ss'
+    matrix hi90_all[`row', 1] = `bb' + `c90' * `ss'
+    matrix lo95_all[`row', 1] = `bb' - `c95' * `ss'
+    matrix hi95_all[`row', 1] = `bb' + `c95' * `ss'
+
+    di "h=-`h_neg': beta = " %6.3f `bb' ///
+       "  SE = " %6.3f `ss' ///
+       "  p = " %5.3f `pp'
 }
 
 * ────────────────────────────────────────────────────────────────────────
@@ -83,23 +147,105 @@ forvalues h = 0/4 {
     xtscc dy_`h' onset_all `controls' i.year ///
         if sample == 1, fe lag(`lag')
 
+    local bb = _b[onset_all]
+    local ss = _se[onset_all]
+    local nn = e(N)
+
+    * Onsets that actually survive listwise deletion into this regression
+    _nepcount onset_all, outcome(dy_`h') controls(`controls')
+    local nep = r(n)
+
+    _critvals
+    local c90 = r(c90)
+    local c95 = r(c95)
+    local dfr = r(df)
+    _pval `bb' `ss'
+    local pp = r(p)
+
     * Capture estimates for the publication table (Table 1)
-    quietly count if onset_all == 1 & sample == 1 & !missing(dy_`h')
-    local nep = r(N)
     eststo t1_h`h'
     estadd scalar nep = `nep'
 
     * Store point estimate and confidence intervals
-    matrix b_all[`row', 1]    = _b[onset_all]
-    matrix lo90_all[`row', 1] = _b[onset_all] - 1.645 * _se[onset_all]
-    matrix hi90_all[`row', 1] = _b[onset_all] + 1.645 * _se[onset_all]
-    matrix lo95_all[`row', 1] = _b[onset_all] - 1.960 * _se[onset_all]
-    matrix hi95_all[`row', 1] = _b[onset_all] + 1.960 * _se[onset_all]
+    matrix b_all[`row', 1]    = `bb'
+    matrix lo90_all[`row', 1] = `bb' - `c90' * `ss'
+    matrix hi90_all[`row', 1] = `bb' + `c90' * `ss'
+    matrix lo95_all[`row', 1] = `bb' - `c95' * `ss'
+    matrix hi95_all[`row', 1] = `bb' + `c95' * `ss'
 
-    di "h=" `h' ": beta = " %6.3f _b[onset_all] ///
-       "  SE = " %6.3f _se[onset_all] ///
-       "  N = " e(N) ///
-       "  p = " %5.3f (2*(1-normal(abs(_b[onset_all]/_se[onset_all]))))
+    di "h=" `h' ": beta = " %6.3f `bb' ///
+       "  SE = " %6.3f `ss' ///
+       "  N = " `nn' ///
+       "  episodes = " `nep' ///
+       "  df = " `dfr' ///
+       "  p = " %5.3f `pp'
+}
+
+* ══════════════════════════════════════════════════════════════════════════
+* ROBUSTNESS: OUTTURNS ONLY (drop horizons that land in the WEO projection window)
+*
+* The panel runs to 2026 but WEO Apr-2026's last ACTUAL observation is 2024/2025
+* for most countries. So for an onset in 2022 or later, dy_3 and dy_4 are built
+* from IMF forecasts, not data — and those are precisely the horizons where the
+* estimated cost is largest. This block re-runs each horizon keeping only
+* observations whose OUTCOME year (t+h) is an outturn for that country.
+*
+* Read it as a falsification, not a replacement: if the sign and rough magnitude
+* survive, the long-horizon result is not a forecast artifact. The sample shrinks
+* at h=3/h=4, so wider CIs there are expected and not themselves informative.
+* ══════════════════════════════════════════════════════════════════════════
+
+capture confirm variable gdp_last_actual
+if _rc {
+    di as error _n "  ** gdp_last_actual not in the panel — outturn-only robustness skipped."
+    di as error "     (11_weo.do could not read LATEST_ACTUAL_ANNUAL_DATA from the WEO export.)"
+}
+else {
+    di as result _n "=== ROBUSTNESS: OUTTURNS ONLY (no WEO projections in the outcome) ==="
+    di as result "h   beta     SE      N     episodes   p"
+
+    * NOTE: no eststo clear here — the headline t1_* estimates must survive for
+    * the Table 1 export below. The robustness set is stored under t1r_* instead.
+    forvalues h = 0/4 {
+        local lag = max(1, `h' + 1)
+
+        capture xtscc dy_`h' onset_all `controls' i.year ///
+            if sample == 1 & (year + `h') <= gdp_last_actual, fe lag(`lag')
+
+        if _rc {
+            di as error "  outturn-only regression failed at h=`h' (rc=" _rc ")"
+            continue
+        }
+
+        local bb = _b[onset_all]
+        local ss = _se[onset_all]
+        local nn = e(N)
+        _nepcount onset_all, outcome(dy_`h') controls(`controls')
+        local nep = r(n)
+        _pval `bb' `ss'
+        local pp = r(p)
+
+        eststo t1r_h`h'
+        estadd scalar nep = `nep'
+
+        di "h=" `h' "  " %7.3f `bb' "  " %6.3f `ss' "  " %5.0f `nn' ///
+           "     " %3.0f `nep' "     " %5.3f `pp'
+    }
+
+    capture esttab t1r_h0 t1r_h1 t1r_h2 t1r_h3 t1r_h4 ///
+        using "$tabs/table1r_output_all_outturns.rtf", replace ///
+        b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+        keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
+        mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+        stats(nep N N_g, labels("Episodes (onsets in estimation sample)" "Observations" "Countries") fmt(0 0 0)) ///
+        title("Table 1R. Output cost of sovereign spread crises — outturns only (robustness)") ///
+        addnotes("As Table 1, but each horizon drops observations whose outcome year t+h falls after the last WEO actual observation for that country (LATEST_ACTUAL_ANNUAL_DATA)." ///
+                 "This removes IMF projections from the dependent variable; the sample therefore shrinks at longer horizons." ///
+                 "Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
+
+    if _rc == 608 di as error "  ** table1r_output_all_outturns.rtf is OPEN IN WORD — close it and re-run."
+    else if _rc di as error "  ** Table 1R: esttab failed (rc=" _rc ")"
+    else di as result "Table 1R saved: $tabs/table1r_output_all_outturns.rtf"
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -113,11 +259,13 @@ capture esttab t1_h0 t1_h1 t1_h2 t1_h3 t1_h4 using "$tabs/table1_output_all.rtf"
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
     keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
     mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
-    stats(nep N N_g, labels("Episodes (onsets)" "Observations" "Countries") fmt(0 0 0)) ///
+    stats(nep N N_g, labels("Episodes (onsets in estimation sample)" "Observations" "Countries") fmt(0 0 0)) ///
     title("Table 1. Output cost of sovereign spread crises (all episodes)") ///
     addnotes("Dependent variable: cumulative change in log real GDP (pp) from t-1 to t+h." ///
              "Jorda (2005) local projections. Country and year fixed effects; continuation years excluded." ///
-             "Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
+             "Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01." ///
+             "Episodes counts onsets surviving listwise deletion on the control set, i.e. those actually identifying the coefficient." ///
+             "Confidence intervals in the figures use t critical values on the estimator's residual degrees of freedom, not the normal approximation.")
 
 if _rc == 608 di as error "  ** table1_output_all.rtf is OPEN IN WORD — close it and re-run to refresh."
 else if _rc di as error "  ** Table 1: esttab failed (rc=" _rc ")"
