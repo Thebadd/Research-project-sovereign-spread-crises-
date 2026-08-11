@@ -62,12 +62,12 @@ preserve
         label var gdp_last_actual "Last WEO OUTTURN year for real GDP p.c. (later years are projections)"
         tempfile lastactual
         save `lastactual'
-        global _weo_lastactual 1
+        global weo_lastactual 1
     }
     else {
         di as error "  ** 11_weo: LATEST_ACTUAL_ANNUAL_DATA column not found —"
         di as error "     forecast-contamination robustness cuts will be skipped."
-        global _weo_lastactual 0
+        global weo_lastactual 0
     }
 restore
 
@@ -121,7 +121,7 @@ save `weo'
 * ── 5. Merge onto the growing panel (skeleton drives the sample) ────────────
 use "$clean/panel_build.dta", clear
 merge 1:1 iso3 year using `weo', keep(master match) nogen
-if "$_weo_lastactual" == "1" {
+if "$weo_lastactual" == "1" {
     capture drop gdp_last_actual
     merge m:1 iso3 using `lastactual', keep(master match) nogen
 }
