@@ -93,12 +93,36 @@ replace end_yr = start_yr if end_yr < start_yr      // data sanity
 
 * ── 5. Expand each [Start, End] window into country-years ───────────────────
 gen long epid = _n                                   // unique episode id
+
+* CRISIS LENGTH, in years, before the expansion destroys the episode structure.
+* The reference paper controls for banking_duration_lv2018 (Laeven-Valencia 2018),
+* a DURATION rather than a flag. Their replication files import it pre-built, so
+* the exact definition is not recoverable from their code; L-V publish Start and
+* End, and the name points at a property of the crisis, so total episode length is
+* the reading we reproduce here: the same value in every year of one crisis.
+*
+* Two caveats to carry into the write-up:
+*   (a) it is NOT strictly predetermined. Total length embeds the End year, which
+*       is not knowable at t, so lagging it to t-1 does not make it t-1 information
+*       the way the other core controls are. This is inherited from the paper, not
+*       introduced here.
+*   (b) the two ONGOING crises (blank End, extended to `ymax' in step 4) are
+*       right-censored: their duration is years-so-far, not final length.
+* banking_duration_elapsed is built alongside as the predetermined alternative —
+* a counter running 1,2,3... through the crisis, which uses only information
+* available at t and nests the dummy (any positive value = in crisis).
+gen int banking_duration = end_yr - start_yr + 1
+
 expand end_yr - start_yr + 1
 bysort epid: gen int year = start_yr + _n - 1
 gen byte banking_crisis = 1
+bysort epid (year): gen int banking_duration_elapsed = _n
 
-* One row per country-year (collapses overlapping/repeat episodes)
-collapse (max) banking_crisis, by(country year)
+* One row per country-year. (max) on overlapping/repeat episodes: a country-year
+* covered by two episodes takes the longer duration, consistent with the dummy
+* taking 1.
+collapse (max) banking_crisis banking_duration banking_duration_elapsed, ///
+    by(country year)
 keep if inrange(year, `ymin', `ymax')
 
 tempfile bank
@@ -106,15 +130,20 @@ save `bank'
 
 * ── 6. Merge onto the panel and ZERO-FILL ───────────────────────────────────
 use "$clean/panel_build.dta", clear
-capture drop banking_crisis     // in case a legacy copy exists
+capture drop banking_crisis banking_duration banking_duration_elapsed
 merge m:1 country year using `bank', keep(master match) nogen
 
 * THE FIX: absence from the L-V episode list means "no systemic banking crisis",
 * not "unknown". Without this line every non-crisis country-year stays missing and
 * is dropped from every regression by listwise deletion on $ctrl_core.
-replace banking_crisis = 0 if missing(banking_crisis)
+* The durations zero-fill on the same logic: no crisis => a crisis lasting 0 years.
+replace banking_crisis            = 0 if missing(banking_crisis)
+replace banking_duration          = 0 if missing(banking_duration)
+replace banking_duration_elapsed  = 0 if missing(banking_duration_elapsed)
 
-label var banking_crisis "Systemic banking-crisis dummy (Laeven-Valencia 2026; 1 during each crisis)"
+label var banking_crisis   "Systemic banking-crisis dummy (Laeven-Valencia 2026; 1 during each crisis)"
+label var banking_duration "Banking-crisis length, years (L-V 2026; = paper's banking_duration_lv2018); 0 if none"
+label var banking_duration_elapsed "Banking-crisis years elapsed so far (1,2,3...); 0 if none - predetermined alternative"
 save "$clean/panel_build.dta", replace
 
 * ── 7. Coverage report ──────────────────────────────────────────────────────
@@ -134,6 +163,13 @@ quietly count if banking_crisis==1
 di as result "  crisis country-years in panel: `r(N)'"
 quietly count if banking_crisis==1 & onset_all==1
 di as result "  onsets coinciding with a banking crisis: `r(N)' of 61"
+
+* Duration diagnostics: the core now carries banking_duration, so its spread and
+* its coverage at onsets both matter.
+quietly summarize banking_duration if banking_crisis==1
+di as result "  crisis length (years): mean " %4.1f r(mean) "  min " r(min) "  max " r(max)
+quietly count if !missing(banking_duration)
+di as result "  rows with a non-missing banking_duration: `r(N)' (must equal the panel)"
 
 * Name-mismatch guard. 44 of our 52 countries appear in L-V (43 exact name matches +
 * Türkiye), but only 23 have a crisis inside their OWN panel coverage. Two reasons,

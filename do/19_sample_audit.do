@@ -23,7 +23,7 @@
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit_bank l_hyperinfl"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
 
 local core   $ctrl_core
 local outref dy_0        // reference horizon: h=0 has the largest sample
@@ -141,11 +141,11 @@ di as result "  spec" _col(34) "h=0 all/nd/def" _col(56) "h=4 all/nd/def"
 
 * Each entry: "label | varlist"
 local spec1 "full core (current)          | $ctrl_core"
-local spec2 "revert to l_credit           | l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit l_hyperinfl"
-local spec3 "drop the depth term          | l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_hyperinfl"
-local spec4 "drop l_debt l_ca (Asonuma)   | l1_gdpg l_banking_crisis l_govexp l_open l_credit_bank l_hyperinfl"
-local spec5 "Asonuma + l_credit           | l1_gdpg l_banking_crisis l_govexp l_open l_credit l_hyperinfl"
-local spec6 "lean (>=58/61 controls only) | l1_gdpg l_banking_crisis l_hyperinfl"
+local spec2 "banking as a dummy           | l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit_bank l_hyperinfl"
+local spec3 "drop the depth term          | l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_hyperinfl"
+local spec4 "drop l_debt l_ca (Asonuma)   | l1_gdpg l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
+local spec5 "Asonuma + l_credit           | l1_gdpg l_banking_duration l_govexp l_open l_credit l_hyperinfl"
+local spec6 "lean (>=58/61 controls only) | l1_gdpg l_banking_duration l_hyperinfl"
 local spec7 "no controls (ceiling)        | "
 
 forvalues s = 1/7 {

@@ -226,7 +226,7 @@ forvalues h = 0/4 {
 
     * Without L.credit (total effect)
     capture xtscc ch_inv_`h' onset_all ///
-        l1_gdpg l2_gdpg l_debt l_ca l_banking_crisis pre_inv ///
+        l1_gdpg l2_gdpg l_debt l_ca l_banking_duration pre_inv ///
         i.year if sample==1, fe lag(`lag')
 
     if _rc == 0 {
@@ -239,7 +239,7 @@ forvalues h = 0/4 {
 
     * With L.credit (direct effect net of credit)
     capture xtscc ch_inv_`h' onset_all ///
-        l1_gdpg l2_gdpg l_debt l_ca l_banking_crisis L.credit pre_inv ///
+        l1_gdpg l2_gdpg l_debt l_ca l_banking_duration L.credit pre_inv ///
         i.year if sample==1, fe lag(`lag')
 
     if _rc == 0 {

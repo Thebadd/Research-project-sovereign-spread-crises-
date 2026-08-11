@@ -44,7 +44,7 @@
 
 use "$clean/panel_lp.dta", clear
 * safety: define the common core if this file is run standalone (master/18 also set it)
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit_bank l_hyperinfl"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
 sort cid year
 xtset cid year
 
@@ -62,7 +62,7 @@ local cz_def l_fedfunds l_reg_crisis_share past_def_onsets   // resolution predi
 * two correlate 0.950. The swap was costing observations, not saving them, so
 * the core now carries l_credit_bank everywhere and this file needs no exception.
 * Both are plain saved columns, so the bootstrap stays operator-free either way.
-local core_aipw l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit_bank l_hyperinfl
+local core_aipw l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl
 
 * ══════════════════════════════════════════════════════════════════════════
 * AMPLIFIER: pre-crisis sovereign-bank nexus + median split over onsets
@@ -299,7 +299,7 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
     * the core as-is, channels add their own pre_<v> (credit drops the depth term as its
     * own-level term).
     if      "`ocl'" == "gdp"              local om `core_aipw'
-    else if "`ocl'" == "credit"           local om l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_hyperinfl pre_credit
+    else if "`ocl'" == "credit"           local om l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_hyperinfl pre_credit
     else                                  local om `core_aipw' pre_`ocl'
 
     di as result _n "############### OUTCOME: `ocl' ###############"
