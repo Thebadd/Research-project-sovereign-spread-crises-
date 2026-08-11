@@ -136,26 +136,29 @@ quietly count if banking_crisis==1 & onset_all==1
 di as result "  onsets coinciding with a banking crisis: `r(N)' of 61"
 
 * Name-mismatch guard. 44 of our 52 countries appear in L-V (43 exact name matches +
-* Türkiye), but only 33 have a crisis INSIDE the panel window: the other 11 (Chile,
-* Cote d'Ivoire, Egypt, El Salvador, India, Jordan, Morocco, Panama, Peru, Senegal,
-* Tunisia) were last hit in the 1980s/early 1990s, before the panel starts, so their
-* zeros are correct. Expect 33 here. If it prints materially FEWER, a country name
-* failed to merge and its zeros are FALSE zeros rather than genuine no-crisis years,
-* so the crisis-free list is printed below for eyeballing.
+* Türkiye), but only 23 have a crisis inside their OWN panel coverage. Two reasons,
+* both legitimate: (a) 11 countries (Chile, Cote d'Ivoire, Egypt, El Salvador, India,
+* Jordan, Morocco, Panama, Peru, Senegal, Tunisia) were last hit before 1994; (b) the
+* panel is UNBALANCED — it starts when a country enters the EMBIG index — so another
+* 10 (Armenia, Bolivia, Costa Rica, Indonesia, Jamaica, Kenya, Paraguay, Poland,
+* Romania, Zambia) have only early/mid-1990s L-V crises that fall before their first
+* panel year. Expect 23. If it prints materially FEWER, a country name failed to merge
+* and its zeros are FALSE zeros rather than genuine no-crisis years, so the crisis-free
+* list is printed below for eyeballing.
 preserve
     quietly keep if banking_crisis==1
     quietly levelsof country, local(bc)
     local nbc : word count `bc'
 restore
-di as result "  panel countries with >=1 banking crisis in-window: `nbc' (expect 33 of 52)"
+di as result "  panel countries with >=1 banking crisis in own coverage: `nbc' (expect 23 of 52)"
 
-* Expected crisis-free-in-window list (19): the 8 never in L-V at all — Belize,
-* Guatemala, Honduras, Namibia, Pakistan, Serbia, South Africa, Trinidad and Tobago —
-* plus the 11 whose only crises predate the panel.
+* Expected crisis-free list (29): the 8 never in L-V at all (Belize, Guatemala,
+* Honduras, Namibia, Pakistan, Serbia, South Africa, Trinidad and Tobago), the 11 last
+* hit before 1994, and the 10 whose crises predate their own EMBIG entry.
 preserve
     collapse (max) banking_crisis, by(country)
     quietly levelsof country if banking_crisis==0, local(nocrisis)
-    di as result "  panel countries with no in-window crisis (expect 19):"
+    di as result "  panel countries with no crisis in own coverage (expect 29):"
     foreach c of local nocrisis {
         di as result "      `c'"
     }
