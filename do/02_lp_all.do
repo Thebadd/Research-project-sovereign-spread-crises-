@@ -31,15 +31,30 @@ foreach m in b lo90 hi90 lo95 hi95 {
 
 * ────────────────────────────────────────────────────────────────────────
 * PRE-TREND PLACEBO: h = -2, h = -1
-* If identification is valid, these coefficients should be ~0
+* Outcomes are strictly pre-onset growth windows ending at the LP baseline t-1
+* (built in 18_transforms): dy_m1 = 1yr, dy_m2 = 2yr. If identification is
+* valid, these coefficients should be ~0 — treated countries were not already
+* on a different path before the crisis.
+*
+* CONTROLS DIFFER HERE, deliberately. dy_m1 is identically l1_gdpg (both are
+* 100*(ln_gdp(t-1)-ln_gdp(t-2))), and l1_gdpg is a component of dy_m2, so leaving
+* l1_gdpg on the RHS would regress the placebo outcome on itself and guarantee a
+* null. `controls_pre' is the common core minus l1_gdpg, derived from $ctrl_core
+* so it stays in sync if the core changes.
 * ────────────────────────────────────────────────────────────────────────
 
+local cc         $ctrl_core
+local dropgdpg   l1_gdpg
+local controls_pre : list cc - dropgdpg
+
 di as result _n "=== PRE-TREND TEST (placebo horizons) ==="
+di as result "    controls: `controls_pre'"
+di as result "    (l1_gdpg excluded — it IS the h=-1 outcome)"
 
 foreach h_neg in 2 1 {
     local row = (3 - `h_neg')   // h=-2 → row 1, h=-1 → row 2
 
-    xtscc dy_m`h_neg' onset_all `controls' i.year ///
+    xtscc dy_m`h_neg' onset_all `controls_pre' i.year ///
         if sample == 1, fe lag(1)
 
     matrix b_all[`row', 1]    = _b[onset_all]

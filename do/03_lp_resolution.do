@@ -22,6 +22,14 @@ if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_crisis l_gov
 * VIX and ust10y are pure time-series variables, fully absorbed by i.year.
 local controls $ctrl_core
 
+* Pre-trend controls = the core MINUS l1_gdpg. The placebo outcomes are strictly
+* pre-onset growth windows ending at t-1 (dy_m1 = 1yr, dy_m2 = 2yr), and dy_m1 is
+* identically l1_gdpg while l1_gdpg is a component of dy_m2 — so keeping it on the
+* RHS would regress the placebo on itself. Derived from $ctrl_core to stay in sync.
+local cc         $ctrl_core
+local dropgdpg   l1_gdpg
+local controls_pre : list cc - dropgdpg
+
 * ══════════════════════════════════════════════════════════════════════════
 * SPEC A-1: NON-DEFAULT EPISODES ONLY
 * ══════════════════════════════════════════════════════════════════════════
@@ -35,7 +43,7 @@ foreach m in b lo90 hi90 lo95 hi95 {
 * Pre-trend
 foreach h_neg in 2 1 {
     local row = 3 - `h_neg'
-    xtscc dy_m`h_neg' onset_nd `controls' i.year if sample==1, fe lag(1)
+    xtscc dy_m`h_neg' onset_nd `controls_pre' i.year if sample==1, fe lag(1)
     matrix b_nd[`row',1]    = _b[onset_nd]
     matrix lo90_nd[`row',1] = _b[onset_nd] - 1.645*_se[onset_nd]
     matrix hi90_nd[`row',1] = _b[onset_nd] + 1.645*_se[onset_nd]
@@ -69,7 +77,7 @@ foreach m in b lo90 hi90 lo95 hi95 {
 
 foreach h_neg in 2 1 {
     local row = 3 - `h_neg'
-    xtscc dy_m`h_neg' onset_def `controls' i.year if sample==1, fe lag(1)
+    xtscc dy_m`h_neg' onset_def `controls_pre' i.year if sample==1, fe lag(1)
     matrix b_def[`row',1]    = _b[onset_def]
     matrix lo90_def[`row',1] = _b[onset_def] - 1.645*_se[onset_def]
     matrix hi90_def[`row',1] = _b[onset_def] + 1.645*_se[onset_def]
