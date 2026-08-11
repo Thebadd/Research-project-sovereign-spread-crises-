@@ -145,7 +145,30 @@ All computed in code from the sourced series.
 | `dy_pc_0…dy_pc_4` | per-capita version (robustness) |
 | `dy_m1`, `dy_m2` | pre-trend placebos (on total real GDP) |
 | `l_spr_mean`, `l_spr_max` | lagged spreads |
+| `l_infl` | `L.infl` — raw lagged CPI inflation, % (robustness alternative) |
+| `l_lninfl` | `ln(1 + L.infl/100)` — lagged log gross inflation, **in `$ctrl_core`** |
+| `hyperinf_dummy` | `L.infl > 50` — still built, **no longer in the core** (robustness only) |
 | `cid`, `sample` | numeric country id; estimation-sample flag |
+
+### Why inflation enters the core as a log
+`hyperinf_dummy` was dropped from `$ctrl_core` because it was degenerate: in the last full
+run the first-stage probit reported `hyperinf_dummy != 0 predicts failure perfectly;
+1 obs not used` — exactly **one** estimation-sample observation had it equal to 1 — yet it
+still drew a "significant" LP coefficient (+3.54, p=0.026 at h=0) that flipped sign by h=3.
+It was fitting a single residual.
+
+Continuous inflation replaces it, but **not raw**: across the 52 panel countries 1994–2026
+the median is 9.0% while Venezuela 2018 is 65,374% (6 observations exceed 1000%). A raw
+term would sit ~7,000× beyond the median, so the coefficient would be set by a handful of
+Venezuelan years and the control would stop absorbing "high-inflation countries grow badly".
+`ln(1 + L.infl/100)` keeps every observation and the full ranking while cutting that ratio
+to ~75×. It is safe here because the minimum is −8.53% (Azerbaijan 1999), well above the
+−100% at which the transform breaks. Swapping the core back to raw `l_infl` is a one-token
+edit in the 14 `$ctrl_core` definitions.
+
+**All `$ctrl_core` definitions must stay byte-identical** across `00_master.do`,
+`18_transforms.do` and the 12 standalone guards — a divergence between them is what caused
+the earlier `variable l_debt not found  r(111)` crash.
 
 ## 9. Legacy / source unrecovered
 | Variable | Status |

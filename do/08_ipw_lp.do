@@ -29,7 +29,7 @@
 
 use "$clean/panel_lp.dta", clear
 * safety: define the common core if this file is run standalone (master/18 also set it)
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking l_govexp l_open l_credit hyperinf_dummy"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking l_govexp l_open l_credit l_lninfl"
 
 * LP controls = the common core. Paper-aligned: the two-stage outcome regressions
 * carry COUNTRY FE only (no year FE), so global-push predictors are excluded from
