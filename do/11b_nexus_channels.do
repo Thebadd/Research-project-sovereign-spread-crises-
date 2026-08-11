@@ -27,6 +27,12 @@ sort cid year
 xtset cid year
 
 * ── 1. Channel outcome variables: cumulative change from t-1 ──────────────
+* NOT rescaled to log real levels, deliberately. The GDP-ratio channels in 11/12
+* are built as ln(gdp_real*x)*100 so a collapsing denominator cannot masquerade as
+* a channel response. These two are shares of TOTAL BANK ASSETS, not of GDP, so
+* that problem does not arise: the denominator is the banks' own balance sheet and
+* the share is exactly the object of interest (how banks reallocate between the
+* sovereign and the private sector). They stay in percentage points of assets.
 foreach var in claimsgov_assets claimpriv_assets {
     capture drop `var'_base
     gen `var'_base = L.`var'

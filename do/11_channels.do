@@ -50,18 +50,25 @@ xtset cid year
 *    Same construction as dy_h: cumulative change relative to t-1
 * ══════════════════════════════════════════════════════════════════════════
 
+* OUTCOME SCALE. Strictly-positive GDP-ratio channels use the LOG REAL LEVEL
+* (ln_r_*, built in 18_transforms) so the outcome is a cumulative percent change in
+* the variable itself rather than in its ratio to a GDP that is collapsing — the
+* reference paper's var2/var3 construction. pb and fdi change sign, so no log is
+* possible and they keep the ratio; for a balance the ratio is the right object.
 foreach var in credit claims_govt inv govexp pb fdi {
+    local src `var'
+    if inlist("`var'","credit","claims_govt","inv","govexp") local src ln_r_`var'
     capture drop `var'_base
-    gen `var'_base = L.`var'
+    gen `var'_base = L.`src'
     forvalues h = 0/4 {
         capture drop ch_`var'_`h'
-        gen ch_`var'_`h' = F`h'.`var' - `var'_base
+        gen ch_`var'_`h' = F`h'.`src' - `var'_base
         label var ch_`var'_`h' "Cum. change `var': F`h' vs t-1"
     }
     * pre-crisis change in the channel itself (Asonuma's g_0 = L.var - L2.var):
     * own-outcome pre-trend control, matching the AIPW spec in 13c.
     capture drop pre_`var'
-    gen pre_`var' = L.`var' - L2.`var'
+    gen pre_`var' = L.`src' - L2.`src'
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -442,7 +449,7 @@ foreach ch of local channels {
         xlabel(0(1)4, labsize(medsmall)) ///
         ylabel(, format(%5.2f) labsize(medsmall)) ///
         xtitle("Years after onset", size(small)) ///
-        ytitle("Cumulative change (pp)", size(small)) ///
+        ytitle("Cumulative change (% or pp — see note)", size(small)) ///
         title(`tlab', size(medsmall) color(navy)) ///
         legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
@@ -456,7 +463,8 @@ graph combine fig11a fig11b fig11c fig11d fig11e fig11f, ///
     cols(3) rows(2) ///
     title("Transmission Channels of Sovereign Spread Crises", ///
           size(medlarge) color(navy)) ///
-    note("90% and 95% CI. DK SE. Country & year FE. Treatment: all 61 onset episodes.", ///
+    note("90% and 95% CI. DK SE. Country & year FE. Treatment: all 61 onset episodes." ///
+         "Units differ by channel: private credit, bank claims on govt, investment and govt expenditure are LOG REAL LEVELS, so their scale is cumulative percent change (comparable to the GDP result). Primary balance and FDI change sign, so no log is possible and they remain ratios to GDP, in percentage points.", ///
          size(vsmall)) ///
     graphregion(color(white)) xsize(10) ysize(7)
 
@@ -491,15 +499,22 @@ xtset cid year
 
 * Regenerate channel outcome variables + own pre-trend (same as section 1;
 * the reload above dropped them, and ctrl_<ch> now includes pre_<var>)
+* OUTCOME SCALE. Strictly-positive GDP-ratio channels use the LOG REAL LEVEL
+* (ln_r_*, built in 18_transforms) so the outcome is a cumulative percent change in
+* the variable itself rather than in its ratio to a GDP that is collapsing — the
+* reference paper's var2/var3 construction. pb and fdi change sign, so no log is
+* possible and they keep the ratio; for a balance the ratio is the right object.
 foreach var in credit claims_govt inv govexp pb fdi {
+    local src `var'
+    if inlist("`var'","credit","claims_govt","inv","govexp") local src ln_r_`var'
     capture drop `var'_base
-    gen `var'_base = L.`var'
+    gen `var'_base = L.`src'
     forvalues h = 0/4 {
         capture drop ch_`var'_`h'
-        gen ch_`var'_`h' = F`h'.`var' - `var'_base
+        gen ch_`var'_`h' = F`h'.`src' - `var'_base
     }
     capture drop pre_`var'
-    gen pre_`var' = L.`var' - L2.`var'
+    gen pre_`var' = L.`src' - L2.`src'
 }
 
 * First-stage probit: same spec as 08_ipw_lp.do
@@ -671,7 +686,7 @@ foreach ch of local channels {
         xlabel(0(1)4, labsize(medsmall)) ///
         ylabel(, format(%5.2f) labsize(medsmall)) ///
         xtitle("Years after onset", size(small)) ///
-        ytitle("Cumulative change (pp)", size(small)) ///
+        ytitle("Cumulative change (% or pp — see note)", size(small)) ///
         title(`tlab', size(medsmall) color(navy)) ///
         legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
@@ -684,7 +699,8 @@ graph combine fig11a_cmp fig11b_cmp fig11c_cmp fig11d_cmp fig11e_cmp fig11f_cmp,
     cols(3) rows(2) ///
     title("Channels: Unweighted vs. IPW-Weighted", size(medlarge) color(navy)) ///
     note("Blue solid = unweighted (DK SE). Red dashed = IPW-weighted (cluster SE)." ///
-         "IPW weights from probit of onset on lagged macro fundamentals.", size(vsmall)) ///
+         "IPW weights from probit of onset on lagged macro fundamentals." ///
+         "Units differ by channel: private credit, bank claims on govt, investment and govt expenditure are LOG REAL LEVELS, so their scale is cumulative percent change (comparable to the GDP result). Primary balance and FDI change sign, so no log is possible and they remain ratios to GDP, in percentage points.", size(vsmall)) ///
     graphregion(color(white)) xsize(10) ysize(7)
 
 graph export "$figs/fig11_channels_ipw_compare.pdf", replace

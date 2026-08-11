@@ -52,16 +52,19 @@ xtset cid year
 
 * ── Generate outcome variables ───────────────────────────────────────────
 
+* Log real LEVELS for the GDP-ratio channels (ln_r_*, built in 18_transforms),
+* matching the reference paper's var2/var3 — see the note in 18_transforms.do.
 foreach var in credit claims_govt inv {
+    local src ln_r_`var'
     capture drop `var'_base
-    gen `var'_base = L.`var'
+    gen `var'_base = L.`src'
     forvalues h = 0/4 {
         capture drop ch_`var'_`h'
-        gen ch_`var'_`h' = F`h'.`var' - `var'_base
+        gen ch_`var'_`h' = F`h'.`src' - `var'_base
     }
     * own-outcome pre-crisis change (Asonuma's g_0), added to every spec below.
     capture drop pre_`var'
-    gen pre_`var' = L.`var' - L2.`var'
+    gen pre_`var' = L.`src' - L2.`src'
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -199,14 +202,15 @@ sort cid year
 xtset cid year
 
 foreach var in inv {
+    local src ln_r_`var'          // log real level, as above
     capture drop `var'_base
-    gen `var'_base = L.`var'
+    gen `var'_base = L.`src'
     forvalues h = 0/4 {
         capture drop ch_`var'_`h'
-        gen ch_`var'_`h' = F`h'.`var' - `var'_base
+        gen ch_`var'_`h' = F`h'.`src' - `var'_base
     }
     capture drop pre_`var'
-    gen pre_`var' = L.`var' - L2.`var'
+    gen pre_`var' = L.`src' - L2.`src'
 }
 
 di as result _n "========================================================"

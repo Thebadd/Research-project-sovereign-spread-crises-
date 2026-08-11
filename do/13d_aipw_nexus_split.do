@@ -112,17 +112,26 @@ di as result "   result is not merely a development proxy.)"
 *   claims_govt (ch_v_h = F h.v - L.v). Every lagged control pre-generated as a
 *   PLAIN column so the cluster bootstrap (bsample destroys time order) is valid.
 * ══════════════════════════════════════════════════════════════════════════
+* OUTCOME SCALE. Strictly-positive GDP-ratio channels use the LOG REAL LEVEL
+* (ln_r_*, built in 18_transforms), matching the reference paper's var2/var3:
+* a change in X/GDP confounds X with a GDP that is collapsing, whereas
+* ln(X/GDP * GDP) = ln(X) up to a constant, so the outcome is the cumulative
+* percent change in X itself. pb, fdi and ca change sign so they keep the ratio;
+* claimsgov_assets and claimpriv_assets are shares of BANK ASSETS, not of GDP, so
+* the denominator problem does not arise for them either.
 foreach v in credit inv claimpriv_assets claims_govt {
+    local src `v'
+    if inlist("`v'","credit","claims_govt","inv") local src ln_r_`v'
     capture drop `v'_base
-    gen `v'_base = L.`v'
+    gen `v'_base = L.`src'
     forvalues h = 0/4 {
         capture drop ch_`v'_`h'
-        gen ch_`v'_`h' = F`h'.`v' - `v'_base
+        gen ch_`v'_`h' = F`h'.`src' - `v'_base
     }
     * (a) pre-crisis change in the channel itself (Asonuma's g_0 = L.var - L2.var):
     *     controls for the channel's own pre-trend momentum in each outcome model.
     capture drop pre_`v'
-    gen pre_`v' = L.`v' - L2.`v'
+    gen pre_`v' = L.`src' - L2.`src'
 }
 foreach v in credit claimpriv_assets claims_govt pb {
     capture drop l_`v'

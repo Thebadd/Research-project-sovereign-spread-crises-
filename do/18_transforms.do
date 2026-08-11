@@ -197,6 +197,46 @@ if !_rc {
 }
 else di as error "  ** exch not found — skipping exchange2/ex_dum (robustness only; add officialexchangerate.xlsx)."
 
+* ── CHANNEL OUTCOMES ON THE PAPER'S SCALE: LOG REAL LEVELS ─────────────────
+* The reference paper does NOT use ratios to GDP as channel outcomes. It uses log
+* real LEVELS, built by multiplying the ratio back by real GDP:
+*     var2 = ln(investment*gdp_real)*100      (real investment)
+*     var3 = ln(gdp_real*credit_bank)*100     (real bank credit)
+* exactly as its GDP outcome is ln(gdp_real)*100.
+*
+* This is not cosmetic. A change in X/GDP confounds what happened to X with what
+* happened to GDP: in a crisis the denominator falls, so the ratio rises even when
+* X is flat or falling, and the "channel" then reports the recession rather than
+* the mechanism. Taking logs and differencing removes the denominator entirely —
+* ln(X/GDP * GDP) = ln(X) up to a constant — so the outcome is the cumulative
+* percent change in X itself, on the same scale as dy_h. That also makes the two
+* directly comparable: "credit fell x% while GDP fell y%".
+*
+* Only strictly-positive GDP-ratio channels can take a log, so pb (primary
+* balance), fdi (net inflows) and ca (current account) keep their ratio form —
+* all three change sign, and for a balance the ratio is the object of interest
+* anyway. The nexus variables (claimsgov_assets, claimpriv_assets) are shares of
+* BANK ASSETS, not of GDP, so the denominator problem does not arise and they are
+* left alone too.
+*
+* The *_base and pre_* terms in the channel files are built from these columns, so
+* the levels flow through to the outcomes, the own pre-trend control and the AIPW.
+capture drop ln_r_credit ln_r_credit_bank ln_r_inv ln_r_govexp ln_r_claims_govt
+foreach v in credit credit_bank inv govexp claims_govt {
+    capture confirm variable `v'
+    if _rc {
+        di as error "  ** 18_transforms: `v' not found — ln_r_`v' not built."
+        continue
+    }
+    * ln(gdp_real * ratio)*100, the paper's form. The ratio is in percent, so this
+    * is the real level up to a factor of 100 — a constant inside the log, which
+    * differences away in F^h - L. Guarded so a zero or negative ratio yields
+    * missing rather than a Stata log-of-nonpositive.
+    gen double ln_r_`v' = ln(gdp_real * `v')*100 ///
+        if `v' > 0 & gdp_real > 0 & !missing(`v', gdp_real)
+    label var ln_r_`v' "Log real `v' level x100 (= paper's ln(gdp_real*x)*100)"
+}
+
 * ── Estimation sample ───────────────────────────────────────────────────────
 * carryin==0 excludes the pre-EMBIG scaffolding rows added in 10_skeleton: they exist
 * only so the L. operators above have a previous row to point at, and carry no spread

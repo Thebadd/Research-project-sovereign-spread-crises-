@@ -41,17 +41,24 @@ xtset cid year
 * 1. GENERATE CHANNEL OUTCOME VARIABLES
 * ══════════════════════════════════════════════════════════════════════════
 
+* OUTCOME SCALE. Strictly-positive GDP-ratio channels use the LOG REAL LEVEL
+* (ln_r_*, built in 18_transforms) so the outcome is a cumulative percent change in
+* the variable itself rather than in its ratio to a GDP that is collapsing — the
+* reference paper's var2/var3 construction. pb and fdi change sign, so no log is
+* possible and they keep the ratio; for a balance the ratio is the right object.
 foreach var in credit claims_govt inv govexp pb fdi {
+    local src `var'
+    if inlist("`var'","credit","claims_govt","inv","govexp") local src ln_r_`var'
     capture drop `var'_base
-    gen `var'_base = L.`var'
+    gen `var'_base = L.`src'
     forvalues h = 0/4 {
         capture drop ch_`var'_`h'
-        gen ch_`var'_`h' = F`h'.`var' - `var'_base
+        gen ch_`var'_`h' = F`h'.`src' - `var'_base
     }
     * pre-crisis change in the channel itself (Asonuma's g_0 = L.var - L2.var):
     * own-outcome pre-trend control, matching the AIPW spec in 13c.
     capture drop pre_`var'
-    gen pre_`var' = L.`var' - L2.`var'
+    gen pre_`var' = L.`src' - L2.`src'
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -430,7 +437,7 @@ foreach ch of local channels {
         xlabel(0(1)4, labsize(small)) ///
         ylabel(, format(%5.1f) labsize(small)) ///
         xtitle("Years after onset", size(vsmall)) ///
-        ytitle("Cumulative change (pp)", size(vsmall)) ///
+        ytitle("Cumulative change (% or pp — see note)", size(vsmall)) ///
         title(`tlab', size(small) color(navy)) ///
         `legopt' ///
         graphregion(color(white)) plotregion(color(white)) ///
@@ -443,7 +450,8 @@ graph combine ols_1 ols_2 ols_3 ols_4 ols_5 ols_6, ///
     cols(3) rows(2) ///
     title("Transmission Channels by Resolution Type — OLS", ///
           size(medlarge) color(navy)) ///
-    note("90% CI. DK SE. Country & year FE. Non-default: N=40. Default-linked: N=21.", ///
+    note("90% CI. DK SE. Country & year FE. Non-default: N=40. Default-linked: N=21." ///
+         "Units differ by channel: private credit, bank claims on govt, investment and govt expenditure are LOG REAL LEVELS, so their scale is cumulative percent change (comparable to the GDP result). Primary balance and FDI change sign, so no log is possible and they remain ratios to GDP, in percentage points.", ///
          size(vsmall)) ///
     graphregion(color(white)) xsize(10) ysize(7)
 
@@ -488,7 +496,7 @@ foreach ch of local channels {
         xlabel(0(1)4, labsize(small)) ///
         ylabel(, format(%5.1f) labsize(small)) ///
         xtitle("Years after onset", size(vsmall)) ///
-        ytitle("Cumulative change (pp)", size(vsmall)) ///
+        ytitle("Cumulative change (% or pp — see note)", size(vsmall)) ///
         title(`tlab', size(small) color(navy)) ///
         `legopt' ///
         graphregion(color(white)) plotregion(color(white)) ///
