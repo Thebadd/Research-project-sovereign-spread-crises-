@@ -84,7 +84,7 @@ capture esttab fs_all fs_nd fs_def using "$tabs/table_first_stage.rtf", replace 
               l1_gdpg "GDP growth (t-1)" ///
               l_debt "Public debt / GDP (t-1)" ///
               l_ca "Current account / GDP (t-1)" ///
-              l_banking_duration "Banking-crisis duration, years (t-1)" ///
+              l_banking_duration "Banking crisis: years so far (t-1)" ///
               l_govexp "Govt expenditure / GDP (t-1)" ///
               l_open "Trade openness (t-1)" ///
               l_credit_bank "Private credit by banks / GDP (t-1)" ///

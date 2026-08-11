@@ -94,34 +94,40 @@ replace end_yr = start_yr if end_yr < start_yr      // data sanity
 * ── 5. Expand each [Start, End] window into country-years ───────────────────
 gen long epid = _n                                   // unique episode id
 
-* CRISIS LENGTH, in years, before the expansion destroys the episode structure.
-* The reference paper controls for banking_duration_lv2018 (Laeven-Valencia 2018),
-* a DURATION rather than a flag. Their replication files import it pre-built, so
-* the exact definition is not recoverable from their code; L-V publish Start and
-* End, and the name points at a property of the crisis, so total episode length is
-* the reading we reproduce here: the same value in every year of one crisis.
+* BANKING-CRISIS DURATION. The reference paper controls for
+* banking_duration_lv2018 (Laeven-Valencia 2018), a duration rather than a flag.
+* Their replication files import it pre-built and only lag it, so the exact
+* definition is not recoverable from their code and we have to choose one.
 *
-* Two caveats to carry into the write-up:
-*   (a) it is NOT strictly predetermined. Total length embeds the End year, which
-*       is not knowable at t, so lagging it to t-1 does not make it t-1 information
-*       the way the other core controls are. This is inherited from the paper, not
-*       introduced here.
-*   (b) the two ONGOING crises (blank End, extended to `ymax' in step 4) are
-*       right-censored: their duration is years-so-far, not final length.
-* banking_duration_elapsed is built alongside as the predetermined alternative —
-* a counter running 1,2,3... through the crisis, which uses only information
-* available at t and nests the dummy (any positive value = in crisis).
-gen int banking_duration = end_yr - start_yr + 1
+* banking_duration = HOW LONG THE CRISIS HAS ALREADY LASTED at that year:
+* a counter running 1, 2, 3, ... from the start year, 0 outside a crisis.
+* Ghana's 2015-2019 crisis is 1 in 2015, 2 in 2016, ... 5 in 2019.
+*
+* This is the right form for a control here, for two reasons the total-length
+* alternative fails:
+*   (a) it is genuinely PREDETERMINED. Years-so-far uses only information
+*       available at t. Total episode length embeds the End year, which is not
+*       knowable at t, so lagging it to t-1 would not make it t-1 information the
+*       way every other core control is.
+*   (b) it needs no censoring assumption. The two ONGOING crises (blank End,
+*       extended to `ymax' in step 4) have a well-defined years-so-far at every
+*       year; their TOTAL length is unknown and would be understated.
+* It also nests the dummy: any positive value means "in a banking crisis", so
+* l_banking_crisis is the special case where the counter is collapsed to 0/1.
+*
+* banking_duration_total (end - start + 1, constant within an episode) is built
+* alongside as the robustness alternative, carrying both caveats above.
+gen int banking_duration_total = end_yr - start_yr + 1
 
 expand end_yr - start_yr + 1
 bysort epid: gen int year = start_yr + _n - 1
 gen byte banking_crisis = 1
-bysort epid (year): gen int banking_duration_elapsed = _n
+bysort epid (year): gen int banking_duration = _n
 
 * One row per country-year. (max) on overlapping/repeat episodes: a country-year
-* covered by two episodes takes the longer duration, consistent with the dummy
+* covered by two episodes takes the longer count, consistent with the dummy
 * taking 1.
-collapse (max) banking_crisis banking_duration banking_duration_elapsed, ///
+collapse (max) banking_crisis banking_duration banking_duration_total, ///
     by(country year)
 keep if inrange(year, `ymin', `ymax')
 
@@ -130,20 +136,20 @@ save `bank'
 
 * ── 6. Merge onto the panel and ZERO-FILL ───────────────────────────────────
 use "$clean/panel_build.dta", clear
-capture drop banking_crisis banking_duration banking_duration_elapsed
+capture drop banking_crisis banking_duration banking_duration_total
 merge m:1 country year using `bank', keep(master match) nogen
 
 * THE FIX: absence from the L-V episode list means "no systemic banking crisis",
 * not "unknown". Without this line every non-crisis country-year stays missing and
 * is dropped from every regression by listwise deletion on $ctrl_core.
 * The durations zero-fill on the same logic: no crisis => a crisis lasting 0 years.
-replace banking_crisis            = 0 if missing(banking_crisis)
-replace banking_duration          = 0 if missing(banking_duration)
-replace banking_duration_elapsed  = 0 if missing(banking_duration_elapsed)
+replace banking_crisis         = 0 if missing(banking_crisis)
+replace banking_duration       = 0 if missing(banking_duration)
+replace banking_duration_total = 0 if missing(banking_duration_total)
 
 label var banking_crisis   "Systemic banking-crisis dummy (Laeven-Valencia 2026; 1 during each crisis)"
-label var banking_duration "Banking-crisis length, years (L-V 2026; = paper's banking_duration_lv2018); 0 if none"
-label var banking_duration_elapsed "Banking-crisis years elapsed so far (1,2,3...); 0 if none - predetermined alternative"
+label var banking_duration "Years the banking crisis has lasted so far (1,2,3...); 0 if none - COMMON CORE"
+label var banking_duration_total "Total banking-crisis length, years (end-start+1); 0 if none - robustness alt."
 save "$clean/panel_build.dta", replace
 
 * ── 7. Coverage report ──────────────────────────────────────────────────────
@@ -167,7 +173,10 @@ di as result "  onsets coinciding with a banking crisis: `r(N)' of 61"
 * Duration diagnostics: the core now carries banking_duration, so its spread and
 * its coverage at onsets both matter.
 quietly summarize banking_duration if banking_crisis==1
-di as result "  crisis length (years): mean " %4.1f r(mean) "  min " r(min) "  max " r(max)
+di as result "  years-so-far within a crisis: mean " %4.1f r(mean) "  min " r(min) "  max " r(max)
+di as result "     (min must be 1 - every crisis has a first year)"
+quietly summarize banking_duration_total if banking_crisis==1
+di as result "  total crisis length (robustness alt.): mean " %4.1f r(mean) "  min " r(min) "  max " r(max)
 quietly count if !missing(banking_duration)
 di as result "  rows with a non-missing banking_duration: `r(N)' (must equal the panel)"
 

@@ -96,7 +96,7 @@ foreach req in infl govexp open credit_bank {
         exit 111
     }
 }
-capture drop l_hyperinfl l_infl l_lninfl l_govexp l_open l_credit_bank l_credit l_debt l_ca l_banking_crisis l_banking_duration l_banking_duration_elapsed
+capture drop l_hyperinfl l_infl l_lninfl l_govexp l_open l_credit_bank l_credit l_debt l_ca l_banking_crisis l_banking_duration l_banking_duration_total
 * INFLATION IN THE CORE = l_hyperinfl (David's decision), matching Asonuma et al.
 * LAGGED like every other core control: built from L.infl, so it flags hyperinflation at
 * t-1 and is predetermined relative to the onset year (the l_ prefix now says so).
@@ -131,12 +131,14 @@ gen double l_credit       = L.credit
 gen double l_debt         = L.debt
 gen double l_ca           = L.ca
 gen byte   l_banking_crisis = L.banking_crisis
-* DURATION, not a flag — the reference paper's banking_duration_lv2018. See the
-* construction and its two caveats in 16_banking.do step 5. l_banking_duration is
-* the core term; l_banking_crisis (dummy) and l_banking_duration_elapsed (the
-* predetermined counter) stay built as robustness alternatives.
-gen int    l_banking_duration         = L.banking_duration
-gen int    l_banking_duration_elapsed = L.banking_duration_elapsed
+* DURATION, not a flag — the reference paper's banking_duration_lv2018 analog.
+* banking_duration counts how long the crisis has ALREADY lasted at that year
+* (1,2,3,...), so L. of it is genuinely t-1 information: at t you know how long it
+* had run as of t-1. See 16_banking.do step 5 for why years-so-far beats total
+* episode length here. The dummy and the total-length version stay built as
+* robustness alternatives, each one token from the core.
+gen int    l_banking_duration       = L.banking_duration
+gen int    l_banking_duration_total = L.banking_duration_total
 * Global-push predictors lagged to t-1 (predetermined), matching the reference
 * paper's federal_funds2 = L.federal_funds. Plain saved columns => bootstrap-safe
 * in the AIPW (no L. operator at estimation time). Rates are pure time series, so
@@ -159,8 +161,8 @@ label var l_credit       "L1 private credit / GDP (all fin. corps; robustness al
 label var l_debt         "L1 public debt, % GDP (predetermined)"
 label var l_ca           "L1 current account, % GDP (predetermined)"
 label var l_banking_crisis      "L1 systemic banking-crisis dummy (robustness alt., not in core)"
-label var l_banking_duration    "L1 banking-crisis length, years (= Asonuma banking_duration_lv2018) - COMMON CORE"
-label var l_banking_duration_elapsed "L1 banking-crisis years elapsed (predetermined alt., not in core)"
+label var l_banking_duration    "L1 years the banking crisis had already lasted (predetermined) - COMMON CORE"
+label var l_banking_duration_total "L1 total banking-crisis length (robustness alt., not in core)"
 
 global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
 
