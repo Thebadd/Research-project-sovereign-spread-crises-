@@ -88,28 +88,58 @@ foreach v in credit claims_govt pb govexp fdi ca ///
 * PROGRAM — hand-coded AIPW point estimate (Eqs. 1-3); r(theta), r(N)
 *   (identical to 08b_aipw.do)
 * ══════════════════════════════════════════════════════════════════════════
+* ══════════════════════════════════════════════════════════════════════════
+* PROGRAM — bootstrap stratum (see 08b_aipw.do for the full rationale).
+* The paper resamples the control pool and each treated type separately, holding
+* the treated count fixed. A plain cluster bsample does not, and on cells this
+* thin a draw can lose the treated group entirely. This makes the stratum so
+* `bsample, cluster(cid) strata()' preserves the ever-treated country count.
+* ══════════════════════════════════════════════════════════════════════════
+capture program drop _mkstrat
+program define _mkstrat
+    syntax varlist(min=1 max=2) [if], GENerate(name)
+    marksample touse
+    capture drop `generate'
+    tempvar t1 t2
+    local d1 : word 1 of `varlist'
+    local d2 : word 2 of `varlist'
+    quietly gen byte `t1' = `d1' if `touse'
+    bysort cid: egen byte `generate' = max(`t1')
+    quietly replace `generate' = 0 if missing(`generate')
+    if "`d2'" != "" {
+        quietly gen byte `t2' = `d2' if `touse'
+        tempvar s2
+        bysort cid: egen byte `s2' = max(`t2')
+        quietly replace `s2' = 0 if missing(`s2')
+        quietly replace `generate' = `generate' + 2*`s2'
+    }
+end
+
 capture program drop _aipw
 program define _aipw, rclass
     syntax varlist(min=2 max=2) [if], OMODEL(varlist) PMODEL(varlist) [FE(varname)]
     gettoken y D : varlist
     marksample touse
     markout `touse' `omodel' `pmodel'
-    tempvar xb m0 m1 ps summ
-    if "`fe'" != "" {
-        quietly reg `y' `D' `omodel' i.`fe' if `touse'
-    }
-    else {
-        quietly reg `y' `D' `omodel' if `touse'
-    }
-    quietly predict double `xb' if `touse', xb
-    quietly gen double `m0' = `xb' - _b[`D']*`D' if `touse'
-    quietly gen double `m1' = `m0' + _b[`D']      if `touse'
-    * POOLED probit (no country FE): country dummies separate/overfit on the thin
-    * event count. Country FE enter the OUTCOME reg (Eq. 1) only; no year FE.
+    tempvar xb m0 m1 ps summ iwt
+    * IPWRA, matching the reference paper: the propensity is estimated FIRST and
+    * the outcome regression that produces mu0/mu1 is IPW-WEIGHTED
+    * (their `reg g_h dum g_0 $convar [pweight=invwt]`). Estimating it unweighted
+    * gives a different, also doubly-robust, estimator - but not theirs.
     quietly probit `D' `pmodel' if `touse'
     quietly predict double `ps' if `touse', pr
     quietly replace `ps' = .01 if `ps' < .01              & `touse'
     quietly replace `ps' = .99 if `ps' > .99 & !missing(`ps') & `touse'
+    quietly gen double `iwt' = `D'/`ps' + (1-`D')/(1-`ps') if `touse'
+    if "`fe'" != "" {
+        quietly reg `y' `D' `omodel' i.`fe' [pweight=`iwt'] if `touse'
+    }
+    else {
+        quietly reg `y' `D' `omodel' [pweight=`iwt'] if `touse'
+    }
+    quietly predict double `xb' if `touse', xb
+    quietly gen double `m0' = `xb' - _b[`D']*`D' if `touse'   // set D=0
+    quietly gen double `m1' = `m0' + _b[`D']      if `touse'   // set D=1
     quietly gen double `summ' = ///
         ( `D'*`y'/`ps' - (1-`D')*`y'/(1-`ps') ) ///
       - ( (`D'-`ps')/(`ps'*(1-`ps')) )*( (1-`ps')*`m1' + `ps'*`m0' ) ///
@@ -136,18 +166,22 @@ program define _aipwci, rclass
     }
     local pt = r(theta)
 
+    * stratum: ever-treated vs never-treated countries within this cell, so every
+    * draw keeps the same number of treated countries (see _mkstrat).
+    _mkstrat `Dv' if `ifc', generate(_strat)
     tempname pf
     tempfile bf
     quietly postfile `pf' double theta using "`bf'", replace
     forvalues b = 1/`reps' {
         preserve
             capture drop _bid
-            bsample, cluster(cid) idcluster(_bid)
+            bsample, cluster(cid) strata(_strat) idcluster(_bid)
             capture _aipw `yv' `Dv' if `ifc', omodel(`omod') pmodel(`pz') fe(_bid)
             if _rc == 0 quietly post `pf' (r(theta))
         restore
     }
     quietly postclose `pf'
+    capture drop _strat
 
     local se = .
     local lo = .
@@ -200,13 +234,17 @@ program define _aipwpairdiff, rclass
     }
     local b2 = r(theta)
     local dh = `b1' - `b2'
+    * 4-level stratum (has-d1 x has-d2) so one resample preserves the treated
+    * count of BOTH cells; otherwise the thinner cell is routinely lost and the
+    * paired difference draw goes with it.
+    _mkstrat `d1' `d2', generate(_strat)
     tempname pf
     tempfile bf
     quietly postfile `pf' double diff using "`bf'", replace
     forvalues b = 1/`reps' {
         preserve
             capture drop _bid
-            bsample, cluster(cid) idcluster(_bid)
+            bsample, cluster(cid) strata(_strat) idcluster(_bid)
             capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(_bid)
             local t1 = cond(_rc==0, r(theta), .)
             capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(_bid)
@@ -215,6 +253,7 @@ program define _aipwpairdiff, rclass
         restore
     }
     quietly postclose `pf'
+    capture drop _strat
     local se = .
     local lo = .
     local hi = .

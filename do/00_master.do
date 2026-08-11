@@ -64,7 +64,7 @@ do "$do/05_balance_table.do"
 do "$do/06_robustness.do"
 do "$do/07_placebo.do"
 do "$do/08_ipw_lp.do"
-do "$do/08b_aipw.do"                  // doubly-robust AIPW + bootstrap percentile CIs
+do "$do/08b_aipw.do"                  // IPWRA (the reference paper's headline estimator) + stratified bootstrap CIs
 do "$do/08c_first_stage_table.do"     // Table 1-style probit first stage (predictors/controls + chi2/ROC)
 * do "$do/09_lp_imf.do"   // removed: IMF selection unpredictable from observables
 * do "$do/10_heterogeneity.do"  // removed: frontier variable poorly coded, duration data incomplete

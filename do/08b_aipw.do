@@ -23,7 +23,13 @@
         This is the ATE (sum over ALL i, scaled by 1/N) — the paper's estimand.
         (Algebraically identical to the standard mu1-mu0 + IF-correction form.)
 
-  INFERENCE (their Table 2 note): percentile CIs from `bsample` — resample
+  ESTIMATOR: IPWRA, the reference paper's headline. The propensity probit runs
+  FIRST; the outcome regression producing the conditional means is then INVERSE-
+  PROBABILITY WEIGHTED (their `reg g_h dum g_0 $convar [pweight=invwt]`), and the
+  AIPW summand is formed from those weighted means. The summand itself is
+  algebraically identical to theirs.
+
+  INFERENCE: percentile CIs from a STRATIFIED cluster `bsample` — resample
   countries (cluster bootstrap), recompute Eq. (3) each draw, take the 2.5/97.5
   percentiles. No analytic SE; the SE column reports the bootstrap SD.
 
@@ -74,19 +80,14 @@ program define _aipw, rclass
     marksample touse
     markout `touse' `omodel' `pmodel'           // common sample for Eq.1 & Eq.2
 
-    tempvar xb m0 m1 ps summ
-    * --- Eq. (1): outcome regression -> conditional means m1, m0 ---
-    * `fe' names the country-FE variable (cid on real data; a fresh resample id
-    * under the cluster bootstrap so duplicated countries are distinct FE groups).
-    if "`fe'" != "" {
-        quietly reg `y' `D' `omodel' i.`fe' if `touse'
-    }
-    else {
-        quietly reg `y' `D' `omodel' if `touse'
-    }
-    quietly predict double `xb' if `touse', xb
-    quietly gen double `m0' = `xb' - _b[`D']*`D' if `touse'   // set D=0
-    quietly gen double `m1' = `m0' + _b[`D']      if `touse'   // set D=1
+    tempvar xb m0 m1 ps summ iwt
+    * ORDER MATTERS: the propensity comes FIRST, because the outcome regression is
+    * WEIGHTED by it. The reference paper's estimator is IPWRA, not plain AIPW —
+    * their conditional means come from
+    *     reg g_h dum g_0 $convar [pweight=invwt]
+    * i.e. the regression that produces mu0/mu1 is itself inverse-probability
+    * weighted. Estimating that regression unweighted (as this program used to)
+    * gives a different, also doubly-robust, estimator — but not theirs.
 
     * --- Eq. (2): POOLED propensity probit -> phat (trimmed) ---
     * Pooled (no country FE): with ~20 events, country dummies in a probit
@@ -96,8 +97,26 @@ program define _aipw, rclass
     * outcome design; no year FE.
     quietly probit `D' `pmodel' if `touse'
     quietly predict double `ps' if `touse', pr
+    * Winsorise rather than drop, so the cell keeps its observations. The paper
+    * does not trim at all; on 21 default events an untrimmed 1/p can explode.
     quietly replace `ps' = .01 if `ps' < .01              & `touse'
     quietly replace `ps' = .99 if `ps' > .99 & !missing(`ps') & `touse'
+
+    * --- IPW weight, the paper's UNSTABILISED form invwt = a/p + (1-a)/(1-p) ---
+    quietly gen double `iwt' = `D'/`ps' + (1-`D')/(1-`ps') if `touse'
+
+    * --- Eq. (1): IPW-WEIGHTED outcome regression -> conditional means m1, m0 ---
+    * `fe' names the country-FE variable (cid on real data; a fresh resample id
+    * under the cluster bootstrap so duplicated countries are distinct FE groups).
+    if "`fe'" != "" {
+        quietly reg `y' `D' `omodel' i.`fe' [pweight=`iwt'] if `touse'
+    }
+    else {
+        quietly reg `y' `D' `omodel' [pweight=`iwt'] if `touse'
+    }
+    quietly predict double `xb' if `touse', xb
+    quietly gen double `m0' = `xb' - _b[`D']*`D' if `touse'   // set D=0
+    quietly gen double `m1' = `m0' + _b[`D']      if `touse'   // set D=1
 
     * --- Eq. (3): AIPW summand (Asonuma et al. exact form) ---
     quietly gen double `summ' = ///
@@ -107,6 +126,47 @@ program define _aipw, rclass
     quietly summarize `summ' if `touse', meanonly
     return scalar theta = r(mean)
     return scalar N     = r(N)
+end
+
+* ══════════════════════════════════════════════════════════════════════════
+* PROGRAM — bootstrap stratum: does this COUNTRY ever carry the treatment?
+*
+* The paper resamples the control pool and EACH TREATED TYPE separately, so the
+* number of treated observations of every type is held fixed across draws:
+*     drop if dum1==1 | dum2==1 | dum3==1  /  bsample          (controls)
+*     keep if dum`s'==1  /  bsample  /  append                 (each type)
+*
+* A plain `bsample, cluster(cid)' does not do that: it resamples countries and
+* takes whatever treatment mix falls out. With 12 default episodes a draw can
+* easily land with three or four of them, or none, and those draws are either
+* useless or fail outright — which is why the draw counts came in below nboot.
+*
+* This builds the stratum so `bsample, cluster(cid) strata()' preserves the count
+* of ever-treated COUNTRIES in every draw. Country-level, so it is constant
+* within cluster as bsample requires. We stratify on countries rather than on
+* observations (their choice) because clustering by country is what keeps the
+* within-country dependence in the standard error; theirs ignores it.
+* ══════════════════════════════════════════════════════════════════════════
+capture program drop _mkstrat
+program define _mkstrat
+    syntax varlist(min=1 max=2) [if], GENerate(name)
+    marksample touse
+    capture drop `generate'
+    tempvar t1 t2
+    local d1 : word 1 of `varlist'
+    local d2 : word 2 of `varlist'
+    quietly gen byte `t1' = `d1' if `touse'
+    bysort cid: egen byte `generate' = max(`t1')
+    quietly replace `generate' = 0 if missing(`generate')
+    if "`d2'" != "" {
+        * two treatments (the paired difference): a 4-level stratum so BOTH
+        * treated counts are preserved on the same resample.
+        quietly gen byte `t2' = `d2' if `touse'
+        tempvar s2
+        bysort cid: egen byte `s2' = max(`t2')
+        quietly replace `s2' = 0 if missing(`s2')
+        quietly replace `generate' = `generate' + 2*`s2'
+    }
 end
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -137,14 +197,19 @@ program define _aipwpairdiff, rclass
     }
     local b2 = r(theta)
     local dh = `b1' - `b2'
-    * bootstrap the difference: one resample -> both cells -> their gap
+    * bootstrap the difference: one resample -> both cells -> their gap.
+    * STRATIFIED on both treatments at once (4 levels: has-nd x has-def), so a
+    * single resample preserves the treated count of BOTH cells. Without this the
+    * default cell — 12 episodes — routinely comes back too thin to estimate, and
+    * the difference draw is lost with it.
+    _mkstrat `d1' `d2', generate(_strat)
     tempname pf
     tempfile bf
     quietly postfile `pf' double diff using "`bf'", replace
     forvalues b = 1/`reps' {
         preserve
             capture drop _bid
-            bsample, cluster(cid) idcluster(_bid)
+            bsample, cluster(cid) strata(_strat) idcluster(_bid)
             capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(_bid)
             local t1 = cond(_rc==0, r(theta), .)
             capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(_bid)
@@ -153,6 +218,7 @@ program define _aipwpairdiff, rclass
         restore
     }
     quietly postclose `pf'
+    capture drop _strat
     local se = .
     local lo = .
     local hi = .
@@ -203,19 +269,24 @@ forvalues h = 0/4 {
     local pt = r(theta)
     matrix A1_b[`row',1] = `pt'
 
-    * cluster bootstrap: resample countries (fresh FE ids), recompute Eq. (3)
+    * STRATIFIED cluster bootstrap: resample countries within ever-treated and
+    * never-treated strata, so every draw carries the same number of treated
+    * countries. See _mkstrat above for why an unstratified draw is unusable on
+    * a cell this thin.
+    _mkstrat onset_all if sample==1, generate(_strat)
     tempname pf
     tempfile bf
     quietly postfile `pf' double theta using "`bf'", replace
     forvalues b = 1/`nboot' {
         preserve
             capture drop _bid
-            bsample, cluster(cid) idcluster(_bid)
+            bsample, cluster(cid) strata(_strat) idcluster(_bid)
             capture _aipw dy_`h' onset_all if sample==1, omodel($ctrl_core) pmodel(`cx' `cz') fe(_bid)
             if _rc == 0 quietly post `pf' (r(theta))
         restore
     }
     quietly postclose `pf'
+    capture drop _strat
 
     local ndraw = 0
     preserve
@@ -270,20 +341,24 @@ foreach spec in "onset_nd onset_def A2nd non-default" ///
         local pt = r(theta)
         matrix `stub'_b[`row',1] = `pt'
 
-        * cluster bootstrap (fresh FE ids), recompute Eq. (3)
+        * STRATIFIED cluster bootstrap (fresh FE ids), recompute Eq. (3).
+        * Preserves the treated-country count per draw — essential here, since the
+        * default cell rests on 12 episodes.
+        _mkstrat `Dvar' if sample==1 & `drop'==0, generate(_strat)
         tempname pf2
         tempfile bf2
         quietly postfile `pf2' double theta using "`bf2'", replace
         forvalues b = 1/`nboot' {
             preserve
                 capture drop _bid
-                bsample, cluster(cid) idcluster(_bid)
+                bsample, cluster(cid) strata(_strat) idcluster(_bid)
                 capture _aipw dy_`h' `Dvar' if sample==1 & `drop'==0, ///
                     omodel($ctrl_core) pmodel(`cx' `cz_def') fe(_bid)
                 if _rc == 0 quietly post `pf2' (r(theta))
             restore
         }
         quietly postclose `pf2'
+        capture drop _strat
 
         local ndraw = 0
         preserve
