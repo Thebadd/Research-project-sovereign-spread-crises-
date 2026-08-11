@@ -9,8 +9,8 @@
     dy_0..dy_4        cumulative % change in log TOTAL real GDP (ln gdp_real), F h vs t-1 (headline outcome)
     dy_pc_0..dy_pc_4  per-capita version (robustness)
     dy_m1, dy_m2      pre-trend placebos (two-year growth spans ending before onset)
-    l_lninfl (= ln(1+L.infl/100), core), l_infl (raw lagged, robustness),
-    hyperinf_dummy (robustness only — no longer in the core),
+    hyperinf_dummy (L.infl>50, core), l_lninfl (= ln(1+L.infl/100)) and l_infl (raw)
+    built as continuous robustness alternatives, not in the core,
     l_govexp, l_open, l_credit (+l_credit_bank robustness), $ctrl_core  common-core ingredients
     tot_chg, exchange2, ex_dum1-5  robustness-tier controls (Asonuma additional)
     l_spr_mean/max    lagged EMBIG spread (balance table)
@@ -67,7 +67,7 @@ label var l_spr_max  "L1 EMBIG max spread (bps)"
 * ── Asonuma-aligned COMMON-CORE control set (plain predetermined columns) ───
 *   One control set used as the OUTCOME-model controls in every GDP + channel
 *   regression, mirroring Asonuma's $convar: GDP momentum, gov spending, openness,
-*   bank-credit depth, log inflation, banking-crisis dummy + our debt/ca.
+*   bank-credit depth, hyperinflation dummy, banking-crisis dummy + our debt/ca.
 *   Plain lagged columns so the SAME set works in xtscc LP and bsample AIPW.
 * Guard: these sources are built upstream — infl/govexp in stage 11 (WEO),
 * open/credit_bank in stage 12 (WDI). If any is absent, panel_build.dta was not
@@ -83,22 +83,26 @@ foreach req in infl govexp open credit_bank {
     }
 }
 capture drop hyperinf_dummy l_infl l_lninfl l_govexp l_open l_credit_bank l_credit l_debt l_ca l_banking_crisis
-* Inflation enters the core as LOG GROSS INFLATION, lagged: ln(1 + L.infl/100).
-* Raw inflation is unusable as a control here — in this panel the median is 9.0% but
-* Venezuela 2018 is 65,374% (6 obs above 1000%), so a raw term sits ~7,000x beyond the
-* median and the fitted coefficient would be set by a handful of Venezuelan years rather
-* than by the ~480 normal ones, pushing that mis-fit into the onset coefficient. The log
-* keeps every observation and preserves the ranking (Venezuela stays highest) at ~75x the
-* median instead of ~7,000x. Safe because the minimum is -8.53% (Azerbaijan 1999), well
-* above the -100% where ln(1+x) breaks. l_infl (raw lagged) is built alongside so the
-* core can be switched back to raw with a one-token edit.
+* INFLATION IN THE CORE = hyperinf_dummy (David's decision), matching Asonuma et al.
+* Raw inflation cannot be used directly here: across the 52 panel countries 1994-2026 the
+* median is 9.0% while Venezuela 2018 is 65,374% (9 obs above 1000%), so a raw term would
+* let a handful of country-years set the coefficient. The dummy sidesteps that entirely by
+* flagging the hyperinflation regime instead of its magnitude — 63 country-years exceed the
+* 50% threshold (Venezuela 16, Turkey 11, Bulgaria/Argentina/Lebanon 4 each, 17 countries
+* in all), so the flag is well populated in the raw data.
+*   NB it collapsed to a single estimation-sample observation in the pre-2026 runs, but
+*   that was the OLD banking control truncating the panel at 2018, which killed the entire
+*   recent cluster (Argentina 2019-24, Lebanon 2020-23, Turkey 2022-24, Venezuela 2019-26).
+*   With the Laeven-Valencia rebuild extending the sample past 2018 those years return.
+*   Worth re-checking the probit for "predicts failure perfectly" on the new sample.
+gen byte   hyperinf_dummy = (L.infl > 50) if !missing(L.infl)
+* Continuous alternatives, built but NOT in the core — available for a dummy-vs-continuous
+* robustness spec, and a one-token swap in the 14 $ctrl_core definitions if wanted. Use
+* l_lninfl rather than l_infl for that: the log tames the tail (Venezuela ~75x the median
+* instead of ~7,000x). Safe because the minimum is -8.53% (Azerbaijan 1999), well above
+* the -100% where ln(1+x) breaks.
 gen double l_infl         = L.infl
 gen double l_lninfl       = ln(1 + L.infl/100) if !missing(L.infl) & L.infl > -100
-* hyperinf_dummy is still built (robustness: dummy-vs-continuous), but it is NO LONGER in
-* $ctrl_core — in the last run exactly ONE estimation-sample observation had it equal to 1
-* ("predicts failure perfectly; 1 obs not used" in the probit), so it was fitting a single
-* residual while being dropped from the first stage entirely.
-gen byte   hyperinf_dummy = (L.infl > 50) if !missing(L.infl)
 gen double l_govexp       = L.govexp
 gen double l_open         = L.open
 gen double l_credit_bank  = L.credit_bank
@@ -121,9 +125,9 @@ gen double l_ust10y       = L.ust10y
 label var l_fedfunds "L1 US fed funds rate (predetermined; = Asonuma federal_funds2)"
 label var l_vix      "L1 CBOE VIX (predetermined)"
 label var l_ust10y   "L1 US 10y Treasury yield (predetermined)"
-label var hyperinf_dummy "Hyperinflation dummy (L.infl > 50) — robustness only, not in core"
-label var l_infl         "L1 CPI inflation, % (raw; robustness alternative to l_lninfl)"
-label var l_lninfl       "L1 log gross inflation = ln(1+L.infl/100) — common core"
+label var hyperinf_dummy "Hyperinflation dummy (L.infl > 50) — common core"
+label var l_infl         "L1 CPI inflation, % (raw; robustness alternative, not in core)"
+label var l_lninfl       "L1 log gross inflation = ln(1+L.infl/100) (robustness alt., not in core)"
 label var l_govexp       "L1 govt expenditure, % GDP"
 label var l_open         "L1 trade openness, % GDP"
 label var l_credit_bank  "L1 bank credit to private / GDP (financial depth, by-banks; robustness)"
@@ -132,7 +136,7 @@ label var l_debt         "L1 public debt, % GDP (predetermined)"
 label var l_ca           "L1 current account, % GDP (predetermined)"
 label var l_banking_crisis      "L1 systemic banking-crisis dummy (predetermined)"
 
-global ctrl_core "l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit l_lninfl"
+global ctrl_core "l1_gdpg l_debt l_ca l_banking_crisis l_govexp l_open l_credit hyperinf_dummy"
 
 * ── ROBUSTNESS-tier controls (Asonuma additional controls; NOT in the core) ──
 *   terms-of-trade change and nominal-FX-change quantile dummies, built the
@@ -187,7 +191,7 @@ di as result "  sample rows: `r(N)'"
 quietly count if onset_all==1 & sample==1
 di as result "  onsets in sample: `r(N)'"
 di as result _n "Coverage at onsets (non-missing) for the key analysis variables:"
-foreach v in dy_0 l1_gdpg debt ca infl l_lninfl imf credit fdi claims_govt inv govexp pb ///
+foreach v in dy_0 l1_gdpg debt ca infl hyperinf_dummy l_lninfl imf credit fdi claims_govt inv govexp pb ///
              banking_crisis l_banking_crisis reer_chg revenue_gdp open claimsgov_assets ///
              claimpriv_assets vix fedfunds ust10y {
     capture confirm variable `v'
@@ -199,15 +203,17 @@ foreach v in dy_0 l1_gdpg debt ca infl l_lninfl imf credit fdi claims_govt inv g
 }
 
 * ── Inflation control: confirm the log transform tamed the tail ─────────────
-* The core carries l_lninfl, not raw inflation: in this panel raw L.infl runs from
-* about -8.5% to 65,374% (Venezuela 2018) against a ~9% median, so a raw term would
-* let a handful of country-years set the coefficient. These two lines make the
-* compression visible in the run log.
+* The core carries hyperinf_dummy. These lines report how many observations trip the
+* 50% threshold and what the continuous alternatives look like, so the choice stays
+* visible in the run log.
 capture confirm variable l_lninfl
 if !_rc {
-    di as result _n "Inflation control (core uses l_lninfl = ln(1+L.infl/100)):"
+    di as result _n "Inflation control (core uses hyperinf_dummy = L.infl > 50):"
+    quietly count if hyperinf_dummy==1 & sample==1
+    di as result "    hyperinf_dummy==1 in estimation sample: `r(N)'"
+    di as result "       (was 1 pre-rebuild, when the panel was truncated at 2018)"
     quietly summarize l_infl if sample==1, detail
     di as result "    raw  l_infl   median " %8.2f r(p50) "   max " %11.1f r(max)
     quietly summarize l_lninfl if sample==1, detail
-    di as result "    log  l_lninfl median " %8.3f r(p50) "   max " %11.3f r(max)
+    di as result "    log  l_lninfl median " %8.3f r(p50) "   max " %11.3f r(max)   "  (alt., not in core)"
 }
