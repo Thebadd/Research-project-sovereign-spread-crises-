@@ -88,11 +88,48 @@ in the first-stage propensity model).
 | `vix` | VIXCLS | VIXCLS.xlsx (annual avg) |
 
 ## 7. Laeven–Valencia banking crises — `16_banking.do`
-Source: `Banking_crisis_dummy_data_set.xlsx` (World Bank GFDD `GFDD.OI.19`).
+Source: `SYSTEMIC_BANKING_CRISES_DATABASE_2026.xlsx` — Laeven & Valencia, *Systemic
+Banking Crises Database*, 2026 update. Sheet `Crisis Resolution and Outcomes`
+(header row 1, data from row 2; `A`=Country, `C`=Start, `D`=End). **164 episodes,
+120 countries, 1976–2023.**
 
 | Variable | Definition |
 |---|---|
-| `banking_crisis` | systemic banking-crisis dummy (0/1). Kept as provided — no duration. |
+| `banking_crisis` | systemic banking-crisis dummy: **1 in every year of a crisis, 0 otherwise** |
+
+**Construction.** The source is an *episode list* (one row per crisis, with start and
+end years), not a country-year panel. Each `[Start, End]` window is expanded to
+country-years and set to 1; **every other panel country-year is set to 0**. This
+zero-fill is the substantive point: absence from the L-V list means *no systemic
+banking crisis*, not *unknown*.
+
+**Why this replaced the earlier GFDD extract.** `banking_crisis` previously came from
+`Banking_crisis_dummy_data_set.xlsx` (World Bank GFDD `GFDD.OI.19`), whose year columns
+are entirely missing from 2018 on. The variable therefore existed only 1990–2017, and
+`l_banking = L.banking_crisis` only 1991–2018. Since `l_banking` is in `$ctrl_core`,
+that one control truncated the whole estimation sample at 2018 (every `xtscc` table
+printed `2019–2026 (omitted)`), and listwise deletion cut the headline LP from 61 onsets
+to roughly 20 — excluding Argentina 2018, Turkey 2018, Lebanon 2019, Zambia 2020,
+Sri Lanka 2022, Ghana 2022 and COVID. The old file is retained in `data/raw/` but is no
+longer read by any do-file.
+
+**Conventions and caveats.**
+- *Ongoing crises.* A blank `End` means the crisis had not ended at publication, so the
+  country stays coded 1 through the last panel year (Vietnam 2022–, Sri Lanka 2023–).
+- *Country coverage.* 43 of our 52 countries match L-V by exact name; **Türkiye** is the
+  only naming mismatch (mapped to `Turkey`). The other 8 — Belize, Guatemala, Honduras,
+  Namibia, Pakistan, Serbia, South Africa, Trinidad and Tobago — carry no L-V crisis at
+  all and are correctly 0 throughout. Within the 1994–2026 panel window, **33** countries
+  record at least one crisis and **123** country-years are flagged; the remaining 11
+  matched countries (Chile, Côte d'Ivoire, Egypt, El Salvador, India, Jordan, Morocco,
+  Panama, Peru, Senegal, Tunisia) were last hit before 1994, so their in-window zeros are
+  also genuine.
+- *Post-2023 years.* L-V observed through 2023; zeros for 2024–2026 assume no *new*
+  systemic banking crisis began in those years (ongoing crises are still carried forward).
+- *Merge key.* Country × year (the workbook has no ISO3 column), following the same
+  `merge m:1 country year` pattern as `13_ifs_nexus.do`.
+- The `Resolution Details` sheet is **not** used: its date cells are corrupted (Argentina's
+  2001 crisis reads `2026-11-01`). `Crisis Resolution and Outcomes` has clean integer years.
 
 ## 8. Derived predictors & transforms — `17_predictors.do`, `18_transforms.do`
 All computed in code from the sourced series.
