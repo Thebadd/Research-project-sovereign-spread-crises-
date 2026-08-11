@@ -79,7 +79,7 @@ end
 
 * ── Storage matrices (rows: h = -2, -1, 0, 1, 2, 3, 4) ──────────────────
 local nhor = 7
-foreach m in b lo90 hi90 lo95 hi95 {
+foreach m in b se lo90 hi90 lo95 hi95 {
     matrix `m'_all = J(`nhor', 1, .)
 }
 
@@ -122,6 +122,7 @@ foreach h_neg in 2 1 {
     local pp = r(p)
 
     matrix b_all[`row', 1]    = `bb'
+    matrix se_all[`row', 1]   = `ss'
     matrix lo90_all[`row', 1] = `bb' - `c90' * `ss'
     matrix hi90_all[`row', 1] = `bb' + `c90' * `ss'
     matrix lo95_all[`row', 1] = `bb' - `c95' * `ss'
@@ -168,6 +169,7 @@ forvalues h = 0/4 {
 
     * Store point estimate and confidence intervals
     matrix b_all[`row', 1]    = `bb'
+    matrix se_all[`row', 1]   = `ss'
     matrix lo90_all[`row', 1] = `bb' - `c90' * `ss'
     matrix hi90_all[`row', 1] = `bb' + `c90' * `ss'
     matrix lo95_all[`row', 1] = `bb' - `c95' * `ss'
@@ -282,12 +284,14 @@ set obs `nhor'
 gen horizon = _n - 3     // -2, -1, 0, 1, 2, 3, 4
 
 svmat b_all,    names(b)
+svmat se_all,   names(se)
 svmat lo90_all, names(lo90)
 svmat hi90_all, names(hi90)
 svmat lo95_all, names(lo95)
 svmat hi95_all, names(hi95)
 
 rename b1    b
+rename se1   se
 rename lo901 lo90
 rename hi901 hi90
 rename lo951 lo95
@@ -296,6 +300,7 @@ rename hi951 hi95
 gen series = "all"
 label var horizon "Horizon (years after onset)"
 label var b       "Point estimate (pp)"
+label var se      "Driscoll-Kraay standard error"
 label var lo90    "90% CI lower"
 label var hi90    "90% CI upper"
 label var lo95    "95% CI lower"

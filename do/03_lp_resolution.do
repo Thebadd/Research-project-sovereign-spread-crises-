@@ -2,8 +2,19 @@
   03_LP_RESOLUTION.DO
   ACT 2 — Local Projections: Non-Default vs. Default-Linked Episodes
 
-  Specification A: separate LP for each group
-  Specification B: joint regression with both dummies — tests equality of IRFs
+  Specification A (HEADLINE): one LP per resolution type, each vs TRANQUIL with
+    the RIVAL type DROPPED from the sample. This is the reference paper's design
+    (Asonuma et al.): every type is estimated against tranquil country-years, and
+    the extra cost of default is the DIFFERENCE of the two vs-tranquil lines
+    (Clogg et al. 1995 z), never one type regressed on the other.
+    The rival-drop matters. Without it, `onset_nd` is estimated with default
+    onsets sitting in the CONTROL group, so the non-default line is measured
+    against a control that contains the worst crises in the panel and is biased
+    toward zero. It also put the OLS lines on a different sample from the IPW and
+    AIPW lines in the same figures, which already drop the rival.
+
+  Specification B: joint regression with both dummies — kept as the Wald equality
+    check on a single common sample. Robustness, not the headline.
 
   Treatment dummies:
     onset_nd  = 1 → 40 non-default episodes
@@ -89,14 +100,14 @@ end
 
 di as result _n "=== NON-DEFAULT EPISODES (N=40 onsets) ==="
 
-foreach m in b lo90 hi90 lo95 hi95 {
+foreach m in b se lo90 hi90 lo95 hi95 {
     matrix `m'_nd = J(7, 1, .)
 }
 
 * Pre-trend
 foreach h_neg in 2 1 {
     local row = 3 - `h_neg'
-    xtscc dy_m`h_neg' onset_nd `controls_pre' i.year if sample==1, fe lag(1)
+    xtscc dy_m`h_neg' onset_nd `controls_pre' i.year if sample==1 & onset_def==0, fe lag(1)
     local bb = _b[onset_nd]
     local ss = _se[onset_nd]
     _critvals
@@ -105,6 +116,7 @@ foreach h_neg in 2 1 {
     _pval `bb' `ss'
     local pp = r(p)
     matrix b_nd[`row',1]    = `bb'
+    matrix se_nd[`row',1]   = `ss'
     matrix lo90_nd[`row',1] = `bb' - `c90'*`ss'
     matrix hi90_nd[`row',1] = `bb' + `c90'*`ss'
     matrix lo95_nd[`row',1] = `bb' - `c95'*`ss'
@@ -116,7 +128,7 @@ foreach h_neg in 2 1 {
 forvalues h = 0/4 {
     local row = `h' + 3
     local lag = max(1, `h'+1)
-    xtscc dy_`h' onset_nd `controls' i.year if sample==1, fe lag(`lag')
+    xtscc dy_`h' onset_nd `controls' i.year if sample==1 & onset_def==0, fe lag(`lag')
     local bb = _b[onset_nd]
     local ss = _se[onset_nd]
     local nn = e(N)
@@ -128,6 +140,7 @@ forvalues h = 0/4 {
     _pval `bb' `ss'
     local pp = r(p)
     matrix b_nd[`row',1]    = `bb'
+    matrix se_nd[`row',1]   = `ss'
     matrix lo90_nd[`row',1] = `bb' - `c90'*`ss'
     matrix hi90_nd[`row',1] = `bb' + `c90'*`ss'
     matrix lo95_nd[`row',1] = `bb' - `c95'*`ss'
@@ -142,13 +155,13 @@ forvalues h = 0/4 {
 
 di as result _n "=== DEFAULT-LINKED EPISODES (N=21 onsets) ==="
 
-foreach m in b lo90 hi90 lo95 hi95 {
+foreach m in b se lo90 hi90 lo95 hi95 {
     matrix `m'_def = J(7, 1, .)
 }
 
 foreach h_neg in 2 1 {
     local row = 3 - `h_neg'
-    xtscc dy_m`h_neg' onset_def `controls_pre' i.year if sample==1, fe lag(1)
+    xtscc dy_m`h_neg' onset_def `controls_pre' i.year if sample==1 & onset_nd==0, fe lag(1)
     local bb = _b[onset_def]
     local ss = _se[onset_def]
     _critvals
@@ -157,6 +170,7 @@ foreach h_neg in 2 1 {
     _pval `bb' `ss'
     local pp = r(p)
     matrix b_def[`row',1]    = `bb'
+    matrix se_def[`row',1]   = `ss'
     matrix lo90_def[`row',1] = `bb' - `c90'*`ss'
     matrix hi90_def[`row',1] = `bb' + `c90'*`ss'
     matrix lo95_def[`row',1] = `bb' - `c95'*`ss'
@@ -167,7 +181,7 @@ foreach h_neg in 2 1 {
 forvalues h = 0/4 {
     local row = `h' + 3
     local lag = max(1, `h'+1)
-    xtscc dy_`h' onset_def `controls' i.year if sample==1, fe lag(`lag')
+    xtscc dy_`h' onset_def `controls' i.year if sample==1 & onset_nd==0, fe lag(`lag')
     local bb = _b[onset_def]
     local ss = _se[onset_def]
     local nn = e(N)
@@ -179,12 +193,58 @@ forvalues h = 0/4 {
     _pval `bb' `ss'
     local pp = r(p)
     matrix b_def[`row',1]    = `bb'
+    matrix se_def[`row',1]   = `ss'
     matrix lo90_def[`row',1] = `bb' - `c90'*`ss'
     matrix hi90_def[`row',1] = `bb' + `c90'*`ss'
     matrix lo95_def[`row',1] = `bb' - `c95'*`ss'
     matrix hi95_def[`row',1] = `bb' + `c95'*`ss'
     di "h=" `h' ": beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  N = " `nn' ///
        "  episodes = " `nep' "  p = " %5.3f `pp'
+}
+
+* ══════════════════════════════════════════════════════════════════════════
+* HEADLINE DIFFERENCE — extra cost of default, from the two Spec A lines
+*
+* This is the reference paper's statistic: each type is estimated vs tranquil
+* (rival dropped), and the extra cost of default is the DIFFERENCE of the two
+* lines, tested with the Clogg et al. (1995) z. The two coefficients come from
+* separate regressions on disjoint treated groups, so they are independent and
+* the pooled SE is sqrt(se_nd^2 + se_def^2).
+*
+* Negative => the default-linked loss is deeper. Compare against Spec B's Wald
+* test below: the two answer the same question on slightly different samples, and
+* they should agree. A large discrepancy means the rival-drop is doing more work
+* than it should and is worth investigating rather than reporting.
+* ══════════════════════════════════════════════════════════════════════════
+
+matrix diff_specA = J(7, 1, .)
+matrix pz_specA   = J(7, 1, .)
+
+di as result _n "=== EXTRA COST OF DEFAULT (Spec A: difference of two vs-tranquil lines) ==="
+di as result "h     beta_nd   beta_def   diff(def-nd)   Clogg z   p"
+
+forvalues row = 1/7 {
+    local hlab = `row' - 3
+    local bnd  = b_nd[`row',1]
+    local bdef = b_def[`row',1]
+    local snd  = se_nd[`row',1]
+    local sdef = se_def[`row',1]
+
+    if missing(`bnd') | missing(`bdef') | missing(`snd') | missing(`sdef') continue
+
+    local bdiff = `bdef' - `bnd'
+    local sdiff = sqrt(`snd'^2 + `sdef'^2)
+    local zdiff = `bdiff' / `sdiff'
+    * Spec A's regressions are gone from e() by now, so this p-value uses the
+    * normal. The z is the same statistic either way; only the tail differs, and
+    * Table 2's Wald/Clogg columns carry the df-based version.
+    local pzA   = 2*(1 - normal(abs(`zdiff')))
+
+    matrix diff_specA[`row',1] = `bdiff'
+    matrix pz_specA[`row',1]   = `pzA'
+
+    di "h=" %2.0f `hlab' "  " %8.3f `bnd' "  " %8.3f `bdef' ///
+       "  " %10.3f `bdiff' "  " %8.2f `zdiff' "  " %6.3f `pzA'
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -368,7 +428,7 @@ else di as result "Table 2 saved: $tabs/table2_output_resolution.rtf"
 clear
 set obs 7
 gen horizon = _n - 3
-foreach m in b lo90 hi90 lo95 hi95 {
+foreach m in b se lo90 hi90 lo95 hi95 {
     svmat `m'_nd, names(`m')
     rename `m'1 `m'
 }
@@ -379,7 +439,7 @@ save "$clean/irf_nd.dta", replace
 clear
 set obs 7
 gen horizon = _n - 3
-foreach m in b lo90 hi90 lo95 hi95 {
+foreach m in b se lo90 hi90 lo95 hi95 {
     svmat `m'_def, names(`m')
     rename `m'1 `m'
 }
