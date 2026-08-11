@@ -10,7 +10,8 @@
   ---------
   For each of the 6 channels from 11_channels.do, we run:
 
-  Spec A (OLS): joint LP with onset_nd and onset_def simultaneously
+  Spec A (OLS, reference-paper baseline): JOINT LP with onset_nd and onset_def
+    entered simultaneously on the FULL sample, tranquil the omitted category
     ch_var(h) = αi + γt + β_nd(h)·onset_nd + β_def(h)·onset_def
                + X_core (common core + pre_<v>)·δ + ε     [DK SE, lag=max(1,h+1)]
 
@@ -149,20 +150,14 @@ foreach ch of local channels {
         local lag = max(1, `h'+1)
         local row = `h' + 1
 
-        * ── OLS: TWO vs-tranquil LPs with the RIVAL DROPPED ─────────────
-        * Each resolution type is estimated against tranquil country-years with the
-        * other type removed from the sample, matching 03's Spec A, the IPW lines
-        * below, and the AIPW in 13c. It was previously a single joint LP on the
-        * full sample: the non-default line's control group then contained every
-        * default episode, and the OLS and IPW lines plotted together in the same
-        * figure were not estimated on the same samples.
-        quietly count if onset_nd  == 1 & sample == 1 & !missing(ch_`ch'_`h')
-        local nepnd = r(N)
-        quietly count if onset_def == 1 & sample == 1 & !missing(ch_`ch'_`h')
-        local nepdef = r(N)
-
-        capture xtscc ch_`ch'_`h' onset_nd `ctrl' i.year ///
-            if sample == 1 & onset_def == 0, fe lag(`lag')
+        * ── OLS: JOINT LP, both type dummies, FULL sample ───────────────
+        * The reference paper's baseline is a single joint regression with all type
+        * dummies and tranquil as the omitted category:
+        *     reg g_h dum1 dum2 dum3 g_0 $convar, noconstant
+        * with sample_for* NOT applied. Their rival-drop belongs to the two-stage
+        * design (probit + weighted reg) and is applied to the IPW lines below only.
+        capture xtscc ch_`ch'_`h' onset_nd onset_def `ctrl' i.year ///
+            if sample == 1, fe lag(`lag')
 
         if _rc == 0 {
             matrix b_nd_ols_`ch'[`row',1]    = _b[onset_nd]
@@ -170,56 +165,48 @@ foreach ch of local channels {
             matrix hi90_nd_ols_`ch'[`row',1] = _b[onset_nd]  + 1.645*_se[onset_nd]
             matrix lo95_nd_ols_`ch'[`row',1] = _b[onset_nd]  - 1.960*_se[onset_nd]
             matrix hi95_nd_ols_`ch'[`row',1] = _b[onset_nd]  + 1.960*_se[onset_nd]
-            local b_nd_o  = _b[onset_nd]
-            local se_nd_o = _se[onset_nd]
-            eststo t4nd_`ch'_`h', title("h=`h'")
-            estadd scalar nep = `nepnd'
-            local elistnd_`ch' `elistnd_`ch'' t4nd_`ch'_`h'
-        }
-        else {
-            local b_nd_o  = .
-            local se_nd_o = .
-            di as error "OLS (nd vs tranquil) failed for `ch' h=`h'"
-        }
-
-        capture xtscc ch_`ch'_`h' onset_def `ctrl' i.year ///
-            if sample == 1 & onset_nd == 0, fe lag(`lag')
-
-        if _rc == 0 {
             matrix b_def_ols_`ch'[`row',1]   = _b[onset_def]
             matrix lo90_def_ols_`ch'[`row',1]= _b[onset_def] - 1.645*_se[onset_def]
             matrix hi90_def_ols_`ch'[`row',1]= _b[onset_def] + 1.645*_se[onset_def]
             matrix lo95_def_ols_`ch'[`row',1]= _b[onset_def] - 1.960*_se[onset_def]
             matrix hi95_def_ols_`ch'[`row',1]= _b[onset_def] + 1.960*_se[onset_def]
-            local b_def_o  = _b[onset_def]
-            local se_def_o = _se[onset_def]
+            test onset_nd = onset_def
+            matrix pval_ols_`ch'[`row',1] = r(p)
+            local pd_`ch'_`h' = r(p)   // store before eststo (which can reset r())
 
-            * eststo BEFORE estadd — estadd writes into the stored set.
-            eststo t4def_`ch'_`h', title("h=`h'")
-            estadd scalar nep = `nepdef'
+            * Difference block (Clogg et al. 1995) + episode counts
+            local bnd  = _b[onset_nd]
+            local bdef = _b[onset_def]
+            local snd  = _se[onset_nd]
+            local sdef = _se[onset_def]
+            local bdiff = `bdef' - `bnd'
+            local zdiff = `bdiff' / sqrt(`snd'^2 + `sdef'^2)
+            local pz    = 2*(1 - normal(abs(`zdiff')))
+            quietly count if onset_nd  == 1 & sample == 1 & !missing(ch_`ch'_`h')
+            local nepnd = r(N)
+            quietly count if onset_def == 1 & sample == 1 & !missing(ch_`ch'_`h')
+            local nepdef = r(N)
 
-            * Extra cost of default = difference of the two vs-tranquil lines,
-            * Clogg et al. (1995) z. Independent coefficients (disjoint treated
-            * groups), so the pooled SE is sqrt(se_nd^2 + se_def^2). This replaces
-            * the joint regression's Wald test, which no longer exists. It is
-            * attached to the default panel, where the extra cost is reported.
-            local p_o = .
-            if !missing(`b_nd_o') {
-                local bdiff = `b_def_o' - `b_nd_o'
-                local zdiff = `bdiff' / sqrt(`se_nd_o'^2 + `se_def_o'^2)
-                local p_o   = 2*(1 - normal(abs(`zdiff')))
-                estadd scalar bdiff  = `bdiff'
-                estadd scalar zdiff  = `zdiff'
-                estadd scalar pzdiff = `p_o'
-            }
-            local elistdef_`ch' `elistdef_`ch'' t4def_`ch'_`h'
+            eststo t4_`ch'_`h', title("h=`h'")
+            estadd scalar bdiff  = `bdiff'
+            estadd scalar zdiff  = `zdiff'
+            estadd scalar pzdiff = `pz'
+            estadd scalar pdiff  = `pd_`ch'_`h''
+            estadd scalar nepnd  = `nepnd'
+            estadd scalar nepdef = `nepdef'
+            local elist_`ch' `elist_`ch'' t4_`ch'_`h'
+            local b_nd_o  = `bnd'
+            local b_def_o = `bdef'
+            * NOT r(p): eststo/estadd above clear r(), so r(p) is empty by this
+            * point and the console column printed "." for every row.
+            local p_o     = `pd_`ch'_`h''
         }
         else {
+            local b_nd_o  = .
             local b_def_o = .
             local p_o     = .
-            di as error "OLS (def vs tranquil) failed for `ch' h=`h'"
+            di as error "OLS failed for `ch' h=`h'"
         }
-        matrix pval_ols_`ch'[`row',1] = `p_o'
 
         * ── IPW: two SEPARATE vs-tranquil weighted LPs (rival dropped) ────
         * Country FE only, no year FE (paper-aligned two-stage outcome regression).
@@ -275,19 +262,18 @@ foreach ch of local channels {
 
 * ══════════════════════════════════════════════════════════════════════════
 * TABLE EXPORT — TABLE 4: Transmission channels by resolution type
-*   Word/RTF, multi-panel: TWO panels per channel (non-default, default-linked),
-*   columns = horizons h=0..4. Each type is estimated vs tranquil with the rival
-*   dropped, so the two coefficients now come from two regressions and cannot
-*   share a column - hence one panel each. The extra cost of default (difference
-*   + Clogg z) is reported on the default panel.
+*   Word/RTF, multi-panel: one panel per channel, columns = horizons h=0..4.
+*   Each panel reports non-default and default-linked onset coefficients from the
+*   JOINT regression (the reference paper's baseline), DK SE in parentheses, plus
+*   the difference, its Clogg z, and the Wald p-value of their equality.
 *   OLS spec (matches Tables 1-3). First panel replaces; the rest append.
 *   Requires: ssc install estout
 * ══════════════════════════════════════════════════════════════════════════
 
-local t4note "Dependent variable: cumulative change in the channel variable (pp) from t-1 to t+h. Each resolution type is estimated against tranquil country-years with the other type dropped from the sample, so the two panels of a channel come from separate regressions. Jorda (2005) local projections; country and year fixed effects; common-core controls plus the channel's own pre-crisis change; continuation years excluded. Driscoll-Kraay standard errors in parentheses. The difference (default minus non-default) and its Clogg et al. (1995) z are shown on the default panel. * p<0.10, ** p<0.05, *** p<0.01."
+local t4note "Dependent variable: cumulative change in the channel variable (pp) from t-1 to t+h. Both onset dummies enter jointly with tranquil years as the omitted category, matching the reference paper's baseline. Jorda (2005) local projections; country and year fixed effects; common-core controls plus the channel's own pre-crisis change; continuation years excluded. Driscoll-Kraay standard errors in parentheses. p(nd=def) is the Wald equality test. * p<0.10, ** p<0.05, *** p<0.01."
 
 * Per-channel panel titles (Panel A carries the overall table caption)
-local ptitle_credit      "Table 4. Channels by resolution, each type vs. tranquil -- Panel A: Private credit/GDP"
+local ptitle_credit      "Table 4. Channels by resolution (nd vs. def, joint) -- Panel A: Private credit/GDP"
 local ptitle_claims_govt "Panel B: Bank claims on govt/GDP"
 local ptitle_inv         "Panel C: Investment/GDP"
 local ptitle_govexp      "Panel D: Govt expenditure/GDP"
@@ -303,53 +289,40 @@ local t4fail 0
 
 foreach ch in credit claims_govt inv govexp pb fdi {
 
-    * Two sub-panels per channel: the non-default line, then the default line
-    * carrying the extra-cost-of-default block.
-    foreach grp in nd def {
-
-        if "`elist`grp'_`ch''" == "" {
-            di as error "  ** Table 4: no `grp' estimates for channel `ch' — panel skipped"
-            local t4fail 1
-            continue
-        }
-
-        if "`grp'" == "nd" {
-            local gkeep  onset_nd
-            local glabel onset_nd "Non-default onset"
-            local gstats stats(nep N N_g, labels("Episodes (non-default)" "Observations" "Countries") fmt(0 0 0))
-            local gtitle "`ptitle_`ch'' — non-default vs. tranquil"
-        }
-        else {
-            local gkeep  onset_def
-            local glabel onset_def "Default-linked onset"
-            local gstats stats(bdiff zdiff pzdiff nep N N_g, labels("Difference (default - non-default)" "  Clogg et al. (1995) z" "  p (Clogg z)" "Episodes (default)" "Observations" "Countries") fmt(3 3 3 0 0 0))
-            local gtitle "`ptitle_`ch'' — default-linked vs. tranquil"
-        }
-
-        * The overall table note rides on the very last panel written.
-        local t4extra
-        if "`ch'" == "fdi" & "`grp'" == "def" local t4extra addnotes("`t4note'")
-
-        capture esttab `elist`grp'_`ch'' using "$tabs/table4_channels_resolution.rtf", `writemode' ///
-            b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
-            keep(`gkeep') coeflabel(`glabel') ///
-            mtitles nonumber ///
-            `gstats' ///
-            title("`gtitle'") `t4extra'
-
-        if _rc == 608 {
-            di as error "  ** table4_channels_resolution.rtf is OPEN IN WORD — close it and re-run."
-            local t4fail 1
-            continue
-        }
-        else if _rc {
-            di as error "  ** Table 4: esttab failed for panel `ch' `grp' (rc=" _rc ")"
-            local t4fail 1
-            continue
-        }
-
-        local writemode append
+    if "`elist_`ch''" == "" {
+        di as error "  ** Table 4: no estimates for channel `ch' — panel skipped"
+        local t4fail 1
+        continue
     }
+
+    local t4extra
+    if "`ch'" == "fdi" local t4extra addnotes("`t4note'")
+
+    capture esttab `elist_`ch'' using "$tabs/table4_channels_resolution.rtf", `writemode' ///
+        b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+        keep(onset_nd onset_def) order(onset_nd onset_def) ///
+        coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
+        mtitles nonumber ///
+        stats(bdiff zdiff pzdiff pdiff nepnd nepdef N N_g, ///
+              labels("Difference (default - non-default)" "  Clogg et al. (1995) z" ///
+                     "  p (Clogg z)" "  p (Wald, nd = def)" ///
+                     "Episodes (non-default)" "Episodes (default)" ///
+                     "Observations" "Countries") ///
+              fmt(3 3 3 3 0 0 0 0)) ///
+        title("`ptitle_`ch''") `t4extra'
+
+    if _rc == 608 {
+        di as error "  ** table4_channels_resolution.rtf is OPEN IN WORD — close it and re-run."
+        local t4fail 1
+        continue
+    }
+    else if _rc {
+        di as error "  ** Table 4: esttab failed for panel `ch' (rc=" _rc ")"
+        local t4fail 1
+        continue
+    }
+
+    local writemode append
 }
 
 if `t4fail' == 0 di as result "Table 4 saved: $tabs/table4_channels_resolution.rtf"

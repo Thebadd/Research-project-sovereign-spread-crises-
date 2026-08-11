@@ -2,19 +2,18 @@
   03_LP_RESOLUTION.DO
   ACT 2 — Local Projections: Non-Default vs. Default-Linked Episodes
 
-  Specification A (HEADLINE): one LP per resolution type, each vs TRANQUIL with
-    the RIVAL type DROPPED from the sample. This is the reference paper's design
-    (Asonuma et al.): every type is estimated against tranquil country-years, and
-    the extra cost of default is the DIFFERENCE of the two vs-tranquil lines
-    (Clogg et al. 1995 z), never one type regressed on the other.
-    The rival-drop matters. Without it, `onset_nd` is estimated with default
-    onsets sitting in the CONTROL group, so the non-default line is measured
-    against a control that contains the worst crises in the panel and is biased
-    toward zero. It also put the OLS lines on a different sample from the IPW and
-    AIPW lines in the same figures, which already drop the rival.
+  Specification B (HEADLINE): JOINT regression, both type dummies entered
+    simultaneously on the FULL sample with tranquil as the omitted category.
+    This is the reference paper's OLS baseline exactly — Asonuma et al. run
+    `reg g_h dum1 dum2 dum3 g_0 $convar, noconstant` with their sample_for*
+    restriction defined but NOT applied to it. Feeds the IRF datasets and figures.
+    Difference tested two ways: Wald equality and the Clogg et al. (1995) z.
 
-  Specification B: joint regression with both dummies — kept as the Wald equality
-    check on a single common sample. Robustness, not the headline.
+  Specification A (ROBUSTNESS): one LP per resolution type, each vs TRANQUIL with
+    the RIVAL type DROPPED. This is the sample the paper's two-stage estimator
+    uses (their probit + weighted regression are both `if sample_for_s == 1`), so
+    it is the right OLS partner for the IPW/AIPW lines in 08/11b/12 — but it is
+    NOT their OLS baseline, and it is reported here as robustness only.
 
   Treatment dummies:
     onset_nd  = 1 → 40 non-default episodes
@@ -95,13 +94,13 @@ program define _nepcount, rclass
 end
 
 * ══════════════════════════════════════════════════════════════════════════
-* SPEC A-1: NON-DEFAULT EPISODES ONLY
+* SPEC A-1 (ROBUSTNESS): NON-DEFAULT vs TRANQUIL, DEFAULT DROPPED
 * ══════════════════════════════════════════════════════════════════════════
 
-di as result _n "=== NON-DEFAULT EPISODES (N=40 onsets) ==="
+di as result _n "=== ROBUSTNESS — NON-DEFAULT vs TRANQUIL (rival dropped) ==="
 
 foreach m in b se lo90 hi90 lo95 hi95 {
-    matrix `m'_nd = J(7, 1, .)
+    matrix `m'_ndA = J(7, 1, .)
 }
 
 * Pre-trend
@@ -115,12 +114,12 @@ foreach h_neg in 2 1 {
     local c95 = r(c95)
     _pval `bb' `ss'
     local pp = r(p)
-    matrix b_nd[`row',1]    = `bb'
-    matrix se_nd[`row',1]   = `ss'
-    matrix lo90_nd[`row',1] = `bb' - `c90'*`ss'
-    matrix hi90_nd[`row',1] = `bb' + `c90'*`ss'
-    matrix lo95_nd[`row',1] = `bb' - `c95'*`ss'
-    matrix hi95_nd[`row',1] = `bb' + `c95'*`ss'
+    matrix b_ndA[`row',1]    = `bb'
+    matrix se_ndA[`row',1]   = `ss'
+    matrix lo90_ndA[`row',1] = `bb' - `c90'*`ss'
+    matrix hi90_ndA[`row',1] = `bb' + `c90'*`ss'
+    matrix lo95_ndA[`row',1] = `bb' - `c95'*`ss'
+    matrix hi95_ndA[`row',1] = `bb' + `c95'*`ss'
     di "h=-`h_neg': beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  p = " %5.3f `pp'
 }
 
@@ -139,24 +138,24 @@ forvalues h = 0/4 {
     local c95 = r(c95)
     _pval `bb' `ss'
     local pp = r(p)
-    matrix b_nd[`row',1]    = `bb'
-    matrix se_nd[`row',1]   = `ss'
-    matrix lo90_nd[`row',1] = `bb' - `c90'*`ss'
-    matrix hi90_nd[`row',1] = `bb' + `c90'*`ss'
-    matrix lo95_nd[`row',1] = `bb' - `c95'*`ss'
-    matrix hi95_nd[`row',1] = `bb' + `c95'*`ss'
+    matrix b_ndA[`row',1]    = `bb'
+    matrix se_ndA[`row',1]   = `ss'
+    matrix lo90_ndA[`row',1] = `bb' - `c90'*`ss'
+    matrix hi90_ndA[`row',1] = `bb' + `c90'*`ss'
+    matrix lo95_ndA[`row',1] = `bb' - `c95'*`ss'
+    matrix hi95_ndA[`row',1] = `bb' + `c95'*`ss'
     di "h=" `h' ": beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  N = " `nn' ///
        "  episodes = " `nep' "  p = " %5.3f `pp'
 }
 
 * ══════════════════════════════════════════════════════════════════════════
-* SPEC A-2: DEFAULT-LINKED EPISODES ONLY
+* SPEC A-2 (ROBUSTNESS): DEFAULT-LINKED vs TRANQUIL, NON-DEFAULT DROPPED
 * ══════════════════════════════════════════════════════════════════════════
 
-di as result _n "=== DEFAULT-LINKED EPISODES (N=21 onsets) ==="
+di as result _n "=== ROBUSTNESS — DEFAULT-LINKED vs TRANQUIL (rival dropped) ==="
 
 foreach m in b se lo90 hi90 lo95 hi95 {
-    matrix `m'_def = J(7, 1, .)
+    matrix `m'_defA = J(7, 1, .)
 }
 
 foreach h_neg in 2 1 {
@@ -169,12 +168,12 @@ foreach h_neg in 2 1 {
     local c95 = r(c95)
     _pval `bb' `ss'
     local pp = r(p)
-    matrix b_def[`row',1]    = `bb'
-    matrix se_def[`row',1]   = `ss'
-    matrix lo90_def[`row',1] = `bb' - `c90'*`ss'
-    matrix hi90_def[`row',1] = `bb' + `c90'*`ss'
-    matrix lo95_def[`row',1] = `bb' - `c95'*`ss'
-    matrix hi95_def[`row',1] = `bb' + `c95'*`ss'
+    matrix b_defA[`row',1]    = `bb'
+    matrix se_defA[`row',1]   = `ss'
+    matrix lo90_defA[`row',1] = `bb' - `c90'*`ss'
+    matrix hi90_defA[`row',1] = `bb' + `c90'*`ss'
+    matrix lo95_defA[`row',1] = `bb' - `c95'*`ss'
+    matrix hi95_defA[`row',1] = `bb' + `c95'*`ss'
     di "h=-`h_neg': beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  p = " %5.3f `pp'
 }
 
@@ -192,12 +191,12 @@ forvalues h = 0/4 {
     local c95 = r(c95)
     _pval `bb' `ss'
     local pp = r(p)
-    matrix b_def[`row',1]    = `bb'
-    matrix se_def[`row',1]   = `ss'
-    matrix lo90_def[`row',1] = `bb' - `c90'*`ss'
-    matrix hi90_def[`row',1] = `bb' + `c90'*`ss'
-    matrix lo95_def[`row',1] = `bb' - `c95'*`ss'
-    matrix hi95_def[`row',1] = `bb' + `c95'*`ss'
+    matrix b_defA[`row',1]    = `bb'
+    matrix se_defA[`row',1]   = `ss'
+    matrix lo90_defA[`row',1] = `bb' - `c90'*`ss'
+    matrix hi90_defA[`row',1] = `bb' + `c90'*`ss'
+    matrix lo95_defA[`row',1] = `bb' - `c95'*`ss'
+    matrix hi95_defA[`row',1] = `bb' + `c95'*`ss'
     di "h=" `h' ": beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  N = " `nn' ///
        "  episodes = " `nep' "  p = " %5.3f `pp'
 }
@@ -209,7 +208,7 @@ forvalues h = 0/4 {
 * (rival dropped), and the extra cost of default is the DIFFERENCE of the two
 * lines, tested with the Clogg et al. (1995) z. The two coefficients come from
 * separate regressions on disjoint treated groups, so they are independent and
-* the pooled SE is sqrt(se_nd^2 + se_def^2).
+* the pooled SE is sqrt(se_ndA^2 + se_defA^2).
 *
 * Negative => the default-linked loss is deeper. Compare against Spec B's Wald
 * test below: the two answer the same question on slightly different samples, and
@@ -220,15 +219,15 @@ forvalues h = 0/4 {
 matrix diff_specA = J(7, 1, .)
 matrix pz_specA   = J(7, 1, .)
 
-di as result _n "=== EXTRA COST OF DEFAULT (Spec A: difference of two vs-tranquil lines) ==="
+di as result _n "=== ROBUSTNESS: extra cost of default from the two vs-tranquil lines ==="
 di as result "h     beta_nd   beta_def   diff(def-nd)   Clogg z   p"
 
 forvalues row = 1/7 {
     local hlab = `row' - 3
-    local bnd  = b_nd[`row',1]
-    local bdef = b_def[`row',1]
-    local snd  = se_nd[`row',1]
-    local sdef = se_def[`row',1]
+    local bnd  = b_ndA[`row',1]
+    local bdef = b_defA[`row',1]
+    local snd  = se_ndA[`row',1]
+    local sdef = se_defA[`row',1]
 
     if missing(`bnd') | missing(`bdef') | missing(`snd') | missing(`sdef') continue
 
@@ -248,19 +247,58 @@ forvalues row = 1/7 {
 }
 
 * ══════════════════════════════════════════════════════════════════════════
-* SPEC B: JOINT REGRESSION — tests H0: beta_nd(h) = beta_def(h)
-* Both dummies enter simultaneously; difference tests whether resolution
-* outcome matters for the magnitude of the output loss.
+* SPEC B (HEADLINE): JOINT REGRESSION — the reference paper's OLS baseline
+*
+* Asonuma et al. estimate the OLS cost with ALL type dummies in ONE regression on
+* the FULL sample, tranquil the omitted category:
+*     reg g_h dum1 dum2 dum3 g_0 $convar, noconstant
+* Their sample_for* restriction (drop the rival type) is defined in that file but
+* NEVER applied to this regression — it belongs to the two-stage design, i.e. the
+* probit and the weighted regression, which is where 08/11b/12 apply it.
+*
+* So this is the headline and it feeds the IRF datasets and the figures. Spec A
+* above (per-type vs tranquil, rival dropped) is the robustness: it is the right
+* partner for the IPW/AIPW lines, which are estimated on those same restricted
+* samples, but it is not the paper's OLS baseline.
 * ══════════════════════════════════════════════════════════════════════════
 
-di as result _n "=== JOINT REGRESSION: test beta_nd = beta_def ==="
+di as result _n "=== HEADLINE: JOINT REGRESSION (both dummies, full sample) ==="
 
 matrix pval_diff = J(5, 1, .)   // h=0..4 only (not pre-trend)
+
+* Headline matrices — these feed irf_nd/irf_def and every Act-2 figure.
+foreach m in b se lo90 hi90 lo95 hi95 {
+    matrix `m'_nd  = J(7, 1, .)
+    matrix `m'_def = J(7, 1, .)
+}
+
+* Pre-trend placebos, same joint spec (l1_gdpg dropped — it IS the h=-1 outcome)
+foreach h_neg in 2 1 {
+    local row = 3 - `h_neg'
+    xtscc dy_m`h_neg' onset_nd onset_def `controls_pre' i.year if sample==1, fe lag(1)
+    _critvals
+    local c90 = r(c90)
+    local c95 = r(c95)
+    foreach g in nd def {
+        local bb = _b[onset_`g']
+        local ss = _se[onset_`g']
+        _pval `bb' `ss'
+        local pp = r(p)
+        matrix b_`g'[`row',1]    = `bb'
+        matrix se_`g'[`row',1]   = `ss'
+        matrix lo90_`g'[`row',1] = `bb' - `c90'*`ss'
+        matrix hi90_`g'[`row',1] = `bb' + `c90'*`ss'
+        matrix lo95_`g'[`row',1] = `bb' - `c95'*`ss'
+        matrix hi95_`g'[`row',1] = `bb' + `c95'*`ss'
+        di "h=-`h_neg' (`g'): beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  p = " %5.3f `pp'
+    }
+}
 
 eststo clear   // clear any stored estimates before capturing for Table 2
 
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
+    local row = `h' + 3
     xtscc dy_`h' onset_nd onset_def `controls' i.year if sample==1, fe lag(`lag')
 
     * Coefficients and SEs
@@ -268,6 +306,23 @@ forvalues h = 0/4 {
     local bdef = _b[onset_def]
     local snd  = _se[onset_nd]
     local sdef = _se[onset_def]
+
+    * Store the headline IRF (these matrices drive the figures)
+    _critvals
+    local c90 = r(c90)
+    local c95 = r(c95)
+    matrix b_nd[`row',1]    = `bnd'
+    matrix se_nd[`row',1]   = `snd'
+    matrix lo90_nd[`row',1] = `bnd' - `c90'*`snd'
+    matrix hi90_nd[`row',1] = `bnd' + `c90'*`snd'
+    matrix lo95_nd[`row',1] = `bnd' - `c95'*`snd'
+    matrix hi95_nd[`row',1] = `bnd' + `c95'*`snd'
+    matrix b_def[`row',1]    = `bdef'
+    matrix se_def[`row',1]   = `sdef'
+    matrix lo90_def[`row',1] = `bdef' - `c90'*`sdef'
+    matrix hi90_def[`row',1] = `bdef' + `c90'*`sdef'
+    matrix lo95_def[`row',1] = `bdef' - `c95'*`sdef'
+    matrix hi95_def[`row',1] = `bdef' + `c95'*`sdef'
 
     * Wald equality test (kept for continuity)
     test onset_nd = onset_def

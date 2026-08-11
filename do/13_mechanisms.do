@@ -392,25 +392,21 @@ forvalues h = 0/4 {
         local r2_0 = e(r2_w)
     }
 
-    * Split by episode type — each vs TRANQUIL with the rival dropped, matching
-    * 03's Spec A and the weighted lines below.
-    capture xtscc ch_ca_`h' onset_nd ///
+    * Split by episode type — JOINT LP on the full sample, tranquil the omitted
+    * category. This is the reference paper's OLS baseline; their rival-drop
+    * applies to the two-stage design only, i.e. the weighted lines below.
+    capture xtscc ch_ca_`h' onset_nd onset_def ///
         l1_gdpg l2_gdpg debt L.ca pre_ca ///
-        i.year if sample==1 & onset_def==0, fe lag(`lag')
+        i.year if sample==1, fe lag(`lag')
     if _rc == 0 {
         matrix b_nd[`row',1]    = _b[onset_nd]
         matrix lo90_nd[`row',1] = _b[onset_nd] - 1.645*_se[onset_nd]
         matrix hi90_nd[`row',1] = _b[onset_nd] + 1.645*_se[onset_nd]
-        local b1   = _b[onset_nd]
-        local se1  = _se[onset_nd]
-    }
-    capture xtscc ch_ca_`h' onset_def ///
-        l1_gdpg l2_gdpg debt L.ca pre_ca ///
-        i.year if sample==1 & onset_nd==0, fe lag(`lag')
-    if _rc == 0 {
         matrix b_def[`row',1]    = _b[onset_def]
         matrix lo90_def[`row',1] = _b[onset_def] - 1.645*_se[onset_def]
         matrix hi90_def[`row',1] = _b[onset_def] + 1.645*_se[onset_def]
+        local b1   = _b[onset_nd]
+        local se1  = _se[onset_nd]
         local b2   = _b[onset_def]
         local se2  = _se[onset_def]
         local r2_1 = e(r2_w)
@@ -571,23 +567,19 @@ foreach m in b_nd_ols lo90_nd_ols hi90_nd_ols b_def_ols lo90_def_ols hi90_def_ol
 forvalues h = 0/4 {
     local row = `h' + 1
 
-    * OLS: two vs-tranquil lines, rival dropped (matches the IPW pair below).
-    capture areg ch_ca_`h' onset_nd ///
+    * OLS: JOINT, full sample (reference-paper baseline). The rival-drop applies
+    * to the weighted lines below, which are the two-stage half of the design.
+    capture areg ch_ca_`h' onset_nd onset_def ///
         l1_gdpg l2_gdpg debt L.ca pre_ca ///
-        i.year if sample == 1 & onset_def == 0, absorb(cid) vce(cluster cid)
+        i.year if sample == 1, absorb(cid) vce(cluster cid)
     if _rc == 0 {
         matrix b_nd_ols[`row',1]     = _b[onset_nd]
         matrix lo90_nd_ols[`row',1]  = _b[onset_nd]  - 1.645*_se[onset_nd]
         matrix hi90_nd_ols[`row',1]  = _b[onset_nd]  + 1.645*_se[onset_nd]
-        local b_nd_u  = _b[onset_nd]
-    }
-    capture areg ch_ca_`h' onset_def ///
-        l1_gdpg l2_gdpg debt L.ca pre_ca ///
-        i.year if sample == 1 & onset_nd == 0, absorb(cid) vce(cluster cid)
-    if _rc == 0 {
         matrix b_def_ols[`row',1]    = _b[onset_def]
         matrix lo90_def_ols[`row',1] = _b[onset_def] - 1.645*_se[onset_def]
         matrix hi90_def_ols[`row',1] = _b[onset_def] + 1.645*_se[onset_def]
+        local b_nd_u  = _b[onset_nd]
         local b_def_u = _b[onset_def]
     }
 

@@ -419,46 +419,31 @@ matrix pval_act2_ols = J(5, 1, .)
 matrix pval_act2_ipw = J(5, 1, .)
 
 di as result _n "=== ACT 2 RESULTS: each resolution type vs tranquil ==="
-di "h    b_nd_OLS  b_def_OLS  p_OLS(Clogg)   b_nd_IPW  b_def_IPW  p_IPW(Clogg)"
+di "h    b_nd_OLS  b_def_OLS  p_OLS(Wald)    b_nd_IPW  b_def_IPW  p_IPW(Clogg)"
 
 forvalues h = 0/4 {
     local row = `h' + 1
 
-    * OLS baseline: TWO separate vs-tranquil LPs with the RIVAL DROPPED, so the
-    * OLS lines sit on the same samples as the IPW lines below. Previously this
-    * was a single joint LP on the full sample, which meant the OLS-vs-IPW
-    * comparison in the figure conflated the weighting with a change of control
-    * group: the unweighted non-default line was estimated against a control that
-    * still contained every default episode. Same design as 03's Spec A and the
-    * AIPW in 08b.
+    * OLS baseline: JOINT LP with both type dummies on the FULL sample, tranquil
+    * the omitted category. This is the reference paper's baseline exactly:
+    *     reg g_h dum1 dum2 dum3 g_0 $convar, noconstant
+    * all types in one regression, sample_for* NOT applied. The rival-drop belongs
+    * to their two-stage design (probit + weighted reg) and is applied to the IPW
+    * lines below, not here.
     * Country FE only, no year FE (paper-aligned two-stage outcome regression).
-    quietly areg dy_`h' onset_nd `controls_lp' ///
-        if sample == 1 & onset_def == 0, absorb(cid) vce(cluster cid)
+    quietly areg dy_`h' onset_nd onset_def `controls_lp' ///
+        if sample == 1, absorb(cid) vce(cluster cid)
     matrix b_nd_ols[`row',1]    = _b[onset_nd]
     matrix lo90_nd_ols[`row',1] = _b[onset_nd]  - 1.645*_se[onset_nd]
     matrix hi90_nd_ols[`row',1] = _b[onset_nd]  + 1.645*_se[onset_nd]
-    local b_nd_o  = _b[onset_nd]
-    local se_nd_o = _se[onset_nd]
-
-    quietly areg dy_`h' onset_def `controls_lp' ///
-        if sample == 1 & onset_nd == 0, absorb(cid) vce(cluster cid)
     matrix b_def_ols[`row',1]   = _b[onset_def]
     matrix lo90_def_ols[`row',1]= _b[onset_def] - 1.645*_se[onset_def]
     matrix hi90_def_ols[`row',1]= _b[onset_def] + 1.645*_se[onset_def]
-    local b_def_o  = _b[onset_def]
-    local se_def_o = _se[onset_def]
-
-    * Extra cost of default = difference of the two vs-tranquil lines, Clogg et al.
-    * (1995) z. The coefficients come from separate regressions on disjoint treated
-    * groups, so they are independent and the pooled SE is sqrt(se_nd^2+se_def^2).
-    * (This replaces the joint regression's Wald test, which no longer exists once
-    * the two types are estimated separately; 03's Spec B keeps a Wald check.)
-    local p_o = .
-    if !missing(`b_nd_o') & !missing(`b_def_o') {
-        local z_o = (`b_def_o' - `b_nd_o') / sqrt(`se_nd_o'^2 + `se_def_o'^2)
-        local p_o = 2*(1 - normal(abs(`z_o')))
-    }
-    matrix pval_act2_ols[`row',1] = `p_o'
+    local b_nd_o  = _b[onset_nd]
+    local b_def_o = _b[onset_def]
+    quietly test onset_nd = onset_def
+    matrix pval_act2_ols[`row',1] = r(p)
+    local p_o = r(p)
 
     * IPW line 1: non-default vs tranquil (default dropped), weight ipw_nd
     quietly areg dy_`h' onset_nd `controls_lp' ///
