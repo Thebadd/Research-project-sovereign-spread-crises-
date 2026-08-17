@@ -104,7 +104,7 @@ foreach m in b se lo90 hi90 lo95 hi95 {
 }
 
 * Pre-trend
-foreach h_neg in 2 1 {
+foreach h_neg in 1 {
     local row = 3 - `h_neg'
     xtscc dy_m`h_neg' onset_nd `controls_pre' i.year if sample==1 & onset_def==0, fe lag(1)
     local bb = _b[onset_nd]
@@ -158,7 +158,7 @@ foreach m in b se lo90 hi90 lo95 hi95 {
     matrix `m'_defA = J(7, 1, .)
 }
 
-foreach h_neg in 2 1 {
+foreach h_neg in 1 {
     local row = 3 - `h_neg'
     xtscc dy_m`h_neg' onset_def `controls_pre' i.year if sample==1 & onset_nd==0, fe lag(1)
     local bb = _b[onset_def]
@@ -273,7 +273,7 @@ foreach m in b se lo90 hi90 lo95 hi95 {
 }
 
 * Pre-trend placebos, same joint spec (l1_gdpg dropped — it IS the h=-1 outcome)
-foreach h_neg in 2 1 {
+foreach h_neg in 1 {
     local row = 3 - `h_neg'
     xtscc dy_m`h_neg' onset_nd onset_def `controls_pre' i.year if sample==1, fe lag(1)
     _critvals

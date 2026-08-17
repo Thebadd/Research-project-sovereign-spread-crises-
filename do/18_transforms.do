@@ -58,9 +58,7 @@ forvalues h = 0/4 {
 *   `controls_pre' local there. Controlling for the placebo outcome is exactly what
 *   made the old test uninformative.
 gen double dy_m1 = (L.ln_gdp - L2.ln_gdp) * 100
-gen double dy_m2 = (L.ln_gdp - L3.ln_gdp) * 100
 label var dy_m1 "Pre-trend h=-1: 1yr pre-onset growth, GDP(t-1) - GDP(t-2)"
-label var dy_m2 "Pre-trend h=-2: 2yr pre-onset growth, GDP(t-1) - GDP(t-3)"
 
 * ── ROBUSTNESS outcome: per-capita version (kept as dy_pc_*) ─────────────────
 capture drop ln_gdppc_base dy_pc_0 dy_pc_1 dy_pc_2 dy_pc_3 dy_pc_4

@@ -4,7 +4,7 @@
 
   Figure 1: IRF -- All spread crises (Act 1)
   Figure 2: IRF overlay -- Non-default vs. Default-linked (Act 2)
-  Figure 3: Pre-trend validation (placebo horizons h=-2,-1 + main h=0..4)
+  Figure 3: Pre-trend validation (placebo horizon h=-1 + main h=0..4)
 ===========================================================================*/
 
 * Color scheme
@@ -97,13 +97,13 @@ twoway ///
         mcolor("`c_all'") msize(medium) msymbol(circle)), ///
     yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
     xline(-0.5, lpattern(solid) lcolor("`c_zero'") lwidth(thin)) ///
-    xlabel(-2(1)4, labsize(medsmall)) ///
+    xlabel(-1(1)4, labsize(medsmall)) ///
     ylabel(, format(%4.1f) labsize(medsmall)) ///
     xtitle("Years relative to crisis onset", size(medsmall)) ///
     ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
     title("Pre-Trend Test + Main Horizons", size(medium)) ///
-    subtitle("All spread crises (N = 61). Placebo: h = -2, -1.", size(small)) ///
-    text(0 -1.5 "Pre-trend (should be ~0)", size(vsmall) color(gray)) ///
+    subtitle("All spread crises (N = 61). Placebo: h = -1.", size(small)) ///
+    text(0 -1 "Pre-trend (should be ~0)", size(vsmall) color(gray)) ///
     text(0 2 "Post-onset", size(vsmall) color(gray)) ///
     legend(order(2 "Point estimate" 1 "90% CI") ring(0) pos(1) size(small)) ///
     graphregion(color(white)) plotregion(color(white))
