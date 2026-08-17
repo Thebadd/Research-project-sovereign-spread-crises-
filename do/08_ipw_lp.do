@@ -188,17 +188,19 @@ summarize ipw if onset_all==1 & sample==1
 * comparison is apples-to-apples in terms of SE method.
 * ══════════════════════════════════════════════════════════════════════════
 
+* Row 1 = explicit baseline (displayed h=0, hardcoded 0); rows 2-6 = displayed h=1..5
 foreach m in b_ipw lo90_ipw hi90_ipw lo95_ipw hi95_ipw ///
              b_ols lo90_ols hi90_ols lo95_ols hi95_ols {
-    matrix `m' = J(5, 1, .)
+    matrix `m' = J(6, 1, 0)
 }
 
 di as result _n "=== IPW-LP vs. UNWEIGHTED LP (xtreg fe, cluster cid) ==="
 di "h    beta_OLS   SE_OLS   beta_IPW   SE_IPW   delta"
 
 forvalues h = 0/4 {
+    local hd  = `h' + 1
     local lag = max(1, `h'+1)
-    local row = `h' + 1
+    local row = `h' + 2
 
     * Unweighted (areg absorbs country FE, cluster SE — comparable baseline)
     * Country FE only, no year FE (paper-aligned two-stage outcome regression).
@@ -223,7 +225,7 @@ forvalues h = 0/4 {
     local b_w = _b[onset_all]
     local se_w = _se[onset_all]
 
-    di "h=" `h' "   " %7.3f `b_u' "   " %6.3f `se_u' ///
+    di "h=" `hd' "   " %7.3f `b_u' "   " %6.3f `se_u' ///
            "   " %7.3f `b_w' "   " %6.3f `se_w' ///
            "   " %7.3f (`b_w' - `b_u')
 }
@@ -234,8 +236,8 @@ forvalues h = 0/4 {
 
 * IPW IRF dataset
 clear
-set obs 5
-gen horizon = _n - 1
+set obs 6
+gen horizon = _n - 1     // 0 (baseline), 1, 2, 3, 4, 5
 foreach m in b lo90 hi90 lo95 hi95 {
     svmat `m'_ipw, names(`m')
     rename `m'1 `m'
@@ -245,7 +247,7 @@ save "$clean/irf_ipw.dta", replace
 
 * Unweighted (OLS-FE) IRF dataset
 clear
-set obs 5
+set obs 6
 gen horizon = _n - 1
 foreach m in b lo90 hi90 lo95 hi95 {
     svmat `m'_ols, names(`m')
@@ -276,9 +278,9 @@ twoway ///
         lcolor("`c_ipw'") lwidth(medthick) lpattern(dash)                   ///
         msymbol(square) mcolor("`c_ipw'")),                                 ///
     yline(0, lpattern(dash) lcolor(gray) lwidth(thin))                      ///
-    xlabel(0(1)4, labsize(medsmall))                                        ///
+    xlabel(0(1)5, labsize(medsmall))                                        ///
     ylabel(, format(%4.1f) labsize(medsmall))                               ///
-    xtitle("Years after crisis onset", size(medsmall))                      ///
+    xtitle("Year (Year 1 = crisis year)", size(medsmall))                   ///
     ytitle("Cumulative change in log real GDP (pp)", size(medsmall))   ///
     title("Baseline vs. IPW-Weighted Local Projections", size(medium))      ///
     subtitle("All spread crises (N=61). xtreg FE, cluster SE.", size(small)) ///
@@ -411,9 +413,10 @@ if "`ovnames'" != "" {
 }
 
 * ── Estimation: OLS baseline (joint, tranquil = omitted) + two vs-tranquil IPW LPs
+* Row 1 = explicit baseline (displayed h=0, hardcoded 0); rows 2-6 = displayed h=1..5
 foreach m in b_def_ipw lo90_def_ipw hi90_def_ipw b_nd_ipw lo90_nd_ipw hi90_nd_ipw ///
              b_def_ols lo90_def_ols hi90_def_ols b_nd_ols lo90_nd_ols hi90_nd_ols {
-    matrix `m' = J(5, 1, .)
+    matrix `m' = J(6, 1, 0)
 }
 matrix pval_act2_ols = J(5, 1, .)
 matrix pval_act2_ipw = J(5, 1, .)
@@ -422,7 +425,8 @@ di as result _n "=== ACT 2 RESULTS: each resolution type vs tranquil ==="
 di "h    b_nd_OLS  b_def_OLS  p_OLS(Wald)    b_nd_IPW  b_def_IPW  p_IPW(Clogg)"
 
 forvalues h = 0/4 {
-    local row = `h' + 1
+    local hd  = `h' + 1
+    local row = `h' + 2
 
     * OLS baseline: JOINT LP with both type dummies on the FULL sample, tranquil
     * the omitted category. This is the reference paper's baseline exactly:
@@ -470,14 +474,14 @@ forvalues h = 0/4 {
     local p_w   = 2*(1 - normal(abs(`zdiff')))
     matrix pval_act2_ipw[`row',1] = `p_w'
 
-    di "h=" `h' "  " %7.3f `b_nd_o' "  " %7.3f `b_def_o' "      " %5.3f `p_o' ///
+    di "h=" `hd' "  " %7.3f `b_nd_o' "  " %7.3f `b_def_o' "      " %5.3f `p_o' ///
               "     " %7.3f `b_nd_w' "  " %7.3f `b_def_w' "      " %5.3f `p_w'
 }
 
 * ── Save Act 2 IPW results ────────────────────────────────────────────────
 clear
-set obs 5
-gen horizon = _n - 1
+set obs 6
+gen horizon = _n - 1     // 0 (baseline), 1, 2, 3, 4, 5
 
 foreach m in b_nd b_def lo90_nd hi90_nd lo90_def hi90_def {
     svmat `m'_ipw, names(`m')
@@ -487,7 +491,7 @@ gen series = "ipw"
 save "$clean/irf_act2_ipw.dta", replace
 
 clear
-set obs 5
+set obs 6
 gen horizon = _n - 1
 foreach m in b_nd b_def lo90_nd hi90_nd lo90_def hi90_def {
     svmat `m'_ols, names(`m')
@@ -515,9 +519,9 @@ twoway ///
         lcolor("`c_def'") lwidth(medthick) lpattern(dash) ///
         msymbol(square_hollow) mcolor("`c_def'")), ///
     yline(0, lpattern(dash) lcolor(gray) lwidth(thin)) ///
-    xlabel(0(1)4, labsize(medsmall)) ///
+    xlabel(0(1)5, labsize(medsmall)) ///
     ylabel(, format(%4.1f) labsize(medsmall)) ///
-    xtitle("Years after crisis onset", size(medsmall)) ///
+    xtitle("Year (Year 1 = crisis year)", size(medsmall)) ///
     ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
     title("Resolution Split: OLS vs. IPW-Weighted LP", size(medium)) ///
     subtitle("Solid = OLS baseline. Dashed = IPW-weighted.", size(small)) ///

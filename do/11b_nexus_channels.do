@@ -65,7 +65,7 @@ foreach ch of local channels {
 * ══════════════════════════════════════════════════════════════════════════
 foreach ch of local channels {
     foreach m in b lo90 hi90 lo95 hi95 {
-        matrix `m'_`ch' = J(5, 1, .)
+        matrix `m'_`ch' = J(6, 1, 0)
     }
 }
 
@@ -80,15 +80,15 @@ foreach ch of local channels {
         local lag = max(1, `h'+1)
         capture xtscc ch_`ch'_`h' onset_all `ctrl' i.year if sample==1, fe lag(`lag')
         if _rc == 0 {
-            matrix b_`ch'[`h'+1,1]    = _b[onset_all]
-            matrix lo90_`ch'[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
-            matrix hi90_`ch'[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
-            matrix lo95_`ch'[`h'+1,1] = _b[onset_all] - 1.960*_se[onset_all]
-            matrix hi95_`ch'[`h'+1,1] = _b[onset_all] + 1.960*_se[onset_all]
-            di "h=" `h' ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
+            matrix b_`ch'[`h'+2,1]    = _b[onset_all]
+            matrix lo90_`ch'[`h'+2,1] = _b[onset_all] - 1.645*_se[onset_all]
+            matrix hi90_`ch'[`h'+2,1] = _b[onset_all] + 1.645*_se[onset_all]
+            matrix lo95_`ch'[`h'+2,1] = _b[onset_all] - 1.960*_se[onset_all]
+            matrix hi95_`ch'[`h'+2,1] = _b[onset_all] + 1.960*_se[onset_all]
+            di "h=" `h'+1 ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
                "  p=" %5.3f (2*(1-normal(abs(_b[onset_all]/_se[onset_all])))) "  N=" e(N)
         }
-        else di as error "h=" `h' ": xtscc failed for `ch' (rc=" _rc ")"
+        else di as error "h=" `h'+1 ": xtscc failed for `ch' (rc=" _rc ")"
     }
 }
 
@@ -96,8 +96,8 @@ foreach ch of local channels {
 foreach ch of local channels {
     preserve
         clear
-        set obs 5
-        gen horizon = _n - 1
+        set obs 6
+        gen horizon = _n - 1     // 0 (baseline), 1..5
         foreach m in b lo90 hi90 lo95 hi95 {
             svmat `m'_`ch', names(`m')
             rename `m'1 `m'
@@ -120,8 +120,8 @@ foreach ch of local channels {
         (connected b horizon, lcolor("`c_main'") mcolor("`c_main'") ///
             msymbol(circle) lwidth(medthick)), ///
         yline(0, lcolor(gs8) lpattern(dash) lwidth(thin)) ///
-        xlabel(0(1)4, labsize(medsmall)) ylabel(, format(%5.1f) labsize(medsmall)) ///
-        xtitle("Years after onset", size(small)) ///
+        xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%5.1f) labsize(medsmall)) ///
+        xtitle("Year (Year 1 = crisis year)", size(small)) ///
         ytitle("Cumulative change (pp)", size(small)) ///
         title(`tlab', size(medsmall) color(navy)) legend(off) ///
         graphregion(color(white)) plotregion(color(white)) name(nx_`i', replace)
@@ -187,10 +187,10 @@ foreach ch of local channels {
     foreach spec in ols ipw {
         foreach grp in nd def {
             foreach m in b lo90 hi90 {
-                matrix `m'_`grp'_`spec'_`ch' = J(5, 1, .)
+                matrix `m'_`grp'_`spec'_`ch' = J(6, 1, 0)
             }
         }
-        matrix pval_`spec'_`ch' = J(5, 1, .)
+        matrix pval_`spec'_`ch' = J(6, 1, .)
     }
 }
 
@@ -205,7 +205,7 @@ foreach ch of local channels {
 
     forvalues h = 0/4 {
         local lag = max(1, `h'+1)
-        local row = `h' + 1
+        local row = `h' + 2
 
         * OLS: JOINT LP, both type dummies, FULL sample, tranquil omitted — the
         * reference paper's baseline (reg g_h dum1 dum2 dum3 g_0 $convar). The
@@ -268,7 +268,7 @@ foreach ch of local channels {
         }
         matrix pval_ipw_`ch'[`row',1] = `p_w'
 
-        di "h=" `h' "  " %7.3f `b_nd_o' "  " %7.3f `b_def_o' "  " %5.3f `p_o' ///
+        di "h=" `h'+1 "  " %7.3f `b_nd_o' "  " %7.3f `b_def_o' "  " %5.3f `p_o' ///
                   "  " %7.3f `b_nd_w' "  " %7.3f `b_def_w' "  " %5.3f `p_w'
     }
 }
@@ -286,13 +286,13 @@ preserve
     foreach ch of local channels {
         forvalues h = 0/4 {
             replace channel   = "`ch'"               in `row'
-            replace horizon   = `h'                  in `row'
-            replace b_nd_ols  = b_nd_ols_`ch'[`h'+1,1]  in `row'
-            replace b_def_ols = b_def_ols_`ch'[`h'+1,1] in `row'
-            replace p_ols     = pval_ols_`ch'[`h'+1,1]  in `row'
-            replace b_nd_ipw  = b_nd_ipw_`ch'[`h'+1,1]  in `row'
-            replace b_def_ipw = b_def_ipw_`ch'[`h'+1,1] in `row'
-            replace p_ipw     = pval_ipw_`ch'[`h'+1,1]  in `row'
+            replace horizon   = `h'+1                in `row'
+            replace b_nd_ols  = b_nd_ols_`ch'[`h'+2,1]  in `row'
+            replace b_def_ols = b_def_ols_`ch'[`h'+2,1] in `row'
+            replace p_ols     = pval_ols_`ch'[`h'+2,1]  in `row'
+            replace b_nd_ipw  = b_nd_ipw_`ch'[`h'+2,1]  in `row'
+            replace b_def_ipw = b_def_ipw_`ch'[`h'+2,1] in `row'
+            replace p_ipw     = pval_ipw_`ch'[`h'+2,1]  in `row'
             local ++row
         }
     }
@@ -309,8 +309,8 @@ foreach ch of local channels {
         foreach grp in nd def {
             preserve
                 clear
-                set obs 5
-                gen horizon = _n - 1
+                set obs 6
+                gen horizon = _n - 1     // 0 (baseline), 1..5
                 foreach m in b lo90 hi90 {
                     svmat `m'_`grp'_`spec'_`ch', names(`m')
                     rename `m'1 `m'
@@ -352,7 +352,7 @@ foreach spec in ols ipw {
             (connected b horizon if group=="def", lcolor("`c_def'") mcolor("`c_def'") ///
                 msymbol(square) lwidth(medthick) lpattern(dash)), ///
             yline(0, lcolor(gs10) lpattern(dash) lwidth(thin)) ///
-            xlabel(0(1)4, labsize(small)) ylabel(, format(%5.1f) labsize(small)) ///
+            xlabel(0(1)5, labsize(small)) ylabel(, format(%5.1f) labsize(small)) ///
             xtitle("Years after onset", size(vsmall)) ///
             ytitle("Cumulative change (pp)", size(vsmall)) ///
             title(`tlab', size(small) color(navy)) ///

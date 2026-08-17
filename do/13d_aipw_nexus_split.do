@@ -374,6 +374,7 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
         forvalues H = 0/1 {                       // 0 = low nexus, 1 = high nexus
             local blab = cond(`H'==1, "high", "low")
             di as result _n "--- `ocl' | Part `part' | `blab' nexus ---"
+            post `R' ("`ocl'") ("`part'") ("`blab'") (0) (0) (0) (0) (0) (0) (0)   // explicit baseline (h=0)
 
             forvalues h = 0/4 {
                 * sample: tranquil (onset_all==0) + this cell's treated onsets only
@@ -394,16 +395,17 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
                     local lo=r(lo)
                     local hi=r(hi)
                     local nd=r(nd)
-                    post `R' ("`ocl'") ("`part'") ("`blab'") (`h') (`b') (`se') (`lo') (`hi') (`ntr') (`nd')
-                    di "    h=" `h' "  ATE=" %8.3f `b' "  [" %7.3f `lo' ", " %7.3f `hi' ///
+                    post `R' ("`ocl'") ("`part'") ("`blab'") (`h'+1) (`b') (`se') (`lo') (`hi') (`ntr') (`nd')
+                    di "    h=" `h'+1 "  ATE=" %8.3f `b' "  [" %7.3f `lo' ", " %7.3f `hi' ///
                        "]  (n_treat=" `ntr' ", " `nd' "/`nboot' draws)"
                 }
-                else di as error "    h=" `h' ": estimate failed (too thin)."
+                else di as error "    h=" `h'+1 ": estimate failed (too thin)."
             }
         }
 
         * ── (b) HIGH - LOW nexus difference for this outcome x part ──────────
         di as result _n "--- `ocl' | Part `part' | HIGH - LOW difference ---"
+        post `D' ("`ocl'") ("`part'") (0) (0) (0) (0) (0) (0) (0)   // explicit baseline (h=0)
         forvalues h = 0/4 {
             if "`riv'" == "." {
                 local ifch sample==1 & (onset_all==0 | (`Dv'==1 & highbank==1))
@@ -422,12 +424,12 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
                 local lo=r(lo)
                 local hi=r(hi)
                 local nd=r(nd)
-                post `D' ("`ocl'") ("`part'") (`h') (`dh') (`bh') (`bl') (`lo') (`hi') (`nd')
+                post `D' ("`ocl'") ("`part'") (`h'+1) (`dh') (`bh') (`bl') (`lo') (`hi') (`nd')
                 local sig = cond(`nd'>=50 & (`lo'>0 | `hi'<0), " *", "")
-                di "    h=" `h' "  high-low=" %8.3f `dh' "  [" %7.3f `lo' ", " %7.3f `hi' ///
+                di "    h=" `h'+1 "  high-low=" %8.3f `dh' "  [" %7.3f `lo' ", " %7.3f `hi' ///
                    "]  (" `nd' "/`nboot' draws)`sig'"
             }
-            else di as error "    h=" `h' ": difference estimate failed (too thin)."
+            else di as error "    h=" `h'+1 ": difference estimate failed (too thin)."
         }
     }
 }
@@ -488,7 +490,7 @@ foreach oc in gdp credit inv claimpriv_assets claims_govt {
             note("AIPW (Asonuma Eq. 3), ATE. Split by pre-crisis bank claims-on-govt / assets (median). Shaded = bootstrap 95% CI where >=50 draws.", size(vsmall)) ///
             title("`ptit'", size(medsmall) color(navy))) ///
         yline(0, lpattern(dash) lcolor(gs8)) ///
-        xlabel(0(1)4) xtitle("Years after onset", size(small)) ///
+        xlabel(0(1)5) xtitle("Year (Year 1 = crisis year)", size(small)) ///
         ytitle("`ytit'", size(small)) ///
         legend(order(3 "High nexus" 4 "Low nexus") size(small)) ///
         graphregion(color(white)) plotregion(color(white))

@@ -104,7 +104,7 @@ foreach m in b se lo90 hi90 lo95 hi95 {
     matrix `m'_ndA = J(7, 1, .)
 }
 
-* Pre-trend
+* Pre-trend (displayed h=-1)
 foreach h_neg in 2 {
     local row = 3 - `h_neg'
     xtscc dy_m`h_neg' onset_nd `controls_pre' i.year if sample==1 & onset_def==0, fe lag(1)
@@ -121,11 +121,17 @@ foreach h_neg in 2 {
     matrix hi90_ndA[`row',1] = `bb' + `c90'*`ss'
     matrix lo95_ndA[`row',1] = `bb' - `c95'*`ss'
     matrix hi95_ndA[`row',1] = `bb' + `c95'*`ss'
-    di "h=-`h_neg': beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  p = " %5.3f `pp'
+    di "h=-1: beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  p = " %5.3f `pp'
 }
 
-* Main horizons
+* Explicit baseline (displayed h=0), hardcoded zero, matching Asonuma et al.
+foreach m in b se lo90 hi90 lo95 hi95 {
+    matrix `m'_ndA[2, 1] = 0
+}
+
+* Main horizons (displayed h=1..5)
 forvalues h = 0/4 {
+    local hd  = `h' + 1
     local row = `h' + 3
     local lag = max(1, `h'+1)
     xtscc dy_`h' onset_nd `controls' i.year if sample==1 & onset_def==0, fe lag(`lag')
@@ -145,7 +151,7 @@ forvalues h = 0/4 {
     matrix hi90_ndA[`row',1] = `bb' + `c90'*`ss'
     matrix lo95_ndA[`row',1] = `bb' - `c95'*`ss'
     matrix hi95_ndA[`row',1] = `bb' + `c95'*`ss'
-    di "h=" `h' ": beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  N = " `nn' ///
+    di "h=" `hd' ": beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  N = " `nn' ///
        "  episodes = " `nep' "  p = " %5.3f `pp'
 }
 
@@ -159,6 +165,7 @@ foreach m in b se lo90 hi90 lo95 hi95 {
     matrix `m'_defA = J(7, 1, .)
 }
 
+* Pre-trend (displayed h=-1)
 foreach h_neg in 2 {
     local row = 3 - `h_neg'
     xtscc dy_m`h_neg' onset_def `controls_pre' i.year if sample==1 & onset_nd==0, fe lag(1)
@@ -175,10 +182,17 @@ foreach h_neg in 2 {
     matrix hi90_defA[`row',1] = `bb' + `c90'*`ss'
     matrix lo95_defA[`row',1] = `bb' - `c95'*`ss'
     matrix hi95_defA[`row',1] = `bb' + `c95'*`ss'
-    di "h=-`h_neg': beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  p = " %5.3f `pp'
+    di "h=-1: beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  p = " %5.3f `pp'
 }
 
+* Explicit baseline (displayed h=0), hardcoded zero, matching Asonuma et al.
+foreach m in b se lo90 hi90 lo95 hi95 {
+    matrix `m'_defA[2, 1] = 0
+}
+
+* Main horizons (displayed h=1..5)
 forvalues h = 0/4 {
+    local hd  = `h' + 1
     local row = `h' + 3
     local lag = max(1, `h'+1)
     xtscc dy_`h' onset_def `controls' i.year if sample==1 & onset_nd==0, fe lag(`lag')
@@ -198,7 +212,7 @@ forvalues h = 0/4 {
     matrix hi90_defA[`row',1] = `bb' + `c90'*`ss'
     matrix lo95_defA[`row',1] = `bb' - `c95'*`ss'
     matrix hi95_defA[`row',1] = `bb' + `c95'*`ss'
-    di "h=" `h' ": beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  N = " `nn' ///
+    di "h=" `hd' ": beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  N = " `nn' ///
        "  episodes = " `nep' "  p = " %5.3f `pp'
 }
 
@@ -224,7 +238,7 @@ di as result _n "=== ROBUSTNESS: extra cost of default from the two vs-tranquil 
 di as result "h     beta_nd   beta_def   diff(def-nd)   Clogg z   p"
 
 forvalues row = 1/7 {
-    local hlab = `row' - 3
+    local hlab = `row' - 2
     local bnd  = b_ndA[`row',1]
     local bdef = b_defA[`row',1]
     local snd  = se_ndA[`row',1]
@@ -273,7 +287,8 @@ foreach m in b se lo90 hi90 lo95 hi95 {
     matrix `m'_def = J(7, 1, .)
 }
 
-* Pre-trend placebo, same joint spec (l1_gdpg dropped — it IS -1 times the h=-2 outcome)
+* Pre-trend placebo, same joint spec (l1_gdpg dropped — it IS -1 times the dy_m2
+* outcome), displayed as h=-1.
 foreach h_neg in 2 {
     local row = 3 - `h_neg'
     xtscc dy_m`h_neg' onset_nd onset_def `controls_pre' i.year if sample==1, fe lag(1)
@@ -291,13 +306,21 @@ foreach h_neg in 2 {
         matrix hi90_`g'[`row',1] = `bb' + `c90'*`ss'
         matrix lo95_`g'[`row',1] = `bb' - `c95'*`ss'
         matrix hi95_`g'[`row',1] = `bb' + `c95'*`ss'
-        di "h=-`h_neg' (`g'): beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  p = " %5.3f `pp'
+        di "h=-1 (`g'): beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  p = " %5.3f `pp'
+    }
+}
+
+* Explicit baseline (displayed h=0), hardcoded zero, matching Asonuma et al.
+foreach g in nd def {
+    foreach m in b se lo90 hi90 lo95 hi95 {
+        matrix `m'_`g'[2, 1] = 0
     }
 }
 
 eststo clear   // clear any stored estimates before capturing for Table 2
 
 forvalues h = 0/4 {
+    local hd  = `h' + 1
     local lag = max(1, `h'+1)
     local row = `h' + 3
     xtscc dy_`h' onset_nd onset_def `controls' i.year if sample==1, fe lag(`lag')
@@ -357,7 +380,7 @@ forvalues h = 0/4 {
     estadd scalar nepnd  = `nepnd'
     estadd scalar nepdef = `nepdef'
 
-    di "h=" `h' ":  beta_nd=" %6.3f `bnd' ///
+    di "h=" `hd' ":  beta_nd=" %6.3f `bnd' ///
                "  beta_def=" %6.3f `bdef' ///
                "  diff(def-nd)=" %6.3f `bdiff' ///
                "  Clogg z=" %5.2f `zdiff' ///
@@ -384,13 +407,14 @@ else {
     di as result "h   beta_nd   beta_def   diff(def-nd)   Clogg z   p(Clogg)   N   nd/def episodes"
 
     forvalues h = 0/4 {
+        local hd  = `h' + 1
         local lag = max(1, `h'+1)
 
         capture xtscc dy_`h' onset_nd onset_def `controls' i.year ///
             if sample==1 & (year + `h') <= gdp_last_actual, fe lag(`lag')
 
         if _rc {
-            di as error "  outturn-only joint regression failed at h=`h' (rc=" _rc ")"
+            di as error "  outturn-only joint regression failed at h=`hd' (rc=" _rc ")"
             continue
         }
 
@@ -418,7 +442,7 @@ else {
         estadd scalar nepnd  = `rnepnd'
         estadd scalar nepdef = `rnepdef'
 
-        di "h=" `h' "  " %7.3f `bnd' "  " %8.3f `bdef' "  " %10.3f `bdiff' ///
+        di "h=" `hd' "  " %7.3f `bnd' "  " %8.3f `bdef' "  " %10.3f `bdiff' ///
            "  " %8.2f `zdiff' "  " %8.3f `pz' "  " %5.0f `nn' ///
            "   " %3.0f `rnepnd' "/" %3.0f `rnepdef'
     }
@@ -428,7 +452,7 @@ else {
         b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
         keep(onset_nd onset_def) order(onset_nd onset_def) ///
         coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
-        mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+        mtitles("h=1" "h=2" "h=3" "h=4" "h=5") nonumber ///
         stats(bdiff zdiff pzdiff nepnd nepdef N N_g, ///
               labels("Difference (default - non-default)" "  Clogg et al. (1995) z" ///
                      "  p (Clogg z)" "Episodes (non-default)" "Episodes (default)" ///
@@ -446,7 +470,7 @@ else {
 
 * ══════════════════════════════════════════════════════════════════════════
 * TABLE EXPORT — TABLE 2: Output cost by resolution type
-*   Word/RTF. Columns = horizons h=0..4; rows = non-default and default-linked
+*   Word/RTF. Columns = horizons h=1..5; rows = non-default and default-linked
 *   onset coefficients (entered jointly). Extra row: p-value of H0 beta_nd=beta_def.
 *   Requires: ssc install estout
 * ══════════════════════════════════════════════════════════════════════════
@@ -455,7 +479,7 @@ capture esttab t2_h0 t2_h1 t2_h2 t2_h3 t2_h4 using "$tabs/table2_output_resoluti
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
     keep(onset_nd onset_def) order(onset_nd onset_def) ///
     coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
-    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+    mtitles("h=1" "h=2" "h=3" "h=4" "h=5") nonumber ///
     stats(bdiff zdiff pzdiff pdiff nepnd nepdef N N_g, ///
           labels("Difference (default - non-default)" "  Clogg et al. (1995) z" ///
                  "  p (Clogg z)" "  p (Wald, nd = def)" ///
@@ -483,7 +507,7 @@ else di as result "Table 2 saved: $tabs/table2_output_resolution.rtf"
 * Non-default IRF dataset
 clear
 set obs 7
-gen horizon = _n - 3
+gen horizon = _n - 2
 foreach m in b se lo90 hi90 lo95 hi95 {
     svmat `m'_nd, names(`m')
     rename `m'1 `m'
@@ -494,7 +518,7 @@ save "$clean/irf_nd.dta", replace
 * Default-linked IRF dataset
 clear
 set obs 7
-gen horizon = _n - 3
+gen horizon = _n - 2
 foreach m in b se lo90 hi90 lo95 hi95 {
     svmat `m'_def, names(`m')
     rename `m'1 `m'
@@ -516,5 +540,7 @@ di as result _n "All IRF datasets saved."
 * Print p-values for difference test
 di as result _n "=== P-VALUES: H0: beta_nd(h) = beta_def(h) ==="
 forvalues h = 0/4 {
-    di "h=" `h' ":  p = " %5.3f pval_diff[`h'+1, 1]
+    local hd = `h' + 1
+    di "h=" `hd' ":  p = " %5.3f pval_diff[`h'+1, 1]
 }
+

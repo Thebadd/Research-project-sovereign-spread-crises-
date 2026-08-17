@@ -133,10 +133,10 @@ foreach ch of local channels {
     foreach spec in ols ipw {
         foreach grp in nd def {
             foreach m in b lo90 hi90 lo95 hi95 {
-                matrix `m'_`grp'_`spec'_`ch' = J(5, 1, .)
+                matrix `m'_`grp'_`spec'_`ch' = J(6, 1, 0)
             }
         }
-        matrix pval_`spec'_`ch' = J(5, 1, .)
+        matrix pval_`spec'_`ch' = J(6, 1, .)
     }
 }
 
@@ -155,7 +155,7 @@ foreach ch of local channels {
 
     forvalues h = 0/4 {
         local lag = max(1, `h'+1)
-        local row = `h' + 1
+        local row = `h' + 2
 
         * ── OLS: JOINT LP, both type dummies, FULL sample ───────────────
         * The reference paper's baseline is a single joint regression with all type
@@ -194,7 +194,7 @@ foreach ch of local channels {
             quietly count if onset_def == 1 & sample == 1 & !missing(ch_`ch'_`h')
             local nepdef = r(N)
 
-            eststo t4_`ch'_`h', title("h=`h'")
+            eststo t4_`ch'_`h', title("h=`=`h'+1'")
             estadd scalar bdiff  = `bdiff'
             estadd scalar zdiff  = `zdiff'
             estadd scalar pzdiff = `pz'
@@ -212,7 +212,7 @@ foreach ch of local channels {
             local b_nd_o  = .
             local b_def_o = .
             local p_o     = .
-            di as error "OLS failed for `ch' h=`h'"
+            di as error "OLS failed for `ch' h=`=`h'+1'"
         }
 
         * ── IPW: two SEPARATE vs-tranquil weighted LPs (rival dropped) ────
@@ -233,7 +233,7 @@ foreach ch of local channels {
         else {
             local b_nd_w = .
             local se_nd_w = .
-            di as error "IPW nd-vs-tranquil failed for `ch' h=`h'"
+            di as error "IPW nd-vs-tranquil failed for `ch' h=`=`h'+1'"
         }
         * default-linked vs tranquil (drop onset_nd), weight ipw_def
         capture areg ch_`ch'_`h' onset_def `ctrl' ///
@@ -251,7 +251,7 @@ foreach ch of local channels {
         else {
             local b_def_w = .
             local se_def_w = .
-            di as error "IPW def-vs-tranquil failed for `ch' h=`h'"
+            di as error "IPW def-vs-tranquil failed for `ch' h=`=`h'+1'"
         }
         * extra cost of default (IPW) = def - nd, Clogg z on the two vs-tranquil lines
         local p_w = .
@@ -261,7 +261,7 @@ foreach ch of local channels {
         }
         matrix pval_ipw_`ch'[`row',1] = `p_w'
 
-        di "h=" `h' ///
+        di "h=" `h'+1 ///
            "  " %7.3f `b_nd_o'  "  " %7.3f `b_def_o' "  " %5.3f `p_o' ///
            "  " %7.3f `b_nd_w'  "  " %7.3f `b_def_w' "  " %5.3f `p_w'
     }
@@ -344,8 +344,8 @@ foreach ch of local channels {
         foreach grp in nd def {
             preserve
                 clear
-                set obs 5
-                gen horizon = _n - 1
+                set obs 6
+                gen horizon = _n - 1     // 0 (baseline), 1..5
                 foreach m in b lo90 hi90 lo95 hi95 {
                     svmat `m'_`grp'_`spec'_`ch', names(`m')
                     rename `m'1 `m'
@@ -378,12 +378,12 @@ preserve
         forvalues h = 0/4 {
             replace channel  = "`ch'"                         in `row'
             replace horizon  = `h'                            in `row'
-            replace b_nd_ols  = b_nd_ols_`ch'[`h'+1,1]       in `row'
-            replace b_def_ols = b_def_ols_`ch'[`h'+1,1]      in `row'
-            replace p_ols     = pval_ols_`ch'[`h'+1,1]       in `row'
-            replace b_nd_ipw  = b_nd_ipw_`ch'[`h'+1,1]       in `row'
-            replace b_def_ipw = b_def_ipw_`ch'[`h'+1,1]      in `row'
-            replace p_ipw     = pval_ipw_`ch'[`h'+1,1]       in `row'
+            replace b_nd_ols  = b_nd_ols_`ch'[`h'+2,1]       in `row'
+            replace b_def_ols = b_def_ols_`ch'[`h'+2,1]      in `row'
+            replace p_ols     = pval_ols_`ch'[`h'+2,1]       in `row'
+            replace b_nd_ipw  = b_nd_ipw_`ch'[`h'+2,1]       in `row'
+            replace b_def_ipw = b_def_ipw_`ch'[`h'+2,1]      in `row'
+            replace p_ipw     = pval_ipw_`ch'[`h'+2,1]       in `row'
             local ++row
         }
     }
@@ -434,7 +434,7 @@ foreach ch of local channels {
             lwidth(medthick) msize(small) lpattern(dash)) ///
         , ///
         yline(0, lcolor(gs10) lpattern(dash) lwidth(thin)) ///
-        xlabel(0(1)4, labsize(small)) ///
+        xlabel(0(1)5, labsize(small)) ///
         ylabel(, format(%5.1f) labsize(small)) ///
         xtitle("Years after onset", size(vsmall)) ///
         ytitle("Cumulative change (% or pp — see note)", size(vsmall)) ///
@@ -493,7 +493,7 @@ foreach ch of local channels {
             lwidth(medthick) msize(small) lpattern(dash)) ///
         , ///
         yline(0, lcolor(gs10) lpattern(dash) lwidth(thin)) ///
-        xlabel(0(1)4, labsize(small)) ///
+        xlabel(0(1)5, labsize(small)) ///
         ylabel(, format(%5.1f) labsize(small)) ///
         xtitle("Years after onset", size(vsmall)) ///
         ytitle("Cumulative change (% or pp — see note)", size(vsmall)) ///

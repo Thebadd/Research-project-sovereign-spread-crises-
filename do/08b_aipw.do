@@ -302,7 +302,7 @@ forvalues h = 0/4 {
         }
     restore
 
-    di "h=" `h' "   " %7.3f `pt' "   " ///
+    di "h=" `h'+1 "   " %7.3f `pt' "   " ///
        %7.3f A1_se[`row',1] "   [" %7.3f A1_lo[`row',1] ", " %7.3f A1_hi[`row',1] "]" ///
        "   (" `ndraw' "/`nboot' draws)"
 }
@@ -374,7 +374,7 @@ foreach spec in "onset_nd onset_def A2nd non-default" ///
             }
         restore
 
-        di "`lab'  h=" `h' "  " %7.3f `pt' "   " ///
+        di "`lab'  h=" `h'+1 "  " %7.3f `pt' "   " ///
            %7.3f `stub'_se[`row',1] "   [" %7.3f `stub'_lo[`row',1] ", " ///
            %7.3f `stub'_hi[`row',1] "]   (" `ndraw' "/`nboot' draws)"
     }
@@ -401,10 +401,10 @@ forvalues h = 0/4 {
         matrix A2diff_lo[`row',1] = r(lo)
         matrix A2diff_hi[`row',1] = r(hi)
         local sig = cond(r(nd)>=50 & (r(lo)>0 | r(hi)<0), " *", "")
-        di "h=" `h' "   " %7.3f r(dh) "   " %7.3f r(se) "   [" ///
+        di "h=" `h'+1 "   " %7.3f r(dh) "   " %7.3f r(se) "   [" ///
            %7.3f r(lo) ", " %7.3f r(hi) "]   (" r(nd) "/`nboot' draws)`sig'"
     }
-    else di as error "h=" `h' ": difference estimate failed (too thin)."
+    else di as error "h=" `h'+1 ": difference estimate failed (too thin)."
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -415,8 +415,9 @@ preserve
     tempname pfd
     tempfile difff
     postfile `pfd' horizon dhl se lo hi using "`difff'", replace
+    post `pfd' (0) (0) (0) (0) (0)   // explicit baseline (displayed h=0), matching Asonuma et al.
     forvalues h = 0/4 {
-        post `pfd' (`h') (A2diff_b[`h'+1,1]) (A2diff_se[`h'+1,1]) ///
+        post `pfd' (`h'+1) (A2diff_b[`h'+1,1]) (A2diff_se[`h'+1,1]) ///
             (A2diff_lo[`h'+1,1]) (A2diff_hi[`h'+1,1])
     }
     postclose `pfd'
@@ -431,7 +432,7 @@ preserve
     di as result "AIPW extra-cost-of-default CSV saved: $tabs/aipw_act2_diff.csv"
 restore
 
-* representative gap (h=2, near the trough) for the Act-2 figure annotation
+* representative gap (displayed h=3, near the trough) for the Act-2 figure annotation
 local g2  = A2diff_b[3,1]
 local g2l = A2diff_lo[3,1]
 local g2h = A2diff_hi[3,1]
@@ -440,7 +441,7 @@ if !missing(`g2') & !missing(`g2l') {
     local g2s  : di %4.1f `g2'
     local g2ls : di %4.1f `g2l'
     local g2hs : di %4.1f `g2h'
-    local gapnote "Extra cost of default at h=2: `g2s' pp [`g2ls', `g2hs'] (paired bootstrap)."
+    local gapnote "Extra cost of default at h=3: `g2s' pp [`g2ls', `g2hs'] (paired bootstrap)."
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -454,8 +455,9 @@ preserve
     postfile `pfx' str3 series horizon b se lo hi using "`aipwf'", replace
     foreach map in "all A1" "nd A2nd" "def A2def" {
         gettoken sname stub : map
+        post `pfx' ("`sname'") (0) (0) (0) (0) (0)   // explicit baseline, matching Asonuma et al.
         forvalues h = 0/4 {
-            post `pfx' ("`sname'") (`h') ///
+            post `pfx' ("`sname'") (`h'+1) ///
                 (`stub'_b[`h'+1,1]) (`stub'_se[`h'+1,1]) ///
                 (`stub'_lo[`h'+1,1]) (`stub'_hi[`h'+1,1])
         }
@@ -475,8 +477,8 @@ preserve
         (rarea lo hi horizon if series=="all", color("`c1'%20") lwidth(none)) ///
         (connected b horizon if series=="all", lcolor("`c1'") lwidth(medthick) msymbol(circle)), ///
         yline(0, lpattern(dash) lcolor(gs8)) ///
-        xlabel(0(1)4) ytitle("Cumulative real GDP change (pp)", size(small)) ///
-        xtitle("Years after onset", size(small)) ///
+        xlabel(0(1)5) ytitle("Cumulative real GDP change (pp)", size(small)) ///
+        xtitle("Year (Year 1 = crisis year)", size(small)) ///
         title("AIPW (Asonuma et al. Eq. 3) output cost — all crises", size(medsmall) color(navy)) ///
         legend(off) ///
         note("Hand-coded AIPW (Jordà–Taylor 2016 / Asonuma et al. Eq. 3), ATE. CI = bootstrap percentile (cluster by country).", size(vsmall)) ///
@@ -493,8 +495,8 @@ preserve
         (connected b horizon if series=="nd",  lcolor("`c_nd'")  lwidth(medthick) msymbol(circle)) ///
         (connected b horizon if series=="def", lcolor("`c_def'") lwidth(medthick) lpattern(dash) msymbol(square)), ///
         yline(0, lpattern(dash) lcolor(gs8)) ///
-        xlabel(0(1)4, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
-        xtitle("Years after crisis onset", size(medsmall)) ///
+        xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
+        xtitle("Year (Year 1 = crisis year)", size(medsmall)) ///
         ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
         title("AIPW output cost by resolution", size(medium) color(navy)) ///
         subtitle("Doubly-robust (Asonuma et al. Eq. 3), each vs tranquil.", size(small)) ///

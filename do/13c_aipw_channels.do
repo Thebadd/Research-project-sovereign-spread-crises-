@@ -310,6 +310,7 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
 
     * ── Act 1: all-crises AIPW (onset_all vs tranquil) ──────────────────────
     di as result "  Act 1 (all onsets):   h    ATE      SE      [95% CI]   draws"
+    post `R' ("`ch'") ("all") (0) (0) (0) (0) (0)   // explicit baseline (h=0), matching Asonuma et al.
     forvalues h = 0/4 {
         * Strict parity: propensity baseline = the OUTCOME model `om' (= $ctrl_core
         * + own pre-trend), plus Z — their g_0+$convar in both stages, $instrument added.
@@ -321,11 +322,11 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
             local lo=r(lo)
             local hi=r(hi)
             local nd=r(nd)
-            post `R' ("`ch'") ("all") (`h') (`b') (`se') (`lo') (`hi')
-            di "    h=" `h' "  " %8.3f `b' "  " %6.3f `se' ///
+            post `R' ("`ch'") ("all") (`h'+1) (`b') (`se') (`lo') (`hi')
+            di "    h=" `h'+1 "  " %8.3f `b' "  " %6.3f `se' ///
                "  [" %7.3f `lo' ", " %7.3f `hi' "]  " `nd' "/`nboot'"
         }
-        else di as error "    h=" `h' ": Act 1 estimate failed (rc)."
+        else di as error "    h=" `h'+1 ": Act 1 estimate failed (rc)."
     }
 
     * ── Act 2: resolution split, two level lines vs tranquil ────────────────
@@ -333,6 +334,7 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
     foreach spec in "onset_nd onset_def nd" "onset_def onset_nd def" {
         gettoken Dv rest  : spec
         gettoken drop sn  : rest
+        post `R' ("`ch'") ("`sn'") (0) (0) (0) (0) (0)   // explicit baseline (h=0)
         forvalues h = 0/4 {
             _aipwci ch_`ch'_`h' `Dv', ifc(sample==1 & `drop'==0) ///
                 omod(`om') pz(`om' `cz_def') reps(`nboot')
@@ -342,11 +344,11 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
                 local lo=r(lo)
                 local hi=r(hi)
                 local nd=r(nd)
-                post `R' ("`ch'") ("`sn'") (`h') (`b') (`se') (`lo') (`hi')
-                di "    `sn'  h=" `h' "  " %8.3f `b' "  " %6.3f `se' ///
+                post `R' ("`ch'") ("`sn'") (`h'+1) (`b') (`se') (`lo') (`hi')
+                di "    `sn'  h=" `h'+1 "  " %8.3f `b' "  " %6.3f `se' ///
                    "  [" %7.3f `lo' ", " %7.3f `hi' "]  " `nd' "/`nboot'"
             }
-            else di as error "    `sn' h=" `h' ": estimate failed (thin sample)."
+            else di as error "    `sn' h=" `h'+1 ": estimate failed (thin sample)."
         }
     }
 
@@ -354,18 +356,19 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
     *   bootstrapped directly on paired cluster resamples, so the between-type
     *   gap gets a proper CI (the paper's inference), not an eyeballed distance.
     di as result "  Act 2 (def - nd gap):  h    def-nd   SE      [95% CI]   draws"
+    post `Rd' ("`ch'") (0) (0) (0) (0) (0) (0) (0) (0)   // explicit baseline (h=0)
     forvalues h = 0/4 {
         _aipwpairdiff, y(ch_`ch'_`h') ///
             d1(onset_def) if1(sample==1 & onset_nd==0) ///
             d2(onset_nd)  if2(sample==1 & onset_def==0) ///
             omod(`om') pz(`om' `cz_def') reps(`nboot')
         if r(ok) {
-            post `Rd' ("`ch'") (`h') (r(dh)) (r(b1)) (r(b2)) (r(se)) (r(lo)) (r(hi)) (r(nd))
+            post `Rd' ("`ch'") (`h'+1) (r(dh)) (r(b1)) (r(b2)) (r(se)) (r(lo)) (r(hi)) (r(nd))
             local sig = cond(r(nd)>=50 & (r(lo)>0 | r(hi)<0), " *", "")
-            di "    h=" `h' "  " %8.3f r(dh) "  " %6.3f r(se) ///
+            di "    h=" `h'+1 "  " %8.3f r(dh) "  " %6.3f r(se) ///
                "  [" %7.3f r(lo) ", " %7.3f r(hi) "]  " r(nd) "/`nboot'`sig'"
         }
-        else di as error "    h=" `h' ": def-nd gap failed (thin sample)."
+        else di as error "    h=" `h'+1 ": def-nd gap failed (thin sample)."
     }
 }
 postclose `R'
@@ -409,7 +412,7 @@ capture twoway ///
         note("Doubly-robust AIPW (Asonuma et al. Eq. 3), ATE. Shaded = bootstrap 95% percentile CI.", size(vsmall)) ///
         title("AIPW transmission channels — all crises", size(medsmall) color(navy))) ///
     yline(0, lpattern(dash) lcolor(gs8)) ///
-    xlabel(0(1)4) xtitle("Years after onset", size(small)) ///
+    xlabel(0(1)5) xtitle("Year (Year 1 = crisis year)", size(small)) ///
     ytitle("Cumulative change in channel (pp)", size(small)) ///
     graphregion(color(white)) plotregion(color(white))
 if _rc == 0 {
@@ -430,7 +433,7 @@ capture twoway ///
         note("Two AIPW level IRFs per channel; shaded = bootstrap 95% CI. Gap = extra cost of default.", size(vsmall)) ///
         title("AIPW transmission channels by resolution", size(medsmall) color(navy))) ///
     yline(0, lpattern(dash) lcolor(gs8)) ///
-    xlabel(0(1)4) xtitle("Years after onset", size(small)) ///
+    xlabel(0(1)5) xtitle("Year (Year 1 = crisis year)", size(small)) ///
     ytitle("Cumulative change in channel (pp)", size(small)) ///
     legend(order(3 "Non-default" 4 "Default-linked") size(small)) ///
     graphregion(color(white)) plotregion(color(white))

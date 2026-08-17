@@ -118,7 +118,7 @@ local ctrl_fdi         $ctrl_core pre_fdi
 
 foreach ch of local channels {
     foreach m in b lo90 hi90 lo95 hi95 {
-        matrix `m'_`ch' = J(5, 1, .)
+        matrix `m'_`ch' = J(6, 1, 0)
     }
 }
 
@@ -161,18 +161,18 @@ forvalues h = 0/4 {
     if _rc == 0 {
         quietly count if onset_all==1 & sample==1 & !missing(ch_credit_`h')
         local nep = r(N)
-        eststo t3_credit_`h', title("h=`h'")
+        eststo t3_credit_`h', title("h=`=`h'+1'")
         estadd scalar nep = `nep'
         local elist_credit `elist_credit' t3_credit_`h'
-        matrix b_credit[`h'+1,1]    = _b[onset_all]
-        matrix lo90_credit[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
-        matrix hi90_credit[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
-        matrix lo95_credit[`h'+1,1] = _b[onset_all] - 1.960*_se[onset_all]
-        matrix hi95_credit[`h'+1,1] = _b[onset_all] + 1.960*_se[onset_all]
-        di "h=" `h' ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
+        matrix b_credit[`h'+2,1]    = _b[onset_all]
+        matrix lo90_credit[`h'+2,1] = _b[onset_all] - 1.645*_se[onset_all]
+        matrix hi90_credit[`h'+2,1] = _b[onset_all] + 1.645*_se[onset_all]
+        matrix lo95_credit[`h'+2,1] = _b[onset_all] - 1.960*_se[onset_all]
+        matrix hi95_credit[`h'+2,1] = _b[onset_all] + 1.960*_se[onset_all]
+        di "h=" `h'+1 ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
            "  p=" %5.3f (2*(1-normal(abs(_b[onset_all]/_se[onset_all])))) "  N=" e(N)
     }
-    else di as error "h=" `h' ": xtscc failed for credit (rc=" _rc ")"
+    else di as error "h=" `h'+1 ": xtscc failed for credit (rc=" _rc ")"
 }
 
 * ── Channel 2: Sovereign-bank nexus ──────────────────────────────────────
@@ -185,18 +185,18 @@ forvalues h = 0/4 {
     if _rc == 0 {
         quietly count if onset_all==1 & sample==1 & !missing(ch_claims_govt_`h')
         local nep = r(N)
-        eststo t3_claims_govt_`h', title("h=`h'")
+        eststo t3_claims_govt_`h', title("h=`=`h'+1'")
         estadd scalar nep = `nep'
         local elist_claims_govt `elist_claims_govt' t3_claims_govt_`h'
-        matrix b_claims_govt[`h'+1,1]    = _b[onset_all]
-        matrix lo90_claims_govt[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
-        matrix hi90_claims_govt[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
-        matrix lo95_claims_govt[`h'+1,1] = _b[onset_all] - 1.960*_se[onset_all]
-        matrix hi95_claims_govt[`h'+1,1] = _b[onset_all] + 1.960*_se[onset_all]
-        di "h=" `h' ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
+        matrix b_claims_govt[`h'+2,1]    = _b[onset_all]
+        matrix lo90_claims_govt[`h'+2,1] = _b[onset_all] - 1.645*_se[onset_all]
+        matrix hi90_claims_govt[`h'+2,1] = _b[onset_all] + 1.645*_se[onset_all]
+        matrix lo95_claims_govt[`h'+2,1] = _b[onset_all] - 1.960*_se[onset_all]
+        matrix hi95_claims_govt[`h'+2,1] = _b[onset_all] + 1.960*_se[onset_all]
+        di "h=" `h'+1 ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
            "  p=" %5.3f (2*(1-normal(abs(_b[onset_all]/_se[onset_all])))) "  N=" e(N)
     }
-    else di as error "h=" `h' ": xtscc failed for claims_govt (rc=" _rc ")"
+    else di as error "h=" `h'+1 ": xtscc failed for claims_govt (rc=" _rc ")"
 }
 
 * ── Channel 3: Investment ────────────────────────────────────────────────
@@ -209,18 +209,18 @@ forvalues h = 0/4 {
     if _rc == 0 {
         quietly count if onset_all==1 & sample==1 & !missing(ch_inv_`h')
         local nep = r(N)
-        eststo t3_inv_`h', title("h=`h'")
+        eststo t3_inv_`h', title("h=`=`h'+1'")
         estadd scalar nep = `nep'
         local elist_inv `elist_inv' t3_inv_`h'
-        matrix b_inv[`h'+1,1]    = _b[onset_all]
-        matrix lo90_inv[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
-        matrix hi90_inv[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
-        matrix lo95_inv[`h'+1,1] = _b[onset_all] - 1.960*_se[onset_all]
-        matrix hi95_inv[`h'+1,1] = _b[onset_all] + 1.960*_se[onset_all]
-        di "h=" `h' ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
+        matrix b_inv[`h'+2,1]    = _b[onset_all]
+        matrix lo90_inv[`h'+2,1] = _b[onset_all] - 1.645*_se[onset_all]
+        matrix hi90_inv[`h'+2,1] = _b[onset_all] + 1.645*_se[onset_all]
+        matrix lo95_inv[`h'+2,1] = _b[onset_all] - 1.960*_se[onset_all]
+        matrix hi95_inv[`h'+2,1] = _b[onset_all] + 1.960*_se[onset_all]
+        di "h=" `h'+1 ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
            "  p=" %5.3f (2*(1-normal(abs(_b[onset_all]/_se[onset_all])))) "  N=" e(N)
     }
-    else di as error "h=" `h' ": xtscc failed for inv (rc=" _rc ")"
+    else di as error "h=" `h'+1 ": xtscc failed for inv (rc=" _rc ")"
 }
 
 * ── Channel 4: Government expenditure ────────────────────────────────────
@@ -233,18 +233,18 @@ forvalues h = 0/4 {
     if _rc == 0 {
         quietly count if onset_all==1 & sample==1 & !missing(ch_govexp_`h')
         local nep = r(N)
-        eststo t3_govexp_`h', title("h=`h'")
+        eststo t3_govexp_`h', title("h=`=`h'+1'")
         estadd scalar nep = `nep'
         local elist_govexp `elist_govexp' t3_govexp_`h'
-        matrix b_govexp[`h'+1,1]    = _b[onset_all]
-        matrix lo90_govexp[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
-        matrix hi90_govexp[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
-        matrix lo95_govexp[`h'+1,1] = _b[onset_all] - 1.960*_se[onset_all]
-        matrix hi95_govexp[`h'+1,1] = _b[onset_all] + 1.960*_se[onset_all]
-        di "h=" `h' ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
+        matrix b_govexp[`h'+2,1]    = _b[onset_all]
+        matrix lo90_govexp[`h'+2,1] = _b[onset_all] - 1.645*_se[onset_all]
+        matrix hi90_govexp[`h'+2,1] = _b[onset_all] + 1.645*_se[onset_all]
+        matrix lo95_govexp[`h'+2,1] = _b[onset_all] - 1.960*_se[onset_all]
+        matrix hi95_govexp[`h'+2,1] = _b[onset_all] + 1.960*_se[onset_all]
+        di "h=" `h'+1 ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
            "  p=" %5.3f (2*(1-normal(abs(_b[onset_all]/_se[onset_all])))) "  N=" e(N)
     }
-    else di as error "h=" `h' ": xtscc failed for govexp (rc=" _rc ")"
+    else di as error "h=" `h'+1 ": xtscc failed for govexp (rc=" _rc ")"
 }
 
 * ── Channel 5: Primary balance ───────────────────────────────────────────
@@ -257,18 +257,18 @@ forvalues h = 0/4 {
     if _rc == 0 {
         quietly count if onset_all==1 & sample==1 & !missing(ch_pb_`h')
         local nep = r(N)
-        eststo t3_pb_`h', title("h=`h'")
+        eststo t3_pb_`h', title("h=`=`h'+1'")
         estadd scalar nep = `nep'
         local elist_pb `elist_pb' t3_pb_`h'
-        matrix b_pb[`h'+1,1]    = _b[onset_all]
-        matrix lo90_pb[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
-        matrix hi90_pb[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
-        matrix lo95_pb[`h'+1,1] = _b[onset_all] - 1.960*_se[onset_all]
-        matrix hi95_pb[`h'+1,1] = _b[onset_all] + 1.960*_se[onset_all]
-        di "h=" `h' ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
+        matrix b_pb[`h'+2,1]    = _b[onset_all]
+        matrix lo90_pb[`h'+2,1] = _b[onset_all] - 1.645*_se[onset_all]
+        matrix hi90_pb[`h'+2,1] = _b[onset_all] + 1.645*_se[onset_all]
+        matrix lo95_pb[`h'+2,1] = _b[onset_all] - 1.960*_se[onset_all]
+        matrix hi95_pb[`h'+2,1] = _b[onset_all] + 1.960*_se[onset_all]
+        di "h=" `h'+1 ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
            "  p=" %5.3f (2*(1-normal(abs(_b[onset_all]/_se[onset_all])))) "  N=" e(N)
     }
-    else di as error "h=" `h' ": xtscc failed for pb (rc=" _rc ")"
+    else di as error "h=" `h'+1 ": xtscc failed for pb (rc=" _rc ")"
 }
 
 * ── Channel 6: FDI ───────────────────────────────────────────────────────
@@ -281,18 +281,18 @@ forvalues h = 0/4 {
     if _rc == 0 {
         quietly count if onset_all==1 & sample==1 & !missing(ch_fdi_`h')
         local nep = r(N)
-        eststo t3_fdi_`h', title("h=`h'")
+        eststo t3_fdi_`h', title("h=`=`h'+1'")
         estadd scalar nep = `nep'
         local elist_fdi `elist_fdi' t3_fdi_`h'
-        matrix b_fdi[`h'+1,1]    = _b[onset_all]
-        matrix lo90_fdi[`h'+1,1] = _b[onset_all] - 1.645*_se[onset_all]
-        matrix hi90_fdi[`h'+1,1] = _b[onset_all] + 1.645*_se[onset_all]
-        matrix lo95_fdi[`h'+1,1] = _b[onset_all] - 1.960*_se[onset_all]
-        matrix hi95_fdi[`h'+1,1] = _b[onset_all] + 1.960*_se[onset_all]
-        di "h=" `h' ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
+        matrix b_fdi[`h'+2,1]    = _b[onset_all]
+        matrix lo90_fdi[`h'+2,1] = _b[onset_all] - 1.645*_se[onset_all]
+        matrix hi90_fdi[`h'+2,1] = _b[onset_all] + 1.645*_se[onset_all]
+        matrix lo95_fdi[`h'+2,1] = _b[onset_all] - 1.960*_se[onset_all]
+        matrix hi95_fdi[`h'+2,1] = _b[onset_all] + 1.960*_se[onset_all]
+        di "h=" `h'+1 ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
            "  p=" %5.3f (2*(1-normal(abs(_b[onset_all]/_se[onset_all])))) "  N=" e(N)
     }
-    else di as error "h=" `h' ": xtscc failed for fdi (rc=" _rc ")"
+    else di as error "h=" `h'+1 ": xtscc failed for fdi (rc=" _rc ")"
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -372,8 +372,8 @@ local i = 1
 foreach ch of local channels {
     preserve
         clear
-        set obs 5
-        gen horizon = _n - 1
+        set obs 6
+        gen horizon = _n - 1     // 0 (baseline), 1..5
         foreach m in b lo90 hi90 lo95 hi95 {
             svmat `m'_`ch', names(`m')
             rename `m'1 `m'
@@ -404,12 +404,12 @@ preserve
     foreach ch of local channels {
         forvalues h = 0/4 {
             replace channel = "`ch'"              in `row'
-            replace horizon = `h'                 in `row'
-            replace b       = b_`ch'[`h'+1, 1]   in `row'
-            replace lo95    = lo95_`ch'[`h'+1, 1] in `row'
-            replace hi95    = hi95_`ch'[`h'+1, 1] in `row'
-            replace lo90    = lo90_`ch'[`h'+1, 1] in `row'
-            replace hi90    = hi90_`ch'[`h'+1, 1] in `row'
+            replace horizon = `h'+1               in `row'
+            replace b       = b_`ch'[`h'+2, 1]   in `row'
+            replace lo95    = lo95_`ch'[`h'+2, 1] in `row'
+            replace hi95    = hi95_`ch'[`h'+2, 1] in `row'
+            replace lo90    = lo90_`ch'[`h'+2, 1] in `row'
+            replace hi90    = hi90_`ch'[`h'+2, 1] in `row'
             local ++row
         }
     }
@@ -446,9 +446,9 @@ foreach ch of local channels {
             msymbol(circle) lwidth(medthick) msize(medium)) ///
         , ///
         yline(0, lcolor(gs8) lpattern(dash) lwidth(thin)) ///
-        xlabel(0(1)4, labsize(medsmall)) ///
+        xlabel(0(1)5, labsize(medsmall)) ///
         ylabel(, format(%5.2f) labsize(medsmall)) ///
-        xtitle("Years after onset", size(small)) ///
+        xtitle("Year (Year 1 = crisis year)", size(small)) ///
         ytitle("Cumulative change (% or pp — see note)", size(small)) ///
         title(`tlab', size(medsmall) color(navy)) ///
         legend(off) ///
@@ -569,7 +569,7 @@ local channels credit claims_govt inv govexp pb fdi
 
 foreach ch of local channels {
     foreach m in b_ipw lo90_ipw hi90_ipw lo95_ipw hi95_ipw {
-        matrix `m'_`ch' = J(5, 1, .)
+        matrix `m'_`ch' = J(6, 1, 0)
     }
 }
 
@@ -587,7 +587,7 @@ foreach ch of local channels {
     di as result "h    beta_OLS   SE_OLS    beta_IPW   SE_IPW    delta"
 
     forvalues h = 0/4 {
-        local row = `h' + 1
+        local row = `h' + 2
 
         * Unweighted baseline (areg, for apples-to-apples SE comparison)
         * Country FE only, no year FE (paper-aligned two-stage outcome regression).
@@ -603,7 +603,7 @@ foreach ch of local channels {
         else {
             local b_ols  = .
             local se_ols = .
-            di as error "h=" `h' ": areg OLS baseline failed for `ch' (rc=" _rc ")"
+            di as error "h=" `h'+1 ": areg OLS baseline failed for `ch' (rc=" _rc ")"
         }
 
         * IPW-weighted
@@ -617,12 +617,12 @@ foreach ch of local channels {
             matrix hi95_ipw_`ch'[`row',1] = _b[onset_all] + 1.960*_se[onset_all]
             local b_ipw  = _b[onset_all]
             local se_ipw = _se[onset_all]
-            di "h=" `h' "   " %7.3f `b_ols'  "   " %6.3f `se_ols' ///
+            di "h=" `h'+1 "   " %7.3f `b_ols'  "   " %6.3f `se_ols' ///
                    "    " %7.3f `b_ipw' "   " %6.3f `se_ipw' ///
                    "    " %7.3f (`b_ipw' - `b_ols')
         }
         else {
-            di as error "h=" `h' ": areg IPW failed for `ch' (rc=" _rc ")"
+            di as error "h=" `h'+1 ": areg IPW failed for `ch' (rc=" _rc ")"
         }
     }
 }
@@ -636,8 +636,8 @@ di as result "========================================================"
 foreach ch of local channels {
     preserve
         clear
-        set obs 5
-        gen horizon = _n - 1
+        set obs 6
+        gen horizon = _n - 1     // 0 (baseline), 1..5
         foreach m in b lo90 hi90 lo95 hi95 {
             svmat `m'_ipw_`ch', names(`m')
             rename `m'1 `m'
@@ -683,9 +683,9 @@ foreach ch of local channels {
             lcolor("`c_ipw'") lwidth(medthick) lpattern(dash) ///
             msymbol(square) mcolor("`c_ipw'")), ///
         yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
-        xlabel(0(1)4, labsize(medsmall)) ///
+        xlabel(0(1)5, labsize(medsmall)) ///
         ylabel(, format(%5.2f) labsize(medsmall)) ///
-        xtitle("Years after onset", size(small)) ///
+        xtitle("Year (Year 1 = crisis year)", size(small)) ///
         ytitle("Cumulative change (% or pp — see note)", size(small)) ///
         title(`tlab', size(medsmall) color(navy)) ///
         legend(off) ///

@@ -4,7 +4,10 @@
 
   Figure 1: IRF -- All spread crises (Act 1)
   Figure 2: IRF overlay -- Non-default vs. Default-linked (Act 2)
-  Figure 3: Pre-trend validation (placebo horizon h=-2 + main h=0..4)
+  Figure 3: Pre-trend validation (placebo h=-1 + explicit baseline h=0 + main h=1..5)
+
+  Horizon numbering matches Asonuma et al.: Year 1 is the crisis year itself;
+  Year 0 is the explicit pre-crisis baseline (hardcoded 0, no CI).
 ===========================================================================*/
 
 * Color scheme
@@ -29,9 +32,9 @@ twoway ///
         lcolor("`c_all'") lwidth(medthick) ///
         mcolor("`c_all'") msize(medium) msymbol(circle)), ///
     yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
-    xlabel(0(1)4, labsize(medsmall)) ///
+    xlabel(0(1)5, labsize(medsmall)) ///
     ylabel(, format(%4.1f) labsize(medsmall)) ///
-    xtitle("Years after crisis onset", size(medsmall)) ///
+    xtitle("Year (Year 1 = crisis year)", size(medsmall)) ///
     ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
     title("Output Cost of Sovereign Spread Crises", size(medium)) ///
     subtitle("All episodes (N = 61), 52 EM economies, 1994-2025", size(small)) ///
@@ -67,9 +70,9 @@ twoway ///
         lcolor("`c_def'") lwidth(medthick) lpattern(dash) ///
         mcolor("`c_def'") msize(medium) msymbol(square)), ///
     yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
-    xlabel(0(1)4, labsize(medsmall)) ///
+    xlabel(0(1)5, labsize(medsmall)) ///
     ylabel(, format(%4.1f) labsize(medsmall)) ///
-    xtitle("Years after crisis onset", size(medsmall)) ///
+    xtitle("Year (Year 1 = crisis year)", size(medsmall)) ///
     ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
     title("Output Cost: Non-Default vs. Default-Linked Crises", size(medium)) ///
     subtitle("52 EM economies, 1994-2025", size(small)) ///
@@ -96,15 +99,15 @@ twoway ///
         lcolor("`c_all'") lwidth(medthick) ///
         mcolor("`c_all'") msize(medium) msymbol(circle)), ///
     yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
-    xline(-1, lpattern(solid) lcolor("`c_zero'") lwidth(thin)) ///
-    xlabel(-2(1)4, labsize(medsmall)) ///
+    xline(0.5, lpattern(solid) lcolor("`c_zero'") lwidth(thin)) ///
+    xlabel(-1(1)5, labsize(medsmall)) ///
     ylabel(, format(%4.1f) labsize(medsmall)) ///
-    xtitle("Years relative to crisis onset", size(medsmall)) ///
+    xtitle("Year (Year 0 = pre-crisis baseline, Year 1 = crisis year)", size(medsmall)) ///
     ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
     title("Pre-Trend Test + Main Horizons", size(medium)) ///
-    subtitle("All spread crises (N = 61). Placebo: h = -2.", size(small)) ///
-    text(0 -2 "Pre-trend (should be ~0)", size(vsmall) color(gray)) ///
-    text(0 2 "Post-onset", size(vsmall) color(gray)) ///
+    subtitle("All spread crises (N = 61). Placebo: h = -1.", size(small)) ///
+    text(0 -1 "Pre-trend (should be ~0)", size(vsmall) color(gray)) ///
+    text(0 3 "Post-onset", size(vsmall) color(gray)) ///
     legend(order(2 "Point estimate" 1 "90% CI") ring(0) pos(1) size(small)) ///
     graphregion(color(white)) plotregion(color(white))
 

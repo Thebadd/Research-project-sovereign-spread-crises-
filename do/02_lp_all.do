@@ -4,7 +4,9 @@
 
   Treatment: onset_all = 1 in first year of any spread crisis (crit1 or crit2)
   Sample:    onset + tranquil years (continuation years excluded)
-  Horizons:  h = −2, −1 (pre-trend placebo), 0, 1, 2, 3, 4
+  Horizons:  h = -1 (pre-trend placebo), 0 (baseline, hardcoded 0), 1, 2, 3, 4, 5
+             Year numbering matches Asonuma et al.: Year 1 is the crisis year
+             itself, Year 0 is the explicit pre-crisis baseline (always 0).
   SE:        Driscoll-Kraay with lag = max(1, h+1)  [xtscc, fe]
 
   Saves:
@@ -83,10 +85,11 @@ foreach m in b se lo90 hi90 lo95 hi95 {
     matrix `m'_all = J(`nhor', 1, .)
 }
 
-* ── Row index: 1=h-2, 2=h-1, 3=h0, 4=h1, 5=h2, 6=h3, 7=h4 ─────────────
+* ── Row index (Asonuma-style display numbering): 1=h-1, 2=h0(baseline,=0),
+*    3=h1, 4=h2, 5=h3, 6=h4, 7=h5 ─────────────────────────────────────────
 
 * ────────────────────────────────────────────────────────────────────────
-* PRE-TREND PLACEBO: h = -2 (single horizon)
+* PRE-TREND PLACEBO: h = -1 (single horizon, display numbering)
 * dy_h = F h.ln_gdp - L.ln_gdp for h=0..4 is always measured against the SAME
 * t-1 base. Plugging h=-1 into that identical formula gives L.ln_gdp - L.ln_gdp
 * = 0 trivially — the base year equals itself, so h=-1 is not an estimable
@@ -107,12 +110,12 @@ local cc         $ctrl_core
 local dropgdpg   l1_gdpg
 local controls_pre : list cc - dropgdpg
 
-di as result _n "=== PRE-TREND TEST (placebo horizon) ==="
+di as result _n "=== PRE-TREND TEST (placebo horizon, displayed as h=-1) ==="
 di as result "    controls: `controls_pre'"
-di as result "    (l1_gdpg excluded — it IS -1 times the h=-2 outcome; h=-1 itself is the trivial baseline, not estimated)"
+di as result "    (l1_gdpg excluded — it IS -1 times the dy_m2 outcome; the true baseline, displayed h=0, is never estimated)"
 
 foreach h_neg in 2 {
-    local row = (3 - `h_neg')   // h=-2 → row 1
+    local row = (3 - `h_neg')   // dy_m2 -> displayed h=-1 -> row 1
 
     xtscc dy_m`h_neg' onset_all `controls_pre' i.year ///
         if sample == 1, fe lag(1)
@@ -132,13 +135,21 @@ foreach h_neg in 2 {
     matrix lo95_all[`row', 1] = `bb' - `c95' * `ss'
     matrix hi95_all[`row', 1] = `bb' + `c95' * `ss'
 
-    di "h=-`h_neg': beta = " %6.3f `bb' ///
+    di "h=-1: beta = " %6.3f `bb' ///
        "  SE = " %6.3f `ss' ///
        "  p = " %5.3f `pp'
 }
 
+* ── Explicit baseline point (displayed h=0), matching Asonuma et al.: hard-
+* coded zero, never estimated — the pre-crisis anchor every horizon is
+* measured against. Row 2 of the 7-row matrices.
+foreach m in b se lo90 hi90 lo95 hi95 {
+    matrix `m'_all[2, 1] = 0
+}
+
 * ────────────────────────────────────────────────────────────────────────
-* MAIN HORIZONS: h = 0, 1, 2, 3, 4
+* MAIN HORIZONS: displayed h = 1, 2, 3, 4, 5 (Asonuma numbering; internal
+* variables dy_0..dy_4 are unchanged, only the printed/labeled horizon shifts)
 * ────────────────────────────────────────────────────────────────────────
 
 di as result _n "=== MAIN LP RESULTS (ALL CRISES) ==="
@@ -146,7 +157,8 @@ di as result _n "=== MAIN LP RESULTS (ALL CRISES) ==="
 eststo clear   // clear any stored estimates before capturing for Table 1
 
 forvalues h = 0/4 {
-    local row = `h' + 3   // h=0 → row 3, ..., h=4 → row 7
+    local hd  = `h' + 1   // displayed horizon (Asonuma: crisis year = 1)
+    local row = `h' + 3   // dy_0 → row 3, ..., dy_4 → row 7
     local lag = max(1, `h' + 1)
 
     xtscc dy_`h' onset_all `controls' i.year ///
@@ -179,7 +191,7 @@ forvalues h = 0/4 {
     matrix lo95_all[`row', 1] = `bb' - `c95' * `ss'
     matrix hi95_all[`row', 1] = `bb' + `c95' * `ss'
 
-    di "h=" `h' ": beta = " %6.3f `bb' ///
+    di "h=" `hd' ": beta = " %6.3f `bb' ///
        "  SE = " %6.3f `ss' ///
        "  N = " `nn' ///
        "  episodes = " `nep' ///
@@ -213,13 +225,14 @@ else {
     * NOTE: no eststo clear here — the headline t1_* estimates must survive for
     * the Table 1 export below. The robustness set is stored under t1r_* instead.
     forvalues h = 0/4 {
+        local hd  = `h' + 1
         local lag = max(1, `h' + 1)
 
         capture xtscc dy_`h' onset_all `controls' i.year ///
             if sample == 1 & (year + `h') <= gdp_last_actual, fe lag(`lag')
 
         if _rc {
-            di as error "  outturn-only regression failed at h=`h' (rc=" _rc ")"
+            di as error "  outturn-only regression failed at h=`hd' (rc=" _rc ")"
             continue
         }
 
@@ -234,7 +247,7 @@ else {
         eststo t1r_h`h'
         estadd scalar nep = `nep'
 
-        di "h=" `h' "  " %7.3f `bb' "  " %6.3f `ss' "  " %5.0f `nn' ///
+        di "h=" `hd' "  " %7.3f `bb' "  " %6.3f `ss' "  " %5.0f `nn' ///
            "     " %3.0f `nep' "     " %5.3f `pp'
     }
 
@@ -242,7 +255,7 @@ else {
         using "$tabs/table1r_output_all_outturns.rtf", replace ///
         b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
         keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
-        mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+        mtitles("h=1" "h=2" "h=3" "h=4" "h=5") nonumber ///
         stats(nep N N_g, labels("Episodes (onsets in estimation sample)" "Observations" "Countries") fmt(0 0 0)) ///
         title("Table 1R. Output cost of sovereign spread crises — outturns only (robustness)") ///
         addnotes("As Table 1, but each horizon drops observations whose outcome year t+h falls after the last WEO actual observation for that country (LATEST_ACTUAL_ANNUAL_DATA)." ///
@@ -264,7 +277,7 @@ else {
 capture esttab t1_h0 t1_h1 t1_h2 t1_h3 t1_h4 using "$tabs/table1_output_all.rtf", replace ///
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
     keep(onset_all) coeflabel(onset_all "Spread-crisis onset") ///
-    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+    mtitles("h=1" "h=2" "h=3" "h=4" "h=5") nonumber ///
     stats(nep N N_g, labels("Episodes (onsets in estimation sample)" "Observations" "Countries") fmt(0 0 0)) ///
     title("Table 1. Output cost of sovereign spread crises (all episodes)") ///
     addnotes("Dependent variable: cumulative change in log real GDP (pp) from t-1 to t+h." ///
@@ -285,7 +298,7 @@ clear
 local nhor = 7
 set obs `nhor'
 
-gen horizon = _n - 3     // -2, -1, 0, 1, 2, 3, 4
+gen horizon = _n - 2     // -1, 0, 1, 2, 3, 4, 5 (Asonuma numbering: crisis year = 1)
 
 svmat b_all,    names(b)
 svmat se_all,   names(se)
