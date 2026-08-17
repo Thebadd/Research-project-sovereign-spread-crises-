@@ -48,7 +48,7 @@ eststo clear
 capture program drop _fscol
 program define _fscol
     args nm dv ifcond xlist zlist
-    quietly probit `dv' `xlist' `zlist' if `ifcond', vce(cluster cid)
+    probit `dv' `xlist' `zlist' if `ifcond', vce(cluster cid)
     eststo `nm'
     quietly test `zlist'
     estadd scalar chi2p = r(chi2)
