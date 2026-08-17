@@ -259,6 +259,23 @@ exceptions are gone and every file now uses the same depth term.
 Note that WDI credit missingness is **entirely at the ends** of country series (151 rows for
 `credit`, 1 interior), so interpolation recovers **zero** onsets and is not an option here.
 
+### Channel outcomes: log real levels, except `claims_govt`
+`18_transforms.do` rescales `credit`, `credit_bank`, `inv` and `govexp` from ratios-to-GDP
+into log real levels (`ln_r_* = ln(gdp_real * ratio)*100`), matching the reference paper and
+removing the contemporaneous-GDP denominator from the channel outcome (see the block comment
+above `ln_r_credit` in `18_transforms.do`). `claims_govt` is deliberately excluded from this
+rescaling: bank claims on central government is close to a **net** position (credit to
+government minus government deposits at banks), so the ratio sits near zero for many
+country-years and is negative for some. `ln()` requires strict positivity, so logging it
+drops the low-claims country-years outright — selection on one tail of the outcome, not
+missing data (342 dropped rows and an 8-onset coverage loss at h=0 in one run, with SEs
+inflating to 5.5–19.1 and every horizon losing significance). The channel files keep
+`claims_govt` on its ratio-to-GDP form. `18_transforms.do` also builds
+`as_r_claims_govt = asinh(gdp_real * claims_govt)` as a level-based robustness alternative:
+`asinh` is defined at zero and for negative values, behaves like `ln()` in the tails, and
+loses no observations. `claimsgov_assets` / `claimpriv_assets` (§7's nexus variables) are
+shares of bank assets, not of GDP, so this issue does not apply to them.
+
 ## 9. Legacy / source unrecovered
 | Variable | Status |
 |---|---|

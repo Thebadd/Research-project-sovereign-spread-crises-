@@ -64,7 +64,7 @@ local core_aipw l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_
 foreach v in credit claims_govt inv govexp pb fdi ///
              claimsgov_assets claimpriv_assets ca {
     local src `v'
-    if inlist("`v'","credit","claims_govt","inv","govexp") local src ln_r_`v'
+    if inlist("`v'","credit","inv","govexp") local src ln_r_`v'
     capture drop `v'_base
     gen `v'_base = L.`src'
     forvalues h = 0/4 {

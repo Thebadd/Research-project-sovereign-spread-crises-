@@ -57,7 +57,7 @@ xtset cid year
 * possible and they keep the ratio; for a balance the ratio is the right object.
 foreach var in credit claims_govt inv govexp pb fdi {
     local src `var'
-    if inlist("`var'","credit","claims_govt","inv","govexp") local src ln_r_`var'
+    if inlist("`var'","credit","inv","govexp") local src ln_r_`var'
     capture drop `var'_base
     gen `var'_base = L.`src'
     forvalues h = 0/4 {
@@ -506,7 +506,7 @@ xtset cid year
 * possible and they keep the ratio; for a balance the ratio is the right object.
 foreach var in credit claims_govt inv govexp pb fdi {
     local src `var'
-    if inlist("`var'","credit","claims_govt","inv","govexp") local src ln_r_`var'
+    if inlist("`var'","credit","inv","govexp") local src ln_r_`var'
     capture drop `var'_base
     gen `var'_base = L.`src'
     forvalues h = 0/4 {

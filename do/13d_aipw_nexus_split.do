@@ -121,7 +121,7 @@ di as result "   result is not merely a development proxy.)"
 * the denominator problem does not arise for them either.
 foreach v in credit inv claimpriv_assets claims_govt {
     local src `v'
-    if inlist("`v'","credit","claims_govt","inv") local src ln_r_`v'
+    if inlist("`v'","credit","inv") local src ln_r_`v'
     capture drop `v'_base
     gen `v'_base = L.`src'
     forvalues h = 0/4 {

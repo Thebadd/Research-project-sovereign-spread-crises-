@@ -239,6 +239,23 @@ foreach v in credit credit_bank inv govexp claims_govt {
     label var ln_r_`v' "Log real `v' level x100 (= paper's ln(gdp_real*x)*100)"
 }
 
+* ln_r_claims_govt is built above but NOT used as the claims_govt channel outcome.
+* Bank claims on central government is close to a NET position (credit to govt minus
+* govt deposits at banks), so the ratio sits near zero for many country-years and is
+* negative for some — ln() requires strict positivity, so ln_r_claims_govt drops the
+* low-claims country-years outright (342 missing in one run; onset coverage at h=0
+* fell 55->47). That is selection on one tail of the outcome, not noise, so the
+* channel file keeps claims_govt on its ratio-to-GDP form (ppt of GDP) instead.
+* asinh gives a level-based alternative without that cost: it is defined at zero and
+* for negative values, behaves like ln() in the tails, and reads approximately as a
+* percent change, so it loses no observations to a positivity requirement.
+capture drop as_r_claims_govt
+capture confirm variable claims_govt
+if !_rc {
+    gen double as_r_claims_govt = asinh(gdp_real * claims_govt)
+    label var as_r_claims_govt "asinh(gdp_real*claims_govt): level robustness for claims_govt (see note above)"
+}
+
 * ── Estimation sample ───────────────────────────────────────────────────────
 * carryin==0 excludes the pre-EMBIG scaffolding rows added in 10_skeleton: they exist
 * only so the L. operators above have a previous row to point at, and carry no spread
