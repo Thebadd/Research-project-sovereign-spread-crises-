@@ -153,7 +153,7 @@ foreach e of local expvars {
 * Storage for the pooled figure: d_h with 90% CI
 foreach e of local expvars {
     foreach m in dcoef dlo90 dhi90 {
-        matrix `m'_`e' = J(5, 1, .)
+        matrix `m'_`e' = J(6, 1, 0)
     }
 }
 
@@ -170,13 +170,13 @@ foreach e of local expvars {
 
     forvalues h = 0/4 {
         local lag = max(1, `h'+1)
-        local row = `h' + 1
+        local row = `h' + 2
 
         capture xtscc dy_`h' onset_all z_`e' Dz_`e' `controls' i.year ///
             if sample == 1, fe lag(`lag')
 
         if _rc == 0 {
-            eststo a_`e'_`h', title("h=`h'")
+            eststo a_`e'_`h', title("h=`=`h'+1'")
             local elistA_`e' `elistA_`e'' a_`e'_`h'
 
             matrix dcoef_`e'[`row',1] = _b[Dz_`e']
@@ -184,11 +184,11 @@ foreach e of local expvars {
             matrix dhi90_`e'[`row',1] = _b[Dz_`e'] + 1.645*_se[Dz_`e']
 
             local pd = 2*(1 - normal(abs(_b[Dz_`e']/_se[Dz_`e'])))
-            di "h=" `h' "   " %7.3f _b[onset_all] "  " %6.3f _se[onset_all] ///
+            di "h=" `h'+1 "   " %7.3f _b[onset_all] "  " %6.3f _se[onset_all] ///
                "   " %7.3f _b[Dz_`e'] "  " %6.3f _se[Dz_`e'] ///
                "   " %5.3f `pd'
         }
-        else di as error "h=" `h' ": xtscc failed for exposure `e' (rc=" _rc ")"
+        else di as error "h=" `h'+1 ": xtscc failed for exposure `e' (rc=" _rc ")"
     }
 }
 
@@ -251,7 +251,7 @@ else di as error "Table 5 written with warnings (see messages above)."
 * Storage for the by-type figure: d_nd and d_def with 90% CI
 foreach e of local expvars {
     foreach m in bnd blo_nd bhi_nd bdef blo_def bhi_def pdiff {
-        matrix `m'_`e' = J(5, 1, .)
+        matrix `m'_`e' = J(6, 1, 0)
     }
 }
 
@@ -268,7 +268,7 @@ foreach e of local expvars {
 
     forvalues h = 0/4 {
         local lag = max(1, `h'+1)
-        local row = `h' + 1
+        local row = `h' + 2
 
         capture xtscc dy_`h' onset_nd onset_def z_`e' Dnd_`e' Ddef_`e' ///
             `controls' i.year if sample == 1, fe lag(`lag')
@@ -279,7 +279,7 @@ foreach e of local expvars {
             if _rc == 0 local pd = r(p)
             else        local pd = .
 
-            eststo b_`e'_`h', title("h=`h'")
+            eststo b_`e'_`h', title("h=`=`h'+1'")
             estadd scalar pdiff = `pd'
             local elistB_`e' `elistB_`e'' b_`e'_`h'
 
@@ -291,11 +291,11 @@ foreach e of local expvars {
             matrix bhi_def_`e'[`row',1] = _b[Ddef_`e'] + 1.645*_se[Ddef_`e']
             matrix pdiff_`e'[`row',1]   = `pd'
 
-            di "h=" `h' "   " %7.3f _b[Dnd_`e'] "  " %6.3f _se[Dnd_`e'] ///
+            di "h=" `h'+1 "   " %7.3f _b[Dnd_`e'] "  " %6.3f _se[Dnd_`e'] ///
                "   " %7.3f _b[Ddef_`e'] "  " %6.3f _se[Ddef_`e'] ///
                "   " %5.3f `pd'
         }
-        else di as error "h=" `h' ": xtscc failed for `e' by type (rc=" _rc ")"
+        else di as error "h=" `h'+1 ": xtscc failed for `e' by type (rc=" _rc ")"
     }
 }
 
@@ -368,10 +368,10 @@ preserve
     foreach e of local expvars {
         forvalues h = 0/4 {
             replace exposure = "`e'"              in `row'
-            replace horizon  = `h'                in `row'
-            replace d_coef   = dcoef_`e'[`h'+1,1] in `row'
-            replace d_lo90   = dlo90_`e'[`h'+1,1] in `row'
-            replace d_hi90   = dhi90_`e'[`h'+1,1] in `row'
+            replace horizon  = `h'+1              in `row'
+            replace d_coef   = dcoef_`e'[`h'+2,1] in `row'
+            replace d_lo90   = dlo90_`e'[`h'+2,1] in `row'
+            replace d_hi90   = dhi90_`e'[`h'+2,1] in `row'
             local ++row
         }
     }
@@ -395,10 +395,10 @@ preserve
     foreach e of local expvars {
         forvalues h = 0/4 {
             replace exposure = "`e'"               in `row'
-            replace horizon  = `h'                 in `row'
-            replace d_nd     = bnd_`e'[`h'+1,1]    in `row'
-            replace d_def    = bdef_`e'[`h'+1,1]   in `row'
-            replace p_diff   = pdiff_`e'[`h'+1,1]  in `row'
+            replace horizon  = `h'+1               in `row'
+            replace d_nd     = bnd_`e'[`h'+2,1]    in `row'
+            replace d_def    = bdef_`e'[`h'+2,1]   in `row'
+            replace p_diff   = pdiff_`e'[`h'+2,1]  in `row'
             local ++row
         }
     }
@@ -417,8 +417,8 @@ local i = 1
 foreach e of local expvars {
     preserve
         clear
-        set obs 5
-        gen horizon = _n - 1
+        set obs 6
+        gen horizon = _n - 1     // 0 (baseline), 1..5
         foreach m in dcoef dlo90 dhi90 {
             svmat `m'_`e', names(`m')
             rename `m'1 `m'
@@ -428,8 +428,8 @@ foreach e of local expvars {
             (connected dcoef horizon, ///
                 lcolor("`c_amp'") lwidth(medthick) msymbol(circle) mcolor("`c_amp'")), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
-            xlabel(0(1)4, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
-            xtitle("Years after onset", size(small)) ///
+            xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
+            xtitle("Year (Year 1 = crisis year)", size(small)) ///
             ytitle("Onset x exposure (pp/SD)", size(small)) ///
             title("`lbl_`e''", size(small) color(navy)) ///
             legend(off) graphregion(color(white)) plotregion(color(white)) ///
@@ -461,8 +461,8 @@ local i = 1
 foreach e of local expvars {
     preserve
         clear
-        set obs 5
-        gen horizon = _n - 1
+        set obs 6
+        gen horizon = _n - 1     // 0 (baseline), 1..5
         foreach m in bnd blo_nd bhi_nd bdef blo_def bhi_def {
             svmat `m'_`e', names(`m')
             rename `m'1 `m'
@@ -476,8 +476,8 @@ foreach e of local expvars {
                 lcolor("`c_def'") lwidth(medthick) lpattern(dash) ///
                 msymbol(square) mcolor("`c_def'")), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
-            xlabel(0(1)4, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
-            xtitle("Years after onset", size(small)) ///
+            xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
+            xtitle("Year (Year 1 = crisis year)", size(small)) ///
             ytitle("Onset x exposure (pp/SD)", size(small)) ///
             title("`lbl_`e''", size(small) color(navy)) ///
             legend(off) graphregion(color(white)) plotregion(color(white)) ///

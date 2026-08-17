@@ -31,17 +31,20 @@ preserve
     mkmat horizon s_model, matrix(SPATH)
 restore
 
-* Empirical non-default output IRF (target), horizons -2..4 -> keep 0..4
+* Empirical non-default output IRF (target). irf_nd.dta's horizon axis is
+* -1 (pre-trend), 0 (explicit baseline, always 0), 1..5 (main, model h=0..4).
+* Keep only the real main-horizon rows; model internal h=0..4 maps to
+* displayed horizon h+1.
 preserve
     use "$clean/irf_nd.dta", clear
-    keep if horizon >= 0
+    keep if horizon >= 1
     mkmat horizon b, matrix(IRF_ND)
 restore
 
 * Empirical default-linked output IRF (validation target)
 preserve
     use "$clean/irf_def.dta", clear
-    keep if horizon >= 0
+    keep if horizon >= 1
     mkmat horizon b, matrix(IRF_DEF)
 restore
 
@@ -49,7 +52,7 @@ restore
 capture {
     preserve
     use "$clean/irf_nd_credit.dta", clear
-    keep if horizon >= 0
+    keep if horizon >= 1
     mkmat horizon b, matrix(CND)
     restore
 }
@@ -61,7 +64,7 @@ if _rc != 0 {
 capture {
     preserve
     use "$clean/irf_def_credit.dta", clear
-    keep if horizon >= 0
+    keep if horizon >= 1
     mkmat horizon b, matrix(CDEF)
     restore
 }
@@ -107,8 +110,8 @@ DEF = st_matrix("IRF_DEF");
 bnd  = J(5,1,.);
 bdef = J(5,1,.);
 for (h=0;h<=4;h++) {
-    bnd[h+1]  = pickrow(ND,  h);
-    bdef[h+1] = pickrow(DEF, h);
+    bnd[h+1]  = pickrow(ND,  h+1);
+    bdef[h+1] = pickrow(DEF, h+1);
 }
 
 // ─── Empirical credit IRFs (pre-loaded from Stata above) ──────────────────
@@ -120,12 +123,12 @@ has_cdef = (CDEF[1,1] != 0 | CDEF[2,1] != 0);
 bnd_cred  = J(5,1,0);
 bdef_cred = J(5,1,0);
 if (has_cnd) {
-    for (h=0;h<=4;h++) bnd_cred[h+1]  = pickrow(CND,  h);
+    for (h=0;h<=4;h++) bnd_cred[h+1]  = pickrow(CND,  h+1);
 } else {
     printf("  (credit ND IRF not found — credit plot skipped)\n");
 }
 if (has_cdef) {
-    for (h=0;h<=4;h++) bdef_cred[h+1] = pickrow(CDEF, h);
+    for (h=0;h<=4;h++) bdef_cred[h+1] = pickrow(CDEF, h+1);
 } else {
     printf("  (credit DEF IRF not found — credit plot skipped)\n");
 }
@@ -190,7 +193,7 @@ lfit    = nfit :* lev_amp :* 100;
 printf("\n  h   data_y(nd)  model_y   data_l(nd)  model_l\n");
 for (h=0;h<=4;h++) {
     printf(" %g   %7.3f    %7.3f    %7.3f     %7.3f\n",
-        h, bnd[h+1], yfit[h+1], bnd_cred[h+1], lfit[h+1]);
+        h+1, bnd[h+1], yfit[h+1], bnd_cred[h+1], lfit[h+1]);
 }
 
 st_matrix("YFIT",  yfit);
@@ -205,7 +208,7 @@ nexp   = (1-alpha)/alpha;
 eps_p  = bx*nexp*RL_ss/(1+bx*(RL_ss-1));
 dRL_aut = -bdef[1]/(eps_p*100);
 printf("\n=== DEFAULT PATH VALIDATION ===\n");
-printf("  dRL_aut (pinned to h=0) = %6.4f\n", dRL_aut);
+printf("  dRL_aut (pinned to h=1) = %6.4f\n", dRL_aut);
 
 ydef = J(5,1,0);
 ldef = J(5,1,0);   // credit ≈ 0 in default (gambling for resurrection)
@@ -213,12 +216,12 @@ ldef = J(5,1,0);   // credit ≈ 0 in default (gambling for resurrection)
 // (in log-deviation: missing the SS investment term delta keeps capital falling)
 // Survival-weighted average: surv*(excluded output) + (1-surv)*0 (re-entered ≈ SS)
 k_excl = 0;
-printf("\n  h   data_y(def)  model_y   [h>=1=oos]\n");
+printf("\n  h   data_y(def)  model_y   [h>=2=oos]\n");
 for (h=0;h<=4;h++) {
     surv      = (1-mu)^h;
     ydef[h+1] = surv*(alpha*k_excl - eps_p*dRL_aut)*100;
     tag = (h==0 ? "(pinned)" : "(oos)");
-    printf(" %g   %7.3f      %7.3f   %s\n", h, bdef[h+1], ydef[h+1], tag);
+    printf(" %g   %7.3f      %7.3f   %s\n", h+1, bdef[h+1], ydef[h+1], tag);
     k_excl = (1-delta)*k_excl - delta;   // full investment stop in autarky
 }
 st_matrix("YDEF", ydef);
@@ -229,7 +232,7 @@ end
 * ── Assemble model-vs-data dataset ────────────────────────────────────────
 clear
 set obs 5
-gen horizon = _n - 1
+gen horizon = _n     // 1..5 (crisis year = 1), matching irf_nd.dta/irf_def.dta
 
 svmat YFIT, names(ymod_nd)
 svmat YDEF, names(ymod_def)
@@ -267,8 +270,8 @@ twoway ///
     (connected bdata_def horizon, lcolor("157 36 73") mcolor("157 36 73") msymbol(square)) ///
     (connected ymod_def  horizon, lcolor("157 36 73") lpattern(dash)      msymbol(none)), ///
     yline(0, lpattern(dash) lcolor(gs10)) ///
-    xlabel(0(1)4) ylabel(, format(%4.1f)) ///
-    xtitle("Years after onset") ytitle("Cumulative output response (pp)") ///
+    xlabel(1(1)5) ylabel(, format(%4.1f)) ///
+    xtitle("Year (Year 1 = crisis year)") ytitle("Cumulative output response (pp)") ///
     title("Model vs. Data: Output IRFs", size(medium)) ///
     subtitle("Solid = LP estimate; dashed = calibrated model", size(small)) ///
     legend(order(1 "Data: non-default" 2 "Model: non-default" ///
@@ -287,8 +290,8 @@ if _rc == 0 {
         (connected bdata_def_cred horizon, lcolor("157 36 73") mcolor("157 36 73") msymbol(square)) ///
         (connected lmod_def       horizon, lcolor("157 36 73") lpattern(dash)      msymbol(none)), ///
         yline(0, lpattern(dash) lcolor(gs10)) ///
-        xlabel(0(1)4) ylabel(, format(%4.1f)) ///
-        xtitle("Years after onset") ytitle("Cumulative private credit/GDP response (pp)") ///
+        xlabel(1(1)5) ylabel(, format(%4.1f)) ///
+        xtitle("Year (Year 1 = crisis year)") ytitle("Cumulative private credit/GDP response (pp)") ///
         title("Model vs. Data: Private Credit IRFs", size(medium)) ///
         subtitle("Solid = LP estimate; dashed = model (ND: leverage amplifier; DEF: ≈0)", size(small)) ///
         legend(order(1 "Data: non-default" 2 "Model: non-default" ///

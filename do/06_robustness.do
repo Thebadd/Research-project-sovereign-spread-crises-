@@ -19,7 +19,7 @@
   R4 — Alternative SE: country clustering (xtreg fe cluster) vs DK
 
   Each robustness run stores IRF at h=0..4 in a summary matrix.
-  Final table: robustness_summary.csv  (beta at h=2 across all specs)
+  Final table: robustness_summary.csv  (beta at h=3 across all specs)
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -146,10 +146,10 @@ forvalues h = 0/4 {
 drop _smpl
 
 * ══════════════════════════════════════════════════════════════════════════
-* EXPORT ROBUSTNESS SUMMARY TABLE (beta at h=2 across all specs)
+* EXPORT ROBUSTNESS SUMMARY TABLE (beta at h=3 across all specs)
 * ══════════════════════════════════════════════════════════════════════════
 
-di as result _n "=== ROBUSTNESS SUMMARY: beta(h=2) across specifications ==="
+di as result _n "=== ROBUSTNESS SUMMARY: beta(h=3) across specifications ==="
 di "Spec                          beta     [90% CI lo,  hi]"
 
 local i = 1
@@ -189,7 +189,7 @@ export delimited "$tabs/robustness_summary.csv", replace
 di as result "Robustness table saved: $tabs/robustness_summary.csv"
 
 * ══════════════════════════════════════════════════════════════════════════
-* ROBUSTNESS FIGURE: coefficient plot at h=2 across specs
+* ROBUSTNESS FIGURE: coefficient plot at h=3 across specs
 * ══════════════════════════════════════════════════════════════════════════
 
 gen spec_label = ""
@@ -229,9 +229,9 @@ twoway ///
     xline(0, lpattern(dash) lcolor(gray) lwidth(thin))                        ///
     ylabel(1(1)10, valuelabel angle(0) labsize(small) noticks nogrid)         ///
     xlabel(, format(%4.1f) labsize(small))                                    ///
-    xtitle("beta at h=2 (pp)", size(small))                                   ///
+    xtitle("beta at h=3 (pp)", size(small))                                   ///
     ytitle("")                                                                 ///
-    title("Robustness: Output Effect at h=2", size(medium))                   ///
+    title("Robustness: Output Effect at h=3", size(medium))                   ///
     subtitle("All spread crises. 90% confidence intervals.", size(small))     ///
     legend(off)                                                                ///
     graphregion(color(white)) plotregion(color(white))

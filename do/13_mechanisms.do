@@ -80,12 +80,12 @@ di as result "h    β_baseline  SE_base   β_+clms_govt  SE_clms   absorbed(%)"
 
 * Storage matrices
 foreach m in b_base lo90_base hi90_base b_clms lo90_clms hi90_clms {
-    matrix `m' = J(5,1,.)
+    matrix `m' = J(6,1,0)
 }
 
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
-    local row = `h' + 1
+    local row = `h' + 2
 
     * Baseline: bespoke credit-mechanism spec (not identical to 11_channels' core credit spec)
     capture xtscc ch_credit_`h' onset_all ///
@@ -120,7 +120,7 @@ forvalues h = 0/4 {
             local absorbed = .
         }
 
-        di "h=" `h' "   " %8.3f `b0' "   " %6.3f `se0' ///
+        di "h=" `h'+1 "   " %8.3f `b0' "   " %6.3f `se0' ///
                "      " %8.3f `b1' "   " %6.3f `se1' ///
                "    " %6.1f `absorbed' "%"
     }
@@ -134,8 +134,8 @@ di as result "  If absorbed < 10% → demand-side or independent channel"
 
 preserve
     clear
-    set obs 5
-    gen horizon = _n - 1
+    set obs 6
+    gen horizon = _n - 1     // 0 (baseline), 1..5
     foreach m in b lo90 hi90 {
         svmat `m'_base, names(`m')
         rename `m'1 `m'
@@ -146,8 +146,8 @@ restore
 
 preserve
     clear
-    set obs 5
-    gen horizon = _n - 1
+    set obs 6
+    gen horizon = _n - 1     // 0 (baseline), 1..5
     foreach m in b lo90 hi90 {
         svmat `m'_clms, names(`m')
         rename `m'1 `m'
@@ -175,9 +175,9 @@ twoway ///
         lcolor("`c_clms'") lwidth(medthick) lpattern(dash) ///
         msymbol(square) mcolor("`c_clms'")), ///
     yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
-    xlabel(0(1)4, labsize(medsmall)) ///
+    xlabel(0(1)5, labsize(medsmall)) ///
     ylabel(, format(%5.2f) labsize(medsmall)) ///
-    xtitle("Years after onset", size(small)) ///
+    xtitle("Year (Year 1 = crisis year)", size(small)) ///
     ytitle("Cumulative change in credit/GDP (pp)", size(small)) ///
     title("Credit Channel: Supply vs. Demand Test", size(medium) color(navy)) ///
     subtitle("Does adding bank sovereign exposure absorb the credit effect?", size(small)) ///
@@ -221,12 +221,12 @@ di as result "h    β_no_credit  SE_no    β_with_credit  SE_with  mediated(%)"
 
 * Storage matrices
 foreach m in b_noc lo90_noc hi90_noc b_wic lo90_wic hi90_wic {
-    matrix `m' = J(5,1,.)
+    matrix `m' = J(6,1,0)
 }
 
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
-    local row = `h' + 1
+    local row = `h' + 2
 
     * Without L.credit (total effect)
     capture xtscc ch_inv_`h' onset_all ///
@@ -261,7 +261,7 @@ forvalues h = 0/4 {
             local mediated = .
         }
 
-        di "h=" `h' "   " %9.3f `b0' "   " %6.3f `se0' ///
+        di "h=" `h'+1 "   " %9.3f `b0' "   " %6.3f `se0' ///
                "      " %9.3f `b1' "   " %6.3f `se1' ///
                "    " %6.1f `mediated' "%"
     }
@@ -276,8 +276,8 @@ di as result "  Causal chain if mediated: crisis → credit ↓ → investment �
 
 preserve
     clear
-    set obs 5
-    gen horizon = _n - 1
+    set obs 6
+    gen horizon = _n - 1     // 0 (baseline), 1..5
     foreach m in b lo90 hi90 {
         svmat `m'_noc, names(`m')
         rename `m'1 `m'
@@ -288,8 +288,8 @@ restore
 
 preserve
     clear
-    set obs 5
-    gen horizon = _n - 1
+    set obs 6
+    gen horizon = _n - 1     // 0 (baseline), 1..5
     foreach m in b lo90 hi90 {
         svmat `m'_wic, names(`m')
         rename `m'1 `m'
@@ -317,9 +317,9 @@ twoway ///
         lcolor("`c_wic'") lwidth(medthick) lpattern(dash) ///
         msymbol(square) mcolor("`c_wic'")), ///
     yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
-    xlabel(0(1)4, labsize(medsmall)) ///
+    xlabel(0(1)5, labsize(medsmall)) ///
     ylabel(, format(%5.2f) labsize(medsmall)) ///
-    xtitle("Years after onset", size(small)) ///
+    xtitle("Year (Year 1 = crisis year)", size(small)) ///
     ytitle("Cumulative change in investment/GDP (pp)", size(small)) ///
     title("Investment Channel: Credit Mediation Test", size(medium) color(navy)) ///
     subtitle("Does the credit contraction explain the investment decline?", size(small)) ///
@@ -376,12 +376,12 @@ di as result "h    β_all    SE      R2_all   β_nd     SE       β_def    SE   
 
 * Storage matrices
 foreach m in b_all lo90_all hi90_all b_nd lo90_nd hi90_nd b_def lo90_def hi90_def {
-    matrix `m' = J(5,1,.)
+    matrix `m' = J(6,1,0)
 }
 
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
-    local row = `h' + 1
+    local row = `h' + 2
 
     * Aggregate — with lagged CA for persistence
     capture xtscc ch_ca_`h' onset_all ///
@@ -415,7 +415,7 @@ forvalues h = 0/4 {
         local se2  = _se[onset_def]
         local r2_1 = e(r2_w)
 
-        di "h=" `h' "  " %6.3f `b0' "  " %5.3f `se0' "  " %5.3f `r2_0' ///
+        di "h=" `h'+1 "  " %6.3f `b0' "  " %5.3f `se0' "  " %5.3f `r2_0' ///
                "  " %6.3f `b1' "  " %5.3f `se1' ///
                "  " %6.3f `b2' "  " %5.3f `se2' "  " %5.3f `r2_1'
     }
@@ -430,8 +430,8 @@ di as result "  β_def > β_nd → harder adjustment in default episodes"
 foreach spec in all nd def {
     preserve
         clear
-        set obs 5
-        gen horizon = _n - 1
+        set obs 6
+        gen horizon = _n - 1     // 0 (baseline), 1..5
         foreach m in b lo90 hi90 {
             svmat `m'_`spec', names(`m')
             rename `m'1 `m'
@@ -453,9 +453,9 @@ twoway ///
     (connected b horizon, ///
         lcolor("`c_all'") lwidth(medthick) msymbol(circle) mcolor("`c_all'")), ///
     yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
-    xlabel(0(1)4, labsize(medsmall)) ///
+    xlabel(0(1)5, labsize(medsmall)) ///
     ylabel(, format(%5.2f) labsize(medsmall)) ///
-    xtitle("Years after onset", size(small)) ///
+    xtitle("Year (Year 1 = crisis year)", size(small)) ///
     ytitle("Cumulative change in current account/GDP (pp)", size(small)) ///
     title("Current Account Response — All Episodes", size(medium) color(navy)) ///
     subtitle("Forced deleveraging test (Aguiar-Gopinath 2006)", size(small)) ///
@@ -486,9 +486,9 @@ twoway ///
         lcolor("`c_def'") lwidth(medthick) lpattern(dash) ///
         msymbol(square) mcolor("`c_def'")), ///
     yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
-    xlabel(0(1)4, labsize(medsmall)) ///
+    xlabel(0(1)5, labsize(medsmall)) ///
     ylabel(, format(%5.2f) labsize(medsmall)) ///
-    xtitle("Years after onset", size(small)) ///
+    xtitle("Year (Year 1 = crisis year)", size(small)) ///
     ytitle("Cumulative change in current account/GDP (pp)", size(small)) ///
     title("Current Account Response — By Resolution Type", size(medium) color(navy)) ///
     subtitle("Forced deleveraging test (Aguiar-Gopinath 2006)", size(small)) ///
@@ -565,11 +565,11 @@ di as result "h   b_nd_OLS  b_def_OLS  b_nd_IPW  b_def_IPW"
 
 foreach m in b_nd_ols lo90_nd_ols hi90_nd_ols b_def_ols lo90_def_ols hi90_def_ols ///
              b_nd_ipw lo90_nd_ipw hi90_nd_ipw b_def_ipw lo90_def_ipw hi90_def_ipw {
-    matrix `m' = J(5,1,.)
+    matrix `m' = J(6,1,0)
 }
 
 forvalues h = 0/4 {
-    local row = `h' + 1
+    local row = `h' + 2
 
     * OLS: JOINT, full sample (reference-paper baseline). The rival-drop applies
     * to the weighted lines below, which are the two-stage half of the design.
@@ -606,7 +606,7 @@ forvalues h = 0/4 {
         matrix hi90_def_ipw[`row',1] = _b[onset_def] + 1.645*_se[onset_def]
         local b_def_w = _b[onset_def]
 
-        di "h=" `h' "  " %7.3f `b_nd_u' "    " %7.3f `b_def_u' ///
+        di "h=" `h'+1 "  " %7.3f `b_nd_u' "    " %7.3f `b_def_u' ///
                "    " %7.3f `b_nd_w' "    " %7.3f `b_def_w'
     }
 }
@@ -614,8 +614,8 @@ forvalues h = 0/4 {
 * ── Save IRF datasets ────────────────────────────────────────────────────
 preserve
     clear
-    set obs 5
-    gen horizon = _n - 1
+    set obs 6
+    gen horizon = _n - 1     // 0 (baseline), 1..5
     foreach m in b_nd b_def lo90_nd hi90_nd lo90_def hi90_def {
         svmat `m'_ols, names(`m')
         rename `m'1 `m'
@@ -626,8 +626,8 @@ restore
 
 preserve
     clear
-    set obs 5
-    gen horizon = _n - 1
+    set obs 6
+    gen horizon = _n - 1     // 0 (baseline), 1..5
     foreach m in b_nd b_def lo90_nd hi90_nd lo90_def hi90_def {
         svmat `m'_ipw, names(`m')
         rename `m'1 `m'
@@ -659,9 +659,9 @@ twoway ///
         lcolor("`c_def'") lwidth(medthick) lpattern(dash) ///
         msymbol(square_hollow) mcolor("`c_def'")), ///
     yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
-    xlabel(0(1)4, labsize(medsmall)) ///
+    xlabel(0(1)5, labsize(medsmall)) ///
     ylabel(, format(%5.2f) labsize(medsmall)) ///
-    xtitle("Years after onset", size(small)) ///
+    xtitle("Year (Year 1 = crisis year)", size(small)) ///
     ytitle("Cumulative change in current account/GDP (pp)", size(small)) ///
     title("Current Account Response — IPW Robustness", size(medium) color(navy)) ///
     subtitle("Solid = OLS baseline. Dashed = IPW-weighted.", size(small)) ///

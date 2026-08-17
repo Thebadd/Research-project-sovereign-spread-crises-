@@ -87,11 +87,13 @@ rename c5 b_h4
 save "$clean/placebo_dist.dta", replace
 
 * ── Load true betas from Act 1 results ───────────────────────────────────
+* irf_all.dta's horizon axis now runs -1 (pre-trend), 0 (explicit baseline,
+* always 0), 1..5 (main, = dy_0..dy_4). Keep only the real main-horizon rows
+* and match dy_h (internal) to horizon `h'+1 (displayed), not `h'.
 use "$clean/irf_all.dta", clear
-keep if horizon >= 0
-* True betas: b at horizon 0..4 (rows 1..5 in irf_all, horizon==0..4)
+keep if horizon >= 1
 forvalues h = 0/4 {
-    quietly summarize b if horizon == `h'
+    quietly summarize b if horizon == `h'+1
     scalar true_b_h`h' = r(mean)
 }
 
@@ -119,7 +121,7 @@ forvalues h = 0/4 {
     matrix PVAL[`h'+1, 3] = `p50'
     matrix PVAL[`h'+1, 4] = `emp_p'
 
-    di "h=" `h' "        " %7.3f true_b_h`h' ///
+    di "h=" `h'+1 "        " %7.3f true_b_h`h' ///
        "     " %7.3f `p5'  ///
        "     " %7.3f `p50' ///
        "     " %7.3f `p95' ///
@@ -157,7 +159,7 @@ forvalues h = 0/4 {
         xlabel(`x_min'(0.5)`x_max', labsize(small))                  ///
         xtitle("Placebo beta (pp)", size(small))                      ///
         ytitle("Frequency", size(small))                              ///
-        title("Placebo Distribution - h=`h'", size(medium))          ///
+        title("Placebo Distribution - h=`=`h'+1'", size(medium))          ///
         subtitle("Vertical line = true beta. `n_reps' random draws.", ///
                  size(small))                                         ///
         note("True beta = `tb_str'. Emp. p-value = `ep_str'",        ///
@@ -178,7 +180,7 @@ rename c1 true_b
 rename c2 p5_null
 rename c3 p50_null
 rename c4 emp_pval
-gen horizon = _n - 1
+gen horizon = _n     // 1..5 (crisis year = 1), matching the rest of the pipeline
 order horizon true_b p5_null p50_null emp_pval
 export delimited "$tabs/placebo_pvalues.csv", replace
 di as result "Placebo p-values saved: $tabs/placebo_pvalues.csv"
