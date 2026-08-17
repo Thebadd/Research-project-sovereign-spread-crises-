@@ -32,10 +32,11 @@ if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_g
 * VIX and ust10y are pure time-series variables, fully absorbed by i.year.
 local controls $ctrl_core
 
-* Pre-trend controls = the core MINUS l1_gdpg. The placebo outcomes are strictly
-* pre-onset growth windows ending at t-1 (dy_m1 = 1yr, dy_m2 = 2yr), and dy_m1 is
-* identically l1_gdpg while l1_gdpg is a component of dy_m2 — so keeping it on the
-* RHS would regress the placebo on itself. Derived from $ctrl_core to stay in sync.
+* Pre-trend controls = the core MINUS l1_gdpg. The single placebo outcome, dy_m2,
+* is h=-2 on the same t-1 base as dy_h (h=-1 itself is trivially 0 - the base year
+* equals itself - so it is never estimated). dy_m2 is algebraically -l1_gdpg, so
+* keeping l1_gdpg on the RHS would regress the placebo on itself. Derived from
+* $ctrl_core to stay in sync.
 local cc         $ctrl_core
 local dropgdpg   l1_gdpg
 local controls_pre : list cc - dropgdpg
@@ -104,7 +105,7 @@ foreach m in b se lo90 hi90 lo95 hi95 {
 }
 
 * Pre-trend
-foreach h_neg in 1 {
+foreach h_neg in 2 {
     local row = 3 - `h_neg'
     xtscc dy_m`h_neg' onset_nd `controls_pre' i.year if sample==1 & onset_def==0, fe lag(1)
     local bb = _b[onset_nd]
@@ -158,7 +159,7 @@ foreach m in b se lo90 hi90 lo95 hi95 {
     matrix `m'_defA = J(7, 1, .)
 }
 
-foreach h_neg in 1 {
+foreach h_neg in 2 {
     local row = 3 - `h_neg'
     xtscc dy_m`h_neg' onset_def `controls_pre' i.year if sample==1 & onset_nd==0, fe lag(1)
     local bb = _b[onset_def]
@@ -272,8 +273,8 @@ foreach m in b se lo90 hi90 lo95 hi95 {
     matrix `m'_def = J(7, 1, .)
 }
 
-* Pre-trend placebos, same joint spec (l1_gdpg dropped — it IS the h=-1 outcome)
-foreach h_neg in 1 {
+* Pre-trend placebo, same joint spec (l1_gdpg dropped — it IS -1 times the h=-2 outcome)
+foreach h_neg in 2 {
     local row = 3 - `h_neg'
     xtscc dy_m`h_neg' onset_nd onset_def `controls_pre' i.year if sample==1, fe lag(1)
     _critvals

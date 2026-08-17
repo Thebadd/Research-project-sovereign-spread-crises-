@@ -8,8 +8,8 @@
     ln_gdp_base       L.ln_gdp (headline LP baseline at t-1; ln_gdppc_base = per-capita robustness)
     dy_0..dy_4        cumulative % change in log TOTAL real GDP (ln gdp_real), F h vs t-1 (headline outcome)
     dy_pc_0..dy_pc_4  per-capita version (robustness)
-    dy_m1, dy_m2      pre-trend placebos: 1yr / 2yr growth windows ENDING at t-1
-                      (strictly pre-onset — neither window contains the onset year)
+    dy_m2             pre-trend placebo: h=-2 on the same t-1 base as dy_h (h=-1 is
+                      trivially 0 under that base and is not estimated)
     l_hyperinfl (L.infl>50, core), l_lninfl (= ln(1+L.infl/100)) and l_infl (raw)
     built as continuous robustness alternatives, not in the core,
     l_govexp, l_open, l_credit (+l_credit_bank robustness), $ctrl_core  common-core ingredients
@@ -35,7 +35,7 @@ label var l2_gdpg "L2 real GDP growth"
 * ── HEADLINE LP outcome: cumulative % change in log TOTAL real GDP ──────────
 *   Aligned with Asonuma et al. (their g_h = F h.ln(gdp_real) - L.ln(gdp_real)),
 *   i.e. cumulative real-GDP growth relative to t-1 (NOT per capita).
-capture drop ln_gdp ln_gdp_base dy_0 dy_1 dy_2 dy_3 dy_4 dy_m1 dy_m2
+capture drop ln_gdp ln_gdp_base dy_0 dy_1 dy_2 dy_3 dy_4 dy_m2
 gen double ln_gdp = ln(gdp_real) if gdp_real > 0 & !missing(gdp_real)
 gen double ln_gdp_base = L.ln_gdp
 label var ln_gdp_base "log real GDP at t-1 (LP baseline)"
@@ -43,22 +43,21 @@ forvalues h = 0/4 {
     gen double dy_`h' = (F`h'.ln_gdp - ln_gdp_base) * 100
     label var dy_`h' "Cum. % change in log real GDP (total): F`h' vs t-1"
 }
-* ── Pre-trend placebos on the same (total real GDP) series ─────────────────
-* Both windows END at the LP baseline t-1 and never touch the onset year t:
-*   dy_m1 = 1-year pre-onset growth   = 100*(ln_gdp(t-1) - ln_gdp(t-2))
-*   dy_m2 = 2-year pre-onset growth   = 100*(ln_gdp(t-1) - ln_gdp(t-3))
-* dy_m1 WAS 100*(ln_gdp(t) - ln_gdp(t-2)), which spanned the onset year and was
-* therefore not a placebo at all. Worse, it was algebraically dy_0 + l1_gdpg, and
-* since l1_gdpg is a control the onset coefficient came out numerically IDENTICAL
-* to h=0 (in the last run: -2.550481, SE .9137711, in both regressions, with the
-* l1_gdpg coefficient differing by exactly 1.000). The "placebo" was reproducing
-* the treatment effect and printing it as a significant pre-trend.
-*   NB dy_m1 is now identically l1_gdpg, and l1_gdpg is a component of dy_m2, so
-*   the pre-trend regressions in 02/03 must drop l1_gdpg from the RHS — see the
-*   `controls_pre' local there. Controlling for the placebo outcome is exactly what
-*   made the old test uninformative.
-gen double dy_m1 = (L.ln_gdp - L2.ln_gdp) * 100
-label var dy_m1 "Pre-trend h=-1: 1yr pre-onset growth, GDP(t-1) - GDP(t-2)"
+* ── Pre-trend placebo on the same (total real GDP) series, SAME BASE as dy_h ──
+* dy_h = F h.ln_gdp - L.ln_gdp for h=0..4, always against the t-1 base. Plugging
+* h=-1 into that identical formula gives L.ln_gdp - L.ln_gdp = 0 for every row —
+* the base year trivially equals itself, so h=-1 is not an estimable placebo, it
+* IS the anchor (matches the standard event-study convention, e.g. Ugarte-Ruiz
+* 2025 WP 25-09 sec. 2.8/5.8, where h=-1 is normalized to zero, not estimated).
+* The first REAL pre-crisis horizon under this same base is h=-2:
+*   dy_m2 = F(-2).ln_gdp - L.ln_gdp = L2.ln_gdp - L.ln_gdp
+* i.e. the change from t-2 to the t-1 base — never touches the onset year t.
+* dy_m2 is algebraically -l1_gdpg (both are +/-100*(L.ln_gdp - L2.ln_gdp)), so the
+* pre-trend regressions in 02/03 must drop l1_gdpg from the RHS — see the
+* `controls_pre' local there. Controlling for the placebo outcome would guarantee
+* a null test.
+gen double dy_m2 = (L2.ln_gdp - L.ln_gdp) * 100
+label var dy_m2 "Pre-trend h=-2 (same base as dy_h): GDP(t-2) - GDP(t-1)"
 
 * ── ROBUSTNESS outcome: per-capita version (kept as dy_pc_*) ─────────────────
 capture drop ln_gdppc_base dy_pc_0 dy_pc_1 dy_pc_2 dy_pc_3 dy_pc_4

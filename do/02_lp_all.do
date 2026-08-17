@@ -86,14 +86,18 @@ foreach m in b se lo90 hi90 lo95 hi95 {
 * ── Row index: 1=h-2, 2=h-1, 3=h0, 4=h1, 5=h2, 6=h3, 7=h4 ─────────────
 
 * ────────────────────────────────────────────────────────────────────────
-* PRE-TREND PLACEBO: h = -1 (single horizon)
-* Outcome is the strictly pre-onset 1yr growth window ending at the LP baseline
-* t-1 (built in 18_transforms as dy_m1). If identification is valid, this
-* coefficient should be ~0 — treated countries were not already on a different
-* path before the crisis.
+* PRE-TREND PLACEBO: h = -2 (single horizon)
+* dy_h = F h.ln_gdp - L.ln_gdp for h=0..4 is always measured against the SAME
+* t-1 base. Plugging h=-1 into that identical formula gives L.ln_gdp - L.ln_gdp
+* = 0 trivially — the base year equals itself, so h=-1 is not an estimable
+* placebo, it IS the baseline (matches the standard event-study convention
+* where h=-1 is normalized to zero, not estimated). The first REAL pre-crisis
+* horizon on this same base is h=-2 (dy_m2, built in 18_transforms). If
+* identification is valid, this coefficient should be ~0 — treated countries
+* were not already on a different path before the crisis.
 *
-* CONTROLS DIFFER HERE, deliberately. dy_m1 is identically l1_gdpg (both are
-* 100*(ln_gdp(t-1)-ln_gdp(t-2))), so leaving l1_gdpg on the RHS would regress
+* CONTROLS DIFFER HERE, deliberately. dy_m2 is algebraically -l1_gdpg (both are
+* +/-100*(L.ln_gdp - L2.ln_gdp)), so leaving l1_gdpg on the RHS would regress
 * the placebo outcome on itself and guarantee a null. `controls_pre' is the
 * common core minus l1_gdpg, derived from $ctrl_core so it stays in sync if
 * the core changes.
@@ -105,10 +109,10 @@ local controls_pre : list cc - dropgdpg
 
 di as result _n "=== PRE-TREND TEST (placebo horizon) ==="
 di as result "    controls: `controls_pre'"
-di as result "    (l1_gdpg excluded — it IS the h=-1 outcome)"
+di as result "    (l1_gdpg excluded — it IS -1 times the h=-2 outcome; h=-1 itself is the trivial baseline, not estimated)"
 
-foreach h_neg in 1 {
-    local row = (3 - `h_neg')   // h=-1 → row 2
+foreach h_neg in 2 {
+    local row = (3 - `h_neg')   // h=-2 → row 1
 
     xtscc dy_m`h_neg' onset_all `controls_pre' i.year ///
         if sample == 1, fe lag(1)
