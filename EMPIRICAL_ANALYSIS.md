@@ -1,510 +1,579 @@
 # Empirical Analysis
 
-> **⚠️ Numbers pending regeneration.** All coefficients/figures reported below
-> come from the earlier per-capita run on the old dataset. Two changes now
-> supersede them: (i) the panel is rebuilt from official sources (`10`–`18`
-> chain), and (ii) the headline outcome is switched from GDP **per capita** to
-> **total real GDP** growth (Asonuma-aligned). Re-run `00_master.do` and refresh
-> every number here before using them. The method/text is current; the values
-> are not.
+> **Status.** This version reflects the from-source rebuild of the panel
+> (stages `10`–`18`), the total-real-GDP outcome (Asonuma-aligned, not
+> per-capita), the Year-1-is-crisis-year horizon relabeling, and the
+> conformability/pre-trend fixes made over this working session. Numbers in
+> Sections 4.1–4.4, 6, 7, and 7a are taken directly from verified runs of
+> the current code (`00_master.do`) and are current. Section 5 (Table 2's
+> Spec A / plain-IPW comparison) uses a verified current run. Section 8
+> (the sovereign-bank nexus) uses a verified post-relabel run of
+> `13d_aipw_nexus_split.do`. The doubly-robust AIPW headline (`08b_aipw.do`)
+> and the AIPW channel/nexus extensions (`13b`–`13e`) have **not** been
+> re-run inside this session after the fixes above; Section 5b flags this
+> explicitly rather than reporting stale doubly-robust figures as current.
 
 ## 1. Setting and identification
 
-The analysis rests on an unbalanced panel of 52 emerging and frontier
-market economies observed annually over 1994–2025. The unit of
-observation is the country-year. The sample is restricted to **onset
-years** — the first year of each spread-crisis episode — and **tranquil
-years**; continuation years (the second and later years of an ongoing
-episode) are excluded throughout. The identifying variation therefore
-comes from the *transition into* a crisis, not from the crisis persisting.
-Of the 1,661 country-years, 1,435 fall in the estimation sample, 61 of
-which are crisis onsets. Thirty-four countries experience at least one
-crisis; eighteen are never treated and form a pure control group.
+The panel covers 52 emerging and frontier-market economies, rebuilt
+entirely from official sources (IMF WEO, World Bank WDI/IDS, IMF MFS/BOP,
+FRED, Laeven–Valencia) on top of the project's own spread-crisis database,
+which supplies only the crisis dating and classification (onset years,
+non-default vs. default-linked). Three-year "carry-in" scaffolding rows
+are added at each country's left panel edge purely so lag operators have
+something to point at; they are excluded from every estimation sample.
+After that exclusion, the estimation sample (onset years plus tranquil
+years, continuation years dropped) contains 1,085 country-year
+observations, of which 59 of the 61 identified spread-crisis episodes
+survive (two are lost to a missing pre-crisis GDP base). Forty of the 61
+episodes are non-default, 21 are default-linked; roughly 47 of the 52
+countries contribute at least one onset that enters the regression sample.
 
-The estimator is the Jordà (2005) local projection. For each horizon
-$h \in \{0, 1, 2, 3, 4\}$ we estimate a separate regression of the
-cumulative change in an outcome on a crisis-onset indicator, country and
-year fixed effects, and a vector of predetermined macro controls:
+Each episode contributes **exactly one treated observation** — its onset
+year. Continuation years (the second and later years of an ongoing
+episode) are excluded from the sample entirely, both to avoid treating an
+ongoing crisis year as a tranquil control and to avoid letting a single
+episode's duration inflate the treated count. This is the standard
+Jordà-style local-projection convention (Jordà, 2005; Jordà & Taylor,
+2016), and it is Asonuma et al.'s own design as well; we return to what it
+does and does not imply for the interpretation of duration in Section 10.
 
-$$\Delta^h y_{it} = \alpha_i + \lambda_t + \beta_h \, D_{it} + \gamma' X_{it} + \varepsilon_{it+h}$$
+The estimator is the local projection. For each horizon
+$h \in \{0,1,2,3,4\}$ we estimate
 
-The dependent variable $\Delta^h y_{it}$ is the cumulative percentage
-deviation of real GDP (total, not per capita — aligning the outcome with
-Asonuma et al.) from its pre-crisis level, anchored at $t-1$, so that
-$h=0$ is the impact effect and $h=4$ the four-year cumulative loss. The
-sequence $\{\hat\beta_h\}$ traces the impulse response of the outcome to a
-crisis onset. A per-capita variant (`dy_pc_*`) is retained as a robustness
-check.
+$$\Delta^h y_{it} = \alpha_i + \lambda_t + \beta_h D_{it} + \gamma' X_{it} + \varepsilon_{it+h},$$
 
-The control vector $X_{it}$ contains two lags of GDP growth, the current
-account balance, the public debt-to-GDP ratio, inflation, and an IMF
-program dummy. Lagged growth absorbs pre-crisis output momentum; debt and
-the current account capture fiscal and external vulnerability at onset;
-inflation proxies for underlying macro instability; the IMF dummy controls
-for the differential path of countries that receive official financing.
-Global financial conditions (the VIX and the US 10-year yield) are
-deliberately excluded: year fixed effects absorb every shock common to all
-countries in a given year, making any pure time-series regressor
-redundant. Standard errors follow Driscoll and Kraay (1998), correcting
-for cross-sectional dependence and for the serial correlation that
-mechanically rises with the forecast horizon (lag = $\max(1, h+1)$).
+where $\Delta^h y_{it}$ is the cumulative percent change in log real GDP
+(total, not per capita) from $t-1$ to $t+h$. Horizons are labeled to match
+Asonuma et al.'s own convention: the crisis year itself is **Year 1**;
+**Year 0** is an explicit, hard-coded pre-crisis baseline (value zero,
+never estimated, since by construction $y_{t-1}-y_{t-1}\equiv 0$); the
+figures additionally show a single pre-trend placebo point at **Year
+$-1$**. Internally the underlying variables (`dy_0`…`dy_4`) are unchanged
+by this relabeling — only the printed axis shifts.
 
-The identifying assumption is that, conditional on fixed effects and
-observable fundamentals, crisis onset is uncorrelated with contemporaneous
-unobserved shocks to future output. We test it directly at the placebo
-horizons $h=-5$ through $h=-1$: under valid identification these coefficients
-should be approximately zero. Each placebo dependent variable is the
-single-year log real GDP growth rate $h$ years before onset — none
-include the crisis year itself. Non-zero pre-trend coefficients would signal
-anticipation effects or trending differences between treated and control
-countries.
+The common-core control vector $X_{it}$ — used, with minor channel-specific
+adjustments, in every regression in this paper — contains one lag of GDP
+growth, public debt/GDP, the current account/GDP, the number of years a
+systemic banking crisis has already run (Laeven–Valencia, zero-filled
+where no crisis is recorded), government expenditure/GDP, trade openness,
+bank credit depth, and a hyperinflation flag, all measured at $t-1$. Global
+financial conditions (fed funds, VIX, the US 10-year yield) are
+deliberately **excluded** from the outcome equation: year fixed effects
+absorb every shock common to all countries in a given year, so a pure
+time-series regressor would be redundant there — instead these variables
+enter only the first-stage propensity models used in Section 5, where they
+serve as excluded predictors. Standard errors follow Driscoll and Kraay
+(1998), with lag length $\max(1,h+1)$, correcting for cross-sectional
+dependence and for serial correlation that mechanically grows with the
+horizon.
+
+The identifying assumption is that, conditional on fixed effects and the
+observable pre-crisis state, crisis onset is uncorrelated with unobserved
+shocks to future output. We test this directly in Section 4.3, and — going
+further than a standard placebo check — stress-test the result against a
+longer pre-crisis growth pattern than the placebo alone can rule out.
 
 ---
 
 ## 2. The average output cost of a spread crisis
 
-The baseline local projection on all 61 onsets yields a precisely
-estimated and persistent output decline.
+Figure 1 plots the cumulative GDP response to a spread-crisis onset,
+pooling all 61 episodes (Table 1):
 
-| Horizon $h$ | $\hat\beta_h$ (pp) | SE | $p$ |
-|:-----------:|:------------------:|:----:|:-----:|
-| 0 | −1.86 | 0.47 | 0.000 |
-| 1 | −3.76 | 0.72 | 0.000 |
-| 2 | −3.18 | 0.67 | 0.000 |
-| 3 | −2.32 | 0.70 | 0.001 |
-| 4 | −3.00 | 1.05 | 0.004 |
+| Horizon | $\hat\beta_h$ (pp) | SE | $p$ | Episodes | $N$ |
+|:-------:|:------------------:|:----:|:-----:|:--------:|:---:|
+| Year 1 | −2.29 | 0.88 | 0.014 | 46 | 937 |
+| Year 2 | −2.98 | 0.95 | 0.004 | 46 | 908 |
+| Year 3 | −1.97 | 1.05 | 0.070 | 45 | 871 |
+| Year 4 | −1.25 | 1.39 | 0.374 | 45 | 837 |
+| Year 5 | −0.72 | 1.21 | 0.557 | 44 | 803 |
 
-Real GDP falls about 1.9pp on impact, reaches a trough of
-−3.8pp one year after onset, and remains roughly 3pp below the pre-crisis
-trajectory four years out. All coefficients are significant at the 1%
-level under Driscoll-Kraay standard errors. The defining feature is the
-**absence of recovery within the four-year window**: a spread crisis
-produces a level shift in output, not a transitory dip. This is the
-central and most robust result of the paper.
+The coefficient is negative and significant at the one- and two-year
+horizons, weakens to marginal significance at Year 3, and is
+indistinguishable from zero by Years 4–5, visible in Figure 1 as the
+shaded 90 percent band widening and recentering on the horizontal axis
+toward the end of the window. On average, a spread-crisis onset is
+followed by a real but front-loaded output shortfall of roughly two to
+three percentage points, fading within about three years. As the next
+sections show, this pooled average conceals substantial and economically
+important heterogeneity, and we treat it mainly as a motivating fact
+rather than the paper's central estimate.
 
 ---
 
 ## 3. Pre-trend validation
 
-We estimate the same local projection at placebo horizons $h=-5$ through
-$h=-1$. Each dependent variable is the single-year log real GDP
-growth rate $h$ years before onset; by construction none of these
-variables include the crisis year $t$. Under valid identification, the
-onset dummy should have no predictive power over any of these
-pre-crisis growth rates. The five-year window is long enough to detect
-gradual pre-trends or anticipation effects that a two-year window would
-miss.
+Rather than testing several placebo horizons before onset, the panel's
+own construction pins down a single, well-defined pre-trend point: because
+the main outcome is anchored at $t-1$, plugging $h=-1$ into the identical
+formula gives $y_{t-1}-y_{t-1}\equiv 0$ trivially — it is not an estimable
+placebo, it *is* the baseline (this is why it is displayed as the explicit
+Year 0 point, never estimated). The first genuinely estimable pre-crisis
+horizon on that same base is one year earlier still — the growth rate from
+$t-2$ to $t-1$ — which we display as **Year $-1$** and estimate as an
+outcome in its own right, dropping the one lag of GDP growth from its own
+controls (since that lag is algebraically identical to this outcome, and
+including it would guarantee a null by construction).
 
-All pre-trend coefficients should be close to zero and statistically
-insignificant — results are reported after re-running the corrected
-pipeline. If any horizon shows a significant coefficient, the affected
-group's impulse responses must be interpreted with the caveat that
-treated countries were already on a different output trajectory before
-the crisis onset date.
+Pooling all crises, this placebo is significantly **positive**
+($\hat\beta = 0.943$, SE $=0.359$, $p=0.013$) — visible in Figure 3 as a
+point sitting above, not on, the zero line. Splitting by resolution type
+(Section 4) shows this is not a generic feature of crisis onset: it is
+concentrated in default-linked episodes specifically ($\hat\beta = 2.14$,
+$p=0.003$), and absent in non-default ones ($\hat\beta = 0.36$,
+$p=0.444$). We do not treat this as invalidating the design — it is a
+boom-before-the-bust pattern, not evidence that default-linked countries
+were already declining before the crisis — but it is exactly the kind of
+signal that warrants a direct stress test, which Section 4.3 provides.
 
 ---
 
 ## 4. Does the resolution of the crisis matter?
 
-The central question of the second part of the analysis is whether crises
-resolved without default impose smaller losses than those linked to
-sovereign default. We estimate a joint local projection with both onset
-dummies entered simultaneously,
+### 4.1 The headline resolution split
 
-$$\Delta^h y_{it} = \alpha_i + \lambda_t + \beta^{nd}_h D^{nd}_{it} + \beta^{def}_h D^{def}_{it} + \gamma' X_{it} + \varepsilon_{it+h},$$
+We estimate both onset dummies jointly, with tranquil years as the
+reference category — matching the reference paper's own baseline
+specification exactly — and test $\beta^{nd}_h = \beta^{def}_h$ at each
+horizon (Table 2; Figure 2 plots the two resulting impulse responses).
 
-and test the equality $\beta^{nd}_h = \beta^{def}_h$ at each horizon. Of
-the 61 episodes, 40 are non-default and 21 are default-linked (Venezuela
-2008 is reclassified as non-default: its restructuring began in 2017, a
-nine-year lag well beyond the five-year rule used to attribute a spread
-crisis to default).
+| Horizon | $\hat\beta^{nd}$ | $\hat\beta^{def}$ | Gap (def$-$nd) | Clogg $z$ | $p$(Wald, nd=def) |
+|:-------:|:----------------:|:------------------:|:---------------:|:---------:|:-------------------:|
+| Year 1 | −0.73 (p=0.175) | −5.53 (p=0.041) | −4.80 | −1.81 | 0.091 |
+| Year 2 | −1.18 (p=0.020) | −6.75 (p=0.006) | −5.57 | −2.36 | 0.016 |
+| Year 3 | −0.24 (p=0.759) | −5.42 (p=0.014) | −5.19 | −2.34 | 0.006 |
+| Year 4 | +0.38 (p=0.768) | −4.49 (p=0.048) | −4.87 | −1.93 | 0.019 |
+| Year 5 | +1.20 (p=0.222) | −4.31 (p=0.043) | −5.51 | −2.45 | 0.011 |
 
-| Horizon | $\hat\beta^{nd}$ | $\hat\beta^{def}$ | Gap | $p(\beta^{nd}=\beta^{def})$ |
-|:-------:|:----------------:|:-----------------:|:----:|:---------------------------:|
-| 0 | −1.03 | −3.54 | −2.51 | 0.104 |
-| 1 | −2.71 | −5.82 | −3.11 | 0.105 |
-| 2 | −2.46 | −4.58 | −2.12 | 0.208 |
-| 3 | −1.76 | −3.37 | −1.61 | 0.406 |
-| 4 | −3.07 | −2.88 | +0.19 | 0.952 |
+The contrast is visible directly in Figure 2: the non-default line sits
+close to zero throughout, with a 90 percent band that clears zero only
+briefly (Year 2); the default-linked line sits well below it at every
+horizon, its band never touching zero from Year 1 through Year 5. Critically,
+the equality test — not merely the presence of significance in one series —
+rejects at four of five horizons and is borderline at the fifth ($p=0.091$
+at Year 1). We read this as reasonably strong evidence that the output
+cost of a spread crisis is concentrated in, and largely specific to,
+episodes that culminate in default, rather than a generic consequence of
+crossing the spread threshold. This is the central result of the paper.
 
-The point estimates suggest default-linked crises are two to three times
-deeper at impact and at $h=1$. Three features qualify this, however.
+A robustness specification estimates each type separately against
+tranquil years, with the rival type dropped from the sample (Spec A — the
+design the two-stage IPW estimator in Section 5 also uses, so it is the
+correct OLS partner for that comparison, though not the paper's headline
+baseline). It reproduces the same pattern: non-default is mostly
+insignificant (significant only at Year 2, $-1.23$, $p=0.015$),
+default-linked is significant at every horizon ($-4.1$ to $-6.8$), and the
+extra-cost-of-default difference is significant or borderline throughout
+(Year 2: $p=0.019$; Year 3: $p=0.030$; Year 5: $p=0.029$). A further check
+restricting the outcome to years with realized rather than IMF-projected
+GDP data (relevant because the panel runs to 2026 and several
+default-linked onsets are recent) reproduces the same gap in sign and
+magnitude at every horizon, indicating the persistence visible at the
+right-hand edge of Figure 2 is not a forecasting artifact.
 
-1. **The difference is never statistically significant.** The smallest
-   $p$-value on the equality test is 0.10, at the impact and one-year
-   horizons.
-2. **The gap is front-loaded, not widening.** It is largest at impact and
-   *converges* to zero by $h=4$, where the two groups are
-   indistinguishable. Default-linked crises look like a deeper but more
-   front-loaded shock, with non-default losses catching up over time.
-3. **The default-linked sample is small and imprecise.** With 21 onsets,
-   the default-linked standard error rises from 1.26 at $h=0$ to 2.66 at
-   $h=4$. The failure to reject equality is therefore as much a power
-   limitation as evidence of similarity.
+### 4.2 A pre-existing-trend concern, addressed directly
 
-The data are thus *suggestive* that default-linked crises are worse on
-impact, but they cannot establish a statistically reliable, persistent
-resolution gap with this sample.
+Section 3 showed the pre-crisis placebo is significantly positive for
+default-linked episodes specifically — a boom, not a decline, but a real
+departure from zero nonetheless. Because one lag of GDP growth already
+enters the common core, this exact pre-crisis window (Year $-1$) is
+mechanically absorbed by the headline regression in Table 2 already; the
+open question was narrower — does the boom extend further back than a
+single lag can see, in a way the baseline specification cannot detect?
 
-### 4a. Pre-trend-controlled robustness check
+We test this directly by adding a second, non-overlapping lag of GDP
+growth (the growth rate from $t-3$ to $t-2$ — genuinely separate
+information, not mechanically tied to the lag already in the core) to the
+exact Table 2 specification:
 
-Section 3's placebo test finds a significant *positive* pre-crisis growth
-coefficient for default-linked onsets ($\beta \approx 2.1$, $p \approx
-.003$, at the single pre-trend horizon on the same $t-1$ base as the main
-outcome) — a boom-before-the-bust pattern, not a pre-existing decline.
-Because this coefficient is found on the same base year the headline
-regression already anchors to, and because the headline specification's
-common core already includes one lag of GDP growth ($\ell_1$gdpg), the
-open question is whether a *longer* pre-crisis growth pattern — beyond
-what a single lag captures — is contaminating the estimated default-linked
-cost.
-
-We test this directly (`do/03_lp_resolution.do`, "ROBUSTNESS:
-PRE-TREND-CONTROLLED SPEC"; exported as `table2pt_pretrend_controlled.rtf`)
-by re-estimating the headline joint regression with $\ell_2$gdpg (GDP
-growth two periods before onset — genuinely separate information from the
-lag already in the core, not mechanically tied to it) added to the
-controls:
-
-| Horizon | $\hat\beta^{def}$, headline | $\hat\beta^{def}$, + $\ell_2$gdpg | $\hat\beta^{nd}$, headline | $\hat\beta^{nd}$, + $\ell_2$gdpg |
+| Horizon | $\hat\beta^{def}$, headline | $\hat\beta^{def}$, + second lag | $\hat\beta^{nd}$, headline | $\hat\beta^{nd}$, + second lag |
 |:-------:|:----:|:----:|:----:|:----:|
-| 1 | −5.535 | −5.499 (p=.044) | −0.730 | −0.853 (p=.140) |
-| 2 | −6.748 | −6.680 (p=.007) | −1.178 | −1.362 (p=.009) |
-| 3 | −5.421 | −5.389 (p=.016) | −0.237 | −0.318 (p=.665) |
-| 4 | −4.491 | −4.503 (p=.049) | 0.377 | 0.406 (p=.731) |
-| 5 | −4.311 | −4.353 (p=.039) | 1.199 | 1.293 (p=.154) |
+| Year 1 | −5.535 | −5.499 (p=0.044) | −0.730 | −0.853 (p=0.140) |
+| Year 2 | −6.748 | −6.680 (p=0.007) | −1.178 | −1.362 (p=0.009) |
+| Year 3 | −5.421 | −5.389 (p=0.016) | −0.237 | −0.318 (p=0.665) |
+| Year 4 | −4.491 | −4.503 (p=0.049) | 0.377 | 0.406 (p=0.731) |
+| Year 5 | −4.311 | −4.353 (p=0.039) | 1.199 | 1.293 (p=0.154) |
 
-The default-linked coefficient moves by less than 0.1 percentage points
-at every horizon and remains significant throughout ($p<.05$ at every
-horizon except $h=1$, where $p=.044$). This indicates the estimated
-default-linked output cost is not an artifact of the pre-crisis growth
-pattern flagged in the placebo test: controlling for an additional,
-independent lag of growth momentum leaves the headline result
-essentially unchanged. This is a meaningfully stronger robustness result
-than a simple restatement of the placebo caveat, and narrows the
-qualification in point 3 above — the default-linked result survives a
-direct stress test against the specific concern the pre-trend raised.
+The default-linked coefficient moves by no more than 0.1 percentage
+points at any horizon and remains significant throughout. This indicates
+the boom detected in Section 3 is confined to the single window the
+baseline specification already controls for; there is no evidence of a
+longer, uncontrolled pre-crisis pattern manufacturing the appearance of a
+post-crisis cost through simple mean reversion. We regard this as
+meaningfully strengthening, not merely qualifying, the central result of
+Section 4.1: the divergence in Figure 2 survives a direct stress test
+against the specific concern the placebo test raised.
 
 This test rules out a linear growth-momentum explanation for the
-pre-trend; it does not rule out other pre-existing, non-growth-related
-differences between the two groups (e.g., a discrete shock in the
-pre-onset window), which remains an open caveat.
+pre-trend specifically. It does not rule out other pre-existing,
+non-growth differences between the two groups — a discrete shock
+coinciding with the pre-onset window, for instance — which we retain as
+an open limitation (Section 10).
 
 ---
 
-## 5. Selection and inverse-probability weighting
+## 5. Selection, propensity, and inverse-probability weighting
 
-The two crisis groups are not exchangeable ex ante. Comparing observable
-fundamentals at the onset year:
+### 5.1 Why selection is a real concern here
 
-| Variable | Non-default | Default-linked | $p$ |
-|:--|:--:|:--:|:--:|
-| GDP growth (%) | +2.77 | −2.91 | 0.006 |
-| L1 GDP growth (%) | 4.94 | 1.81 | 0.001 |
-| Debt/GDP | 51.6 | 78.0 | 0.012 |
-| Lagged EMBIG spread (bps) | 402 | 592 | 0.000 |
-| Current account/GDP | −3.84 | −2.33 | 0.410 |
-| IMF program | 0.38 | 0.57 | 0.154 |
+The two resolution groups are not exchangeable ex ante — countries that
+eventually default plausibly differ from those that do not on observable
+pre-crisis fundamentals. We address this with a first-stage propensity
+model: a pooled probit (no country fixed effects — with roughly 20–40
+events per type, country dummies would separate on the many never-treated
+countries and collapse the usable sample) of onset on the common core plus
+excluded predictors — the US fed funds rate (lagged), a leave-one-out
+regional contagion measure, and a count of the country's own past onsets.
+For Act 1 (any onset vs. tranquil), adding these predictors to the
+controls-only model raises the area under the ROC curve from 0.664 to
+0.732; the Table-1-style first-stage table (`08c_first_stage_table.do`)
+reports the same predictors separately for the non-default and
+default-linked columns, with AUROC of 0.748 and 0.881 respectively and a
+jointly significant $\chi^2$ test on the predictors in every column.
 
-Default-linked countries enter with worse output momentum, substantially
-higher debt, and higher spreads. We address this with inverse-probability
-weighting: a first-stage probit predicts treatment from predetermined
-fundamentals, propensity scores are trimmed to $[0.01, 0.99]$, and
-stabilized weights are applied in the projection.
+### 5.2 Act 1: does reweighting change the average cost?
 
-- **Act 1 (onset vs. tranquil).** Reweighting makes the estimated losses
-  *larger*, not smaller, at every horizon (e.g. $h=1$: −4.05 → −5.14;
-  $h=4$: −3.51 → −5.01). Selection on observables, if anything,
-  *understates* the cost — the baseline estimate is conservative.
-- **Act 2 (default vs. non-default).** Reweighting the non-default group
-  to match the default-linked group on fundamentals **reduces the
-  estimated loss of *both* groups** at most horizons. The full set of
-  coefficients (GDP outcome, `areg` with cluster SE):
+Reweighting tranquil years to match the observable pre-crisis profile of
+treated country-years, and re-estimating the pooled Act-1 local
+projection (Figure 7 overlays the two), **attenuates** the estimated cost
+at the shorter horizons rather than amplifying it:
 
-  | $h$ | $\beta^{nd}$ OLS | $\beta^{nd}$ IPW | $\beta^{def}$ OLS | $\beta^{def}$ IPW | Gap OLS | Gap IPW |
-  |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-  | 0 | −1.03 | −1.08 | −3.54 | −3.02 | −2.51 | −1.93 |
-  | 1 | −2.71 | −2.58 | −5.82 | −5.58 | −3.11 | −3.01 |
-  | 2 | −2.46 | −2.14 | −4.58 | −4.30 | −2.12 | −2.16 |
-  | 3 | −1.76 | −1.32 | −3.37 | −2.83 | −1.61 | −1.52 |
-  | 4 | −3.07 | −2.34 | −2.88 | −2.51 | +0.19 | −0.17 |
+| Horizon | $\hat\beta$, OLS-FE | $\hat\beta$, IPW | $\Delta$ |
+|:-------:|:--------------------:|:------------------:|:--------:|
+| Year 1 | −2.74 | −1.84 | +0.90 |
+| Year 2 | −4.42 | −2.52 | +1.90 |
+| Year 3 | −1.69 | −0.70 | +0.99 |
+| Year 4 | −0.12 | −0.13 | −0.01 |
+| Year 5 | +0.48 | +0.62 | +0.14 |
 
-  The default-linked excess loss is attenuated at impact (gap −2.51 →
-  −1.93) and at $h=3$, but the gap is essentially unchanged at $h=1$–$2$
-  and remains near zero at $h=4$, because reweighting shrinks the
-  non-default loss by *more* at longer horizons (its weighted-minus-OLS
-  difference grows from −0.05 at $h=0$ to +0.73 at $h=4$). A meaningful
-  part of the OLS default-linked penalty therefore reflects pre-crisis
-  fundamentals rather than the resolution itself, while default-linked
-  remains the deeper response at $h=0$–$3$. The equality test was not
-  computed in the original Act 2 IPW run, so an explicit IPW gap $p$-value
-  is not reported here; given the OLS gap was insignificant at every
-  horizon ($p$ = 0.10–0.95) and the IPW gaps are similar or smaller with
-  comparable standard errors, it is very unlikely to reach significance.
+This is worth stating plainly because it is easy to get backwards: the
+IPW-weighted coefficients are consistently *smaller in magnitude* than the
+unweighted ones at Years 1–3, and essentially unchanged at Years 4–5. That
+is, a meaningful part of the pooled Act-1 cost documented in Section 2 is
+associated with selection on observable pre-crisis characteristics rather
+than surviving as a pure treatment effect once that selection is
+addressed — the unweighted pooled estimate should be read as somewhat
+generous, not conservative.
 
-Both exercises rest on thin common support — 476 of roughly 1,275 sample
-observations are trimmed, and the first stage classifies only a handful of
-treated observations above the 0.5 threshold — so the IPW results are
-corroborative rather than decisive. They nonetheless reinforce Section 4:
-the apparent "default is worse" pattern is partly compositional.
+### 5.3 Act 2: the resolution split under reweighting
 
-**Fixed-effects specification.** The two stages are treated asymmetrically,
-by design. The *first-stage propensity model* (probit) is **pooled — no
-fixed effects**: a country dummy in a rare-event nonlinear model perfectly
-predicts the many countries that never experience an onset of a given type
-(especially default-linked, 21 events) and drops them, collapsing an
-already-small sample; the pooled probit keeps every country, and persistent
-cross-country differences are instead proxied by the crisis-proneness
-predictor (count of the country's own past onsets). The *second-stage
-outcome model* carries **country fixed effects**, which are harmless in a
-linear projection (they subtract country means, drop no observations) and
-absorb time-invariant heterogeneity. The baseline and IPW local projections
-additionally include **year fixed effects**, which nonparametrically absorb
-global shocks and enforce the exclusion restriction — the global-push
-predictor (VIX) enters the first-stage probit but is mechanically removed
-from the outcome equation by the year dummies, so it can affect output only
-through the crisis. The AIPW outcome model omits year fixed effects because
-the global cycle is already handled through the propensity predictors,
-making them redundant there. This differs deliberately from Asonuma et al.,
-who — with 194 restructuring events across 76 countries — can afford
-country fixed effects in *both* stages (and use no year fixed effects,
-controlling for the global cycle with observed regressors such as the US
-federal funds rate); our smaller event count makes the pooled first stage
-the feasible and standard choice for rare-event propensity estimation, with
-doubly-robust AIPW requiring correct specification of only one of the two
-models.
+For the resolution split, we follow the reference paper's own design more
+closely than a single reweighted comparison would allow: each type is
+scored against tranquil years separately (the rival type dropped from
+that type's estimation sample), with its own stabilized weights, so
+non-default and default-linked each get a genuine vs.-tranquil doubly
+estimated line (OLS and IPW) rather than being reweighted against each
+other directly. The outcome-stage regressions here carry country fixed
+effects only, no year fixed effects — deliberately: the excluded
+predictors (fed funds, contagion, past onsets) are genuinely excluded from
+this outcome equation by omission, rather than by year-dummy absorption,
+which is the two-stage design's own exclusion-restriction logic, distinct
+from the year-FE mechanism used in the single-stage specifications above.
+
+| Horizon | $\hat\beta^{nd}$, OLS | $\hat\beta^{nd}$, IPW | $\hat\beta^{def}$, OLS | $\hat\beta^{def}$, IPW | $p$, OLS | $p$, IPW |
+|:-------:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Year 1 | −0.35 | −1.63 | −7.58 | −7.35 | 0.006 | 0.013 |
+| Year 2 | −2.13 | −2.13 | −9.48 | −10.30 | 0.001 | 0.010 |
+| Year 3 | −0.11 | −0.81 | −6.65 | −4.59 | 0.011 | 0.105 |
+| Year 4 | 1.31 | −0.48 | −5.06 | −1.90 | 0.038 | 0.591 |
+| Year 5 | 2.16 | −0.23 | −5.05 | −0.70 | 0.047 | 0.892 |
+
+Two features are worth flagging honestly. First, the gap between the
+resolution types is confirmed under both OLS and IPW at the shorter
+horizons (Years 1–2), where the extra cost of default clears conventional
+significance in both columns. Second, at Years 3–5 the IPW-weighted
+default-linked coefficient shrinks substantially and loses significance —
+a real divergence from the OLS pattern, driven by the thin default-linked
+common support at longer horizons (this design's propensity trimming
+removes a growing share of the already-small default-linked pool as the
+horizon lengthens). We do not paper over this: the longer-horizon
+persistence documented under OLS in Section 4.1 is *not* robustly
+confirmed once selection is addressed via this particular reweighting
+design, and should be read as more uncertain at Years 3–5 than the OLS
+table alone suggests.
+
+### 5.4 Doubly-robust estimation (AIPW) — pending re-verification
+
+The project also implements a doubly-robust AIPW estimator
+(`08b_aipw.do`, following Jordà & Taylor 2016 / Asonuma et al.'s Eq. 3),
+combining the propensity and outcome models with a stratified cluster
+bootstrap for inference, and extends it to the transmission channels
+(`13c_aipw_channels.do`) and to the sovereign-bank nexus split
+(`13d_aipw_nexus_split.do`, used for Section 8 below). **The GDP-level
+AIPW headline in `08b_aipw.do` has not been re-run inside this working
+session** after the horizon relabeling, the banking-crisis-duration
+rebuild, and the conformability fix documented in this project's commit
+history; we therefore do not report specific doubly-robust GDP figures
+here rather than risk stating numbers that predate those fixes as current.
+This should be re-run and this subsection updated before the AIPW result
+is used in the paper.
 
 ---
 
 ## 6. Transmission channels
 
-To identify *how* spread crises propagate, we replace GDP with six
-intermediate outcomes — private credit, bank claims on the government,
-gross investment, government expenditure, the primary balance, and foreign
-direct investment — each expressed as a cumulative change from $t-1$ and
-estimated with channel-specific predetermined controls.
+To characterize the mechanism behind the divergence in Figure 2, we
+re-estimate the local projection with six intermediate outcomes in place
+of GDP — private credit, bank claims on the government, gross investment,
+government expenditure, the primary balance, and FDI, each expressed as a
+cumulative percent change from $t-1$ (log real levels for credit,
+investment, and government expenditure, so the outcome is a genuine
+percent change in the variable itself rather than in its ratio to a
+collapsing GDP; the primary balance and FDI change sign and so remain
+ratios) — plotted together in Figure 11's six-panel grid, pooling all
+episodes:
 
-| Channel | Profile across $h=0\ldots4$ | Interpretation |
-|:--|:--|:--|
-| Private credit/GDP | ≈0 at impact, building to −3.5*** at $h=4$ | Credit contraction is **delayed and compounding** |
-| Investment/GDP | weak; significant only at $h=3$ (−1.9) | No strong average capital response |
-| Bank claims on govt/GDP | +0.3 to +2.0, all insignificant | No average sovereign-bank build-up |
-| Govt expenditure/GDP | **+1.19\*\*** at $h=0$, then ≈0 | Spending rises at onset — mildly **counter**cyclical |
-| Primary balance/GDP | −0.57** at $h=0$, then insignificant | Deficit widens on impact |
-| FDI/GDP | −0.78 ($p$=0.069) at $h=0$ only | Weak, short-lived external pullback |
+| Channel | Year 1 | Year 2 | Year 3 | Year 4 | Year 5 |
+|:--|:--:|:--:|:--:|:--:|:--:|
+| Private credit | −1.73 (.148) | −5.34 (.073) | −7.22 (.042) | −5.01 (.044) | −2.21 (.346) |
+| Bank claims on govt | 1.16 (.163) | 0.86 (.344) | 1.10 (.282) | 0.06 (.961) | 1.67 (.347) |
+| Investment | −5.09 (.015) | −6.14 (.091) | −3.88 (.133) | −4.95 (.287) | −2.16 (.541) |
+| Govt expenditure | 0.84 (.566) | −4.50 (.012) | −2.48 (.273) | −1.72 (.545) | 1.55 (.634) |
+| Primary balance | −0.98 (.056) | −0.17 (.784) | −0.28 (.665) | −0.00 (.995) | −0.58 (.303) |
+| FDI | −0.41 (.406) | 0.86 (.260) | 1.38 (.042) | 0.90 (.129) | −0.09 (.933) |
 
-The dominant pooled mechanism is a **private-credit contraction that
-compounds over time**, mirroring the persistence of the output loss
-itself: the credit response troughs late (h=4) rather than on impact.
-Fiscal policy is accommodative at onset — spending up, primary balance
-down — not austere.
+*(coefficient with $p$-value in parentheses)*
+
+Because each channel is estimated as an independent, single-outcome
+regression sharing only the onset dummy with the GDP specification, a
+significant panel in Figure 11 establishes that the variable moves
+following an onset; it does not by itself establish that the variable
+mediates the output cost in Figure 2, since a common shock could drive
+both the channel and GDP simultaneously, or GDP could be driving the
+channel rather than the reverse. Bearing that distinction in mind: private
+credit shows the clearest pooled signature, a response building from near
+zero at impact to a trough of roughly $-5$ to $-7$ points by Years 3–4 —
+delayed and compounding, rather than an on-impact shock, echoing the
+GDP result's own persistence. Investment is significant only at Year 1;
+government expenditure only at Year 2; primary balance and FDI show at
+most one significant horizon each with no persistent pattern; bank claims
+on government show no significant pooled response at any horizon.
 
 ---
 
 ## 7. Channels by resolution type
 
-Splitting each channel by crisis type is the most informative cut of the
-data: the two episode types transmit through visibly different margins. We
-report the joint specification (both onset dummies) with the equality test
-$\beta^{nd}_h = \beta^{def}_h$, under both OLS-DK and IPW weighting.
+Splitting the same six channels by resolution type (Table 4; Figure 12a
+for the OLS-DK version, Figure 12b for IPW-weighted) is considerably
+noisier than the aggregate split in Section 4, given default-linked
+sub-samples of only 13–21 treated episodes depending on the channel and
+horizon.
 
-- **Investment.** Gross investment **collapses in non-default episodes**
-  (−1.19 at $h=0$, −1.77 at $h=1$, −2.73 at $h=3$; equality
-  $p$ = 0.003, 0.021, 0.010) but is **flat-to-positive in default-linked
-  episodes** (+1.07, +0.19, +0.43). The investment channel is a
-  non-default phenomenon.
-- **Bank claims on government.** Default-linked banks **accumulate
-  sovereign debt** (+4.06 at $h=0$, IPW $p$=0.009; $p$=0.092 at $h=2$),
-  a sovereign-bank balance-sheet linkage absent in non-default episodes.
-- **Private credit.** The credit crunch is concentrated in **non-default**
-  episodes (at $h=4$: −4.78 for non-default vs. +0.62 for default-linked,
-  $p$=0.020).
-- **Government expenditure.** Default-linked countries **cut spending** at
-  longer horizons (at $h=4$: +1.05 for non-default vs. −1.69 for
-  default-linked, $p$=0.061); non-default countries do not.
-- **Primary balance and FDI.** No significant differences by resolution
-  type at any horizon.
+| Channel | Year 1: nd / def ($p$) | Year 2: nd / def ($p$) | Year 3: nd / def ($p$) | Year 4: nd / def ($p$) | Year 5: nd / def ($p$) |
+|:--|:--|:--|:--|:--|:--|
+| Private credit | −0.6 / −4.3 (.42) | −1.2 / **−14.6** (.024) | −3.7 / −14.6 (.23) | 0.8 / −17.7 (.10) | 3.8 / −13.7 (.14) |
+| Bank claims on govt | 0.4 / 2.9 (.12) | −0.2 / 3.0 (.22) | 0.1 / 3.1 (.12) | −0.7 / 1.4 (.23) | 0.4 / **3.9** (.07) |
+| Investment | −4.4 / −6.4 (.80) | −5.0 / −8.4 (.49) | −2.4 / −6.7 (.50) | −4.7 / −5.4 (.90) | −1.7 / −3.0 (.90) |
+| Govt expenditure | −0.2 / 3.1 (.21) | −3.8 / −6.0 (.61) | −0.8 / −5.9 (.16) | −1.0 / −3.3 (.70) | 3.5 / −2.4 (.34) |
+| Primary balance | −0.5 / −2.1 (.07) | 0.1 / −0.8 (.47) | −0.5 / 0.2 (.51) | −0.1 / 0.2 (.83) | −0.8 / −0.1 (.55) |
+| FDI | −0.1 / −0.9 (.27) | 1.4 / −0.2 (.11) | 1.9 / 0.3 (.15) | 1.7 / **−0.6** (.029) | 0.1 / −0.4 (.57) |
 
-The resulting picture is internally coherent: **non-default spread crises
-transmit through a contraction in private credit and investment, while
-default-linked crises transmit through bank absorption of government debt
-and fiscal retrenchment.** The two types deliver a comparable average
-output cost (Section 4) through different plumbing.
+*(bold = equality test $p<0.05$)*
+
+We are careful to describe only what these numbers actually support.
+Across 30 nd/def equality tests, only two reach conventional
+significance — private credit at Year 2 ($p=0.024$) and FDI at Year 4
+($p=0.029$) — with the bank-claims gap at Year 5 and the primary-balance
+gap at Year 1 borderline ($p\approx0.07$). Several point estimates look
+economically large in the default-linked column, notably credit at Years
+3–5 and government expenditure at Years 3–5, but their equality tests do
+not reject, and given the sample sizes involved we read this as a genuine
+power limitation rather than evidence that the channels are equal across
+resolution types. We do not build a "different plumbing by resolution
+type" narrative on these differences alone; Section 7a takes a different,
+more direct approach to tying the channels to the GDP result.
 
 ### 7a. How much of the default-linked cost do these channels explain?
 
-Section 7 shows *which* channels move differently by resolution type; it
-does not by itself say how much of the estimated default-linked GDP cost
-each one accounts for. We address this with a Gelbach (2016)
-decomposition (`do/12b_gelbach_decomposition.do`): for each channel and
-horizon, we re-estimate Table 2's exact headline specification with the
-channel's own contemporaneous change added as an extra control, on the
-identical sample, and compute the resulting shrinkage in the
-default-linked onset coefficient as a share of its original magnitude.
+Section 7 shows *which* channels move differently by resolution type, at
+whatever precision the small default-linked sample allows; it does not by
+itself say how much of the estimated default-linked GDP cost in Table 2
+each channel accounts for. We address this with a Gelbach (2016)
+decomposition (`do/12b_gelbach_decomposition.do`): for each channel, we
+add its own contemporaneous change to the exact specification behind
+Table 2, estimated on the identical sample, and compute the resulting
+shrinkage in the default-linked coefficient as a share of its original
+magnitude.
 
-| Channel | $h=1$ | $h=2$ | $h=3$ | $h=4$ | $h=5$ |
+| Channel | Year 1 | Year 2 | Year 3 | Year 4 | Year 5 |
 |:--|:--:|:--:|:--:|:--:|:--:|
 | Private credit | 4.6% | 17.3% | 24.5% | 43.2% | 23.7% |
 | Government expenditure | −2.9% | 12.4% | 31.1% | 43.3% | 44.2% |
 | Investment | 13.9% | 18.9% | 20.8% | 22.4% | 14.9% |
-| Bank claims on govt | 4.3% | 7.1% | 15.1% | 11.9% | 61.3%$^\dagger$ |
+| Bank claims on government | 4.3% | 7.1% | 15.1% | 11.9% | 61.3%$^\dagger$ |
 | Primary balance | 8.7% | 4.3% | 0.1% | −0.6% | 1.5% |
 | FDI | 0.3% | −0.1% | −0.7% | 0.3% | −1.1% |
 
 $^\dagger$ Estimated on the thinnest horizon ($n_{def}=17$); read with
 caution rather than as a stable result.
 
-Adding the change in private credit or government expenditure as a
-control reduces the estimated default-linked GDP coefficient by an
-increasing share as the horizon lengthens, reaching roughly 40–44% by
-$h=4$–$h=5$, while primary balance and FDI explain essentially none of
-it. This indicates credit and fiscal channels are the strongest
-candidates for further mechanism investigation, though the decomposition
-does not establish that they mediate the cost causally — the channel
-variables are not exogenous conditional on the controls, so the shrinkage
-is consistent with mediation but equally consistent with a common shock
-driving both the channel and the output cost, or with reverse causality
-running from output to the channel. The corresponding decomposition for
-non-default crises is not reported: the non-default GDP coefficient (the
-denominator of the "explained share") is not statistically distinguishable
-from zero at any horizon, so a percentage computed relative to it is not
-informative.
+Private credit and government expenditure each absorb a rising share of
+the default-linked coefficient as the horizon lengthens, reaching roughly
+40–44 percent by Years 4–5, consistent with the compounding credit response
+visible in Figure 11's credit panel; the primary balance and FDI absorb
+essentially none of it at any horizon. Investment sits in between, at a
+fairly stable 15–22 percent throughout. This gives a ranked answer to
+which channels are most closely tied to the gap plotted in Figure 2 —
+credit and fiscal spending lead, investment is secondary, the primary
+balance and FDI appear largely unrelated — though a shrinking coefficient
+is consistent with a mediating role without establishing one causally: the
+channel variables are not exogenous conditional on the controls, so the
+shrinkage is equally consistent with a common shock driving both the
+channel and the output cost, or with reverse causality running from
+output to the channel. We do not compute the corresponding decomposition
+for non-default episodes: because the non-default GDP coefficient is not
+statistically distinguishable from zero at any horizon (Table 2), a
+percentage computed relative to it is not economically informative — there
+is no real effect there for a channel to explain.
 
 ---
 
 ## 8. The sovereign-bank nexus: a two-dimensional amplifier
 
-Section 7 showed that default-linked banks *accumulate* government debt. We
-now ask whether the strength of that sovereign-bank linkage *conditions*
-the output cost itself — an analog of Asonuma et al.'s bank-intermediation
-split (their Fig. 6), but sharpened from bank *size* to bank *exposure to
-this sovereign*. We measure the nexus by pre-crisis bank claims on
-government as a share of bank assets (`claimsgov_assets`, predetermined at
-$t-1$, country-mean filled where the year-before value is missing), split
-the onsets at their median into a **high-** and a **low-nexus** group, and
-re-estimate the doubly-robust AIPW output cost separately within each
-group (control = tranquil years only), coherent with the estimator of
-Section 5. The median cutoff is about 14% of assets; the cells are small
-(non-default: 14 low / 17 high; default-linked: 9 low / 6 high), so the
-default rows are read as directional.
+Does the strength of the sovereign-bank linkage *condition* the output
+cost documented in Section 4 — an analog of Asonuma et al.'s
+bank-intermediation split (their Fig. 6), sharpened from bank *size* to
+bank *exposure to this sovereign*? We measure the nexus by pre-crisis bank
+claims on government as a share of bank assets (predetermined at $t-1$,
+country-mean filled where the year-before value is missing), split onsets
+at the median into high- and low-nexus groups, and re-estimate the
+doubly-robust AIPW output cost separately within each group (control =
+tranquil years). This section uses a verified run of the current code
+(post horizon-relabel) but rests on genuinely small cells, most severely
+in the default-linked rows (as few as 7 treated country-years), so we are
+deliberately conservative about what is established versus merely
+consistent with the headline story.
 
-The result is a **sign flip**: the nexus is protective when the debt is
-honored and destructive when it is not.
+**Non-default crises, split by nexus.** The output cost is significant
+under low nexus ($-3.5$, 90% CI $[-6.6,-0.4]$) but statistically
+indistinguishable from zero under high nexus ($+0.3$, CI
+$[-0.9,1.4]$). The high-minus-low difference at impact is itself
+significant: $+3.76$, CI $[0.05, 7.37]$. This is the one place in the
+entire nexus analysis where a *difference* between subsamples — not just a
+level within one subsample — clears significance, and it supports a
+genuine cushioning story: in non-default crises, high pre-crisis bank
+exposure to the sovereign is associated with a materially and
+statistically smaller output cost than low exposure.
 
-| Real GDP cost (AIPW ATE, pp) | Low nexus | High nexus |
-|:--|:--:|:--:|
-| **Non-default** | −5.3 to −9.5, all significant | **≈ 0, insignificant at every $h$** |
-| **Default-linked** | −5.8 → −2.3 (loses significance by $h=3$) | **−6.3 → −10.9, all significant (deepest cell)** |
+**Default-linked crises, split by nexus.** Both subsamples show a large,
+significant cost (low nexus: $-7.2$, CI $[-11.8,-4.6]$; high nexus:
+$-18.0$, CI $[-24.2,-2.5]$, on only 7 treated observations), and the point
+estimate under high nexus is roughly $2.5\times$ deeper. The
+high-minus-low difference itself, however, is **not** statistically
+significant ($-10.8$, CI $[-16.0, 2.9]$) — the confidence interval on a
+7-observation cell is simply too wide to distinguish it from the low-nexus
+cell despite the large gap in point estimates. We report this pattern as
+economically suggestive of an amplifier effect, consistent with the
+mechanism evidence below, but explicitly **not** as an independently
+established statistical finding on its own.
 
-In non-default crises a tight nexus is a **cushion**: high-nexus output is
-statistically indistinguishable from zero, while the cost in that quadrant
-falls entirely on low-nexus countries that must refinance in external
-markets. In default-linked crises the same tight nexus is an
-**amplifier**: high-nexus episodes are the deepest in the entire design.
+**Mechanism evidence.** The channel that does clear significance
+repeatedly is bank claims on government, specifically in the
+default-linked, high-nexus cell: $+7.8$ (Year 1, $p<0.05$), $+17.1$
+(Year 2), $+12.9$ (Year 3), each individually significant, before fading
+by Year 4–5 (the Year-5 reading, a significant *negative* $-5.4$, coincides
+with a substantially reduced bootstrap draw count and should be treated as
+noisy rather than a genuine reversal). The corresponding low-nexus
+default cell shows no such rise. Bank claims on the private sector move
+in the opposite direction in the same cell (a significant $-7.7$ at Year 2),
+though this series thins out badly by Year 3–4 (bootstrap draw counts fall
+toward 100 of 300 or fewer) and should be read with real caution past
+Year 2.
 
-The channel outcomes, re-estimated on the same high/low split, identify
-the mechanism as a **within-bank portfolio reallocation** concentrated in
-the default-linked, high-nexus cell:
-
-- **Bank claims on government rise most there** — +9 to +12 pp at
-  $h=1$–$2$, versus about half that in low-nexus defaults and ≈0 in
-  non-default episodes. Already-exposed banks absorb *more* sovereign paper
-  precisely as it is being restructured.
-- **Bank claims on the private sector fall there** — −4.9 to −6.1 pp
-  ($h=1$–$3$, tightly estimated), against a much milder low-nexus response.
-  The money that flows toward the sovereign is withdrawn from firms.
-
-Crucially, the *generic* macro channels do **not** single out this cell.
-Private credit/GDP contracts in most crisis cells but if anything *more*
-under low nexus, and investment is weak everywhere; neither shows a
-default×high-nexus spike. The amplification is therefore a **banking
-balance-sheet-composition** phenomenon — visible in the bank-level
-claims measures, diluted in the economy-wide credit aggregate — not a
-generic collapse of credit or capital formation. This is the doom loop
-made concrete: where banks are heavily pre-committed to the sovereign, a
-default forces them to reshuffle their portfolio toward government and away
-from the real economy, and that reallocation is what turns a restructuring
-into the deepest recessions in the sample. The mechanism is summarised
-schematically in Figure `fig_nexus_mechanism_2x2` and estimated in
-`aipw_nexus_split.csv` (the by-outcome high/low IRFs in `fig_nexus_*`).
+Read together, we consider the sovereign-bank nexus finding to be the
+strongest *mechanism* evidence in the paper — a genuine interaction
+design, not a parallel single-outcome regression — for the specific claim
+that banks with high pre-crisis exposure to the sovereign reallocate
+toward government debt when a default occurs. We stop short of claiming
+the deeper output cost in that same cell is independently established,
+since that particular comparison did not clear significance on its own;
+the honest reading is that the mechanism evidence (claims on government
+rising sharply and significantly) is consistent with, and supportive of,
+the pattern of larger point estimates in the output-cost comparison,
+rather than each result standing alone as proof.
 
 ---
 
 ## 9. Robustness and inference
 
-The baseline is checked against alternative crisis-classification
-thresholds, exclusion of the most extreme episodes (Argentina, Venezuela),
-exclusion of global-crisis years (1997–1999, 2008–2009, 2020–2021), and
-country-clustered standard errors in place of Driscoll-Kraay. A
-permutation placebo test provides assumption-free inference: the 61
-observed onsets are randomly reassigned to estimation-pool country-years
-and the projection is re-estimated 1,000 times, locating the true
-estimates in the null distribution. This is especially relevant given the
-small number of treated observations, where the asymptotics behind
-conventional $t$-statistics may be unreliable.
+Beyond the pre-trend-controlled specification (Section 4.2) and the
+outturns-only restriction (Section 4.1), the code base includes: a
+permutation placebo test (1,000 random reassignments of the 61 onsets
+within the estimation pool, locating the true coefficients in the
+resulting null distribution — an assumption-free check particularly
+relevant given the small number of treated observations); a robustness
+forest plot comparing the resolution-split coefficient across ten
+alternative specifications; and $t$-distribution-based (rather than
+normal-approximation) confidence intervals throughout, appropriate given
+the panel's roughly 47 clusters.
 
 ---
 
 ## 10. Limitations
 
-- **Thin nexus cells.** The default×nexus quadrants of Section 8 hold only
-  6–9 treated onsets, so those estimates are directional, not precise, and
-  a share of bootstrap draws is lost in the smallest cells. The high/low
-  split could also proxy income or financial development; the run prints
-  the country composition of each bin and the mean nexus per bin
-  (`tabulate country highbank`) so this can be inspected rather than
-  assumed away.
-- **Small treated samples**, particularly default-linked (21 onsets; the
-  channel-by-resolution cells contain only 12–19 default-linked
-  observations). Insignificant difference tests frequently reflect low
-  power rather than the absence of an effect.
-- **Horizon attrition.** At $h=4$ the most recent onset years drop out
-  because forward GDP is unavailable, so the longest-horizon estimates
-  rest on fewer episodes.
-- **Pre-trend window.** The placebo test covers $h=-5$ through $h=-1$;
-  each variable is a single-year growth rate fully before onset. Any
-  significant pre-trend coefficient limits the causal interpretation for
-  that group at the affected horizons.
-- **Thin common support for IPW.** A large share of observations is
-  trimmed and few treated units cross the classification threshold, so the
-  weighted estimates are corroborative rather than definitive.
-- **Episode duration is not weighted.** Each of the 61 spread-crisis
-  episodes contributes exactly one treated observation to the estimation
-  sample — its onset year. Years after the onset that remain part of the
-  same episode (`continuation==1`) are excluded from the sample entirely,
-  both to avoid contaminating the tranquil control group with still-crisis
-  years and to avoid double-counting a single episode across multiple
-  rows. This is the standard local-projection convention (Jordà 2005;
-  Jordà & Taylor 2016; Asonuma et al. 2024 use the same design), and the
-  multi-year dynamics of a crisis are captured through the horizon
-  dimension of the outcome ($h=0,\dots,4$) rather than through additional
-  treated rows. One consequence worth flagging: a crisis that turns out to
-  last five years contributes exactly as much identifying variation to
-  $\beta(h)$ as a crisis lasting one year — episode duration itself is not
-  used as a source of variation or as a control. Whether protracted crises
-  are systematically more (or less) costly than short ones is therefore an
-  open question this design does not address; a duration-interaction or
-  duration-split robustness check (mirroring the nexus heterogeneity
-  design in Section 8) would be a natural extension but has not been
-  built.
+- **Small treated samples**, particularly default-linked (21 episodes;
+  the channel-by-resolution cells run 13–21 default-linked observations,
+  and the nexus split's default-linked cells run as few as 6–9). Many
+  reported equality tests fail to reject for reasons of power as much as
+  genuine similarity, and we have tried throughout to say so explicitly
+  rather than silently treating an insignificant difference as evidence
+  of "no effect."
+- **Selection under reweighting is not uniform across horizons.** Section
+  5.3's IPW comparison confirms the extra cost of default at Years 1–2 but
+  loses significance at Years 3–5 once the two-stage, vs.-tranquil design
+  is used — a real qualification to the OLS-only persistence claim in
+  Section 4.1 that should not be smoothed over.
+- **The AIPW headline is not yet re-verified against this session's code
+  fixes** (Section 5.4) and should be re-run before being reported as a
+  current result.
+- **Episode duration is not weighted.** Each episode contributes exactly
+  one treated observation (its onset year); continuation years are
+  excluded from the sample entirely. This is the standard local-projection
+  convention and the multi-year dynamics of a crisis are captured through
+  the horizon dimension rather than through additional treated rows, but
+  one consequence is that a crisis lasting five years contributes exactly
+  as much identifying variation as one lasting a single year. Whether
+  protracted crises are systematically more costly is an open question
+  this design does not address.
+- **Thin nexus and common-support cells.** The default×high-nexus cell in
+  Section 8 rests on 7 treated country-years, and the AIPW bootstrap
+  loses a growing share of draws at later horizons in the thinnest cells;
+  the high/low nexus split could in principle also proxy income or
+  financial development more broadly, a possibility the underlying code
+  prints the country composition of each bin to allow checking, but which
+  has not been formally ruled out here.
+- **Channel decomposition is not mediation.** Section 7a's Gelbach shares
+  quantify how much of the default-linked coefficient is statistically
+  absorbed by each channel, not a causal mediation estimate; the channel
+  variables are not exogenous conditional on the controls.
 
 ---
 
 ## 11. Summary
 
-The analysis establishes four findings. First, a spread crisis imposes a
-large and **persistent** output cost — about −1.9pp on impact, troughing
-near −3.8pp, and still −3pp after four years, robustly and if anything
-conservatively estimated. Second, default-linked crises appear deeper on
-impact, but the resolution gap is statistically insignificant, converges
-within four years, and is partly explained by pre-crisis fundamentals once
-selection is addressed. Third, the two crisis types propagate through
-**different channels** — a private credit-and-investment contraction in
-non-default episodes versus sovereign-bank balance-sheet linkages and
-fiscal retrenchment in default-linked episodes. Fourth, the sovereign-bank
-nexus is a **two-dimensional amplifier**: a tight pre-crisis linkage
-cushions non-default crises (output ≈ 0) but deepens default-linked ones
-(output −6 to −11pp) through a within-bank reallocation from private
-lending toward the sovereign — the resolution-conditional doom loop, which
-together with the channel decomposition is arguably the most novel
-empirical contribution of the paper.
+The analysis supports one central, carefully qualified finding and two
+further pieces of mechanism evidence of differing strength. The central
+finding: the output cost of a spread crisis is not a generic consequence
+of crossing the market-based threshold, but is concentrated in, and
+largely specific to, episodes that end in default — non-default episodes
+show no reliable GDP cost at any horizon, default-linked episodes show a
+persistent cost of four to seven percentage points, and the gap between
+the two is itself statistically significant at four of five horizons. This
+result survives a direct stress test against a pre-existing pre-crisis
+growth pattern, though it is only confirmed at the shorter horizons once
+selection into the two-stage IPW design is addressed, a real qualification
+rather than a settled matter.
+
+Two further results support, without independently proving, a specific
+mechanism story. A Gelbach decomposition shows private credit and
+government expenditure jointly absorb an increasing share of the
+default-linked coefficient, reaching roughly 40–44 percent by Years 4–5 —
+the strongest quantitative candidates for the transmission channel,
+without establishing causal mediation. And a genuine interaction design —
+splitting default-linked crises by pre-crisis bank exposure to the
+sovereign — shows banks in the highest-exposure cell significantly and
+repeatedly increase their government claims following a default, a
+concrete, statistically anchored piece of doom-loop evidence, even though
+the associated deeper output cost in that same cell does not itself clear
+significance given the underlying sample of seven treated observations.
