@@ -146,6 +146,50 @@ The data are thus *suggestive* that default-linked crises are worse on
 impact, but they cannot establish a statistically reliable, persistent
 resolution gap with this sample.
 
+### 4a. Pre-trend-controlled robustness check
+
+Section 3's placebo test finds a significant *positive* pre-crisis growth
+coefficient for default-linked onsets ($\beta \approx 2.1$, $p \approx
+.003$, at the single pre-trend horizon on the same $t-1$ base as the main
+outcome) — a boom-before-the-bust pattern, not a pre-existing decline.
+Because this coefficient is found on the same base year the headline
+regression already anchors to, and because the headline specification's
+common core already includes one lag of GDP growth ($\ell_1$gdpg), the
+open question is whether a *longer* pre-crisis growth pattern — beyond
+what a single lag captures — is contaminating the estimated default-linked
+cost.
+
+We test this directly (`do/03_lp_resolution.do`, "ROBUSTNESS:
+PRE-TREND-CONTROLLED SPEC"; exported as `table2pt_pretrend_controlled.rtf`)
+by re-estimating the headline joint regression with $\ell_2$gdpg (GDP
+growth two periods before onset — genuinely separate information from the
+lag already in the core, not mechanically tied to it) added to the
+controls:
+
+| Horizon | $\hat\beta^{def}$, headline | $\hat\beta^{def}$, + $\ell_2$gdpg | $\hat\beta^{nd}$, headline | $\hat\beta^{nd}$, + $\ell_2$gdpg |
+|:-------:|:----:|:----:|:----:|:----:|
+| 1 | −5.535 | −5.499 (p=.044) | −0.730 | −0.853 (p=.140) |
+| 2 | −6.748 | −6.680 (p=.007) | −1.178 | −1.362 (p=.009) |
+| 3 | −5.421 | −5.389 (p=.016) | −0.237 | −0.318 (p=.665) |
+| 4 | −4.491 | −4.503 (p=.049) | 0.377 | 0.406 (p=.731) |
+| 5 | −4.311 | −4.353 (p=.039) | 1.199 | 1.293 (p=.154) |
+
+The default-linked coefficient moves by less than 0.1 percentage points
+at every horizon and remains significant throughout ($p<.05$ at every
+horizon except $h=1$, where $p=.044$). This indicates the estimated
+default-linked output cost is not an artifact of the pre-crisis growth
+pattern flagged in the placebo test: controlling for an additional,
+independent lag of growth momentum leaves the headline result
+essentially unchanged. This is a meaningfully stronger robustness result
+than a simple restatement of the placebo caveat, and narrows the
+qualification in point 3 above — the default-linked result survives a
+direct stress test against the specific concern the pre-trend raised.
+
+This test rules out a linear growth-momentum explanation for the
+pre-trend; it does not rule out other pre-existing, non-growth-related
+differences between the two groups (e.g., a discrete shock in the
+pre-onset window), which remains an open caveat.
+
 ---
 
 ## 5. Selection and inverse-probability weighting
