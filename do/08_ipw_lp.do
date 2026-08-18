@@ -418,8 +418,8 @@ foreach m in b_def_ipw lo90_def_ipw hi90_def_ipw b_nd_ipw lo90_nd_ipw hi90_nd_ip
              b_def_ols lo90_def_ols hi90_def_ols b_nd_ols lo90_nd_ols hi90_nd_ols {
     matrix `m' = J(6, 1, 0)
 }
-matrix pval_act2_ols = J(5, 1, .)
-matrix pval_act2_ipw = J(5, 1, .)
+matrix pval_act2_ols = J(6, 1, .)
+matrix pval_act2_ipw = J(6, 1, .)
 
 di as result _n "=== ACT 2 RESULTS: each resolution type vs tranquil ==="
 di "h    b_nd_OLS  b_def_OLS  p_OLS(Wald)    b_nd_IPW  b_def_IPW  p_IPW(Clogg)"
