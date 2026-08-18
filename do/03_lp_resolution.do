@@ -388,6 +388,91 @@ forvalues h = 0/4 {
 }
 
 * ══════════════════════════════════════════════════════════════════════════
+* ROBUSTNESS: PRE-TREND-CONTROLLED SPEC — does onset_def survive controlling
+* for growth momentum TWO periods before onset?
+*
+* The pre-trend placebo above (dy_m2, displayed h=-1) found onset_def predicts
+* a significantly POSITIVE pre-crisis growth rate (a boom before the bust), even
+* after excluding l1_gdpg from that placebo's own controls (dy_m2 is algebraically
+* -l1_gdpg, so l1_gdpg cannot be added to THAT regression without guaranteeing a
+* null by construction). The headline Act-2 regression above already includes
+* l1_gdpg in $ctrl_core, so growth momentum ONE period before onset (t-2 to t-1)
+* is already controlled for in every result reported so far.
+*
+* This block asks a sharper question: does the default-linked cost survive
+* controlling for growth TWO periods before onset (t-3 to t-2) as well? l2_gdpg
+* is NOT mechanically tied to dy_m2/l1_gdpg (it is genuinely different
+* information — an earlier point on the growth path), so adding it is a real,
+* non-tautological test of whether the estimated cost is contaminated by a
+* longer pre-existing growth pattern rather than an artifact of one specific lag.
+* If onset_def stays significant and similar in magnitude here, the pre-trend
+* concern is substantially addressed; if it collapses, the headline result is
+* more fragile to pre-existing dynamics than it first appears.
+* ══════════════════════════════════════════════════════════════════════════
+
+di as result _n "=== ROBUSTNESS: PRE-TREND-CONTROLLED SPEC (+ l2_gdpg) ==="
+di as result "    controls: `controls' l2_gdpg"
+di as result "h   beta_def(headline)  beta_def(+l2_gdpg)  beta_nd(headline)  beta_nd(+l2_gdpg)  N"
+
+* NOTE: no `eststo clear` here — t2_h0..t2_h4 (headline Table 2 estimates) must
+* survive for the Table 2 export further below. t2pt_h* names are distinct.
+
+forvalues h = 0/4 {
+    local hd  = `h' + 1
+    local lag = max(1, `h'+1)
+
+    capture xtscc dy_`h' onset_nd onset_def `controls' l2_gdpg i.year ///
+        if sample == 1, fe lag(`lag')
+
+    if _rc {
+        di as error "h=" `hd' ": pre-trend-controlled spec failed (rc=" _rc ")"
+        continue
+    }
+
+    local bnd_pt  = _b[onset_nd]
+    local bdef_pt = _b[onset_def]
+    local snd_pt  = _se[onset_nd]
+    local sdef_pt = _se[onset_def]
+    local nn_pt   = e(N)
+
+    * headline coefficients, already stored in b_nd/b_def (row = h+3)
+    local bnd_hd  = b_nd[`h'+3, 1]
+    local bdef_hd = b_def[`h'+3, 1]
+
+    _pval `bdef_pt' `sdef_pt'
+    local pdef_pt = r(p)
+    _pval `bnd_pt' `snd_pt'
+    local pnd_pt = r(p)
+
+    eststo t2pt_h`h'
+    estadd scalar bdef_headline = `bdef_hd'
+    estadd scalar bnd_headline  = `bnd_hd'
+
+    di "h=" `hd' "   " %8.3f `bdef_hd' "   " %14.3f `bdef_pt' " (p=" %5.3f `pdef_pt' ")" ///
+       "   " %8.3f `bnd_hd' "   " %14.3f `bnd_pt' " (p=" %5.3f `pnd_pt' ")" "   " `nn_pt'
+}
+
+capture esttab t2pt_h0 t2pt_h1 t2pt_h2 t2pt_h3 t2pt_h4 ///
+    using "$tabs/table2pt_pretrend_controlled.rtf", replace ///
+    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+    keep(onset_nd onset_def l2_gdpg) order(onset_nd onset_def l2_gdpg) ///
+    coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset" ///
+              l2_gdpg "GDP growth (t-2)") ///
+    mtitles("h=1" "h=2" "h=3" "h=4" "h=5") nonumber ///
+    stats(bdef_headline bnd_headline N N_g, ///
+          labels("  Default coef., headline spec (no l2_gdpg)" ///
+                 "  Non-default coef., headline spec (no l2_gdpg)" ///
+                 "Observations" "Countries") fmt(3 3 0 0)) ///
+    title("Table 2PT. Pre-trend-controlled robustness: output cost by resolution") ///
+    addnotes("As Table 2 (joint spec), with l2_gdpg (GDP growth two periods before t) added to the controls." ///
+             "Tests whether the default-linked cost is robust to growth momentum beyond the one-period lag (l1_gdpg) already in the common core." ///
+             "Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
+
+if _rc == 608 di as error "  ** table2pt_pretrend_controlled.rtf is OPEN IN WORD — close it and re-run."
+else if _rc   di as error "  ** Table 2PT: esttab failed (rc=" _rc ")"
+else di as result "Table 2PT saved: $tabs/table2pt_pretrend_controlled.rtf"
+
+* ══════════════════════════════════════════════════════════════════════════
 * ROBUSTNESS: OUTTURNS ONLY — is the default premium a forecast artifact?
 *
 * The premium is largest at h=3/h=4, and those are exactly the horizons where an
