@@ -331,6 +331,45 @@ default-linked crises transmit through bank absorption of government debt
 and fiscal retrenchment.** The two types deliver a comparable average
 output cost (Section 4) through different plumbing.
 
+### 7a. How much of the default-linked cost do these channels explain?
+
+Section 7 shows *which* channels move differently by resolution type; it
+does not by itself say how much of the estimated default-linked GDP cost
+each one accounts for. We address this with a Gelbach (2016)
+decomposition (`do/12b_gelbach_decomposition.do`): for each channel and
+horizon, we re-estimate Table 2's exact headline specification with the
+channel's own contemporaneous change added as an extra control, on the
+identical sample, and compute the resulting shrinkage in the
+default-linked onset coefficient as a share of its original magnitude.
+
+| Channel | $h=1$ | $h=2$ | $h=3$ | $h=4$ | $h=5$ |
+|:--|:--:|:--:|:--:|:--:|:--:|
+| Private credit | 4.6% | 17.3% | 24.5% | 43.2% | 23.7% |
+| Government expenditure | −2.9% | 12.4% | 31.1% | 43.3% | 44.2% |
+| Investment | 13.9% | 18.9% | 20.8% | 22.4% | 14.9% |
+| Bank claims on govt | 4.3% | 7.1% | 15.1% | 11.9% | 61.3%$^\dagger$ |
+| Primary balance | 8.7% | 4.3% | 0.1% | −0.6% | 1.5% |
+| FDI | 0.3% | −0.1% | −0.7% | 0.3% | −1.1% |
+
+$^\dagger$ Estimated on the thinnest horizon ($n_{def}=17$); read with
+caution rather than as a stable result.
+
+Adding the change in private credit or government expenditure as a
+control reduces the estimated default-linked GDP coefficient by an
+increasing share as the horizon lengthens, reaching roughly 40–44% by
+$h=4$–$h=5$, while primary balance and FDI explain essentially none of
+it. This indicates credit and fiscal channels are the strongest
+candidates for further mechanism investigation, though the decomposition
+does not establish that they mediate the cost causally — the channel
+variables are not exogenous conditional on the controls, so the shrinkage
+is consistent with mediation but equally consistent with a common shock
+driving both the channel and the output cost, or with reverse causality
+running from output to the channel. The corresponding decomposition for
+non-default crises is not reported: the non-default GDP coefficient (the
+denominator of the "explained share") is not statistically distinguishable
+from zero at any horizon, so a percentage computed relative to it is not
+informative.
+
 ---
 
 ## 8. The sovereign-bank nexus: a two-dimensional amplifier
