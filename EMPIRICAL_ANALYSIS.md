@@ -385,6 +385,25 @@ conventional $t$-statistics may be unreliable.
 - **Thin common support for IPW.** A large share of observations is
   trimmed and few treated units cross the classification threshold, so the
   weighted estimates are corroborative rather than definitive.
+- **Episode duration is not weighted.** Each of the 61 spread-crisis
+  episodes contributes exactly one treated observation to the estimation
+  sample — its onset year. Years after the onset that remain part of the
+  same episode (`continuation==1`) are excluded from the sample entirely,
+  both to avoid contaminating the tranquil control group with still-crisis
+  years and to avoid double-counting a single episode across multiple
+  rows. This is the standard local-projection convention (Jordà 2005;
+  Jordà & Taylor 2016; Asonuma et al. 2024 use the same design), and the
+  multi-year dynamics of a crisis are captured through the horizon
+  dimension of the outcome ($h=0,\dots,4$) rather than through additional
+  treated rows. One consequence worth flagging: a crisis that turns out to
+  last five years contributes exactly as much identifying variation to
+  $\beta(h)$ as a crisis lasting one year — episode duration itself is not
+  used as a source of variation or as a control. Whether protracted crises
+  are systematically more (or less) costly than short ones is therefore an
+  open question this design does not address; a duration-interaction or
+  duration-split robustness check (mirroring the nexus heterogeneity
+  design in Section 8) would be a natural extension but has not been
+  built.
 
 ---
 
