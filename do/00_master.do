@@ -71,6 +71,7 @@ do "$do/08c_first_stage_table.do"     // Table 1-style probit first stage (predi
 do "$do/11_channels.do"
 do "$do/11b_nexus_channels.do"
 do "$do/12_channels_resolution.do"
+do "$do/12b_gelbach_decomposition.do"    // Gelbach share of the GDP cost "explained" by each channel (nd/def split)
 do "$do/13_mechanisms.do"
 do "$do/13b_exposure_heterogeneity.do"   // Tier-3: onset x pre-crisis channel exposure
 do "$do/13c_aipw_channels.do"            // doubly-robust AIPW for the transmission channels (matches 08b)
