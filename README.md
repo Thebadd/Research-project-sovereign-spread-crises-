@@ -2,139 +2,181 @@
 
 ## Abstract
 
-Using a dataset of 61 spread crisis episodes across 52 emerging market economies over 1994–2025, we estimate the output cost of sovereign spread crises and their transmission channels through local projections (Jordà, 2005). Spread crises reduce cumulative real GDP per capita by 3.8 percentage points at the trough (h=1), with no mean reversion over four years. Non-default episodes alone impose a cost of 2.3 percentage points, demonstrating that sovereign stress carries large real consequences independent of debt restructuring. Default-linked crises are roughly twice as costly (−5.5pp at h=1), driven by immediate forced external deleveraging and a front-loaded compression of output. Decomposing transmission, we find that credit and investment contractions are concentrated in non-default episodes, while default-linked episodes exhibit a pronounced sovereign-bank doom loop — banks accumulating 4 to 6 percentage points of GDP in sovereign bonds — and a sharper, earlier current account adjustment consistent with a forced sudden stop. These findings challenge the view that output losses from sovereign stress require default to materialize, and reveal that default and non-default crises operate through fundamentally different channels.
+Using a panel of 52 emerging and frontier-market economies over 1994–2026 and 61 identified sovereign spread-crisis episodes, we estimate the output cost of a spread crisis and its transmission channels using local projections (Jordà, 2005). On average, a spread-crisis onset is followed by a real but front-loaded output shortfall — cumulative real GDP falls by roughly 2 to 3 percentage points at the one- and two-year horizon, fading within about three years. This pooled average, however, obscures the paper's central finding: splitting episodes by resolution type shows the output cost is not a generic consequence of crossing the spread threshold, but is concentrated in, and largely specific to, episodes that culminate in default. Non-default episodes carry no reliable GDP cost at any horizon; default-linked episodes carry a persistent cost of 4 to 7 percentage points at every horizon out to five years, and the gap between the two groups is itself statistically significant. This divergence survives a direct stress test against a pre-existing pre-crisis growth pattern detected in a placebo test, though the longer-horizon persistence is only confirmed at short horizons once selection into resolution type is addressed via propensity weighting. A Gelbach (2016) decomposition shows private credit and government expenditure jointly absorb an increasing share of the default-linked cost, reaching roughly 40 percent by the fourth and fifth years — the strongest quantitative candidates for the transmission mechanism, without establishing causal mediation. The sharpest mechanism evidence comes from splitting default-linked episodes by pre-crisis bank exposure to the sovereign: banks with high exposure significantly increase their government claims for three consecutive years following a default, a genuine interaction-design result, though the associated deeper output cost in that same cell does not independently clear significance given only seven treated observations. These findings indicate that sovereign spread crises are costly mainly insofar as they end in default, and that the transmission runs primarily through credit and fiscal channels rather than through investment, the primary balance, or FDI.
 
 ---
 
-## Key Empirical Narratives (Working Notes)
+## Repository structure
 
-*This section records the main empirical findings and their paper-ready interpretations, consistent with the current pipeline (do/02 through do/13). Updated as results evolve.*
+| File / directory | Contents |
+|---|---|
+| `do/` | Stata pipeline. `10`–`18`: from-source panel build (see `DATA_SOURCES.md`). `02`–`13b`: main empirical analysis. `14`–`16`: structural model (calibration, VFI default solver, model-vs-data IRFs). |
+| `data/raw/`, `data/clean/` | Source workbooks and built panels (`panel_build.dta`, `panel_lp.dta`, per-result `irf_*.dta`). |
+| `output/tables/`, `output/figures/` | Generated Word/RTF tables and PDF/PNG figures. |
+| `RESULTS_SECTION_DRAFT.md` | Paper-ready Results section, continuous prose. |
+| `EMPIRICAL_ANALYSIS.md` | Fuller internal reference: full methodology, every coefficient table, explicit limitations. |
+| `PAPER_FRAMING.md` | How the paper is positioned relative to Asonuma, Chamon, Erce & Sasahara (2024). |
+| `THEORETICAL_APPROACH.md`, `THEORETICAL_MODEL.md`, `THEORETICAL_MODEL_SIMPLIFIED.md` | The structural sovereign-default model backing `14`–`16`. |
+| `DATA_SOURCES.md` | Provenance of every macro series: portal, exact indicator code, transform, coverage. |
 
----
-
-### Act 1 — Output Cost of All Spread Crises (02_lp_all.do)
-
-**Baseline finding:**
-Spread crises cause immediate and persistent output losses. Cumulative real GDP per capita falls by −1.86pp in the year of onset (h=0), deepens to a trough of −3.76pp at h=1, and remains significantly below the pre-crisis trajectory through h=4 (−3.00pp). All estimates are significant at the 1% level under Driscoll-Kraay standard errors. There is no evidence of mean reversion over the four-year window.
-
-**Pre-trend validation:**
-At h=−2 the coefficient is close to zero and statistically insignificant (p=0.114), confirming no pre-existing output trend that could confound the crisis indicator. The h=−1 coefficient is significant, reflecting the well-documented pre-crisis deterioration in EM economies — spreads spike precisely when conditions are already weakening — an anticipation effect consistent with the literature, not a violation of identification.
-
-**Placebo randomization (07_placebo.do):**
-1,000 random draws of 61 crisis dates yield empirical p-values of 0.000–0.008 at horizons h=1–4, strongly rejecting the null that the estimated responses could arise by chance.
-
-**IPW robustness (08_ipw_lp.do):**
-The IPW-weighted estimate closely tracks the OLS baseline, alleviating concerns that output losses reflect pre-existing structural differences between crisis and non-crisis country-years rather than the causal effect of the spread crisis.
-
-*Paper sentence:* "Sovereign spread crises impose an immediate and persistent output cost: GDP per capita falls by 1.9pp in the onset year and deepens to a trough of 3.8pp at h=1, remaining significantly depressed four years after onset. Placebo randomization strongly rejects chance (empirical p ≤ 0.008), and IPW-weighted estimates confirm the direction and magnitude of the baseline."
+Run the full pipeline with `do "do/00_master.do"`.
 
 ---
 
-### Act 2 — Default vs. Non-Default Resolution Split (03_lp_resolution.do)
+## Key empirical findings (working notes)
 
-**Sample:** 40 non-default spread crises, 21 default-linked episodes (Venezuela 2008 reclassified as non-default under the 5-year onset-to-restructuring rule; restructuring began 2017, a 9-year lag).
+*Consistent with the current pipeline (`do/02`–`do/13b`) and the verified
+run this session's fixes produced. Updated as results evolve; see
+`EMPIRICAL_ANALYSIS.md` for full tables and `RESULTS_SECTION_DRAFT.md` for
+the paper-ready narrative.*
 
-**Core finding:**
-Default-linked crises are associated with immediate and severe output losses: −3.42pp at h=0, deepening to −5.50pp at h=1, and remaining persistently depressed. The response is both larger in magnitude and front-loaded, consistent with the acute disruption to credit, trade finance, and investment that accompanies sovereign default or pre-default distress.
+### The average output cost, and why it is not the headline result
 
-Non-default crises produce a smaller and more delayed response: the h=0 estimate is not statistically significant, and the peak loss of −2.33pp occurs at h=1. This suggests that, absent the contractionary shock of debt restructuring, economies retain some capacity to absorb a spread spike before output deteriorates materially.
+`02_lp_all.do` estimates the pooled response across all 61 episodes:
+cumulative real GDP is significantly lower at the one- and two-year
+horizon (−2.29pp, $p=0.014$; −2.98pp, $p=0.004$), fading to
+insignificance by the fourth and fifth years. We treat this as a
+motivating fact rather than the paper's central estimate, because
+splitting the sample by resolution type shows the pooled number conceals
+far more than it summarizes.
 
-**Key message for the literature:**
-The standard view treats sovereign default as the primary source of output loss. Our results challenge this: non-default spread crises — where debt service is maintained — still generate large output contractions of −2.3pp at the trough. The crisis is the shock; default amplifies but does not create the output cost. The gap of roughly 3pp at the trough is economically meaningful, though formal equality tests reflect limited power with 21 default episodes.
+### The resolution split is the central result
 
-*Paper sentence:* "The finding that non-default spread crises impose output losses of 2.3 percentage points at the trough directly challenges the implicit assumption that sovereign stress only matters for real activity through the debt restructuring channel. Default amplifies the shock — adding a further 3pp — but the crisis itself is the primary driver."
+`03_lp_resolution.do` estimates non-default and default-linked onsets
+jointly against tranquil years (40 non-default, 21 default-linked
+episodes; Venezuela 2008 is classified as non-default since its
+restructuring began nine years after onset, well past the five-year
+rule). Non-default episodes show no reliable GDP cost — significant at
+only one horizon out of five. Default-linked episodes show a large,
+persistent cost (−4.3 to −6.7pp) significant at every horizon, and the
+formal equality test between the two rejects at four of five horizons.
+**The output cost of a spread crisis is concentrated in, and largely
+specific to, episodes that end in default.**
+
+**Pre-trend stress test.** A placebo test on pre-crisis growth finds a
+significant positive coefficient for default-linked episodes ($p=0.003$,
+a boom-before-the-bust pattern, not a pre-existing decline) and none for
+non-default. Because one lag of growth already sits in the baseline
+controls, this window is mechanically absorbed already; adding a second,
+independent growth lag moves the default-linked coefficient by no more
+than 0.1pp at any horizon, with significance preserved throughout
+(`table2pt_pretrend_controlled.rtf`). This is a genuine robustness result,
+not a restated caveat.
+
+**Selection.** Reweighting by an estimated propensity score attenuates
+the pooled Act-1 cost (`08_ipw_lp.do`), rather than amplifying it — the
+unweighted average somewhat overstates the typical cost. For the
+resolution split, a two-stage design (each type scored against tranquil
+years separately) confirms the extra cost of default at the one- and
+two-year horizons under both OLS and IPW, but the IPW-weighted
+default-linked coefficient loses significance at longer horizons as the
+thin default-linked common support shrinks further under trimming — the
+resolution gap is well established short-run, only suggestive long-run.
+
+### Transmission channels: co-movement, not established mediation
+
+`11_channels.do` re-estimates six intermediate outcomes (private credit,
+bank claims on government, investment, government expenditure, the
+primary balance, FDI) in place of GDP. Private credit shows the clearest
+pooled pattern — a delayed, compounding contraction reaching −5 to −7pp
+by the third and fourth years — echoing the GDP result's own shape. The
+other five channels clear significance at no more than one horizon each.
+
+Splitting by resolution type (`12_channels_resolution.do`) is
+considerably noisier (default-linked cells of 13–21 episodes): **of
+thirty nd/def equality tests across channels and horizons, only two are
+significant** (private credit at Year 2, FDI at Year 4). Several
+point-estimate gaps look large but do not clear significance, and are
+read as power limitations, not established differences — a materially
+more cautious reading than earlier drafts of this project asserted.
+
+**Gelbach decomposition** (`12b_gelbach_decomposition.do`) ties the
+channels directly to the default-linked GDP result: adding each channel's
+own change as a control to the headline resolution-split specification,
+private credit and government expenditure absorb a rising share of the
+default-linked coefficient, reaching ~40–44% by Years 4–5; the primary
+balance and FDI absorb essentially none of it; investment sits at a
+stable ~15–22%. This ranks the channels by their statistical relationship
+to the GDP cost — it does not establish causal mediation.
+
+### The sovereign-bank nexus: the sharpest mechanism evidence, and the least secure
+
+Splitting default-linked episodes by pre-crisis bank exposure to the
+sovereign (`13d_aipw_nexus_split.do`) shows banks in the high-exposure
+cell significantly increase government claims for three consecutive
+years post-onset — absent in the low-exposure cell and in non-default
+episodes regardless of exposure. The associated output cost is roughly
+2.5× deeper in the high-exposure cell, but that gap does not itself clear
+significance (only 7 treated country-years). The mirror-image result for
+non-default crises is cleaner: high exposure there is associated with a
+cost statistically indistinguishable from zero, against a significant
+cost under low exposure, and — the one place in this exercise where a
+*difference* between subsamples clears significance on its own — the gap
+between them is itself significant. Read together: the sovereign-bank
+linkage is protective when debt is honored and a channel for reallocation
+away from private lending when it is not, though this is the paper's most
+interesting and least statistically secure result at once.
+
+### The doubly-robust (AIPW) extension — pending re-verification
+
+`08b_aipw.do` implements a doubly-robust AIPW estimator matching the
+reference paper's headline design, with channel (`13c`) and nexus (`13d`)
+extensions. The GDP-level AIPW headline has not been re-run inside this
+session after the horizon relabeling and control-set fixes below; treat
+any AIPW GDP figure predating those fixes as stale until re-confirmed.
 
 ---
 
-### Act 3 — Transmission Channels (11_channels.do)
+## Design notes and recent fixes worth knowing about
 
-#### Channel 1 — Private Credit/GDP
-**Finding:** Credit contracts significantly starting at h=2 (−2.25pp), deepening through h=4 (−3.48pp, p<0.001). No significant effect at h=0–1, suggesting delayed financial transmission.
-
-*Paper sentence:* "The credit contraction deepens progressively over four years, consistent with a gradual deterioration of bank balance sheets as sovereign risk is transmitted through the financial system rather than an acute credit crunch at onset."
-
-#### Channel 2 — Bank Claims on Govt/GDP (Diabolic Loop)
-**Finding (with L.claims_govt control):** All coefficients insignificant once pre-existing sovereign exposure is controlled for. Positive signs at all horizons.
-
-**Finding (without L.claims_govt control):** Previously significant at all five horizons.
-
-**Interpretation:** The diabolic loop operates through *pre-existing* balance sheet exposure rather than *new* crisis-driven accumulation. Banks that entered the crisis heavily exposed to sovereign risk suffer most, but no additional systematic accumulation occurs during the crisis.
-
-*Paper sentence:* "The sovereign-bank nexus channel is fully absorbed by the lagged stock of bank claims on the government, suggesting that the diabolic loop reflects pre-existing exposure rather than new crisis-driven sovereign bond accumulation."
-
-#### Channel 3 — Investment/GDP
-**Finding:** Significant trough at h=3 (−1.89pp, p<0.001). Pattern is persistently negative from h=1 onward, consistent with medium-term crowding-out and elevated uncertainty depressing capital expenditure.
-
-*Paper sentence:* "Investment contracts persistently following spread crisis onset, with the trough at three years post-onset consistent with medium-term crowding-out of private investment by elevated sovereign borrowing costs and heightened policy uncertainty."
-
-#### Channel 4 — Government Expenditure/GDP
-**Finding:** Significant fiscal expansion at onset h=0 (+1.19pp, p=0.006), fading to zero and slightly negative thereafter — a failed stabilization pattern.
-
-*Paper sentence:* "Governments initially expand expenditure at crisis onset, but this fades within one year as rising borrowing costs and declining fiscal space force retrenchment."
-
-#### Channel 5 — Primary Balance/GDP
-**Finding:** Borderline deterioration at h=0 (−0.57pp), reverting to zero thereafter. No sustained fiscal adjustment or austerity response.
-
-#### Channel 6 — FDI/GDP
-**Finding:** Mild initial deterrence at h=0 (−0.78pp, p=0.069), normalizing quickly. FDI is not a primary transmission channel.
-
----
-
-### Act 4 — Channel Heterogeneity by Resolution Type (12_channels_resolution.do)
-
-#### Credit — A Non-Default Phenomenon
-**Finding:** Non-default episodes drive the credit contraction: β_nd deepens from −0.85 (h=0) to −4.78 (h=4, p=0.020). Default-linked episodes show no significant contraction (β_def near zero throughout). Equality test significant at h=4.
-
-*Paper sentence:* "The credit contraction is entirely driven by non-default episodes — countries that maintain debt service suffer a prolonged credit squeeze, while default-linked episodes paradoxically avoid this channel, possibly because debt restructuring restores fiscal sustainability and removes the overhang on bank balance sheets."
-
-#### Bank Sovereign Nexus — A Default-Linked Phenomenon
-**Finding:** Default-linked episodes show a massive increase in bank claims on government: +4.06pp at h=0, +6.18pp at h=1, +6.25pp at h=2. Non-default episodes show slightly negative or zero response. Equality test significant at h=0 (IPW p=0.005) and h=2.
-
-*Paper sentence:* "The diabolic loop — banks loading up on sovereign debt during a crisis — is exclusively a default-linked phenomenon, with banks accumulating 4 to 6 percentage points of GDP in additional sovereign bonds. This result is robust to IPW correction (p=0.005 at h=0), consistent with undercapitalized banks gambling for resurrection by concentrating sovereign exposure on the path to default."
-
-#### Investment — A Non-Default Phenomenon
-**Finding:** Non-default episodes drive investment contraction: β_nd significant at h=0 (−1.19pp, p=0.003), h=1 (−1.77pp, p=0.021), h=3 (−2.73pp, p=0.010). Default-linked episodes show positive or near-zero investment throughout. Equality test robust to IPW (h=0: p=0.045; h=4: p=0.049).
-
-*Paper sentence:* "Investment contraction is concentrated in non-default episodes, where sovereign risk persistently raises the cost of capital without the debt relief that restructuring provides. Default episodes, counterintuitively, do not exhibit significant investment declines — consistent with debt restructuring reducing long-run uncertainty and allowing investment to stabilize."
-
-#### Government Expenditure — Divergent Fiscal Paths
-**Finding:** Non-default: sustained mild fiscal expansion throughout (+0.6 to +1.1pp, all positive). Default-linked: large initial expansion (+2.19pp at h=0) followed by forced fiscal contraction (−1.39pp at h=2, −1.69pp at h=4). Equality test borderline at h=4 (OLS p=0.061).
-
-*Paper sentence:* "The fiscal response diverges sharply by resolution type. Non-default episodes feature sustained accommodative fiscal policy, reflecting retained market access. Default-linked episodes exhibit a boom-bust pattern: larger initial expansion as fiscal constraints have not yet fully bound, followed by forced retrenchment as market access is lost and restructuring conditionality imposes consolidation."
+- **Total real GDP, not per capita.** The headline outcome is total real
+  GDP (aligned with Asonuma et al.), built from scratch in `18_transforms.do`;
+  a per-capita variant (`dy_pc_*`) is retained as a robustness check only.
+- **Horizon labeling matches the reference paper's convention**: the
+  crisis year itself is **Year 1**; **Year 0** is an explicit, hard-coded
+  pre-crisis baseline (always zero, never estimated); a single genuinely
+  estimable pre-trend placebo point is shown at **Year −1**. Internal
+  variable names (`dy_0`…`dy_4`) are unchanged — only the printed/plotted
+  axis shifted.
+- **The panel is rebuilt entirely from official sources** (`10`–`18`
+  chain: IMF WEO, World Bank WDI/IDS, IMF MFS/BOP, FRED,
+  Laeven–Valencia), replacing the earlier opaque master CSV; only the
+  spread-crisis dating/classification itself comes from the project's own
+  database. See `DATA_SOURCES.md` for full provenance.
+- **Episode duration is not weighted.** Each episode contributes exactly
+  one treated observation (its onset year); continuation years are
+  excluded from the sample entirely. A crisis lasting five years
+  identifies exactly as much as one lasting one year — this is the
+  standard local-projection convention, not an oversight, but it does
+  mean episode duration itself is not a source of variation in this
+  design.
+- **Common core controls**: one lag of GDP growth, debt/GDP, current
+  account/GDP, years a systemic banking crisis has run (Laeven–Valencia,
+  zero-filled where none is recorded), government expenditure/GDP, trade
+  openness, bank credit depth, and a hyperinflation flag — all measured
+  at $t-1$. Global financial conditions (fed funds, VIX, US 10-year yield)
+  are excluded from the outcome equation (absorbed by year FE) and enter
+  only the first-stage propensity models.
+- **Driscoll-Kraay SEs** throughout the single-stage local projections
+  (`xtscc`, lag = $\max(1,h+1)$); country-fixed-effects-only outcome
+  models with cluster-robust SEs for the two-stage IPW/AIPW estimators,
+  matching the reference paper's design for that stage specifically.
 
 ---
 
-### Act 5 — Current Account and Forced Deleveraging (13_mechanisms.do)
+## What changed this session (for anyone picking this up)
 
-**Aguiar-Gopinath (2006) test:**
-Default-linked episodes show a larger and earlier current account adjustment: +1.44pp at h=0, rising to +2.61pp at h=1. Non-default episodes exhibit a weaker and more delayed adjustment, consistent with retained — if costly — access to international capital markets.
-
-This pattern is consistent with a sharp reversal of capital inflows in default-linked crises, forcing an abrupt compression of the current account deficit (sudden stop). Non-default episodes involve gradual adjustment, suggesting the spread spike triggers tightening but not a complete closure of market access.
-
-**IPW robustness:** IPW-corrected estimates barely alter these conclusions, confirming that compositional differences between groups do not drive the CA finding.
-
-*Paper sentence:* "Default-linked crises force an immediate external adjustment (+2.6pp current account improvement at h=1), consistent with a sudden stop in capital inflows and forced external deleveraging à la Aguiar-Gopinath (2006). Non-default crises show a weaker, delayed adjustment, reflecting partial rather than complete market exclusion."
-
----
-
-### Cross-Cutting Narrative
-
-**The central paradox:**
-Default-linked episodes do not produce more severe credit contractions or investment declines than non-default episodes — if anything, the opposite. Non-default countries maintain full debt service under stressed conditions, keeping sovereign risk elevated persistently and bleeding the real economy through credit and investment channels. Default countries suffer a sharper initial shock, an immediate forced external adjustment, and a doom-loop in bank sovereign holdings — but the restructuring eventually provides a cleaner break.
-
-**Two distinct crisis mechanisms:**
-- **Non-default channel:** slow-bleeding — investment crowding-out, prolonged credit squeeze, sustained spread elevation, gradual CA adjustment
-- **Default-linked channel:** acute shock — immediate output collapse, forced sudden stop, doom-loop bank behavior, boom-bust fiscal path
-
-**IPW validation:**
-The IPW correction for selection into default (conditional on crisis) is well-identified: only 6 observations trimmed, weights well-behaved (max 2.92), and OLS/IPW estimates track closely across all channels.
-
----
-
-### Technical Notes
-
-- **Year FE absorb VIX and UST10Y completely** — do not include global financial conditions in specifications with year fixed effects.
-- **Driscoll-Kraay SE** throughout unweighted specs (xtscc, lag=h+1); cluster SE for IPW (areg, cluster cid).
-- **Venezuela 2008** reclassified as non-default: restructuring began 2017, a 9-year lag well beyond the 5-year cutoff rule. Net effect: nd=40, def=21.
-- **Pre-trend:** h=−2 clean (p=0.114); h=−1 significant (anticipation effect, not an identification failure).
-- **Placebo p-values:** 0.000–0.008 across h=1–4.
+This session fixed a horizon-indexing bug affecting several files after
+the Year-1-relabeling pass (matrices sized for the old indexing, causing
+a Stata conformability error in `08_ipw_lp.do`'s Act-2 p-value matrices),
+added a pre-trend-controlled robustness specification to
+`03_lp_resolution.do`, built the Gelbach decomposition
+(`12b_gelbach_decomposition.do`), and rewrote `EMPIRICAL_ANALYSIS.md` and
+this README against verified current-code runs — correcting, among other
+things, an old claim that IPW reweighting *increases* the estimated
+output cost (the current, verified run shows the opposite: it
+attenuates it) and an old "credit and investment are a purely
+non-default phenomenon" channel narrative that the current, corrected
+data no longer supports. See `EMPIRICAL_ANALYSIS.md`'s limitations
+section and `RESULTS_SECTION_DRAFT.md` for the fully qualified current
+picture.
