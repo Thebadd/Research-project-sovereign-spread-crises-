@@ -56,6 +56,16 @@ local cz    l_fedfunds l_reg_crisis_share past_onsets
 * Act 2 predictors Z2: same, but proneness = past DEFAULT-linked onsets.
 local cz_def l_fedfunds l_reg_crisis_share past_def_onsets
 
+* ── REPRODUCIBILITY: seed the bootstrap ────────────────────────────────────
+* Every CI in this file comes from `bsample', which draws at random. Without a
+* seed the intervals move between runs of identical code, and on thin cells
+* that is not a rounding issue -- in 13d the non-default nexus gap at Year 1
+* returned [0.05, 7.37] in one run and [-0.088, 7.686] in the next, opposite
+* verdicts at the 5% line from the same data. Seeding makes the reported
+* interval a property of the estimator rather than of the session. The value
+* is arbitrary and was not chosen by inspecting results.
+set seed 20260819
+
 local nboot = 500      // bootstrap reps; raise to 1000+ for the final run
 
 * Storage: rows h=0..4

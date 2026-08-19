@@ -18,31 +18,16 @@
                + $ctrl_core (less the depth term) + pre_credit + ε
     With clms: same + L.claims_govt
 
-  TEST 2 — Credit as Mediator of Investment Contraction
-  ------------------------------------------------------
-  Question: does the credit contraction mechanically cause the investment
-  decline? If crisis → credit contraction → investment decline, then
-  controlling for credit should absorb the investment LP coefficient.
+  TEST 2 — RETIRED. It conditioned on the pre-crisis LEVEL of credit
+  (L.credit) and called the result a mediation share; mediation requires the
+  mediator's change over the outcome window (ch_credit_h). See the note where
+  the block used to sit. 12b_gelbach_decomposition.do does this correctly.
 
-  Method: run investment LP with and without L.credit.
-    Without credit: β_inv captures the TOTAL effect of the crisis on
-                    investment (direct + through credit)
-    With credit:    β_inv captures only the DIRECT effect net of credit
-
-  Mediation share = (β_without - β_with) / β_without
-
-  If mediation share > 0 and meaningful → credit channel mediates
-  investment contraction.
-
-  Specs compared:
-    Without : ch_inv_h = αi + γt + β·onset_all
-              + $ctrl_core (less the depth term) + pre_inv + ε
-    With    : same + L.credit   [bespoke mediation spec]
+  TEST 3 — Current account: see the section header below.
 
   Outputs:
     Printed comparison tables at each horizon
     fig13a_credit_supply_demand.pdf  — credit β with vs without claims_govt
-    fig13b_inv_mediation.pdf         — investment β with vs without credit
     "$clean/irf_mech_*.dta"          — IRF datasets for both tests
 ===========================================================================*/
 
@@ -223,146 +208,33 @@ graph export "$figs/fig13a_credit_supply_demand.pdf", replace
 di as result "Figure saved: fig13a_credit_supply_demand.pdf"
 
 * ══════════════════════════════════════════════════════════════════════════
-* TEST 2 — CREDIT AS MEDIATOR OF INVESTMENT CONTRACTION
-*   Investment LP without credit vs. with L.credit (current spec)
+* TEST 2 — RETIRED (credit as mediator of the investment contraction)
+*
+* This test regressed the investment outcome with and without L.credit and
+* reported (b_without - b_with)/b_without as a "mediation share". It could not
+* measure mediation, and the aligned run made that visible: the shares came
+* back -11%, -41%, -49%, -86% across horizons, i.e. adding the credit term
+* made the investment contraction LARGER, not smaller.
+*
+* The defect is in the specification, not the sample. L.credit is the
+* PRE-CRISIS LEVEL of credit. Mediation requires conditioning on the
+* mediator's realisation over the SAME window as the outcome -- the change
+* ch_credit_h -- because that is the quantity through which the effect would
+* have to travel. A predetermined level is a control, not a mediator, so the
+* comparison was never capable of returning a mediation share whatever the
+* data said. What it actually picked up is that pre-crisis credit depth is
+* positively associated with post-crisis outcomes (see 13b Part A, where the
+* credit exposure interaction is +2.33 at h3, p=.001), so partialling it out
+* deepens the estimated crisis coefficient.
+*
+* The correct version of this test already exists and is run elsewhere:
+* 12b_gelbach_decomposition.do adds each channel's own contemporaneous change
+* ch_<v>_h to the headline specification and reports the share of the onset
+* coefficient it absorbs -- credit takes 43.2% of the default-linked GDP
+* coefficient by Year 4. Duplicating it here on a mis-specified control would
+* add nothing and did add a misleading number, so the block is removed rather
+* than repaired. fig13b_inv_mediation.pdf is no longer produced.
 * ══════════════════════════════════════════════════════════════════════════
-
-* ── Reload panel after Test 1 figure section changed the dataset ─────────
-use "$clean/panel_lp.dta", clear
-sort cid year
-xtset cid year
-
-foreach var in inv {
-    local src ln_r_`var'          // log real level, as above
-    capture drop `var'_base
-    gen `var'_base = L.`src'
-    forvalues h = 0/4 {
-        capture drop ch_`var'_`h'
-        gen ch_`var'_`h' = F`h'.`src' - `var'_base
-    }
-    capture drop pre_`var'
-    gen pre_`var' = L.`src' - L2.`src'
-}
-
-di as result _n "========================================================"
-di as result "TEST 2: CREDIT AS MEDIATOR OF INVESTMENT CONTRACTION"
-di as result "  Investment LP without vs. with L.credit"
-di as result "========================================================"
-di as result "h    β_no_credit  SE_no    β_with_credit  SE_with  mediated(%)"
-
-* Storage matrices
-foreach m in b_noc lo90_noc hi90_noc b_wic lo90_wic hi90_wic {
-    matrix `m' = J(6,1,0)
-}
-
-forvalues h = 0/4 {
-    local lag = max(1, `h'+1)
-    local row = `h' + 2
-
-    * Without L.credit (total effect)
-    capture xtscc ch_inv_`h' onset_all ///
-        l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_hyperinfl pre_inv ///
-        i.year if sample==1, fe lag(`lag')
-
-    if _rc == 0 {
-        matrix b_noc[`row',1]    = _b[onset_all]
-        matrix lo90_noc[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
-        matrix hi90_noc[`row',1] = _b[onset_all] + 1.645*_se[onset_all]
-        local b0  = _b[onset_all]
-        local se0 = _se[onset_all]
-    }
-
-    * With L.credit (direct effect net of credit)
-    capture xtscc ch_inv_`h' onset_all ///
-        l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_hyperinfl pre_inv L.credit ///
-        i.year if sample==1, fe lag(`lag')
-
-    if _rc == 0 {
-        matrix b_wic[`row',1]    = _b[onset_all]
-        matrix lo90_wic[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
-        matrix hi90_wic[`row',1] = _b[onset_all] + 1.645*_se[onset_all]
-        local b1  = _b[onset_all]
-        local se1 = _se[onset_all]
-
-        * Mediation share = (total - direct) / total
-        if `b0' != 0 {
-            local mediated = (`b0' - `b1') / `b0' * 100
-        }
-        else {
-            local mediated = .
-        }
-
-        di "h=" `h'+1 "   " %9.3f `b0' "   " %6.3f `se0' ///
-               "      " %9.3f `b1' "   " %6.3f `se1' ///
-               "    " %6.1f `mediated' "%"
-    }
-}
-
-di as result _n "Interpretation:"
-di as result "  mediated > 30% → credit is a significant mediator of investment"
-di as result "  mediated < 10% → investment contraction is direct (not through credit)"
-di as result "  Causal chain if mediated: crisis → credit ↓ → investment ↓"
-
-* ── Save IRF datasets for Test 2 ─────────────────────────────────────────
-
-preserve
-    clear
-    set obs 6
-    gen horizon = _n - 1     // 0 (baseline), 1..5
-    foreach m in b lo90 hi90 {
-        svmat `m'_noc, names(`m')
-        rename `m'1 `m'
-    }
-    gen spec = "no_credit"
-    save "$clean/irf_mech_inv_noc.dta", replace
-restore
-
-preserve
-    clear
-    set obs 6
-    gen horizon = _n - 1     // 0 (baseline), 1..5
-    foreach m in b lo90 hi90 {
-        svmat `m'_wic, names(`m')
-        rename `m'1 `m'
-    }
-    gen spec = "with_credit"
-    save "$clean/irf_mech_inv_wic.dta", replace
-restore
-
-* ── Figure: Test 2 ───────────────────────────────────────────────────────
-
-local c_noc "23 55 94"
-local c_wic "157 36 73"
-
-use "$clean/irf_mech_inv_noc.dta", clear
-append using "$clean/irf_mech_inv_wic.dta"
-
-twoway ///
-    (rarea lo90 hi90 horizon if spec=="no_credit", ///
-        color("`c_noc'%20") lwidth(none)) ///
-    (connected b horizon if spec=="no_credit", ///
-        lcolor("`c_noc'") lwidth(medthick) msymbol(circle) mcolor("`c_noc'")) ///
-    (rarea lo90 hi90 horizon if spec=="with_credit", ///
-        color("`c_wic'%20") lwidth(none)) ///
-    (connected b horizon if spec=="with_credit", ///
-        lcolor("`c_wic'") lwidth(medthick) lpattern(dash) ///
-        msymbol(square) mcolor("`c_wic'")), ///
-    yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
-    xlabel(0(1)5, labsize(medsmall)) ///
-    ylabel(, format(%5.2f) labsize(medsmall)) ///
-    xtitle("Year (Year 1 = crisis year)", size(small)) ///
-    ytitle("Cumulative change in investment/GDP (pp)", size(small)) ///
-    title("Investment Channel: Credit Mediation Test", size(medium) color(navy)) ///
-    subtitle("Does the credit contraction explain the investment decline?", size(small)) ///
-    legend(order(2 "Without L.credit (total effect)" 4 "With L.credit (direct effect)") ///
-           ring(0) pos(7) cols(1) size(small) region(lcolor(none) fcolor(none))) ///
-    note("Blue = total effect of crisis on investment." ///
-         "Red = direct effect after absorbing credit channel." ///
-         "Gap = share of investment contraction mediated by credit. DK SE.", size(vsmall)) ///
-    graphregion(color(white)) plotregion(color(white))
-
-graph export "$figs/fig13b_inv_mediation.pdf", replace
-di as result "Figure saved: fig13b_inv_mediation.pdf"
 
 * ══════════════════════════════════════════════════════════════════════════
 * TEST 3 — CURRENT ACCOUNT LP
@@ -403,12 +275,20 @@ di as result "TEST 3: CURRENT ACCOUNT LP (Aguiar-Gopinath mechanism)"
 di as result "  Prediction: CA moves toward surplus after onset (β > 0)"
 di as result "  Controls include L.ca to absorb CA persistence"
 di as result "========================================================"
-di as result "h    β_all    SE      R2_all   β_nd     SE       β_def    SE      R2_split"
+di as result "  The nd/def difference is tested with the Clogg et al. (1995) z, as in"
+di as result "  03_lp_resolution.do: the two coefficients come from ONE joint regression,"
+di as result "  so z = (b_def - b_nd)/sqrt(se_nd^2 + se_def^2), referred to the estimator's"
+di as result "  residual df. Without it the nd-vs-def comparison is an eyeballed gap."
+di as result "h    β_all    SE      β_nd     SE      β_def    SE     diff(def-nd)  z      p"
 
 * Storage matrices
 foreach m in b_all lo90_all hi90_all b_nd lo90_nd hi90_nd b_def lo90_def hi90_def {
     matrix `m' = J(6,1,0)
 }
+* difference block (def - nd) with its Clogg z and p-value
+matrix ca_diff = J(6,1,.)
+matrix ca_z    = J(6,1,.)
+matrix ca_p    = J(6,1,.)
 
 forvalues h = 0/4 {
     local lag = max(1, `h'+1)
@@ -446,15 +326,37 @@ forvalues h = 0/4 {
         local se2  = _se[onset_def]
         local r2_1 = e(r2_w)
 
-        di "h=" `h'+1 "  " %6.3f `b0' "  " %5.3f `se0' "  " %5.3f `r2_0' ///
+        * Clogg et al. (1995) difference: default-linked minus non-default.
+        * Positive => the default-linked current account adjusts MORE toward
+        * surplus. The two coefficients come from the same joint regression,
+        * so the pooled SE is sqrt(se_nd^2 + se_def^2); the p-value uses the
+        * estimator's residual df rather than the normal, matching 03.
+        local cadiff = `b2' - `b1'
+        local casd   = sqrt(`se1'^2 + `se2'^2)
+        local caz    = `cadiff' / `casd'
+        local cap    = .
+        if !missing(e(df_r)) & e(df_r) > 0 local cap = 2*ttail(e(df_r), abs(`caz'))
+        else                               local cap = 2*(1 - normal(abs(`caz')))
+        matrix ca_diff[`row',1] = `cadiff'
+        matrix ca_z[`row',1]    = `caz'
+        matrix ca_p[`row',1]    = `cap'
+
+        di "h=" `h'+1 "  " %6.3f `b0' "  " %5.3f `se0' ///
                "  " %6.3f `b1' "  " %5.3f `se1' ///
-               "  " %6.3f `b2' "  " %5.3f `se2' "  " %5.3f `r2_1'
+               "  " %6.3f `b2' "  " %5.3f `se2' ///
+               "    " %8.3f `cadiff' "  " %5.2f `caz' "  " %5.3f `cap'
     }
 }
 
 di as result _n "Interpretation:"
-di as result "  β > 0 → CA moves toward surplus (forced deleveraging, Aguiar-Gopinath)"
-di as result "  β_def > β_nd → harder adjustment in default episodes"
+di as result "  β > 0 => CA moves toward surplus (forced deleveraging, Aguiar-Gopinath)."
+di as result "  The by-type reading now rests on the Clogg z, not on comparing two"
+di as result "  coefficients by eye. p < 0.10 => the adjustment genuinely differs by"
+di as result "  resolution; p large => the two paths cannot be distinguished, which is"
+di as result "  a result in itself and is reported as one. Note the prior stated when"
+di as result "  this test was written (β_def > β_nd, harder adjustment under default) is"
+di as result "  NOT what the estimates show: the non-default coefficient is the larger"
+di as result "  of the two from Year 2 onward. Report what the z says, not the prior."
 
 * ── Save IRF datasets ────────────────────────────────────────────────────
 
