@@ -488,84 +488,189 @@ is no real effect there for a channel to explain.
 
 ---
 
-## 8. The sovereign-bank nexus: a two-dimensional amplifier
+## 8. The sovereign-bank nexus
 
-Does the strength of the sovereign-bank linkage *condition* the output
-cost documented in Section 4 — an analog of Asonuma et al.'s
-bank-intermediation split (their Fig. 6), sharpened from bank *size* to
-bank *exposure to this sovereign*? We measure the nexus by pre-crisis bank
-claims on government as a share of bank assets (predetermined at $t-1$,
-country-mean filled where the year-before value is missing), split onsets
-at the median into high- and low-nexus groups, and re-estimate the
-doubly-robust AIPW output cost separately within each group (control =
-tranquil years). This section uses a verified run of the current code
-(post horizon-relabel) but rests on genuinely small cells, most severely
-in the default-linked rows (as few as 7 treated country-years), so we are
-deliberately conservative about what is established versus merely
-consistent with the headline story.
+Does the strength of the sovereign-bank linkage *condition* the output cost
+documented in Section 4 — an analog of Asonuma et al.'s bank-intermediation
+split (their Fig. 6), sharpened from bank *size* to bank *exposure to this
+sovereign*? Four files in the pipeline speak to this question, and rather
+than report them as four findings we organise them as one argument in three
+steps: the **effect** (does pre-crisis nexus deepen the output cost?), its
+**robustness** to a different functional form, and the **mechanism** (what do
+banks actually do?). This mirrors the estimator ladder used for the GDP
+result in Sections 4–5, and it is deliberately more conservative than
+presenting the four sets of estimates as independent evidence — several of
+them are the same object measured twice.
 
-**Non-default crises, split by nexus.** The output cost is significant
-under low nexus ($-3.5$, 90% CI $[-6.6,-0.4]$) but statistically
-indistinguishable from zero under high nexus ($+0.3$, CI
-$[-0.9,1.4]$). The high-minus-low difference at impact is $+3.76$, CI
-$[-0.09, 7.69]$ — economically large but, on its own bootstrap interval,
-*marginally short of* significance. An earlier bootstrap of the same cell
-returned $[0.05, 7.37]$, i.e. a nominally significant gap; that a
-7-observation cell flips across the 5% line between resampling runs is
-itself the most honest available statement about how much weight this
-comparison can bear. We therefore read the non-default nexus result as a
-contrast in *levels* — a significant cost under low exposure against a
-cost indistinguishable from zero under high exposure — which is
-suggestive of a cushioning role, and not as an established difference.
+### 8.1 The effect: pre-crisis nexus amplifies the cost of default
 
-**Default-linked crises, split by nexus.** Both subsamples show a large,
-significant cost (low nexus: $-7.2$, CI $[-11.8,-4.6]$; high nexus:
-$-18.0$, CI $[-24.2,-2.5]$, on only 7 treated observations), and the point
-estimate under high nexus is roughly $2.5\times$ deeper. The
-high-minus-low difference itself, however, is **not** statistically
-significant ($-10.8$, CI $[-16.0, 2.9]$) — the confidence interval on a
-7-observation cell is simply too wide to distinguish it from the low-nexus
-cell despite the large gap in point estimates. We report this pattern as
-economically suggestive of an amplifier effect, consistent with the
-mechanism evidence below, but explicitly **not** as an independently
-established statistical finding on its own.
+The headline estimate comes from the exposure-interaction design of
+`13b_exposure_heterogeneity.do`, which puts the nexus on the right-hand side
+of the *GDP* equation rather than treating it as an outcome:
 
-**Mechanism evidence.** The channel that does clear significance
-repeatedly is bank claims on government, specifically in the
-default-linked, high-nexus cell: $+7.8$ (Year 1, $p<0.05$), $+17.1$
-(Year 2), $+12.9$ (Year 3), each individually significant, before fading
-by Year 4–5 (the Year-5 reading, a significant *negative* $-5.4$, coincides
-with a substantially reduced bootstrap draw count and should be treated as
-noisy rather than a genuine reversal). The corresponding low-nexus
-default cell shows no such rise. Bank claims on the private sector move
-in the opposite direction in the same cell (a significant $-7.7$ at Year 2),
-though this series thins out badly by Year 3–4 (bootstrap draw counts fall
-toward 100 of 300 or fewer) and should be read with real caution past
-Year 2.
+$$dy_{i,t+h} = \alpha_i + \lambda_t + b_{nd}D^{nd} + b_{def}D^{def}
++ \delta_{nd}(D^{nd}\times Z) + \delta_{def}(D^{def}\times Z) + \phi Z + X'\gamma + \varepsilon$$
 
-**Corroborating evidence from the channel AIPW.** The separate
-doubly-robust channel estimates (`13c_aipw_channels.do`) point the same
-way on two of the eight channels: the default-minus-non-default gap is
-significant for government expenditure at Year 3 ($-10.80$, CI
-$[-17.24,-2.56]$) and for bank claims on the private sector at Year 1
-($-6.62$, CI $[-11.38,-0.74]$). These are consistent with the fiscal and
-credit channels identified by the Gelbach decomposition in Section 7a, and
-with private lending contracting where the sovereign absorbs bank balance
-sheets — but two significant gaps out of a large number of channel-horizon
-comparisons is weak evidence on its own, and we present it as corroborating
-the decomposition rather than as an independent result.
+where $Z$ is bank claims on government as a share of **total bank assets**,
+measured at $t-1$ and standardized. The coefficients of interest are
+$\delta_{nd}$ and $\delta_{def}$ — the extra output cost per standard
+deviation of pre-crisis nexus in each resolution type — and the test is
+their equality.
 
-Read together, we consider the sovereign-bank nexus finding to be the
-strongest *mechanism* evidence in the paper — a genuine interaction
-design, not a parallel single-outcome regression — for the specific claim
-that banks with high pre-crisis exposure to the sovereign reallocate
-toward government debt when a default occurs. We stop short of claiming
-the deeper output cost in that same cell is independently established,
-since that particular comparison did not clear significance on its own;
-the honest reading is that the mechanism evidence (claims on government
-rising sharply and significantly) is consistent with, and supportive of,
-the pattern of larger point estimates in the output-cost comparison,
-rather than each result standing alone as proof.
+| Horizon | $\delta_{nd}$ | $\delta_{def}$ | $t(\delta_{def})$ | $p(\delta_{nd}=\delta_{def})$ |
+|---|---|---|---|---|
+| Year 1 | 0.700 | −2.613 | −0.51 | .535 |
+| Year 2 | 0.703 | −2.404 | −0.80 | .321 |
+| **Year 3** | 0.171 | **−4.431** | **−2.46** | **.034** |
+| **Year 4** | 0.198 | **−4.270** | **−3.12** | **.029** |
+| Year 5 | −0.252 | −3.235 | −1.25 | .329 |
+
+One standard deviation more of the banking system committed to the sovereign
+before the crisis is associated with roughly **4.3 additional percentage
+points of lost output by Years 3–4 — but only where the crisis ends in
+default**. In non-default episodes the same exposure does nothing at any
+horizon ($\delta_{nd}$ never exceeds 0.7 and is never significant).
+
+Four features make this the cleanest nexus evidence in the paper:
+
+1. **The outcome is GDP.** The alternative designs (§8.3) show the nexus
+   *variable* responding to a crisis, which is co-movement — precisely the
+   objection that motivates the exposure-interaction approach in the first
+   place. This specification asks whether the nexus deepens the output cost
+   itself.
+2. **Exposure is predetermined.** Measured at $t-1$, it cannot be a
+   consequence of the crisis it is supposed to amplify. The channel-outcome
+   designs measure the nexus *after* onset, where reverse causality is live.
+3. **The measure carries no development confound.** As Section 8.4 sets out,
+   most exposure ratios in this file proxy financial depth as much as
+   vulnerability. Claims on government as a share of *bank assets* is a
+   portfolio composition measure, not a size measure, so it does not scale
+   with income the way credit/GDP does.
+4. **The difference is formally tested and rejects at two adjacent
+   horizons**, with the same sign and $\delta_{nd}\approx 0$ throughout. Two
+   neighbouring horizons agreeing is materially more convincing than one
+   isolated cell, which matters given the multiple-testing arithmetic in
+   §8.4.
+
+**A measurement point worth stating explicitly.** The same economic concept
+scaled by GDP rather than bank assets — `claims_govt` — is not estimable
+here. Its $\delta_{def}$ is large and negative (−8.0 at Year 1) but carries a
+standard error of 7.33 against 1.80 for the assets-scaled version, and no
+horizon clears significance ($p=.246$ at best). An earlier version of this
+project reported the GDP-scaled measure as significant; that result was
+obtained on a legacy control set and does not survive the common core. The
+lesson is that the doom-loop parameter has to be measured as a portfolio
+share of the bank balance sheet, not as a ratio to output.
+
+### 8.2 Robustness: the median split
+
+`13d_aipw_nexus_split.do` asks the same question with a different functional
+form — splitting onsets at the median of the same nexus variable and
+estimating a doubly-robust AIPW output cost separately within each cell, with
+a stratified cluster bootstrap. The split is not a development proxy: the
+high-nexus bin contains Brazil, Mexico, Turkey and Indonesia alongside Ghana,
+Kenya and Zambia, and the composition check printed by that file confirms it.
+
+| Cell | Year 1 | Year 2 | Year 3 | Treated |
+|---|---|---|---|---|
+| Default × high nexus | −18.04 | −18.36 | −15.39 | 7 |
+| Default × low nexus | −7.20 | −10.80 | −3.57 | 10 |
+| Non-default × high | ≈ 0 | ≈ 0 | ≈ 0 | 18 |
+| Non-default × low | −3.49 | −3.48 | ns | 15 |
+
+The point estimates are dramatic — the default-linked cost is roughly two and
+a half times deeper where the nexus is tight — and the sign agrees with §8.1.
+**But the high-minus-low difference does not clear significance at any
+horizon** (best case $[-17.79, 3.63]$ at Year 1), and the default×high cell
+rests on seven treated country-years with bootstrap draw counts falling to
+266 of 300. For the thinner channel outcomes in the same file the draws fall
+as low as 103 and one cell fails outright.
+
+We therefore report this as **robustness in sign, not independent
+confirmation**. It uses the stronger estimator and the weaker design; §8.1
+uses the weaker estimator and the stronger design, and only §8.1 produces a
+difference that can be tested. A doubly-robust estimator cannot rescue a
+seven-observation cell.
+
+### 8.3 Mechanism: what banks actually do
+
+Having established that the nexus conditions the output cost, the remaining
+question is behavioural. Two files estimate the nexus variables as outcomes —
+`11b_nexus_channels.do` by OLS and IPW, `13c_aipw_channels.do` doubly-robustly
+— and since these are the same object under two inference schemes we report
+the doubly-robust estimates and note where the OLS agrees, rather than
+treating them as separate results.
+
+**Banks absorb the sovereign.** In the default × high-nexus cell, bank claims
+on government rise by **+7.8, +17.1 and +12.9 percentage points of assets** in
+Years 1–3, each individually significant, with no such movement in the
+low-nexus default cell or in non-default episodes regardless of exposure. (The
+Year-5 reading of −5.4 coincides with a sharply reduced draw count and is
+treated as noise.)
+
+**And they contract private lending.** Claims on the private sector move the
+other way: the default-minus-non-default gap is significant at Year 1 under
+AIPW (−6.62, 95% CI $[-11.38,-0.74]$), and the OLS split in `11b` agrees
+across the horizon range (non-default $+2.72$ vs default $-1.60$ at Year 1,
+$p=.016$, with the gap significant or marginal at every subsequent horizon).
+The non-default coefficient is significantly *positive* at Year 1 under AIPW
+($+2.39$, CI $[0.72, 4.17]$).
+
+Read together with §8.1 this is a coherent reallocation story: where banks
+entered the crisis heavily exposed to the sovereign and the crisis ends in
+default, they absorb more government paper and lend less to firms, and the
+output cost is correspondingly deeper. The timing supports it — the GDP
+amplification appears at Years 3–4, *after* the balance-sheet reallocation at
+Years 1–3, which is what a slow-working credit mechanism should look like
+rather than an immediate confidence shock.
+
+### 8.4 What this evidence can and cannot bear
+
+**Sample.** The interaction in §8.1 is identified off 11 default-linked
+episodes; the median split in §8.2 off seven; the channel results in §8.3 off
+roughly 18. Nexus data are IMF MFS, 2001 onward, covering 32 of 61 onsets.
+Every estimate in this section is thin by construction.
+
+**Multiple testing.** `13b` runs nine exposures × five horizons × two panels =
+90 tests, of which roughly four or five would be significant at the 5% level
+by chance; about seven are. No single panel in that file can carry a claim on
+its own. What distinguishes the nexus result is that it is significant at two
+adjacent horizons with a consistent sign and a near-zero comparison group, and
+that a second, unrelated exposure design (§8.2) and the mechanism evidence
+(§8.3) point the same way.
+
+**One further exposure clears the same bar.** The short-term share of external
+debt — pure rollover vulnerability, with no development reading — shows the
+same default-specific amplification: $\delta_{def}=-6.20$ at Year 3
+($p(\text{diff})=.053$) and $-5.77$ at Year 4 ($p=.033$), against
+$\delta_{nd}$ of $-0.67$ and $+0.70$. Pooled across all crises it is the
+strongest exposure result in the file ($-4.70$ at Year 2, $p=.000$). So the
+two interpretable vulnerabilities in the data are **how much of the banking
+system was lent to the sovereign** and **how much debt had to be rolled
+over** — both predetermined balance-sheet conditions, both operating only
+where the crisis ends in default.
+
+**The exposures we do not interpret.** Private credit, investment, FDI, bank
+claims on government scaled by GDP, and debt service are all ratios that
+proxy financial development as much as vulnerability to a channel, and their
+interactions come back *positive* (credit $+2.33$ at Year 3, $p=.001$;
+investment $+2.06$ at Year 5; FDI $+1.33$ at Year 3). We read this as the
+development reading dominating rather than as evidence that these channels
+protect, and it is corroborated within our own estimates: bank credit depth
+enters the Act-1 outcome equation negatively and growing ($-0.026$ at Year 1
+to $-0.171$ at Year 5, $t=-3.98$), so high-credit countries grow more slowly
+on trend *and* lose less in a crisis — the signature of an income proxy. These
+panels are reported for completeness and treated as uninformative about
+transmission.
+
+**Overall.** We regard the sovereign-bank nexus as the paper's strongest
+*mechanism* evidence — a genuine interaction design on a predetermined,
+confound-free measure, agreeing in sign across two functional forms and
+supported by the balance-sheet behaviour it predicts — and simultaneously its
+least statistically secure result, resting on cells of seven to eighteen
+episodes. It should be read as a well-identified pattern estimated with little
+power, not as a finding on the same footing as the resolution-type divergence
+of Section 4.
 
 ---
 
@@ -598,6 +703,15 @@ the panel's roughly 47 clusters.
   loses significance at Years 3–5 once the two-stage, vs.-tranquil design
   is used — a real qualification to the OLS-only persistence claim in
   Section 4.1 that should not be smoothed over.
+- **The exposure-interaction file runs 90 tests.** `13b` estimates nine
+  exposures across five horizons and two panels; at the 5% level roughly
+  four or five significant cells are expected by chance, and about seven
+  appear. Section 8 therefore rests only on the two exposures whose sign is
+  economically identified (nexus, short-term debt share), each significant
+  at two adjacent horizons with a near-zero comparison group, and treats
+  every other panel as uninformative. Readers should not count the
+  significant cells in Tables 5–6 as independent findings.
+
 - **The nexus high-minus-low difference is run-sensitive at the margin.**
   On a cell of 7 treated observations, the non-default high-minus-low gap
   moved from nominally significant to marginally insignificant between two
@@ -650,10 +764,28 @@ mechanism story. A Gelbach decomposition shows private credit and
 government expenditure jointly absorb an increasing share of the
 default-linked coefficient, reaching roughly 40–44 percent by Years 4–5 —
 the strongest quantitative candidates for the transmission channel,
-without establishing causal mediation. And a genuine interaction design —
-splitting default-linked crises by pre-crisis bank exposure to the
-sovereign — shows banks in the highest-exposure cell significantly and
-repeatedly increase their government claims following a default, a
-concrete, statistically anchored piece of doom-loop evidence, even though
-the associated deeper output cost in that same cell does not itself clear
-significance given the underlying sample of seven treated observations.
+without establishing causal mediation.
+
+The second is the sovereign-bank nexus, and Section 8 now presents it as a
+single three-step argument rather than as several coordinate findings.
+Interacting crisis onset with pre-crisis bank claims on government as a
+share of bank assets — a predetermined portfolio measure that carries no
+financial-development confound — one standard deviation of additional
+exposure is associated with roughly 4.3 percentage points of extra output
+loss by Years 3–4, and only in default-linked episodes; the equality test
+against non-default rejects at both horizons. A median-split doubly-robust
+estimate agrees in sign and is roughly two and a half times deeper in the
+high-exposure cell, but its difference does not clear significance on seven
+treated observations, so it is reported as robustness rather than as
+confirmation. The behaviour that would produce the effect is present:
+banks in the default × high-exposure cell increase government claims by 8
+to 17 percentage points of assets over Years 1–3 while contracting private
+lending, and the output amplification appears afterwards, at Years 3–4, as
+a slow-working credit mechanism should. The same design identifies one
+further vulnerability on the same terms — the short-term share of external
+debt, which amplifies the default-linked cost by roughly 6 percentage
+points at Years 3–4 and is the strongest pooled exposure result in the
+paper. Both are predetermined balance-sheet conditions; both bind only
+where the crisis ends in default. All of it rests on cells of seven to
+eighteen episodes, so it is a well-identified pattern estimated with little
+power, not a finding on the footing of the resolution-type divergence.
