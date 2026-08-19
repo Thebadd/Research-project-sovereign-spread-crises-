@@ -520,6 +520,85 @@ is no real effect there for a channel to explain.
 
 ---
 
+### 7b. External adjustment: a channel that responds, but not by resolution
+
+The six channels of Section 6 were selected as plausible domestic
+transmission margins. One further margin is predicted by theory rather than
+chosen by us, and is worth testing on its own terms: Aguiar and Gopinath
+(2006) imply that a loss of market access forces the current account toward
+surplus, since a country that cannot borrow must stop running a deficit.
+That is a directional prediction about a specific variable, so it can fail,
+which makes it more informative than a channel selected for plausibility.
+
+We estimate it with the same local projection, replacing GDP with the
+cumulative change in the current-account balance and dropping `l_ca` from
+the controls, since it is the outcome's own lagged level (matching the
+current-account model in `13c_aipw_channels.do`). A positive coefficient
+means the external balance moves toward surplus.
+
+| Horizon | $\hat\beta^{all}$ (SE) | $t$ |
+|:-------:|:----------------------:|:---:|
+| Year 1 | 1.03 (0.47) | 2.20 |
+| Year 2 | 1.69 (0.77) | 2.20 |
+| Year 3 | 1.60 (0.92) | 1.73 |
+| Year 4 | 2.11 (0.96) | 2.20 |
+| Year 5 | 2.62 (1.07) | 2.45 |
+
+The current account moves toward surplus by **1.0 percentage point of GDP in
+the crisis year, rising monotonically to 2.6 points by Year 5**, significant
+at conventional levels at four of the five horizons and at ten percent at the
+fifth. The prediction holds, and the adjustment builds rather than reverting:
+this is a persistent reallocation of the external position, not a one-year
+compression of imports.
+
+**The adjustment does not differ by resolution, and that is the more useful
+result.** Estimating both onset types jointly and testing their equality with
+the same Clogg et al. (1995) statistic used for GDP in Section 4.1:
+
+| Horizon | $\hat\beta^{nd}$ | $\hat\beta^{def}$ | Difference | $z$ | $p$ |
+|:-------:|:----------------:|:-----------------:|:----------:|:---:|:---:|
+| Year 1 | 0.88 | 1.34 | +0.46 | 0.40 | .691 |
+| Year 2 | 1.78 | 1.49 | −0.29 | −0.21 | .838 |
+| Year 3 | 1.89 | 1.02 | −0.87 | −0.59 | .561 |
+| Year 4 | 2.62 | 1.10 | −1.51 | −1.02 | .318 |
+| Year 5 | 3.06 | 1.79 | −1.27 | −0.74 | .468 |
+
+No horizon comes close: the largest $|z|$ is 1.02. The two adjustment paths
+cannot be distinguished. We record explicitly that the prediction written
+into this test when it was first specified — that adjustment would be
+*harder* under default, because market exclusion is more complete — is not
+what the estimates show. The non-default point estimate is in fact the larger
+of the two from Year 2 onward, though not significantly so. Neither the
+prediction nor its reverse is supported; the honest statement is that
+resolution type does not detectably change the external adjustment.
+
+That null does real work in the argument. Sections 4 through 7a establish
+that the output cost, the credit response and the fiscal response all differ
+sharply by resolution, and Section 8 will add the sovereign-bank nexus to
+that list. The current account does not join it. **External adjustment is a
+generic consequence of losing market access, common to both crisis types,
+and is therefore not a margin on which default and non-default resolutions
+diverge.** Ruling a channel out is as informative here as ruling one in,
+because the paper's central claim is precisely that the default premium
+operates through some margins and not others.
+
+Two qualifications. First, the reweighted version of this test disagrees at
+short horizons — the IPW estimates put the default-linked response above the
+non-default one at Years 1–2 (3.26 and 4.38 against 0.17 and 0.45) before
+both collapse toward zero by Years 4–5 — so the *ordering* of the two types
+is not stable across estimators, which is consistent with the difference
+being unidentified rather than merely small. Second, the current account is
+measured as a ratio to GDP and so shares the denominator problem discussed in
+Section 6: a falling denominator mechanically raises the ratio. Because the
+balance changes sign it cannot be log-transformed, so unlike credit or
+investment there is no level-based alternative available; part of the
+measured surplus at longer horizons may reflect the output contraction
+itself rather than a change in the external position. The direction of the
+finding is robust, its magnitude at Years 4–5 should be read with that in
+mind.
+
+---
+
 ## 8. The sovereign-bank nexus
 
 Does the strength of the sovereign-bank linkage *condition* the output cost
@@ -792,14 +871,28 @@ growth pattern, though it is only confirmed at the shorter horizons once
 selection into the two-stage IPW design is addressed, a real qualification
 rather than a settled matter.
 
-Two further results support, without independently proving, a specific
-mechanism story. A Gelbach decomposition shows private credit and
+Three further results bear on mechanism. A Gelbach decomposition shows
+private credit and
 government expenditure jointly absorb an increasing share of the
 default-linked coefficient, reaching roughly 40–44 percent by Years 4–5 —
 the strongest quantitative candidates for the transmission channel,
 without establishing causal mediation.
 
-The second is the sovereign-bank nexus, and Section 8 now presents it as a
+The second is external adjustment, and it is reported as a null on the
+dimension the paper cares about. The current account moves toward surplus
+after a spread crisis by one percentage point of GDP in the crisis year,
+rising to 2.6 points by Year 5 and significant at four of five horizons —
+confirming the forced-deleveraging prediction of Aguiar and Gopinath (2006)
+for spread crises. But the equality test between resolution types rejects at
+no horizon, with a largest absolute $z$ of 1.02, and the prediction written
+into the test when it was specified (harder adjustment under default) is not
+what the estimates show. External adjustment is therefore a generic
+consequence of losing market access rather than a margin on which the two
+resolutions diverge, which usefully bounds where the default premium
+operates: in output, credit, fiscal spending and the sovereign-bank nexus,
+but not in the external balance.
+
+The third is the sovereign-bank nexus, and Section 8 now presents it as a
 single three-step argument rather than as several coordinate findings.
 Interacting crisis onset with pre-crisis bank claims on government as a
 share of bank assets — a predetermined portfolio measure that carries no
