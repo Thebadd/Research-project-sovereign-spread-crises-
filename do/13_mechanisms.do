@@ -15,7 +15,7 @@
 
   Specs compared:
     Baseline : ch_credit_h = αi + γt + β·onset_all
-               + l1_gdpg l2_gdpg debt infl ca + ε
+               + $ctrl_core (less the depth term) + pre_credit + ε
     With clms: same + L.claims_govt
 
   TEST 2 — Credit as Mediator of Investment Contraction
@@ -36,7 +36,7 @@
 
   Specs compared:
     Without : ch_inv_h = αi + γt + β·onset_all
-              + l1_gdpg l2_gdpg debt ca + ε
+              + $ctrl_core (less the depth term) + pre_inv + ε
     With    : same + L.credit   [bespoke mediation spec]
 
   Outputs:
@@ -46,6 +46,34 @@
     "$clean/irf_mech_*.dta"          — IRF datasets for both tests
 ===========================================================================*/
 
+* ── CONTROL CONVENTION (aligned to $ctrl_core, as in 02/03/11/12/13c) ──────
+* Every regression below now carries the Asonuma-aligned common core
+*   $ctrl_core = l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open
+*                l_credit_bank l_hyperinfl
+* plus that outcome's own pre-crisis change pre_<v> (the paper's g_0), with ONE
+* term dropped per test. The drops are deliberate, not omissions:
+*
+*   Test 1 (credit outcome)     drop l_credit_bank -- it is the channel's own
+*       lagged level (corr 0.950 with `credit`), so keeping it would put the
+*       lagged dependent variable on the RHS. Same rule as ctrl_credit in 11/12.
+*
+*   Test 2 (investment outcome) drop l_credit_bank -- REQUIRED BY THE TEST, not
+*       by the own-level rule. This test asks whether adding a credit term
+*       absorbs the investment response. If the baseline already carried a
+*       credit measure the mediation share would be mechanically near zero and
+*       the comparison would be void. So the baseline is credit-free and the
+*       "with" spec adds L.credit. This is the one place the file departs from
+*       ctrl_inv in 11/12, and it departs on purpose.
+*
+*   Test 3 (current account)    drop l_ca -- the channel's own lagged level,
+*       matching the ca outcome model in 13c_aipw_channels.do. pre_ca still
+*       controls for the pre-crisis current-account trend.
+*
+* Before this alignment the file ran on the retired set (l1_gdpg l2_gdpg debt
+* infl ca banking_crisis / l1_gdpg l2_gdpg debt L.ca): contemporaneous levels,
+* the dropped second growth lag, and the banking-crisis DUMMY rather than the
+* duration. Its numbers therefore move; that is the point of the change.
+* ───────────────────────────────────────────────────────────────────────────
 use "$clean/panel_lp.dta", clear
 sort cid year
 xtset cid year
@@ -89,7 +117,7 @@ forvalues h = 0/4 {
 
     * Baseline: bespoke credit-mechanism spec (not identical to 11_channels' core credit spec)
     capture xtscc ch_credit_`h' onset_all ///
-        l1_gdpg l2_gdpg debt infl ca banking_crisis pre_credit ///
+        l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_hyperinfl pre_credit ///
         i.year if sample==1, fe lag(`lag')
 
     if _rc == 0 {
@@ -102,7 +130,7 @@ forvalues h = 0/4 {
 
     * With L.claims_govt added
     capture xtscc ch_credit_`h' onset_all ///
-        l1_gdpg l2_gdpg debt infl ca banking_crisis L.claims_govt pre_credit ///
+        l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_hyperinfl pre_credit L.claims_govt ///
         i.year if sample==1, fe lag(`lag')
 
     if _rc == 0 {
@@ -230,7 +258,7 @@ forvalues h = 0/4 {
 
     * Without L.credit (total effect)
     capture xtscc ch_inv_`h' onset_all ///
-        l1_gdpg l2_gdpg l_debt l_ca l_banking_duration pre_inv ///
+        l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_hyperinfl pre_inv ///
         i.year if sample==1, fe lag(`lag')
 
     if _rc == 0 {
@@ -243,7 +271,7 @@ forvalues h = 0/4 {
 
     * With L.credit (direct effect net of credit)
     capture xtscc ch_inv_`h' onset_all ///
-        l1_gdpg l2_gdpg l_debt l_ca l_banking_duration L.credit pre_inv ///
+        l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_hyperinfl pre_inv L.credit ///
         i.year if sample==1, fe lag(`lag')
 
     if _rc == 0 {
@@ -343,7 +371,7 @@ di as result "Figure saved: fig13b_inv_mediation.pdf"
 *   so it is excluded from the right-hand side.
 *
 *   Specs:
-*     Aggregate : ch_ca_h = αi + γt + β·onset_all + l1_gdpg l2_gdpg debt + ε
+*     Aggregate : ch_ca_h = αi + γt + β·onset_all + $ctrl_core (less l_ca) + pre_ca + ε
 *     By type   : same with onset_nd and onset_def separately
 *
 *   Prediction: β > 0 (CA moves toward surplus = forced deleveraging)
@@ -385,7 +413,7 @@ forvalues h = 0/4 {
 
     * Aggregate — with lagged CA for persistence
     capture xtscc ch_ca_`h' onset_all ///
-        l1_gdpg l2_gdpg debt L.ca pre_ca ///
+        l1_gdpg l_debt l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl pre_ca ///
         i.year if sample==1, fe lag(`lag')
     if _rc == 0 {
         matrix b_all[`row',1]    = _b[onset_all]
@@ -400,7 +428,7 @@ forvalues h = 0/4 {
     * category. This is the reference paper's OLS baseline; their rival-drop
     * applies to the two-stage design only, i.e. the weighted lines below.
     capture xtscc ch_ca_`h' onset_nd onset_def ///
-        l1_gdpg l2_gdpg debt L.ca pre_ca ///
+        l1_gdpg l_debt l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl pre_ca ///
         i.year if sample==1, fe lag(`lag')
     if _rc == 0 {
         matrix b_nd[`row',1]    = _b[onset_nd]
@@ -461,7 +489,7 @@ twoway ///
     subtitle("Forced deleveraging test (Aguiar-Gopinath 2006)", size(small)) ///
     legend(off) ///
     note("All 61 spread crisis episodes. Positive = CA moves toward surplus." ///
-         "Controls: l1_gdpg l2_gdpg debt. DK SE. Country & year FE.", size(vsmall)) ///
+         "Controls: common core (less l_ca) + pre_ca. DK SE. Country & year FE.", size(vsmall)) ///
     graphregion(color(white)) plotregion(color(white))
 
 graph export "$figs/fig13c_ca_all.pdf", replace
@@ -495,7 +523,7 @@ twoway ///
     legend(order(2 "Non-default (40 episodes)" 4 "Default-linked (21 episodes)") ///
            ring(0) pos(7) cols(1) size(small) region(lcolor(none) fcolor(none))) ///
     note("Green = non-default. Red = default-linked." ///
-         "Controls: l1_gdpg l2_gdpg debt. DK SE. Country & year FE.", size(vsmall)) ///
+         "Controls: common core (less l_ca) + pre_ca. DK SE. Country & year FE.", size(vsmall)) ///
     graphregion(color(white)) plotregion(color(white))
 
 graph export "$figs/fig13d_ca_split.pdf", replace
@@ -574,7 +602,7 @@ forvalues h = 0/4 {
     * OLS: JOINT, full sample (reference-paper baseline). The rival-drop applies
     * to the weighted lines below, which are the two-stage half of the design.
     capture areg ch_ca_`h' onset_nd onset_def ///
-        l1_gdpg l2_gdpg debt L.ca pre_ca ///
+        l1_gdpg l_debt l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl pre_ca ///
         i.year if sample == 1, absorb(cid) vce(cluster cid)
     if _rc == 0 {
         matrix b_nd_ols[`row',1]     = _b[onset_nd]
@@ -589,7 +617,7 @@ forvalues h = 0/4 {
 
     * IPW: the matching pair of weighted vs-tranquil lines.
     capture areg ch_ca_`h' onset_nd ///
-        l1_gdpg l2_gdpg debt L.ca pre_ca ///
+        l1_gdpg l_debt l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl pre_ca ///
         [aw=ipw_nd] if sample==1 & onset_def==0 & !missing(ipw_nd), absorb(cid) vce(cluster cid)
     if _rc == 0 {
         matrix b_nd_ipw[`row',1]     = _b[onset_nd]
@@ -598,7 +626,7 @@ forvalues h = 0/4 {
         local b_nd_w  = _b[onset_nd]
     }
     capture areg ch_ca_`h' onset_def ///
-        l1_gdpg l2_gdpg debt L.ca pre_ca ///
+        l1_gdpg l_debt l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl pre_ca ///
         [aw=ipw_def] if sample==1 & onset_nd==0 & !missing(ipw_def), absorb(cid) vce(cluster cid)
     if _rc == 0 {
         matrix b_def_ipw[`row',1]    = _b[onset_def]
