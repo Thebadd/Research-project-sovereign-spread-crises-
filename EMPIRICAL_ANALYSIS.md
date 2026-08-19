@@ -173,6 +173,19 @@ horizon (Table 2; Figure 2 plots the two resulting impulse responses).
 | Year 4 | +0.38 (p=0.768) | −4.49 (p=0.048) | −4.87 | −1.93 | 0.019 |
 | Year 5 | +1.20 (p=0.222) | −4.31 (p=0.043) | −5.51 | −2.45 | 0.011 |
 
+**What identifies these coefficients.** The classification assigns 40
+non-default and 21 default-linked onsets, but those are not the counts the
+regression uses. Listwise deletion on the common core removes an onset
+whenever any control is missing at $t-1$, and the binding constraints are
+public debt (56 of 61 onsets), trade openness (58) and the hyperinflation
+flag (58). The estimates above are therefore identified off **31 non-default
+and 15 default-linked episodes** at Year 1, falling to 29 and 15 by Year 5 —
+a loss of roughly a quarter of the non-default group and **six of the
+twenty-one default-linked episodes**. Tables 1 and 2 report these
+within-sample counts rather than the classification totals, and every
+statement about precision in this paper should be read against 15 treated
+observations in the default-linked group, not 21.
+
 The contrast is visible directly in Figure 2: the non-default line sits
 close to zero throughout, with a 90 percent band that clears zero only
 briefly (Year 2); the default-linked line sits well below it at every
@@ -192,12 +205,31 @@ baseline). It reproduces the same pattern: non-default is mostly
 insignificant (significant only at Year 2, $-1.23$, $p=0.015$),
 default-linked is significant at every horizon ($-4.1$ to $-6.8$), and the
 extra-cost-of-default difference is significant or borderline throughout
-(Year 2: $p=0.019$; Year 3: $p=0.030$; Year 5: $p=0.029$). A further check
-restricting the outcome to years with realized rather than IMF-projected
-GDP data (relevant because the panel runs to 2026 and several
-default-linked onsets are recent) reproduces the same gap in sign and
-magnitude at every horizon, indicating the persistence visible at the
-right-hand edge of Figure 2 is not a forecasting artifact.
+(Year 2: $p=0.019$; Year 3: $p=0.030$; Year 5: $p=0.029$).
+
+**The long horizons do not survive, and we report that rather than the
+gap alone.** Because the panel runs to 2026 while WEO's last actual
+observation is 2024 or 2025 for most countries, an onset from 2022 onward
+has its Year-4 and Year-5 outcome built partly from IMF projections: seven
+onsets at Year 4 and nine at Year 5, precisely the horizons where the
+estimated cost is largest. Re-estimating on realized data only leaves Years
+1–3 essentially untouched ($-5.58$, $-6.79$, $-5.33$ against $-5.53$,
+$-6.75$, $-5.42$) but **nearly halves the default-linked coefficient at the
+long horizons**, to $-2.69$ at Year 4 and $-3.00$ at Year 5. The
+*difference* between types survives at every horizon
+($p=0.031$ and $p=0.060$), so the resolution contrast is not a forecasting
+artifact — but the level of the persistent cost partly is.
+
+Two further checks point the same way. The two-stage IPW estimates of
+Section 5.3 put the default-linked coefficient at $-1.90$ and $-0.70$ at
+Years 4–5, neither significant, and the doubly-robust AIPW of Section 5.4
+returns $-4.32$ and $-2.51$ with confidence intervals covering zero, with
+the bootstrapped difference likewise insignificant at both horizons. Three
+independent checks — removing forecast data, reweighting on the propensity
+score, and doubly-robust estimation — therefore agree that the
+default-linked cost **is not robustly identified beyond Year 3**. We
+accordingly restrict the persistence claim to Years 1–3 throughout, and
+treat the Year 4–5 coefficients in Table 2 as suggestive at best.
 
 ### 4.2 A pre-existing-trend concern, addressed directly
 
@@ -691,13 +723,14 @@ the panel's roughly 47 clusters.
 
 ## 10. Limitations
 
-- **Small treated samples**, particularly default-linked (21 episodes;
-  the channel-by-resolution cells run 13–21 default-linked observations,
-  and the nexus split's default-linked cells run as few as 6–9). Many
-  reported equality tests fail to reject for reasons of power as much as
-  genuine similarity, and we have tried throughout to say so explicitly
-  rather than silently treating an insignificant difference as evidence
-  of "no effect."
+- **Small treated samples, and smaller than the classification suggests.**
+  The design assigns 40 non-default and 21 default-linked onsets, but
+  listwise deletion on the common core leaves **31 and 15** identifying the
+  headline coefficients — six of the twenty-one default-linked episodes are
+  lost to a missing control, chiefly public debt at $t-1$. The nexus cells
+  in Section 8 are thinner still (7 to 18). Every precision statement in
+  this paper should be read against the within-sample counts reported in
+  Tables 1 and 2, not against the episode totals.
 - **Selection under reweighting is not uniform across horizons.** Section
   5.3's IPW comparison confirms the extra cost of default at Years 1–2 but
   loses significance at Years 3–5 once the two-stage, vs.-tranquil design

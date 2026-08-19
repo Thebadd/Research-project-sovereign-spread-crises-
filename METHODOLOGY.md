@@ -109,6 +109,26 @@ directly, rather than relying on a proxy.
 The two-stage estimators drop them to match the reference design exactly,
 so the doubly-robust results are comparable like-for-like with theirs.
 
+**What the year fixed effects are worth, in coefficients.** This is not a
+cosmetic difference and the two designs do not produce the same number, so
+a reader comparing tables across the paper needs the reason. On identical
+data and controls, the default-linked coefficient is **−5.53 at Year 1 and
+−6.75 at Year 2 with year FE** (`03`, `xtscc`) and **−7.58 and −9.48
+without them** (`08`, `areg`, country FE only). The pooled Act-1 cost moves
+similarly, from −2.98 to −4.42 at Year 2. Year fixed effects are therefore
+worth roughly two percentage points of estimated output cost.
+
+The interpretation is straightforward: year dummies absorb the global
+financial cycle, so a country-FE-only specification leaves the common
+component of a crisis year inside the treatment coefficient. Since spread
+crises cluster in global risk-off episodes, that inflates the estimate. The
+paper's headline is the smaller, year-FE number — the conservative one —
+while the two-stage estimates are reported on the reference paper's design
+so the doubly-robust comparison is like-for-like. Neither is wrong; they
+answer slightly different questions, and the difference between them is
+itself informative about how much of the measured cost is global rather
+than country-specific.
+
 Note in particular that `03_lp_resolution.do` — the non-default /
 default-linked comparison behind Table 2 and Figure 2 — is **single-stage
 and does carry year fixed effects**. "The resolution split has no year FE"
