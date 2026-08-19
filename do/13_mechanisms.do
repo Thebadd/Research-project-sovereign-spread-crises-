@@ -46,6 +46,9 @@
     "$clean/irf_mech_*.dta"          — IRF datasets for both tests
 ===========================================================================*/
 
+* safety: define the common core if this file is run standalone (master/18 also set it)
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
+
 * ── CONTROL CONVENTION (aligned to $ctrl_core, as in 02/03/11/12/13c) ──────
 * Every regression below now carries the Asonuma-aligned common core
 *   $ctrl_core = l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open
