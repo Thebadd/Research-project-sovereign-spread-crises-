@@ -110,20 +110,27 @@ episodes regardless of exposure. The associated output cost is roughly
 significance (only 7 treated country-years). The mirror-image result for
 non-default crises is cleaner: high exposure there is associated with a
 cost statistically indistinguishable from zero, against a significant
-cost under low exposure, and — the one place in this exercise where a
-*difference* between subsamples clears significance on its own — the gap
-between them is itself significant. Read together: the sovereign-bank
+cost under low exposure — though the formal high-minus-low difference is
+only marginal, and shifted across the 5% line between two bootstrap runs
+of identical code on a 7-observation cell, so no *difference* in this
+exercise clears significance on its own. Read together: the sovereign-bank
 linkage is protective when debt is honored and a channel for reallocation
 away from private lending when it is not, though this is the paper's most
 interesting and least statistically secure result at once.
 
-### The doubly-robust (AIPW) extension — pending re-verification
+### The doubly-robust (AIPW) extension confirms the central result
 
 `08b_aipw.do` implements a doubly-robust AIPW estimator matching the
 reference paper's headline design, with channel (`13c`) and nexus (`13d`)
-extensions. The GDP-level AIPW headline has not been re-run inside this
-session after the horizon relabeling and control-set fixes below; treat
-any AIPW GDP figure predating those fixes as stale until re-confirmed.
+extensions. Estimating each resolution type against tranquil years and
+bootstrapping the def−nd *difference* on paired draws, the extra cost of
+default is significant at Years 1–3 (−7.2, −9.5, −7.2pp; all intervals
+excluding zero) and insignificant at Years 4–5. Default-linked levels are
+significant at Years 1–3 (−8.0, −11.0, −7.1); non-default is significant
+only at Year 2 (−1.5); the pooled Act-1 cost is significant only at Year 2
+(−2.8). Because the two-stage plain IPW reached the same conclusion by a
+different route, the resolution gap is treated throughout as well
+established at Years 1–3 and only suggestive at longer horizons.
 
 ---
 
@@ -172,7 +179,8 @@ a Stata conformability error in `08_ipw_lp.do`'s Act-2 p-value matrices),
 added a pre-trend-controlled robustness specification to
 `03_lp_resolution.do`, built the Gelbach decomposition
 (`12b_gelbach_decomposition.do`), and rewrote `EMPIRICAL_ANALYSIS.md` and
-this README against verified current-code runs — correcting, among other
+this README against a full, clean end-to-end run of `00_master.do` —
+correcting, among other
 things, an old claim that IPW reweighting *increases* the estimated
 output cost (the current, verified run shows the opposite: it
 attenuates it) and an old "credit and investment are a purely

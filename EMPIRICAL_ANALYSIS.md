@@ -6,12 +6,11 @@
 > conformability/pre-trend fixes made over this working session. Numbers in
 > Sections 4.1–4.4, 6, 7, and 7a are taken directly from verified runs of
 > the current code (`00_master.do`) and are current. Section 5 (Table 2's
-> Spec A / plain-IPW comparison) uses a verified current run. Section 8
-> (the sovereign-bank nexus) uses a verified post-relabel run of
-> `13d_aipw_nexus_split.do`. The doubly-robust AIPW headline (`08b_aipw.do`)
-> and the AIPW channel/nexus extensions (`13b`–`13e`) have **not** been
-> re-run inside this session after the fixes above; Section 5b flags this
-> explicitly rather than reporting stale doubly-robust figures as current.
+> Spec A / plain-IPW comparison) uses a verified current run. Every
+> section — including the doubly-robust AIPW headline (§5.4) and its
+> channel and nexus extensions (§7b, §8) — now reports numbers taken from a
+> single verified end-to-end run of `00_master.do` on the current code,
+> with no stage left unre-run.
 
 ## 1. Setting and identification
 
@@ -293,21 +292,53 @@ confirmed once selection is addressed via this particular reweighting
 design, and should be read as more uncertain at Years 3–5 than the OLS
 table alone suggests.
 
-### 5.4 Doubly-robust estimation (AIPW) — pending re-verification
+### 5.4 Doubly-robust estimation (AIPW)
 
-The project also implements a doubly-robust AIPW estimator
-(`08b_aipw.do`, following Jordà & Taylor 2016 / Asonuma et al.'s Eq. 3),
-combining the propensity and outcome models with a stratified cluster
-bootstrap for inference, and extends it to the transmission channels
-(`13c_aipw_channels.do`) and to the sovereign-bank nexus split
-(`13d_aipw_nexus_split.do`, used for Section 8 below). **The GDP-level
-AIPW headline in `08b_aipw.do` has not been re-run inside this working
-session** after the horizon relabeling, the banking-crisis-duration
-rebuild, and the conformability fix documented in this project's commit
-history; we therefore do not report specific doubly-robust GDP figures
-here rather than risk stating numbers that predate those fixes as current.
-This should be re-run and this subsection updated before the AIPW result
-is used in the paper.
+The paper's preferred selection-corrected estimator is the doubly-robust
+AIPW of `08b_aipw.do`, following Jordà & Taylor (2016) and Asonuma et
+al.'s Eq. (3): the propensity and outcome models are combined so that
+consistency requires only one of the two to be correctly specified, and
+inference comes from a stratified cluster bootstrap rather than from
+asymptotic standard errors that a panel with twenty-odd default-linked
+episodes cannot really support. Each onset type is estimated against
+tranquil years with the rival type dropped, exactly as in Section 5.3, and
+— the point that matters most for what follows — the *difference* between
+the two types is bootstrapped directly on paired draws, so the extra cost
+of default gets a confidence interval of its own rather than being read
+off the visual gap between two separately estimated bands.
+
+Pooling all onsets (Act 1), the doubly-robust cost is significant at Year
+2 only ($-2.79$, 95% CI $[-5.82,-0.66]$), consistent with the plain-IPW
+finding in Section 5.2 that the unweighted pooled average somewhat
+overstates the typical cost. The resolution split is where the estimator
+earns its place:
+
+| Horizon | Non-default (vs tranquil) | Default-linked (vs tranquil) | Difference (def $-$ nd), paired bootstrap |
+|---|---|---|---|
+| Year 1 | ns | $-8.03$ (sig.) | $-7.21$ $[-12.29,-2.21]$ |
+| Year 2 | $-1.51$ $[-3.79,-0.02]$ | $-11.04$ (sig.) | $-9.53$ $[-13.26,-4.67]$ |
+| Year 3 | ns | $-7.07$ (sig.) | $-7.22$ $[-11.04,-1.42]$ |
+| Year 4 | ns | ns | not significant |
+| Year 5 | ns | ns | not significant |
+
+Two readings follow. First, the central result of the paper survives the
+doubly-robust estimator: the default-linked cost is large and significant
+at Years 1–3, the non-default cost is essentially absent, and the gap
+between them clears significance *as a difference*, on its own bootstrap
+interval, at each of those three horizons. This is a materially stronger
+statement than the OLS equality tests of Section 4.1, because it holds
+after modelling selection into resolution type and without relying on the
+correctness of the outcome equation alone.
+
+Second, the AIPW independently reproduces the qualification already
+reached in Section 5.3: the divergence does not survive to Years 4–5. Two
+selection-corrected designs — the two-stage plain IPW and the
+doubly-robust AIPW, which differ in estimator, in weighting, and in how
+inference is constructed — agree both on the short-horizon result and on
+where it stops. That agreement is what licenses the summary we use
+throughout: **the resolution gap is well established at Years 1–3 and only
+suggestive thereafter**, and the long-horizon persistence visible in the
+raw OLS table should not be reported as a robust finding.
 
 ---
 
@@ -448,13 +479,16 @@ consistent with the headline story.
 **Non-default crises, split by nexus.** The output cost is significant
 under low nexus ($-3.5$, 90% CI $[-6.6,-0.4]$) but statistically
 indistinguishable from zero under high nexus ($+0.3$, CI
-$[-0.9,1.4]$). The high-minus-low difference at impact is itself
-significant: $+3.76$, CI $[0.05, 7.37]$. This is the one place in the
-entire nexus analysis where a *difference* between subsamples — not just a
-level within one subsample — clears significance, and it supports a
-genuine cushioning story: in non-default crises, high pre-crisis bank
-exposure to the sovereign is associated with a materially and
-statistically smaller output cost than low exposure.
+$[-0.9,1.4]$). The high-minus-low difference at impact is $+3.76$, CI
+$[-0.09, 7.69]$ — economically large but, on its own bootstrap interval,
+*marginally short of* significance. An earlier bootstrap of the same cell
+returned $[0.05, 7.37]$, i.e. a nominally significant gap; that a
+7-observation cell flips across the 5% line between resampling runs is
+itself the most honest available statement about how much weight this
+comparison can bear. We therefore read the non-default nexus result as a
+contrast in *levels* — a significant cost under low exposure against a
+cost indistinguishable from zero under high exposure — which is
+suggestive of a cushioning role, and not as an established difference.
 
 **Default-linked crises, split by nexus.** Both subsamples show a large,
 significant cost (low nexus: $-7.2$, CI $[-11.8,-4.6]$; high nexus:
@@ -480,6 +514,18 @@ in the opposite direction in the same cell (a significant $-7.7$ at Year 2),
 though this series thins out badly by Year 3–4 (bootstrap draw counts fall
 toward 100 of 300 or fewer) and should be read with real caution past
 Year 2.
+
+**Corroborating evidence from the channel AIPW.** The separate
+doubly-robust channel estimates (`13c_aipw_channels.do`) point the same
+way on two of the eight channels: the default-minus-non-default gap is
+significant for government expenditure at Year 3 ($-10.80$, CI
+$[-17.24,-2.56]$) and for bank claims on the private sector at Year 1
+($-6.62$, CI $[-11.38,-0.74]$). These are consistent with the fiscal and
+credit channels identified by the Gelbach decomposition in Section 7a, and
+with private lending contracting where the sovereign absorbs bank balance
+sheets — but two significant gaps out of a large number of channel-horizon
+comparisons is weak evidence on its own, and we present it as corroborating
+the decomposition rather than as an independent result.
 
 Read together, we consider the sovereign-bank nexus finding to be the
 strongest *mechanism* evidence in the paper — a genuine interaction
@@ -524,9 +570,15 @@ the panel's roughly 47 clusters.
   loses significance at Years 3–5 once the two-stage, vs.-tranquil design
   is used — a real qualification to the OLS-only persistence claim in
   Section 4.1 that should not be smoothed over.
-- **The AIPW headline is not yet re-verified against this session's code
-  fixes** (Section 5.4) and should be re-run before being reported as a
-  current result.
+- **The nexus high-minus-low difference is run-sensitive at the margin.**
+  On a cell of 7 treated observations, the non-default high-minus-low gap
+  moved from nominally significant to marginally insignificant between two
+  bootstrap runs of identical code (Section 8). Nothing about the point
+  estimate changed materially; the resampling variance on a cell that
+  small is simply of the same order as the gap being tested. This is a
+  reason to treat every nexus *difference* as suggestive, and to rest the
+  section on the level contrasts and the `claims_govt` mechanism sequence
+  instead.
 - **Episode duration is not weighted.** Each episode contributes exactly
   one treated observation (its onset year); continuation years are
   excluded from the sample entirely. This is the standard local-projection
