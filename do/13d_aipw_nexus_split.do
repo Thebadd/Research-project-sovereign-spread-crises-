@@ -27,8 +27,12 @@
 
   SMALL-SAMPLE CAVEAT: the default x {high,low} cells hold only a handful of events,
   so many bootstrap draws drop out. CIs are shown only when >=50 valid draws; else
-  the point estimate stands with a printed caveat. This thinness is the honest limit
-  vs Asonuma's 194 restructurings — read Part B as suggestive, Part A as the result.
+  the point estimate stands with a printed caveat. That threshold is ABSOLUTE, so
+  with nboot now at 1000 read the printed nd/nboot RATE, not just the count: 292
+  of 300 is a healthy cell, 292 of 1000 would mean seven draws in ten failed to
+  estimate and the surviving subset is not representative. This thinness is the
+  honest limit vs Asonuma's 194 restructurings — read Part B as suggestive, Part A
+  as the result.
 
   Coherence with the Asonuma replication (their Fig 6 / IPWRA engine): (a) each
   channel outcome model controls for the channel's own pre-crisis change pre_<v>
@@ -60,7 +64,34 @@ xtset cid year
 * chosen by inspecting results.
 set seed 20260819
 
-local nboot  = 300
+* ── DRAW COUNT: why 1000 and not 300 ───────────────────────────────────────
+* Seeding made the intervals reproducible; it did not make them RELIABLE, and
+* the seeded run showed why. Comparing it with the unseeded run -- identical
+* data, identical point estimates -- three cells crossed the 5% line purely on
+* the change of draws:
+*     GDP,         nd,  high-low, h=1 : [-0.088, 7.686] -> [ 0.167, 7.553]
+*     GDP,         def x high,    h=3 : [-20.07, -0.42] -> [-20.03, 0.057]
+*     claims_govt, def, high-low, h=3 : [-0.461, 12.758] -> [0.972, 12.764]
+* Two gained significance, one lost it. A verdict that depends on the seed is
+* not a verdict the data has delivered.
+*
+* The cause is Monte Carlo error in the percentile endpoint, not sampling
+* error in the estimate. At 300 draws the 2.5th percentile is about the 7th
+* smallest value, and in these cells only 235-274 draws survive estimation, so
+* it is roughly the 6th of 235 -- an order statistic estimated with enough
+* noise to move the endpoint by more than its distance from zero.
+*
+* Raising to 1000 cuts that noise by roughly a factor of sqrt(1000/300) ~ 1.8
+* and makes the endpoints stable across seeds. It does NOT narrow the
+* intervals: the width is driven by 7-10 treated observations per cell, which
+* no amount of resampling can improve. The gain is a reliable answer, not a
+* tighter one, and the small-cell caveat in Section 8.2 stands either way.
+*
+* Cost: runtime scales linearly, so ~3.3x the 300-draw run. This file is the
+* only one where cells are thin enough for the endpoint noise to decide
+* significance; 08b (500 draws, ~40 treated) and 13c (300, ~18) are not close
+* to the boundary and are left as they are.
+local nboot  = 1000
 local cx     $ctrl_core   // retained for reference; propensity baseline now passes `om' (strict parity)
 local cz     l_fedfunds l_reg_crisis_share past_onsets       // Act 1 predictors
 local cz_def l_fedfunds l_reg_crisis_share past_def_onsets   // resolution predictors
