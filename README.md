@@ -14,6 +14,7 @@ Using a panel of 52 emerging and frontier-market economies over 1994–2026 and 
 | `data/raw/`, `data/clean/` | Source workbooks and built panels (`panel_build.dta`, `panel_lp.dta`, per-result `irf_*.dta`). |
 | `output/tables/`, `output/figures/` | Generated Word/RTF tables and PDF/PNG figures. |
 | `RESULTS_SECTION_DRAFT.md` | Paper-ready Results section, continuous prose. |
+| `CLAUDE.md` | Project writing standard: how the methodology, results and robustness checks are to be written up, and the rule that the narrative follows the evidence rather than a prior. |
 | `METHODOLOGY.md` | Why each estimator exists, fixed effects and inference by stage, and every deviation from the reference paper with its reason. |
 | `EMPIRICAL_ANALYSIS.md` | Fuller internal reference: full methodology, every coefficient table, explicit limitations. |
 | `PAPER_FRAMING.md` | How the paper is positioned relative to Asonuma, Chamon, Erce & Sasahara (2024). |
