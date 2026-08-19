@@ -79,9 +79,17 @@ channel, columns by horizon, rows by type). The upgrades to reach their standard
 are (a) add Countries and Episodes next to Observations, (b) add the explicit
 pairwise-difference block, (c) consolidate into one multi-panel table.
 
-## 5. The four upgrades to build (roadmap — all approved, not yet implemented)
+## 5. The four upgrades (roadmap — status current as of the last full run)
 
-**A. Table 2-style main table (presentation only). [IN PROGRESS]**
+> **Status.** All four are now built and running in `00_master.do`. A, C and
+> D are complete; B is complete and, since the doubly-robust estimator now
+> carries the paper's headline result, is no longer an "upgrade" but the
+> preferred specification (see `METHODOLOGY.md` §1 and
+> `EMPIRICAL_ANALYSIS.md` §5.4). The per-item notes below are kept as a
+> record of what each involved; treat the bracketed tags, not the prose, as
+> the current state.
+
+**A. Table 2-style main table (presentation only). [DONE]**
 Consolidate the channel results into one multi-panel table: panels = outcomes,
 columns = horizons, rows = types; add an Observations/Countries/Episodes line
 per coefficient and a pairwise-difference block. Touches the table-export blocks
@@ -93,7 +101,7 @@ added to the resolution tables (Table 2 in `03`, Table 4 in `12`). The Clogg z
 is the analytic half of upgrade D; the bootstrap 95% CI is still to come.
 Still to do: optionally fold Tables 1–4 into a single stacked multi-panel file.
 
-**B. AIPW estimator (Jordà–Taylor 2016). [BUILT — do/08b_aipw.do]**
+**B. AIPW estimator (Jordà–Taylor 2016). [DONE — do/08b_aipw.do, extended in 13c/13d; now the paper's preferred estimator]**
 Doubly-robust AIPW combining the IPW term with the regression-adjustment term
 (their Eq. 3). Keep plain IPW (`08`) as a robustness row.
 
@@ -163,7 +171,7 @@ Wired in: `08` Act 1 (`controls_x` + `predictors_z`, ROC controls-only vs
 `11` Act 1 (predictors appended). Each reports the area under the ROC via `lroc`.
 Still to do: the OLS-full vs AIPW-restricted comparison lives with upgrade B.
 
-**D. Bootstrap + Clogg difference tests.**
+**D. Bootstrap + Clogg difference tests. [DONE — analytic Clogg z in 03/12; paired difference bootstrap in 08b/13c/13d]**
 Replace the single Wald `p(diff)` on β_def = β_nd with (i) a bootstrap 95% CI on
 the coefficient difference (`bsample`, ~1000 draws, percentile CI) and (ii) the
 Clogg et al. (1995) z-statistic `(b1 − b2)/sqrt(se1^2 + se2^2)`. Report both in

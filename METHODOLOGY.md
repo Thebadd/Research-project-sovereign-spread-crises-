@@ -1,0 +1,258 @@
+# Methodology
+
+> Why this paper uses several estimators, what question each one answers,
+> and exactly where the design departs from Asonuma, Chamon, Erce &
+> Sasahara (2024). `EMPIRICAL_ANALYSIS.md` reports the results;
+> `RESULTS_SECTION_DRAFT.md` is the paper-ready prose. This file is the
+> specification reference behind both.
+
+---
+
+## 1. The estimator ladder
+
+The paper runs five estimators. They are not competing refinements of one
+another, and the later ones are not "better versions" of the earlier ones.
+Each exists because the previous stage leaves a specific question
+unanswered. Read in order, they are three questions:
+
+**Question 1 — What is the average dynamic response to a spread crisis?**
+
+Jordà (2005) local projections, estimated horizon by horizon
+(`02_lp_all.do` for all onsets, `03_lp_resolution.do` for the non-default /
+default-linked split). This produces Figure 1, Figure 2 and Table 2 — the
+descriptive core of the paper. Everything downstream is a response to
+something this specification cannot settle on its own.
+
+**Question 2 — Is the comparison group legitimate, or is this selection?**
+
+The local projection compares crisis country-years to tranquil
+country-years conditional on controls. But countries that go on to default
+were already different: more indebted, weaker external positions, further
+into a banking crisis. If those same differences also drive future output,
+the LP coefficient blends the effect of the crisis with the effect of
+having been the kind of country that has one.
+
+Two estimators address this. Plain inverse-probability weighting
+(`08_ipw_lp.do`) models the probability of onset and reweights the control
+group to resemble the treated on observables. The doubly-robust AIPW
+estimator (`08b_aipw.do`, following Jordà & Taylor 2016 and Asonuma et
+al.'s Eq. 3) adds the outcome model back on top of the weighting, so the
+estimate is consistent if *either* the propensity model or the outcome
+model is correctly specified rather than requiring both. AIPW is the
+preferred selection-corrected specification; plain IPW is retained as the
+intermediate step and a robustness row.
+
+**Question 3 — Through what, and for whom?**
+
+Having established a cost and shown it is not an artifact of selection, the
+paper opens it up. The same projection is re-estimated on six intermediate
+outcomes (`11_channels.do`, split by resolution type in
+`12_channels_resolution.do`); a Gelbach (2016) decomposition
+(`12b_gelbach_decomposition.do`) asks how much of the default-linked GDP
+coefficient each channel statistically absorbs; and interaction and
+median-split designs (`13b`, `13c`, `13d`) ask whether the cost depends on
+pre-crisis bank exposure to the sovereign.
+
+So the sequence is: **establish it → check it is not selection → open it
+up.** Three questions, not one question estimated five ways.
+
+### AIPW here is for selection, not nonlinearity
+
+This distinction matters for how the estimator is justified in writing, and
+it is easy to get wrong because the applied local-projection literature
+often motivates AIPW the other way.
+
+Where the treatment is a *continuous* shock, researchers commonly define
+treatment by quantile — a large improvement is the top quartile, a large
+deterioration the bottom, with the middle 50% as the control group — and
+use AIPW to recover nonlinear, state-dependent effects. The benchmark in
+that design is the middle of the shock distribution, not a zero-shock
+counterfactual.
+
+**None of that applies here.** The treatment in this paper is binary: a
+spread crisis either begins in a given country-year or it does not. There
+is no distribution to split, and the control group is tranquil years — a
+genuine zero-treatment counterfactual. The reason for AIPW is entirely the
+selection problem set out under Question 2. A justification framed around
+nonlinearity or state dependence would not describe what this estimator is
+doing in this paper.
+
+### Why Eq. (3) is hand-coded rather than `teffects aipw`
+
+Stata's canned `teffects aipw` was considered and rejected for three
+reasons: it does not admit country fixed effects in the outcome model; it
+cannot produce a paired bootstrap of the *difference* between two treatment
+types, which is the quantity this paper actually tests; and it would not
+reproduce the reference paper's estimator, foreclosing a like-for-like
+comparison. The `_aipw` program in `08b_aipw.do` implements Eq. (3)
+directly, with the IPW-weighted outcome regression supplying the
+conditional means.
+
+---
+
+## 2. Fixed effects, by stage
+
+The split is by **estimator stage, not by Act**. This is the single most
+misread aspect of the design, so the table is authoritative:
+
+| Stage | Files | Fixed effects |
+|---|---|---|
+| Single-stage local projection | `02`, `03`, `06`, `07`, `12b`, `13b`, and the OLS halves of `11`, `11b`, `12` | country **and year** |
+| Two-stage IPW / AIPW | `08`, `08b`, `13c`, `13d`, and the IPW halves of `11`, `11b`, `12` | country **only** |
+
+Year fixed effects in the single-stage projections are a deliberate
+improvement on the reference paper, whose `$convar` carries country dummies
+(`c1-c74`) and no year dummies at all. They absorb every shock common to
+all countries in a given year — the global financial cycle, in particular —
+directly, rather than relying on a proxy.
+
+The two-stage estimators drop them to match the reference design exactly,
+so the doubly-robust results are comparable like-for-like with theirs.
+
+Note in particular that `03_lp_resolution.do` — the non-default /
+default-linked comparison behind Table 2 and Figure 2 — is **single-stage
+and does carry year fixed effects**. "The resolution split has no year FE"
+is not an accurate summary; the resolution split estimated *by the
+two-stage estimators* has none.
+
+---
+
+## 3. Inference, by stage
+
+Three layers, each protecting against something different.
+
+**Driscoll-Kraay** (`xtscc`, lag length `max(1, h+1)`) in every
+single-stage local projection. Clustering by country permits arbitrary
+correlation within a country over time but requires independence *across*
+countries within a year — close to untenable in a panel of emerging-market
+sovereign spreads, where a common global risk factor means a bad year for
+one borrower is systematically a bad year for the others. Driscoll-Kraay
+corrects for that cross-sectional dependence as well as for the serial
+correlation that grows mechanically with the horizon, which is why the lag
+length is tied to `h`. The full argument, with its qualifications, is in
+`EMPIRICAL_ANALYSIS.md` §1.
+
+This is a departure from the reference paper, which uses `vce(robust)` for
+its descriptive projections and `cluster(wdicode)` for its doubly-robust
+estimates. It is also a departure from the common recommendation to treat
+clustered errors as the baseline and Driscoll-Kraay as a strict robustness
+check. Leading with the conservative estimator is defensible here precisely
+because the headline result **survives** it: when the estimator that grants
+the fewest assumptions still rejects, reporting it as the baseline is a
+strength rather than a risk. Where results do weaken under Driscoll-Kraay —
+the Year 4–5 horizons — that is reported as weakening, not suppressed.
+
+**Cluster-robust** (`vce(cluster cid)`) in the two-stage estimators. This
+is mechanical rather than elective: `xtscc` does not accept probability
+weights, so an inverse-probability-weighted outcome regression cannot be
+estimated with it (see the note at `08_ipw_lp.do:186`). Those stages fall
+back to `areg ... absorb(cid) vce(cluster cid)`, which has the incidental
+benefit of matching the reference paper's inference for the same stage.
+
+**Stratified cluster bootstrap** (`bsample`, in `08b`, `13c`, `13d`) for
+the AIPW confidence intervals, and — the important case — for the
+default-minus-non-default *difference*, which is the quantity the paper's
+central claim rests on. Bootstrapping the difference on paired draws gives
+it an interval of its own, rather than inferring it from the visual gap
+between two separately estimated bands. With roughly twenty default-linked
+episodes, resampling is more defensible than asymptotic standard errors.
+
+One deviation worth recording: the reference paper's `bsample` carries no
+`cluster()` option and resamples individual rows within treatment-type
+strata. Ours resamples whole countries (`bsample, cluster(cid) strata(...)
+idcluster(_bid)`), which is the stricter choice given that observations
+within a country are plainly not independent.
+
+---
+
+## 4. Controls: the deviation map
+
+The reference paper's control object is:
+
+```stata
+global convar gdpg2 gov_exp2 open2 banking_duration2 credit_bank2 ///
+              hyperinf_dummy ex_dum1-ex_dum5 c1-c74
+```
+
+plus `g'v'_0`, the own-outcome pre-trend, added by hand in every regression
+and *not* inside `$convar`. Ours is:
+
+```stata
+global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp ///
+                  l_open l_credit_bank l_hyperinfl"
+```
+
+Six of the eight terms map one-to-one:
+
+| Ours | Theirs | Content |
+|---|---|---|
+| `l1_gdpg` | `gdpg2` | lagged real GDP growth |
+| `l_govexp` | `gov_exp2` | government expenditure / GDP, t−1 |
+| `l_open` | `open2` | trade openness, t−1 |
+| `l_banking_duration` | `banking_duration2` | years a Laeven–Valencia banking crisis has run, t−1 |
+| `l_credit_bank` | `credit_bank2` | bank credit to the private sector / GDP, t−1 |
+| `l_hyperinfl` | `hyperinf_dummy` | hyperinflation flag, t−1 |
+
+Three differences, each a choice with a reason:
+
+**We add `l_debt` and `l_ca`; they have neither.** Deliberate. Their
+treatment is a restructuring; ours is a market-priced spread crossing a
+threshold, and public debt and the external position are precisely what
+that spread is priced off. Omitting them would leave the most direct
+determinants of the treatment out of the conditioning set.
+
+**We lack their `ex_dum1`–`ex_dum5`; they have five.** Their bins are
+quintiles of `ln(1+L.exchange) − ln(1+L2.exchange)`, cut at the p5/p25/p50/
+p75/p95 of the restructuring sample. This is a nominal-depreciation
+control, and depreciation is bundled with default in ways that matter. This
+is the one **genuine gap** in the control set, and it is a data limitation
+rather than a design choice: the panel carries no nominal exchange-rate
+series. It should be stated as such rather than passed over.
+
+**The own-outcome pre-trend plays the same role in both.** Their `g'v'_0`
+is rebuilt per outcome as `L.var'v' - L2.var'v'`; our per-channel
+`pre_<var>` is the same object. For the GDP equation theirs coincides with
+`gdpg2` and is therefore entered twice; ours enters once via `l1_gdpg`.
+
+One further detail: their `hyperinf_dummy` is built as
+`replace hyperinf_dummy = 1 if L.inflation > 50` with no missing-value
+guard, so it reads 0 wherever inflation is missing. Ours is conditioned on
+`!missing(L.infl)`. The two are close but not identical, and ours is the
+more careful construction.
+
+### Excluded predictors
+
+Both papers exclude a set of predictors from the outcome equation so they
+can identify the propensity model. Theirs is
+`federal_funds2 cont_all2 past_preemp2`; ours is the lagged fed funds rate,
+a regional contagion measure, and a count of the country's own past onsets
+(`past_onsets`, or `past_def_onsets` for the resolution-type stage).
+
+The exclusion mechanism differs by stage in our design and should be
+described accordingly. In the **two-stage** files the predictors are
+excluded by simple omission from the outcome equation — the same mechanism
+the reference paper uses. In the **single-stage** projections there is no
+first stage at all, so nothing is being excluded there; the global cycle is
+absorbed by year fixed effects, which is why a pure time-series regressor
+would be redundant in those specifications rather than excluded from them.
+
+---
+
+## 5. Treatment definition
+
+Each episode contributes **exactly one treated observation**, its onset
+year; continuation years are dropped from the estimation sample entirely.
+The multi-year dynamics of an episode are traced through the horizon of the
+outcome, not through additional treated rows.
+
+This is the standard local-projection convention, but it has a consequence
+worth stating rather than discovering: a crisis lasting five years
+identifies the coefficient exactly as much as one lasting a single year, so
+episode duration is never a source of variation and the paper cannot speak
+to whether protracted crises are more costly than brief ones.
+
+Horizons are labelled so the crisis year itself is **Year 1**, matching the
+reference paper's convention. Year 0 is a hard-coded pre-crisis baseline,
+always zero and never estimated. A single genuinely estimable pre-trend
+placebo is reported at Year −1. Internal variable names (`dy_0`…`dy_4`) are
+unchanged — only the displayed axis is shifted.

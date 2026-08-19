@@ -57,12 +57,17 @@ growth, public debt/GDP, the current account/GDP, the number of years a
 systemic banking crisis has already run (Laeven–Valencia, zero-filled
 where no crisis is recorded), government expenditure/GDP, trade openness,
 bank credit depth, and a hyperinflation flag, all measured at $t-1$. Global
-financial conditions (fed funds, VIX, the US 10-year yield) are
-deliberately **excluded** from the outcome equation: year fixed effects
-absorb every shock common to all countries in a given year, so a pure
-time-series regressor would be redundant there — instead these variables
-enter only the first-stage propensity models used in Section 5, where they
-serve as excluded predictors. Standard errors in the single-stage local projections follow Driscoll and
+financial conditions (fed funds, VIX, the US 10-year yield) enter only the
+first-stage propensity models used in Section 5, where they serve as
+excluded predictors. The mechanism differs by stage and is worth stating
+precisely. The single-stage projections of this section have no first
+stage, so nothing is being *excluded* there in the identification sense: a
+pure time-series regressor would simply be redundant, because year fixed
+effects already absorb every shock common to all countries in a given year.
+In the two-stage estimators of Section 5, which carry country fixed effects
+but no year fixed effects, these variables are excluded from the outcome
+equation by omission — the same mechanism the reference paper uses, and the
+source of identification for the propensity model. Standard errors in the single-stage local projections follow Driscoll and
 Kraay (1998), with lag length $\max(1,h+1)$. This is a deliberate
 departure from the reference paper, which uses heteroskedasticity-robust
 errors for its descriptive projections and country-clustered errors for its
