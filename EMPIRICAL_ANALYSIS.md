@@ -62,10 +62,33 @@ deliberately **excluded** from the outcome equation: year fixed effects
 absorb every shock common to all countries in a given year, so a pure
 time-series regressor would be redundant there — instead these variables
 enter only the first-stage propensity models used in Section 5, where they
-serve as excluded predictors. Standard errors follow Driscoll and Kraay
-(1998), with lag length $\max(1,h+1)$, correcting for cross-sectional
-dependence and for serial correlation that mechanically grows with the
-horizon.
+serve as excluded predictors. Standard errors in the single-stage local projections follow Driscoll and
+Kraay (1998), with lag length $\max(1,h+1)$. This is a deliberate
+departure from the reference paper, which uses heteroskedasticity-robust
+errors for its descriptive projections and country-clustered errors for its
+doubly-robust estimates. Clustering by country is the weaker assumption in
+our setting: it permits arbitrary correlation within a country over time
+but requires independence *across* countries in a given year. In a panel of
+emerging-market sovereign spreads that assumption is close to untenable —
+spreads are driven by a common global risk factor, so a bad year for
+Argentina is systematically a bad year for Turkey, and the residuals are
+correlated in exactly the dimension country-clustering assumes away.
+Driscoll-Kraay corrects for that cross-sectional dependence as well as for
+the serial correlation that mechanically grows with the horizon (each
+$dy_h$ overlaps the next by construction), which is why the lag length is
+tied to $h$. Two qualifications belong with the choice rather than in a
+footnote. First, Driscoll-Kraay's asymptotics run in the *time* dimension,
+and this panel offers roughly 33 years; that is within the range where the
+estimator is conventionally applied, but it is not generous, and it is one
+reason the permutation placebo of Section 9 — which assumes nothing about
+the error structure at all — is reported alongside rather than as an
+afterthought. Second, the two-stage IPW and AIPW estimators of Section 5 do
+*not* use Driscoll-Kraay, and the reason is mechanical rather than
+discretionary: `xtscc` does not accept probability weights, so an
+inverse-probability-weighted outcome regression cannot be estimated with
+it. Those stages fall back to country-clustered errors, which has the
+incidental benefit of making the doubly-robust results directly comparable
+to the reference paper's, estimated the same way.
 
 The identifying assumption is that, conditional on fixed effects and the
 observable pre-crisis state, crisis onset is uncorrelated with unobserved

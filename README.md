@@ -165,9 +165,15 @@ established at Years 1–3 and only suggestive at longer horizons.
   are excluded from the outcome equation (absorbed by year FE) and enter
   only the first-stage propensity models.
 - **Driscoll-Kraay SEs** throughout the single-stage local projections
-  (`xtscc`, lag = $\max(1,h+1)$); country-fixed-effects-only outcome
-  models with cluster-robust SEs for the two-stage IPW/AIPW estimators,
-  matching the reference paper's design for that stage specifically.
+  (`xtscc`, lag = $\max(1,h+1)$) — a deliberate departure from the
+  reference paper's robust/country-clustered errors, because clustering by
+  country assumes independence *across* countries in a given year, which a
+  panel of EM spreads driven by a common global factor does not satisfy.
+  The two-stage IPW/AIPW estimators use country-fixed-effects-only outcome
+  models with cluster-robust SEs instead: `xtscc` does not accept
+  probability weights, so a weighted regression cannot use Driscoll-Kraay.
+  That constraint has the incidental benefit of matching the reference
+  paper's design for that stage exactly. See `EMPIRICAL_ANALYSIS.md` §1.
 
 ---
 
