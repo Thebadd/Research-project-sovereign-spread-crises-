@@ -10,7 +10,7 @@ Using a panel of 52 emerging and frontier-market economies over 1994–2026 and 
 
 | File / directory | Contents |
 |---|---|
-| `do/` | Stata pipeline. `10`–`18`: from-source panel build (see `DATA_SOURCES.md`). `02`–`13b`: main empirical analysis. `14`–`16`: structural model (calibration, VFI default solver, model-vs-data IRFs). |
+| `do/` | Stata pipeline. `10`–`18`: from-source panel build (see `DATA_SOURCES.md`). `02`–`13e`: main empirical analysis — this is what the paper reports. `14`–`16`: structural model, built but deferred out of the first version and commented out of the master. |
 | `data/raw/`, `data/clean/` | Source workbooks and built panels (`panel_build.dta`, `panel_lp.dta`, per-result `irf_*.dta`). |
 | `output/tables/`, `output/figures/` | Generated Word/RTF tables and PDF/PNG figures. |
 | `RESULTS_SECTION_DRAFT.md` | Paper-ready Results section, continuous prose. |
@@ -18,7 +18,7 @@ Using a panel of 52 emerging and frontier-market economies over 1994–2026 and 
 | `METHODOLOGY.md` | Why each estimator exists, fixed effects and inference by stage, and every deviation from the reference paper with its reason. |
 | `EMPIRICAL_ANALYSIS.md` | Fuller internal reference: full methodology, every coefficient table, explicit limitations. |
 | `PAPER_FRAMING.md` | How the paper is positioned relative to Asonuma, Chamon, Erce & Sasahara (2024). |
-| `THEORETICAL_APPROACH.md`, `THEORETICAL_MODEL.md`, `THEORETICAL_MODEL_SIMPLIFIED.md` | The structural sovereign-default model backing `14`–`16`. |
+| `THEORETICAL_APPROACH.md`, `THEORETICAL_MODEL.md`, `THEORETICAL_MODEL_SIMPLIFIED.md` | The structural sovereign-default model backing `14`–`16`. **Deferred: not part of the first version of the paper**, which is purely empirical. Retained for a later version; the corresponding lines in `00_master.do` are commented out. |
 | `DATA_SOURCES.md` | Provenance of every macro series: portal, exact indicator code, transform, coverage. |
 
 Run the full pipeline with `do "do/00_master.do"`.

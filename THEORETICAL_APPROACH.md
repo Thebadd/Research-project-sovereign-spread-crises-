@@ -1,5 +1,12 @@
 # 3. Theoretical Framework
 
+> **Scope note.** The structural model is **not part of the first version of
+> the paper**, which is purely empirical. This document, its companions, and
+> `do/14_calibration.do`–`do/16_model_irf.do` are retained for a later
+> version; the corresponding lines in `do/00_master.do` are commented out.
+> Nothing in `EMPIRICAL_ANALYSIS.md` or `RESULTS_SECTION_DRAFT.md` depends
+> on any of it.
+
 The framework consists of two blocks. The first is a quantitative sovereign default model in the tradition of Arellano (2008), which determines the equilibrium bond price schedule and classifies sovereign episodes as either resolved without default or culminating in debt restructuring, according to the government's optimal default policy $`d(B_t, y_t)`$. The second is a log-linear transmission block, adapted from Bocola (2016), which maps a sovereign spread path into output and credit responses through three channels: a balance-sheet channel operating through bank net worth, a working-capital channel operating through firm financing costs, and a capital-accumulation channel operating through investment. The two blocks are recursive: Block 1 supplies the spread paths; Block 2 is evaluated conditional on those paths, abstracting from feedback from real outcomes to sovereign risk. This formulation is consistent with a local projection identification strategy in which the sovereign spread is the forcing variable and real responses are estimated conditional on its realization.
 
 ---

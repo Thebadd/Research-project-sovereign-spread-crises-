@@ -78,7 +78,18 @@ do "$do/13c_aipw_channels.do"            // doubly-robust AIPW for the transmiss
 do "$do/13d_aipw_nexus_split.do"         // bank-intermediation heterogeneity: AIPW by sovereign-bank nexus (Asonuma Fig 6)
 do "$do/13e_nexus_mechanism_diagram.do"  // conceptual 2x2 schematic of the nexus x resolution mechanism
 
-* ── Structural model: calibration + nonlinear default block + transmission ──
-do "$do/14_calibration.do"      // calibrate params (literature + data moments)
-do "$do/15_solve_default.do"    // Arellano-style VFI: endogenous default & spread
-do "$do/16_model_irf.do"        // log-linear transmission; model vs. data IRFs
+* ── Structural model — DEFERRED, not part of the first version of the paper ──
+* The calibration, the Arellano-style VFI default block and the model-vs-data
+* IRF comparison are built and were running here, but the first version of the
+* paper is purely empirical: nothing in EMPIRICAL_ANALYSIS.md or
+* RESULTS_SECTION_DRAFT.md draws on them, so running them produced figures and
+* parameter files that no section cites, and 15_solve_default.do is the slowest
+* step in the pipeline by a wide margin.
+*
+* Commented out rather than removed. The three do-files and the three
+* THEORETICAL_*.md documents stay in the repository for a later version; to
+* bring them back, uncomment these lines. Nothing else in the pipeline depends
+* on their output, so the empirical chain runs identically without them.
+* do "$do/14_calibration.do"      // calibrate params (literature + data moments)
+* do "$do/15_solve_default.do"    // Arellano-style VFI: endogenous default & spread
+* do "$do/16_model_irf.do"        // log-linear transmission; model vs. data IRFs

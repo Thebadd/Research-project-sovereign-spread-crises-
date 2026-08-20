@@ -1,5 +1,12 @@
 # A Stylized Model of Sovereign Spread Crises With and Without Default
 
+> **Scope note.** The structural model is **not part of the first version of
+> the paper**, which is purely empirical. This document, its companions, and
+> `do/14_calibration.do`–`do/16_model_irf.do` are retained for a later
+> version; the corresponding lines in `do/00_master.do` are commented out.
+> Nothing in `EMPIRICAL_ANALYSIS.md` or `RESULTS_SECTION_DRAFT.md` depends
+> on any of it.
+
 **Theoretical Appendix** — *Companion to "The Aftermath of Sovereign Spread Crises With and Without Default"*
 
 ---
