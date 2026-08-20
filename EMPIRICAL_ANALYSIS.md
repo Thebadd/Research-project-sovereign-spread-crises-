@@ -639,8 +639,18 @@ their equality.
 One standard deviation more of the banking system committed to the sovereign
 before the crisis is associated with roughly **4.3 additional percentage
 points of lost output by Years 3–4 — but only where the crisis ends in
-default**. In non-default episodes the same exposure does nothing at any
-horizon ($\delta_{nd}$ never exceeds 0.7 and is never significant).
+default**.
+
+The non-default column is not empty, and reads in the opposite direction. At
+Year 1, $\delta_{nd}=0.700$ with a standard error of 0.254 — a $t$ of 2.76,
+significant, and *positive*: one standard deviation more pre-crisis exposure
+is associated with a **smaller** output loss when the crisis does not end in
+default. The effect fades to nothing by Year 3. So the nexus is not simply an
+amplifier. It cushions at impact where the debt is honoured and amplifies at
+medium horizons where it is not, and the equality test rejects at Years 3–4
+because by then the two have moved decisively apart. This two-sided reading
+was not anticipated when the test was written and emerged from the estimates;
+Section 8.2 finds the same asymmetry independently.
 
 Four features make this the cleanest nexus evidence in the paper:
 
@@ -658,7 +668,8 @@ Four features make this the cleanest nexus evidence in the paper:
    portfolio composition measure, not a size measure, so it does not scale
    with income the way credit/GDP does.
 4. **The difference is formally tested and rejects at two adjacent
-   horizons**, with the same sign and $\delta_{nd}\approx 0$ throughout. Two
+   horizons**, with the same sign, against a non-default interaction that is
+   zero or positive rather than negative at every horizon. Two
    neighbouring horizons agreeing is materially more convincing than one
    isolated cell, which matters given the multiple-testing arithmetic in
    §8.4.
@@ -680,28 +691,67 @@ form — splitting onsets at the median of the same nexus variable and
 estimating a doubly-robust AIPW output cost separately within each cell, with
 a stratified cluster bootstrap. The split is not a development proxy: the
 high-nexus bin contains Brazil, Mexico, Turkey and Indonesia alongside Ghana,
-Kenya and Zambia, and the composition check printed by that file confirms it.
+Kenya and Zambia, and the composition check printed by that file confirms it
+(mean nexus 6.9 in the low bin against 23.1 in the high).
 
 | Cell | Year 1 | Year 2 | Year 3 | Treated |
 |---|---|---|---|---|
-| Default × high nexus | −18.04 | −18.36 | −15.39 | 7 |
-| Default × low nexus | −7.20 | −10.80 | −3.57 | 10 |
-| Non-default × high | ≈ 0 | ≈ 0 | ≈ 0 | 18 |
-| Non-default × low | −3.49 | −3.48 | ns | 15 |
+| Default × high nexus | −18.04\* | −18.36\* | −15.39\* | 7 |
+| Default × low nexus | −7.20\* | −10.80\* | −3.57 | 10 |
+| Non-default × high | +0.27 | −0.89 | −0.15 | 18 |
+| Non-default × low | −3.49\* | −3.48\* | −1.10 | 15 |
 
-The point estimates are dramatic — the default-linked cost is roughly two and
-a half times deeper where the nexus is tight — and the sign agrees with §8.1.
-**But the high-minus-low difference does not clear significance at any
-horizon** (best case $[-17.79, 3.63]$ at Year 1), and the default×high cell
-rests on seven treated country-years with bootstrap draw counts falling to
-266 of 300. For the thinner channel outcomes in the same file the draws fall
-as low as 103 and one cell fails outright.
+\* bootstrap 95 percent interval excludes zero.
 
-We therefore report this as **robustness in sign, not independent
-confirmation**. It uses the stronger estimator and the weaker design; §8.1
-uses the weaker estimator and the stronger design, and only §8.1 produces a
-difference that can be tested. A doubly-robust estimator cannot rescue a
-seven-observation cell.
+**The two differences behave differently, and the asymmetry matches Section
+8.1.** In the *default* rows the point estimates are dramatic — the cost is
+roughly two and a half times deeper where the nexus is tight — but the
+high-minus-low difference **clears significance at no horizon**, the closest
+being $-10.85$ with an interval of $[-17.46, 3.06]$ at Year 1. That null is
+the most stable thing in the file: it holds identically across three separate
+bootstrap runs. Seven treated observations cannot support the comparison,
+however large the gap looks.
+
+In the *non-default* rows the difference is significant at Year 1: high nexus
+minus low nexus is $+3.76$ with an interval of $[0.55, 7.85]$. The cushioning
+result of Section 8.1 therefore appears twice, in two designs that share only
+the underlying variable — a continuous interaction estimated by OLS with
+Driscoll-Kraay errors, and a median split estimated doubly-robustly with a
+cluster bootstrap. Investment behaves the same way in the same cell
+($+16.68$, $[1.00, 33.72]$ at Year 1), which is what a cushion operating
+through the real economy should look like.
+
+**A reproducibility note, because it changed what we are willing to claim.**
+These intervals initially moved between runs of identical code. The file
+originally drew 300 bootstrap resamples and set no seed, so the random-number
+state at the start of any cell depended on what had run before it in the
+session. Three cells crossed the five percent line purely on the draws,
+including two reported above. Seeding fixed reproducibility without fixing
+reliability: at 300 draws the 2.5th percentile is roughly the seventh-smallest
+value, and in these cells only 235 to 274 draws survive estimation, so the
+endpoint carries enough Monte Carlo error to move it further than its distance
+from zero. Raising to 1000 draws resolved all four contested cells, and the
+direction of movement is itself informative. The non-default difference moved
+*away* from zero as precision improved ($[-0.09, 7.69]$ at 300 unseeded, then
+$[0.17, 7.55]$, then $[0.55, 7.85]$), which is the signature of a real effect
+emerging from noise. The `claims_govt` difference discussed in Section 8.3
+moved the other way, from $[0.97, 12.76]$ to $[0.37, 12.91]$, and is reported
+as marginal accordingly. More draws buy a reliable verdict, not a tighter
+interval: the widths are set by seven to eighteen treated observations per
+cell and no amount of resampling improves that.
+
+**Draw counts as a diagnostic.** With 1000 draws the printed survival rate
+matters more than the count. The GDP cells run 900 to 1000 valid draws and are
+sound. The `claimpriv_assets` default × high cell runs 384 of 1000 at Year 4
+and fails outright at Year 5; the corresponding difference runs 339. Those
+cells are not usable and we do not read them.
+
+We therefore report this section as **robustness in sign for the default
+amplification, and as independent confirmation for the non-default
+cushioning**. It uses the stronger estimator on the weaker sample; Section 8.1
+uses the weaker estimator on the stronger design. They agree on both halves of
+the asymmetry, and only Section 8.1 has the power to establish the
+default-side amplification on its own.
 
 ### 8.3 Mechanism: what banks actually do
 
@@ -727,6 +777,13 @@ $p=.016$, with the gap significant or marginal at every subsequent horizon).
 The non-default coefficient is significantly *positive* at Year 1 under AIPW
 ($+2.39$, CI $[0.72, 4.17]$).
 
+The high-minus-low difference on that same channel is significant at Year 3
+($+10.09$, $[0.37, 12.91]$), but only marginally, and it is the one contested
+cell whose interval moved *toward* zero as the draw count rose. We report it
+as suggestive rather than established, and the claim in this subsection rests
+on the level estimates above, which are significant at three consecutive
+horizons under every bootstrap run we have executed.
+
 Read together with §8.1 this is a coherent reallocation story: where banks
 entered the crisis heavily exposed to the sovereign and the crisis ends in
 default, they absorb more government paper and lend less to firms, and the
@@ -749,6 +806,18 @@ its own. What distinguishes the nexus result is that it is significant at two
 adjacent horizons with a consistent sign and a near-zero comparison group, and
 that a second, unrelated exposure design (§8.2) and the mechanism evidence
 (§8.3) point the same way.
+
+**The same arithmetic applies to the median split.** `13d` tests 5 outcomes ×
+3 resolution groups × 5 horizons = 75 high-minus-low differences, of which
+roughly four would clear five percent by chance. Three do: GDP and investment
+in the non-default cell at Year 1, and `claims_govt` in the default cell at
+Year 3. **That count is at, not above, the chance rate**, and we say so
+plainly rather than presenting three significant cells as three findings. What
+makes the non-default result usable is not its own $p$-value but that Section
+8.1 finds the identical effect in the identical direction on the same variable
+through a different estimator, and that GDP and investment — two outcomes
+linked by construction — move together in the same cell. Corroboration across
+designs is doing the work here, not significance within one.
 
 **One further exposure clears the same bar.** The short-term share of external
 debt — pure rollover vulnerability, with no development reading — shows the
