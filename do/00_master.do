@@ -29,6 +29,22 @@ global do    "$root/do"
 global figs  "$root/output/figures"
 global tabs  "$root/output/tables"
 
+* ── RUN LOG ────────────────────────────────────────────────────────────────
+* Capture every run to a timestamped file under output/logs/. Until this was
+* added the only record of a run was whatever happened to be copied out of the
+* Results window, which is a poor basis for a paper whose numbers are cited to
+* four decimal places -- and it made it impossible to tell, when an estimate
+* moved, whether the code or the session had changed.
+*
+* `name(master)' so a stray `log close' elsewhere cannot kill it. `nomsg'
+* keeps the header quiet. The file is plain text; the .smcl equivalent is not
+* used because these logs are meant to be greppable and diffable in git.
+capture log close master
+local stamp : display %tdCCYY-NN-DD daily("$S_DATE", "DMY")
+capture mkdir "$root/output/logs"
+log using "$root/output/logs/`stamp'_master.log", replace text name(master)
+di as result "Run log: $root/output/logs/`stamp'_master.log"
+
 * ── Asonuma-aligned common-core control set (outcome-model controls) ─────────
 * Used uniformly across all GDP + channel regressions. Also (re)defined in
 * 18_transforms.do; set here so analysis files run standalone after a build.
@@ -82,3 +98,7 @@ do "$do/13e_nexus_mechanism_diagram.do"  // conceptual 2x2 schematic of the nexu
 do "$do/14_calibration.do"      // calibrate params (literature + data moments)
 do "$do/15_solve_default.do"    // Arellano-style VFI: endogenous default & spread
 do "$do/16_model_irf.do"        // log-linear transmission; model vs. data IRFs
+
+* ── Close the run log ──────────────────────────────────────────────────────
+capture log close master
+di as result _n "Master complete. Full console output saved under output/logs/."
