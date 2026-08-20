@@ -61,7 +61,14 @@ do "$do/02a_descriptive_facts.do"   // stylised facts: raw output paths, no cont
 do "$do/02_lp_all.do"
 do "$do/03_lp_resolution.do"
 do "$do/04_graphs.do"
-do "$do/05_balance_table.do"
+* 05_balance_table.do — RETIRED, superseded by 02a_descriptive_facts.do.
+* It compared the two resolution groups on the legacy control list
+* (gdpg debt ca infl imf: contemporaneous levels plus the retired IMF dummy),
+* so its columns described variables the paper no longer conditions on. The
+* pre-crisis characteristics table in 02a covers the same ground on the actual
+* common core, all at t-1, with tranquil years as a reference column. Nothing
+* in the write-up cited balance_table.csv.
+* do "$do/05_balance_table.do"
 do "$do/06_robustness.do"
 do "$do/07_placebo.do"
 do "$do/08_ipw_lp.do"

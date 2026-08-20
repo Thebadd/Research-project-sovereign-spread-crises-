@@ -1,4 +1,27 @@
 /*===========================================================================
+  RETIRED — superseded by 02a_descriptive_facts.do
+  ---------------------------------------------------------------------------
+  This file is no longer called from 00_master.do and its output is not cited
+  anywhere in the paper.
+
+  Why: it compares the two resolution groups on the legacy control list
+  `gdpg l1_gdpg debt ca infl l_spr_mean imf fdi govexp` -- contemporaneous
+  levels of debt, the current account and inflation, plus the retired IMF-
+  programme dummy. The paper conditions on $ctrl_core, all measured at t-1, so
+  this table described variables the regressions no longer use. That is the
+  same defect that had 13_mechanisms.do running on a retired specification.
+
+  The replacement, in 02a_descriptive_facts.do, reports the same comparison on
+  the actual common core with tranquil years as a reference column and a t-test
+  on the nd-def difference, and exports descriptive_summary.csv.
+
+  Kept rather than deleted: the t-test loop and the export idiom are a working
+  template if a balance table on some other variable set is ever wanted. To
+  revive it, update the `balvars' local to $ctrl_core and uncomment the call in
+  00_master.do.
+===========================================================================*/
+
+/*===========================================================================
   05_BALANCE_TABLE.DO
   Pre-crisis balance: Non-Default vs. Default-Linked episodes
 
