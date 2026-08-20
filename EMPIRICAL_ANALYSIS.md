@@ -968,11 +968,17 @@ share of bank assets — a predetermined portfolio measure that carries no
 financial-development confound — one standard deviation of additional
 exposure is associated with roughly 4.3 percentage points of extra output
 loss by Years 3–4, and only in default-linked episodes; the equality test
-against non-default rejects at both horizons. A median-split doubly-robust
-estimate agrees in sign and is roughly two and a half times deeper in the
-high-exposure cell, but its difference does not clear significance on seven
-treated observations, so it is reported as robustness rather than as
-confirmation. The behaviour that would produce the effect is present:
+against non-default rejects at both horizons. The non-default column runs the
+other way and is significant at impact — high exposure is associated with a
+*smaller* loss where the debt is honoured — so the nexus cushions at short
+horizons and amplifies at medium ones, a two-sided reading that was not
+anticipated and emerged from the estimates. A median-split doubly-robust
+estimate reproduces both halves of that asymmetry. Its default difference is
+two and a half times deeper but does not clear significance on seven treated
+observations, and is reported as robustness rather than confirmation; its
+non-default difference does clear it at Year 1 and moved further from zero as
+the bootstrap draw count was raised from 300 to 1000, the pattern of a real
+effect emerging from Monte Carlo noise rather than one dissolving into it. The behaviour that would produce the effect is present:
 banks in the default × high-exposure cell increase government claims by 8
 to 17 percentage points of assets over Years 1–3 while contracting private
 lending, and the output amplification appears afterwards, at Years 3–4, as
