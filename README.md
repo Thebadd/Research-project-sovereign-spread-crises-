@@ -13,6 +13,7 @@ Using a panel of 52 emerging and frontier-market economies over 1994–2026 and 
 | `do/` | Stata pipeline. `10`–`18`: from-source panel build (see `DATA_SOURCES.md`). `02`–`13e`: main empirical analysis — this is what the paper reports. `14`–`16`: structural model, built but deferred out of the first version and commented out of the master. |
 | `data/raw/`, `data/clean/` | Source workbooks and built panels (`panel_build.dta`, `panel_lp.dta`, per-result `irf_*.dta`). |
 | `output/tables/`, `output/figures/` | Generated Word/RTF tables and PDF/PNG figures. |
+| `DATA_SECTION_DRAFT.md` | Paper-ready Data section, continuous prose: panel, crisis definition, the raw output paths, and pre-crisis characteristics by resolution type. |
 | `RESULTS_SECTION_DRAFT.md` | Paper-ready Results section, continuous prose. |
 | `CLAUDE.md` | Project writing standard: how the methodology, results and robustness checks are to be written up, and the rule that the narrative follows the evidence rather than a prior. |
 | `METHODOLOGY.md` | Why each estimator exists, fixed effects and inference by stage, and every deviation from the reference paper with its reason. |
@@ -56,9 +57,11 @@ formal equality test between the two rejects at four of five horizons.
 specific to, episodes that end in default.**
 
 **Pre-trend stress test.** A placebo test on pre-crisis growth finds a
-significant positive coefficient for default-linked episodes ($p=0.003$,
-a boom-before-the-bust pattern, not a pre-existing decline) and none for
-non-default. Because one lag of growth already sits in the baseline
+significant positive coefficient for default-linked episodes ($p=0.003$)
+and none for non-default. On this outcome's sign convention — output at
+$t-2$ minus output at the $t-1$ base — that is a pre-crisis *slowdown*:
+default-linked countries grew 1.21% in the year before onset against
+4.62% for non-default. Because one lag of growth already sits in the baseline
 controls, this window is mechanically absorbed already; adding a second,
 independent growth lag moves the default-linked coefficient by no more
 than 0.1pp at any horizon, with significance preserved throughout

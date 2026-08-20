@@ -149,10 +149,20 @@ point sitting above, not on, the zero line. Splitting by resolution type
 (Section 4) shows this is not a generic feature of crisis onset: it is
 concentrated in default-linked episodes specifically ($\hat\beta = 2.14$,
 $p=0.003$), and absent in non-default ones ($\hat\beta = 0.36$,
-$p=0.444$). We do not treat this as invalidating the design — it is a
-boom-before-the-bust pattern, not evidence that default-linked countries
-were already declining before the crisis — but it is exactly the kind of
-signal that warrants a direct stress test, which Section 4.3 provides.
+$p=0.444$). The sign has a concrete reading, and it is the unfavourable
+one. Because $dy^{-2}$ is constructed as $100\times(\ln Y_{t-2} - \ln
+Y_{t-1})$ on the same $t-1$ base as every other horizon, a positive value
+means output was *higher* two years before onset than in the base year:
+default-linked countries were already slowing going into their crises.
+The raw data agree — mean growth in the year before onset is 1.21% for
+default-linked episodes against 4.62% for non-default ($p=0.001$, Table
+1). This is a more serious pre-trend concern than a pre-crisis boom would
+have been, since a group already decelerating will mechanically post
+weaker cumulative growth afterwards whether or not the crisis resolution
+matters. It is also the reason one lag of GDP growth sits in the common
+core rather than being treated as optional, and the reason Section 4.2
+stress-tests the result against pre-trends that reach further back than a
+single lag can see.
 
 ---
 
@@ -234,12 +244,13 @@ treat the Year 4–5 coefficients in Table 2 as suggestive at best.
 ### 4.2 A pre-existing-trend concern, addressed directly
 
 Section 3 showed the pre-crisis placebo is significantly positive for
-default-linked episodes specifically — a boom, not a decline, but a real
-departure from zero nonetheless. Because one lag of GDP growth already
-enters the common core, this exact pre-crisis window (Year $-1$) is
-mechanically absorbed by the headline regression in Table 2 already; the
-open question was narrower — does the boom extend further back than a
-single lag can see, in a way the baseline specification cannot detect?
+default-linked episodes specifically, which on this outcome's sign
+convention means those countries were already decelerating before onset.
+Because one lag of GDP growth already enters the common core, this exact
+pre-crisis window (Year $-1$) is mechanically absorbed by the headline
+regression in Table 2 already; the open question was narrower — does the
+slowdown extend further back than a single lag can see, in a way the
+baseline specification cannot detect?
 
 We test this directly by adding a second, non-overlapping lag of GDP
 growth (the growth rate from $t-3$ to $t-2$ — genuinely separate
@@ -256,10 +267,10 @@ exact Table 2 specification:
 
 The default-linked coefficient moves by no more than 0.1 percentage
 points at any horizon and remains significant throughout. This indicates
-the boom detected in Section 3 is confined to the single window the
+the slowdown detected in Section 3 is confined to the single window the
 baseline specification already controls for; there is no evidence of a
-longer, uncontrolled pre-crisis pattern manufacturing the appearance of a
-post-crisis cost through simple mean reversion. We regard this as
+longer, uncontrolled pre-crisis deceleration whose simple continuation
+would manufacture the appearance of a post-crisis cost. We regard this as
 meaningfully strengthening, not merely qualifying, the central result of
 Section 4.1: the divergence in Figure 2 survives a direct stress test
 against the specific concern the placebo test raised.

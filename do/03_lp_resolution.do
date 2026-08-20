@@ -392,7 +392,11 @@ forvalues h = 0/4 {
 * for growth momentum TWO periods before onset?
 *
 * The pre-trend placebo above (dy_m2, displayed h=-1) found onset_def predicts
-* a significantly POSITIVE pre-crisis growth rate (a boom before the bust), even
+* a significantly POSITIVE value of dy_m2. Note the sign convention: dy_m2 is
+* 100*(ln_gdp(t-2) - ln_gdp(t-1)), so POSITIVE means output was HIGHER two years
+* before onset than in the t-1 base year — a pre-crisis SLOWDOWN, not a boom.
+* The raw means agree (l1_gdpg: 1.21 for default-linked vs 4.62 for non-default,
+* p=0.001, see 02a_descriptive_facts.do). This holds even
 * after excluding l1_gdpg from that placebo's own controls (dy_m2 is algebraically
 * -l1_gdpg, so l1_gdpg cannot be added to THAT regression without guaranteeing a
 * null by construction). The headline Act-2 regression above already includes
