@@ -85,6 +85,7 @@ do "$do/13b_exposure_heterogeneity.do"   // Tier-3: onset x pre-crisis channel e
 do "$do/13c_aipw_channels.do"            // doubly-robust AIPW for the transmission channels (matches 08b)
 do "$do/13d_aipw_nexus_split.do"         // bank-intermediation heterogeneity: AIPW by sovereign-bank nexus (Asonuma Fig 6)
 do "$do/13e_nexus_mechanism_diagram.do"  // conceptual 2x2 schematic of the nexus x resolution mechanism
+do "$do/13f_resolution_selection.do"     // does pre-crisis nexus exposure predict HOW a crisis resolves?
 
 * ── Structural model — DEFERRED, not part of the first version of the paper ──
 * The calibration, the Arellano-style VFI default block and the model-vs-data
