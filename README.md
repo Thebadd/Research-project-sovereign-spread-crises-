@@ -13,6 +13,7 @@ Using a panel of 52 emerging and frontier-market economies over 1994–2026 and 
 | `do/` | Stata pipeline. `10`–`18`: from-source panel build (see `DATA_SOURCES.md`). `02`–`13e`: main empirical analysis — this is what the paper reports. `14`–`16`: structural model, built but deferred out of the first version and commented out of the master. |
 | `data/raw/`, `data/clean/` | Source workbooks and built panels (`panel_build.dta`, `panel_lp.dta`, per-result `irf_*.dta`). |
 | `output/tables/`, `output/figures/` | Generated Word/RTF tables and PDF/PNG figures. |
+| `INTRODUCTION_DRAFT.md` | Paper-ready Introduction, continuous prose: motivation, design, headline results, and placement in the literature. |
 | `DATA_SECTION_DRAFT.md` | Paper-ready Data section, continuous prose: panel, crisis definition, the raw output paths, and pre-crisis characteristics by resolution type. |
 | `RESULTS_SECTION_DRAFT.md` | Paper-ready Results section, continuous prose. |
 | `CLAUDE.md` | Project writing standard: how the methodology, results and robustness checks are to be written up, and the rule that the narrative follows the evidence rather than a prior. |
