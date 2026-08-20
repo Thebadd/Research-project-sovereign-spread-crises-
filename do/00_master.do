@@ -57,6 +57,7 @@ do "$do/18_transforms.do"    // gdpg, lags, dy_h, pre-trends, sample -> panel_lp
 * ══════════════════════════════════════════════════════════════════════════
 * ANALYSIS (unchanged — all read $clean/panel_lp.dta produced by stage 18)
 * ══════════════════════════════════════════════════════════════════════════
+do "$do/02a_descriptive_facts.do"   // stylised facts: raw output paths, no controls (Data section)
 do "$do/02_lp_all.do"
 do "$do/03_lp_resolution.do"
 do "$do/04_graphs.do"
