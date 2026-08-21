@@ -117,10 +117,11 @@ di as result "Figure 3 saved."
 * ══════════════════════════════════════════════════════════════════════════
 * FIGURE 9 — FLOW SPECIFICATION (20_lp_flow.do)
 *
-* NOTE THE AXIS. This is not Figure 1 with more data. The treatment is being IN
-* a crisis in year t, so every treated row is its own reference and h=0 is
-* growth DURING that crisis year. h>0 is a forecast horizon from a treated row,
-* not time since onset — the label says so deliberately.
+* SAME AXIS AS FIGURE 1 (Year 0 = baseline t-1, Year 1 = the crisis year), so
+* the two can be laid over each other. But the Year-1 points are NOT the same
+* object: Figure 1's is the first year of every episode; this one pools the
+* first year of one episode with the fourth year of another, because the
+* treatment is being IN a crisis, not entering one.
 * ══════════════════════════════════════════════════════════════════════════
 capture confirm file "$clean/irf_flow.dta"
 if _rc {
@@ -129,22 +130,23 @@ if _rc {
 else {
     local c_flow "23 55 94"
     use "$clean/irf_flow.dta", clear
+    keep if horizon >= 0
     twoway ///
         (rarea lo95 hi95 horizon, color("`c_flow'%15") lwidth(none)) ///
         (rarea lo90 hi90 horizon, color("`c_flow'%25") lwidth(none)) ///
         (connected b horizon, lcolor("`c_flow'") lwidth(medthick) ///
             mcolor("`c_flow'") msize(medium) msymbol(circle)), ///
         yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
-        xlabel(0(1)4, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
-        xtitle("Forecast horizon h (h=0 = growth during the crisis year)", size(medsmall)) ///
+        xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
+        xtitle("Year (Year 1 = the crisis year)", size(medsmall)) ///
         ytitle("Change in log real GDP (pp)", size(medsmall)) ///
         title("Output While In a Sovereign Spread Crisis", size(medium)) ///
         subtitle("Treatment = every year of an episode (234 country-years, 61 episodes)", size(small)) ///
         note("Local projections, country and year FE, Driscoll-Kraay SE (lag max(2,h+3))." ///
              "Controls: lagged GDP growth, debt, current account, banking-crisis duration," ///
              "government spending, openness, bank credit, hyperinflation flag — all at t-1." ///
-             "h>0 is a horizon from a TREATED row, not time since onset: the estimate averages" ///
-             "over how long the country has already been in crisis. Not corrected for selection.", ///
+             "Same axis as Figure 1, but Year 1 is not the same object: it pools the first year of" ///
+             "one episode with the fourth year of another. Not corrected for selection.", ///
              size(vsmall)) ///
         legend(order(3 "Point estimate" 2 "90% CI" 1 "95% CI") ring(0) pos(1) size(small)) ///
         graphregion(color(white)) plotregion(color(white))
@@ -157,6 +159,7 @@ else {
     if _rc == 0 {
         use "$clean/irf_flow_nd.dta", clear
         append using "$clean/irf_flow_def.dta"
+        keep if horizon >= 0
         twoway ///
             (rarea lo90 hi90 horizon if series=="flow_nd",  color("`c_nd'%20")  lwidth(none)) ///
             (rarea lo90 hi90 horizon if series=="flow_def", color("`c_def'%20") lwidth(none)) ///
@@ -165,8 +168,8 @@ else {
             (connected b horizon if series=="flow_def", lcolor("`c_def'") mcolor("`c_def'") ///
                 msymbol(square) lpattern(dash) lwidth(medthick)), ///
             yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
-            xlabel(0(1)4, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
-            xtitle("Forecast horizon h (h=0 = growth during the crisis year)", size(medsmall)) ///
+            xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
+            xtitle("Year (Year 1 = the crisis year)", size(medsmall)) ///
             ytitle("Change in log real GDP (pp)", size(medsmall)) ///
             title("Output While In a Spread Crisis, by Resolution", size(medium)) ///
             subtitle("Joint specification; tranquil country-years omitted", size(small)) ///

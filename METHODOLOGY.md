@@ -318,16 +318,23 @@ controls. Treatment is *episode membership*, not the annual criterion flag
 `crisis_any`, which is 0 on 13 rows the episode-dating rule places inside an
 episode and would push mid-episode years into the control pool.
 
-At h=0 the outcome is growth **during** that crisis year, which is the object
-the research question names. For h>0 the estimate is the cumulative change over
-the next h years associated with being in a crisis year, averaged over how long
-the country has *already* been in crisis — it is **not** "h years after onset",
-because the row generating it is itself treated. Elapsed duration is an outcome
-of the crisis, so that average has no fixed economic referent, and the figures
-are labelled "by forecast horizon" accordingly. The horizon axis runs 0–4 with
-no hard-coded baseline, because under flow coding there is no before-and-after:
-every treated row is its own reference. It is therefore **not** comparable
-one-for-one with the Year 1–5 axis of Tables 1 and 2.
+The horizon convention is **the same as §5.1** — Year 0 the baseline, Year 1 the
+crisis year. `dy_h` is differenced against the row's own $t-1$, so $h=-1$ gives
+$y_{t-1}-y_{t-1}=0$ by construction for continuation rows exactly as for onset
+rows; the Year-0 zero is a genuine normalisation under either treatment. What
+differs is what the baseline year *is*: "the year before this crisis year"
+rather than "the year before the crisis started".
+
+At Year 1 the outcome is growth **during** that crisis year, which is the object
+the research question names. Beyond it, the estimate is the cumulative change
+from $t-1$ associated with being in a crisis year, averaged over how long the
+country has *already* been in crisis — it is **not** "years after onset",
+because the row generating it is itself treated, and elapsed duration is an
+outcome of the crisis. Sharing the axis lets Figure 9 be laid directly over
+Figure 1, but the two Year-1 coefficients are **not the same object**: the onset
+one is the first year of every episode, the flow one pools the first year of one
+episode with the fourth year of another. No pre-trend placebo is written at
+Year −1 (below).
 
 **The flow tier stops at the single-stage projection, deliberately.** For a
 time-varying treatment the strongest predictor of being in crisis at *t* is

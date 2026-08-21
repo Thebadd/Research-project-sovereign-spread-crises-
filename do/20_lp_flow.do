@@ -20,20 +20,24 @@
 
   HOW TO READ beta_h — AND WHAT IT IS NOT
   ---------------------------------------
-  At h=0 the outcome dy_0 is 100*(ln_gdp(t) - ln_gdp(t-1)), i.e. growth DURING
-  the crisis year in question. The onset row contributes growth in crisis year
+  Horizons follow the paper's convention: Year 1 is the crisis year (dy_0),
+  Year 0 is the baseline t-1 and is zero by construction. At Year 1 the outcome
+  is 100*(ln_gdp(t) - ln_gdp(t-1)), i.e. growth DURING the crisis year in
+  question. The onset row contributes growth in crisis year
   1, the next row growth in crisis year 2, and so on. This is the cleanest
   reading in the file and it is exactly the object the research question names.
 
-  For h>0 the interpretation changes, and the change must not be papered over.
-  beta_h is NOT "the response h years after onset", because the row generating
-  it is itself already treated: a row three years into an episode contributes a
-  window measured from a baseline that is itself a crisis year. beta_h is the
-  cumulative change over the next h years associated with being in a crisis
+  Beyond Year 1 the interpretation changes, and the change must not be papered
+  over. beta_h is NOT "the response h years after onset", because the row
+  generating it is itself already treated: a row three years into an episode
+  contributes a window whose baseline is itself a crisis year. It is the
+  cumulative change over the following years associated with being in a crisis
   year, averaged over how long the country has ALREADY been in crisis. Since
   elapsed duration is itself an outcome of the crisis, that average has no fixed
-  economic referent. Hence the labelling used throughout this file and in the
-  figures: "by forecast horizon", never "years after onset".
+  economic referent. The axis is shared with Tables 1 and 2 so the two designs
+  can be compared directly, but the two Year-1 coefficients are NOT the same
+  object: the onset one is the first year of every episode, the flow one pools
+  the first year of one episode with the fourth year of another.
 
   WHAT THIS DESIGN DOES NOT IDENTIFY
   ----------------------------------
@@ -180,16 +184,22 @@ di as result "  It is not the annual criterion flag — see the note in 18_trans
 * ══════════════════════════════════════════════════════════════════════════
 local controls $ctrl_core
 
-* HORIZON CONVENTION DIFFERS FROM 02/03, DELIBERATELY.
-* The onset design displays Year 0 as a hard-coded pre-crisis baseline and
-* Year 1 as the crisis year, because there the treatment is an event with a
-* before and an after. Flow coding has no such baseline: every treated row is
-* its own reference, and h=0 is growth during whichever crisis year that row
-* represents. So horizons here run 0..4 with nothing hard-coded, and h is NOT
-* comparable one-for-one with the Year 1..5 axis in Tables 1 and 2.
-local nhor = 5
+* HORIZON CONVENTION — IDENTICAL TO 02/03 AND TO THE REFERENCE PAPER.
+* dy_h is differenced against the row's own t-1, so plugging h=-1 into the same
+* formula gives y(t-1) - y(t-1) = 0 by construction, for continuation rows
+* exactly as for onset rows. The Year-0 zero is therefore a real normalisation
+* here, not a fiction: what changes under flow coding is only what that baseline
+* year IS — "the year before this crisis year" rather than "the year before the
+* crisis started". So the axis matches Tables 1 and 2: Year 0 = 0, Year 1 = the
+* crisis year in question (dy_0), out to Year 5 (dy_4). Figure 9 can be laid
+* directly over Figure 1.
+*
+* Row 1 (displayed Year -1) stays MISSING: the pre-trend placebo is not
+* estimable under flow coding (see header), so nothing is written there.
+local nhor = 7
 foreach m in b se lo90 hi90 lo95 hi95 {
     matrix `m'_flow = J(`nhor', 1, .)
+    matrix `m'_flow[2, 1] = 0
 }
 
 tempname F
@@ -200,14 +210,14 @@ postfile `F' str16 spec str14 term int hdisp double b double se double p ///
 di as result _n "════════════════════════════════════════════════════════════"
 di as result "1. POOLED — output while in a spread crisis, by forecast horizon"
 di as result "════════════════════════════════════════════════════════════"
-di as result "  h=0 is growth DURING the crisis year. h>0 is the cumulative"
-di as result "  change over the next h years associated with a crisis year —"
-di as result "  NOT 'h years after onset' (the row is itself treated)."
+di as result "  Year 1 is growth DURING the crisis year. Later years are the"
+di as result "  cumulative change from t-1 associated with a crisis year — NOT"
+di as result "  'years after onset': the row generating it is itself treated."
 di as result ""
 
 forvalues h = 0/4 {
-    local hd  = `h'
-    local row = `h' + 1
+    local hd  = `h' + 1
+    local row = `h' + 3
     local lag = max(2, `h' + 3)
 
     capture noisily xtscc dy_`h' in_crisis `controls' i.year ///
@@ -301,6 +311,7 @@ else di as result "  MATCH (difference " %9.2e `gap0' ") — treatment and sampl
 foreach g in nd def {
     foreach m in b se lo90 hi90 lo95 hi95 {
         matrix `m'_flow_`g' = J(`nhor', 1, .)
+        matrix `m'_flow_`g'[2, 1] = 0
     }
 }
 matrix pdiff_flow = J(5, 1, .)
@@ -310,8 +321,8 @@ di as result "3. BY RESOLUTION TYPE — joint, tranquil omitted"
 di as result "════════════════════════════════════════════════════════════"
 
 forvalues h = 0/4 {
-    local hd  = `h'
-    local row = `h' + 1
+    local hd  = `h' + 1
+    local row = `h' + 3
     local lag = max(2, `h' + 3)
 
     capture noisily xtscc dy_`h' in_crisis_nd in_crisis_def `controls' i.year ///
@@ -420,7 +431,7 @@ di as result "4. ROBUSTNESS (pooled, h=0 and h=2 shown; all horizons in the CSV)
 di as result "════════════════════════════════════════════════════════════"
 
 forvalues h = 0/4 {
-    local hd = `h'
+    local hd = `h' + 1
 
     * (a) onset-design lag, then country clustering
     capture quietly xtscc dy_`h' in_crisis `controls' i.year if sample_flow==1, fe lag(`=max(1,`h'+1)')
@@ -469,14 +480,15 @@ postclose `F'
 capture esttab f1_h0 f1_h1 f1_h2 f1_h3 f1_h4 using "$tabs/table9_flow_lp.rtf", replace ///
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
     keep(in_crisis) coeflabel(in_crisis "In a spread crisis") ///
-    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+    mtitles("Year 1" "Year 2" "Year 3" "Year 4" "Year 5") nonumber ///
     stats(nep ncty nrow N, labels("Episodes" "Countries" "Treated country-years" "Observations") fmt(0 0 0 0)) ///
     title("Table 9. Output while in a sovereign spread crisis (flow specification)") ///
     addnotes("Dependent variable: cumulative change in log real GDP (pp) from t-1 to t+h." ///
              "Treatment = 1 in EVERY year of an episode, onset and continuation alike (234 country-years)." ///
-             "h=0 is growth DURING the crisis year. h>0 is the cumulative change over the next h years" ///
-             "associated with being in a crisis year, NOT the response h years after onset: the row is" ///
-             "itself treated, so the estimate averages over how long the country has already been in crisis." ///
+             "Horizons follow Tables 1-2: Year 0 is the baseline t-1 (zero by construction), Year 1 is the" ///
+             "crisis year. Year 1 here is growth DURING a crisis year, but it pools the first year of one" ///
+             "episode with the fourth year of another, so it is NOT the same object as Year 1 in Table 1." ///
+             "Later years are cumulative changes from t-1, not responses h years after onset." ///
              "Country and year fixed effects. Driscoll-Kraay SE, lag max(2,h+3): h+1 for the overlap of" ///
              "outcome windows plus 2 for serial correlation of the treatment within an episode." ///
              "Report episodes and countries, not rows: 234 treated rows carry 61 episodes in 52 countries." ///
@@ -490,7 +502,7 @@ capture esttab f2_h0 f2_h1 f2_h2 f2_h3 f2_h4 using "$tabs/table9_flow_lp.rtf", a
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
     keep(in_crisis_nd in_crisis_def) ///
     coeflabel(in_crisis_nd "In a non-default crisis" in_crisis_def "In a default-linked crisis") ///
-    mtitles("h=0" "h=1" "h=2" "h=3" "h=4") nonumber ///
+    mtitles("Year 1" "Year 2" "Year 3" "Year 4" "Year 5") nonumber ///
     stats(bdiff pdiff nepnd nepdef N, ///
           labels("Difference (def - nd)" "p-value of difference (lincom)" ///
                  "Episodes, non-default" "Episodes, default-linked" "Observations") fmt(3 3 0 0 0)) ///
@@ -519,7 +531,7 @@ foreach g in flow flow_nd flow_def {
     preserve
         clear
         set obs `nhor'
-        gen horizon = _n - 1
+        gen horizon = _n - 2
         foreach m in b se lo90 hi90 lo95 hi95 {
             svmat `m'_`g', names(`m')
             rename `m'1 `m'
