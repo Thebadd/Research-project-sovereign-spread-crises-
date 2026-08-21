@@ -90,6 +90,34 @@
     "$clean/irf_aipw_flow_def.dta"   default-linked AIPW IRF
     "$figs/fig10_aipw_flow.pdf/.png" the two-line resolution split
 
+  INFERENCE — SPLIT EXACTLY AS THE REFERENCE PAPER SPLITS IT
+  ----------------------------------------------------------
+  LEVELS (each type vs tranquil): analytic influence-function SE, built inside
+  the AIPW loop the way they build it —
+      sum dr1 ; gen Isq = (dr1 - mean)^2 ; sum Isq ; se = sqrt(r(mean)/r(N))
+  with bands theta +/- 1.96*se. This is what stands behind their Fig. 4, and
+  the same se feeds their Clogg z.
+
+  DIFFERENCE (def - nd): 1000-draw stratified cluster bootstrap, percentile CI.
+  Their bootstrap file computes each type per draw and the post-processing file
+  uses those draws ONLY to form the between-type contrasts and take
+  centile(2.5 97.5). Nothing about their level CIs touches the bootstrap.
+
+  ONE THING TO KNOW ABOUT THEIR ANALYTIC SE: it is UNCLUSTERED — sqrt of the
+  mean squared influence function over ROWS. Their own code computes a
+  clustered version (`reg dr1 ATE_IPWRA, nocons cluster(wdicode)') and then does
+  not use it. With repeated country-year observations that understates the
+  standard error, and flow coding makes it worse, because 234 treated rows still
+  carry only 61 episodes in 52 countries. The per-type BOOTSTRAP SD is therefore
+  printed beside the analytic SE at every horizon. It is a diagnostic and is not
+  used for any interval: if the two are close the concern is mild; if the
+  bootstrap SD is much larger, the paper's construction is optimistic on this
+  sample and the write-up must say so rather than quoting the narrower band.
+
+  08b_aipw.do takes the other route — bootstrap for the levels too — as a
+  deliberate departure from the paper on thin cells. Two files, two documented
+  choices: 08b conservative, this one faithful.
+
   SELF-CONTAINED: this file reads nothing but $clean/panel_lp.dta. It does not
   depend on 08b_aipw.do or 20_lp_flow.do having been run, and does not compare
   itself to either; any such comparison belongs in the write-up, not the code.
@@ -162,9 +190,24 @@ program define _aipw, rclass
         ( `D'*`y'/`ps' - (1-`D')*`y'/(1-`ps') ) ///
       - ( (`D'-`ps')/(`ps'*(1-`ps')) )*( (1-`ps')*`m1' + `ps'*`m0' ) ///
         if `touse'
+    * Point estimate = the mean of the summand. Store BOTH returned scalars in
+    * locals before anything else touches r(), then build the paper's analytic
+    * standard error from the influence function:
+    *     sum dr1 ; gen Isq = (dr1-mean)^2 ; sum Isq ; se = sqrt(r(mean)/r(N))
+    * This is the SE behind the level CIs in their Fig. 4 and behind their
+    * Clogg z. It is UNCLUSTERED — see the header.
     quietly summarize `summ' if `touse', meanonly
-    return scalar theta = r(mean)
-    return scalar N     = r(N)
+    local th = r(mean)
+    local nn = r(N)
+
+    tempvar isq
+    quietly gen double `isq' = (`summ' - `th')^2 if `touse'
+    quietly summarize `isq' if `touse', meanonly
+    local sean = sqrt(r(mean)/r(N))
+
+    return scalar theta = `th'
+    return scalar N     = `nn'
+    return scalar se    = `sean'
 end
 
 capture program drop _mkstrat
@@ -198,14 +241,16 @@ program define _aipwpairflow, rclass
         return scalar ok = 0
         exit
     }
-    local b1 = r(theta)
+    local b1  = r(theta)
+    local a1  = r(se)
     capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(cid)
     if _rc {
         return scalar ok = 0
         exit
     }
-    local b2 = r(theta)
-    local dh = `b1' - `b2'
+    local b2  = r(theta)
+    local a2  = r(se)
+    local dh  = `b1' - `b2'
 
     _mkstrat `d1' `d2', generate(_strat)
     tempname pf
@@ -251,6 +296,8 @@ program define _aipwpairflow, rclass
     return scalar dh = `dh'
     return scalar b1 = `b1'
     return scalar b2 = `b2'
+    return scalar a1 = `a1'
+    return scalar a2 = `a2'
     return scalar se = `se'
     return scalar lo = `lo'
     return scalar hi = `hi'
@@ -392,7 +439,8 @@ di as result "  being correctly specified rather than on the weighting."
 di as result _n "════════════════════════════════════════════════════════════"
 di as result "3. FLOW AIPW BY RESOLUTION TYPE (Year 1 = the crisis year)"
 di as result "════════════════════════════════════════════════════════════"
-di as result "Year   ND        DEF       def-nd    [95% boot CI]        Clogg z     p     draws"
+di as result "Year   ND (se_a)          DEF (se_a)         def-nd   [95% boot CI]      Clogg z    p     draws"
+di as result "       se_a = analytic influence-function SE (the paper's); sd_b = bootstrap SD (diagnostic)"
 
 forvalues h = 0/4 {
     local row = `h' + 1
@@ -413,8 +461,10 @@ forvalues h = 0/4 {
     * earlier files in this project acquired silent bugs.
     local B1 = r(b1)
     local B2 = r(b2)
-    local S1 = r(s1)
-    local S2 = r(s2)
+    local A1 = r(a1)      // analytic influence-function SE, def  (the paper's)
+    local A2 = r(a2)      // analytic influence-function SE, nd
+    local S1 = r(s1)      // bootstrap SD, def  (diagnostic only)
+    local S2 = r(s2)      // bootstrap SD, nd   (diagnostic only)
     local DH = r(dh)
     local SE = r(se)
     local LO = r(lo)
@@ -423,38 +473,44 @@ forvalues h = 0/4 {
 
     matrix Fdef_b[`row',1]  = `B1'
     matrix Fnd_b[`row',1]   = `B2'
-    matrix Fdef_se[`row',1] = `S1'
-    matrix Fnd_se[`row',1]  = `S2'
+    matrix Fdef_se[`row',1] = `A1'
+    matrix Fnd_se[`row',1]  = `A2'
     matrix Fdiff_b[`row',1]  = `DH'
     matrix Fdiff_se[`row',1] = `SE'
     matrix Fdiff_lo[`row',1] = `LO'
     matrix Fdiff_hi[`row',1] = `HI'
 
-    * +/-1.96 bootstrap SD around each level line (the difference gets a proper
-    * percentile CI above; these bands are for the figure only).
-    matrix Fnd_lo[`row',1]  = `B2' - 1.96*`S2'
-    matrix Fnd_hi[`row',1]  = `B2' + 1.96*`S2'
-    matrix Fdef_lo[`row',1] = `B1' - 1.96*`S1'
-    matrix Fdef_hi[`row',1] = `B1' + 1.96*`S1'
+    * Level CIs = theta +/- 1.96 * ANALYTIC SE, which is how the reference paper
+    * bands its Fig. 4 (`up = irf + 1.96*se'). The bootstrap is reserved for the
+    * DIFFERENCE, exactly as they reserve it: their bootstrap draws are used only
+    * to form the between-type contrasts and take centile(2.5 97.5).
+    matrix Fnd_lo[`row',1]  = `B2' - 1.96*`A2'
+    matrix Fnd_hi[`row',1]  = `B2' + 1.96*`A2'
+    matrix Fdef_lo[`row',1] = `B1' - 1.96*`A1'
+    matrix Fdef_hi[`row',1] = `B1' + 1.96*`A1'
 
-    * Clogg et al. (1995) z — the PERMISSIVE statistic, reported for
-    * comparability with the reference paper, which gives both. It treats the
-    * two cells as independent; they are not, because they share the tranquil
-    * control pool. The bootstrap percentile CI above is the conservative and
-    * preferred number, and where the two disagree the write-up says so.
+    * Clogg et al. (1995) z, built from the ANALYTIC SEs — their construction is
+    *     clogg = (irf1 - irf2)/(se1^2 + se2^2)^0.5
+    * with se the same influence-function SE used for the level bands. It is the
+    * PERMISSIVE statistic: it treats the two cells as independent, and they are
+    * not, since they share the tranquil control pool. The bootstrap percentile
+    * CI is the conservative number and governs where the two disagree.
     local zz = .
     local pz = .
-    if !missing(`S1') & !missing(`S2') & (`S1'^2 + `S2'^2) > 0 {
-        local zz = `DH' / sqrt(`S1'^2 + `S2'^2)
+    if !missing(`A1') & !missing(`A2') & (`A1'^2 + `A2'^2) > 0 {
+        local zz = `DH' / sqrt(`A1'^2 + `A2'^2)
         local pz = 2*(1 - normal(abs(`zz')))
         matrix Fdiff_z[`row',1] = `zz'
         matrix Fdiff_p[`row',1] = `pz'
     }
 
     local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
-    di as result "  " %1.0f `hd' "   " %8.3f `B2' "  " %8.3f `B1' "  " %8.3f `DH' ///
-                 "  [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
-                 "  " %7.3f `zz' "  " %5.3f `pz' "  " %4.0f `ND'
+    di as result "  " %1.0f `hd' "  " %8.3f `B2' " (" %5.3f `A2' ")  " ///
+                 %8.3f `B1' " (" %5.3f `A1' ")  " %8.3f `DH' ///
+                 " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
+                 " " %7.3f `zz' " " %5.3f `pz' " " %4.0f `ND'
+    di as result "        bootstrap SD for comparison:  nd " %6.3f `S2' ///
+                 "   def " %6.3f `S1'
 }
 
 di as result _n "  * = bootstrap 95% percentile CI for the gap excludes zero."
@@ -539,8 +595,11 @@ preserve
         title("Output While In a Spread Crisis, by Resolution", size(medium)) ///
         subtitle("AIPW — the reference paper's Eq. (3). Tranquil country-years omitted.", size(small)) ///
         `yrng' ///
-        note("95% CIs (+/-1.96 bootstrap SD, paired stratified cluster resamples), as in the" ///
-             "reference paper. The AIPW half of a matched pair: this is the analogue of their" ///
+        note("95% CIs: theta +/- 1.96 x the analytic influence-function SE, the construction" ///
+             "behind the reference paper's Fig. 4. The bootstrap is reserved for the def-nd" ///
+             "difference, as it is in their design. Note their SE is unclustered; the per-type" ///
+             "bootstrap SD is printed in the log for comparison." ///
+             "The AIPW half of a matched pair: this is the analogue of their" ///
              "Fig. 4, and fig9b_irf_flow_resolution.pdf (20_lp_flow.do) is their Fig. 3 — the same" ///
              "object estimated by OLS. Same treatment, same axis, same scale, so the two read side" ///
              "by side and the estimator is the only thing that differs." ///
