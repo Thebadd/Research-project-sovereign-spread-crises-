@@ -38,15 +38,18 @@ Our sample covers 52 emerging and frontier economies over 1994–2026 and 61
 spread-crisis episodes, of which 40 were resolved without default and 21
 coincided with or were followed by default or distressed restructuring. An
 episode begins when a country's J.P. Morgan EMBI Global spread crosses either
-an absolute threshold of a thousand basis points or the ninety-ninth
-percentile of that country's own historical spread distribution. Requiring
-either rather than both keeps episodes that are severe in level alongside
-episodes that are severe relative to a country's own history, which is the
-union the definition is meant to capture; an absolute criterion alone would
-select persistently high-spread sovereigns and miss sudden repricings of
-normally tight ones. We estimate impulse responses by local projections
-(Jordà, 2005), with each episode contributing a single treated observation at
-its onset year and tranquil country-years as controls.
+of two thresholds: a level threshold of a thousand basis points, following
+Pescatori and Sy (2007), or a repricing threshold of 378 basis points on the
+quarter-on-quarter change, which Horn, Reinhart and Trebesch (2021) calibrate
+as the ninety-ninth percentile of pooled quarterly spread changes across 45
+economies. Requiring either rather than both captures both sustained distress
+and sudden repricing; a level criterion alone would select persistently
+high-spread sovereigns and miss the violent repricing of countries whose
+spreads are normally tight. Episodes are dated following Detragiache and
+Spilimbergo (2001), which bridges a single non-crisis year so that one
+prolonged distress is not fragmented into several artificial episodes. We
+estimate impulse responses by local projections (Jordà, 2005), with tranquil
+country-years as controls.
 
 The pooled response is modest. Averaged across all 61 episodes, a spread
 crisis is followed by a cumulative output shortfall of two to three

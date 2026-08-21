@@ -56,6 +56,17 @@ pre-crisis bank exposure to the sovereign.
 So the sequence is: **establish it → check it is not selection → open it
 up.** Three questions, not one question estimated five ways.
 
+**Question 4 — What does it cost to be *in* one?**
+
+The three questions above all treat a crisis as an event. `20_lp_flow.do` asks
+the state question instead: with treatment set to 1 in every year of an
+episode, what is output doing while a country is in a spread crisis? This is a
+different estimand, not a refinement of the first three, and it sits on a
+different rung. Questions 1–3 identify, subject to the selection correction;
+Question 4 describes, because no propensity model for a time-varying treatment
+is well-posed here (§5.2). Where the two disagree, the onset tier carries the
+claim and the disagreement is itself reported.
+
 ### AIPW here is for selection, not nonlinearity
 
 This distinction matters for how the estimator is justified in writing, and
@@ -183,6 +194,22 @@ strata. Ours resamples whole countries (`bsample, cluster(cid) strata(...)
 idcluster(_bid)`), which is the stricter choice given that observations
 within a country are plainly not independent.
 
+**Flow specification (`20_lp_flow.do`).** Driscoll-Kraay again, but at
+`lag(max(2, h+3))` rather than `max(1, h+1)`. The onset rule covers the $h+1$
+overlap of successive outcome windows. Flow coding introduces a second source
+of dependence that onset coding does not have — the *regressor* is serially
+correlated within an episode — so the lag carries an additional 2 for
+persistence at the median episode duration of two years. The onset lag rule is
+reported as a second row, so that a flow-versus-onset comparison is not
+confounded by a simultaneous change of inference, and country-clustered
+standard errors (`areg … vce(cluster cid)`, 52 clusters) as a third.
+
+The more important discipline here is not the lag but the counting. Flow coding
+produces 234 treated rows, but they still carry only **61 episodes in 52
+countries**, and a handful of chronic cases supply a large share of them. Every
+flow table reports episodes and countries alongside N, because a table showing
+only N would imply far more independent information than the design contains.
+
 ---
 
 ## 4. Controls: the deviation map
@@ -260,19 +287,78 @@ would be redundant in those specifications rather than excluded from them.
 
 ## 5. Treatment definition
 
-Each episode contributes **exactly one treated observation**, its onset
-year; continuation years are dropped from the estimation sample entirely.
-The multi-year dynamics of an episode are traced through the horizon of the
-outcome, not through additional treated rows.
+The project estimates two treatments, because the question "what follows the
+start of a spread crisis" and the question "what is the output cost of being
+in one" are not the same question and cannot be answered by the same variable.
 
-This is the standard local-projection convention, but it has a consequence
-worth stating rather than discovering: a crisis lasting five years
-identifies the coefficient exactly as much as one lasting a single year, so
-episode duration is never a source of variation and the paper cannot speak
-to whether protracted crises are more costly than brief ones.
+### 5.1 Onset coding — the identifying design
+
+In `02`, `03`, `06`–`08b` and `11`–`13f`, each episode contributes **exactly
+one treated observation**, its onset year; continuation years are dropped from
+the estimation sample entirely (`18_transforms.do`, `sample`). The multi-year
+dynamics of an episode are traced through the horizon of the outcome, not
+through additional treated rows.
 
 Horizons are labelled so the crisis year itself is **Year 1**, matching the
 reference paper's convention. Year 0 is a hard-coded pre-crisis baseline,
 always zero and never estimated. A single genuinely estimable pre-trend
 placebo is reported at Year −1. Internal variable names (`dy_0`…`dy_4`) are
 unchanged — only the displayed axis is shifted.
+
+This convention is what makes the propensity-score tier coherent: `Pr(onset)`
+is a hazard model on predetermined covariates, so the two-stage estimators in
+`08`/`08b`/`13c`/`13d` have a well-posed first stage. Onset coding therefore
+carries the paper's identification claim.
+
+### 5.2 Flow coding — the state, estimated in `20_lp_flow.do`
+
+`in_crisis` is 1 for **every year of an episode**, onset and continuation
+alike: 234 treated country-years rather than 61, with tranquil years as
+controls. Treatment is *episode membership*, not the annual criterion flag
+`crisis_any`, which is 0 on 13 rows the episode-dating rule places inside an
+episode and would push mid-episode years into the control pool.
+
+At h=0 the outcome is growth **during** that crisis year, which is the object
+the research question names. For h>0 the estimate is the cumulative change over
+the next h years associated with being in a crisis year, averaged over how long
+the country has *already* been in crisis — it is **not** "h years after onset",
+because the row generating it is itself treated. Elapsed duration is an outcome
+of the crisis, so that average has no fixed economic referent, and the figures
+are labelled "by forecast horizon" accordingly. The horizon axis runs 0–4 with
+no hard-coded baseline, because under flow coding there is no before-and-after:
+every treated row is its own reference. It is therefore **not** comparable
+one-for-one with the Year 1–5 axis of Tables 1 and 2.
+
+**The flow tier stops at the single-stage projection, deliberately.** For a
+time-varying treatment the strongest predictor of being in crisis at *t* is
+being in crisis at *t−1* — a post-treatment outcome of the same episode — so
+unconfoundedness given X is false whether or not that term enters the first
+stage. Include it and the propensity model becomes a persistence model whose
+scores approach 1 on continuation rows, which the `[0.01, 0.99]` trim in
+`08_ipw_lp.do` then deletes: precisely the rows flow coding exists to add. The
+correct estimator would be a marginal structural model with
+inverse-probability-of-treatment weights over the treatment *history* (Robins,
+Hernán & Brumback 2000), which is out of scope. Flow results are accordingly
+reported as **magnitude and state conditional on selection into crisis**, not
+as a second identified effect.
+
+No pre-trend placebo is estimable under flow coding: `dy_m2` differences
+$t-2$ against $t-1$, and for a row three or more years into an episode both
+endpoints are crisis years, so regressing it on `in_crisis` would reject by
+construction. The valid restriction is the onset sample, whose placebo `02`
+and `03` already report.
+
+### 5.3 What each design can and cannot say about duration
+
+Onset coding identifies the coefficient equally from a five-year crisis and a
+one-year one, so on its own it cannot speak to whether protracted crises are
+more costly. This matters more than it first appears, because the two
+resolution groups differ systematically in duration — non-default episodes
+average 2.8 years and 113 crisis-years across 40 episodes, default-linked
+episodes 5.8 years and 121 crisis-years across 21. At Years 3–5 most
+non-default episodes have ended while most default-linked ones are still
+running, so part of the measured resolution gap reflects that difference.
+Flow coding weights episodes by their length instead, which is the appropriate
+weighting for a question about the *state* but concentrates the treatment in a
+handful of chronic cases; `20_lp_flow.do` reports the treated share of each
+country's panel years and a leave-Venezuela-out variant for that reason.

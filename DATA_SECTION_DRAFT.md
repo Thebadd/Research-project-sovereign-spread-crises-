@@ -61,16 +61,29 @@ realised data.
 
 ## Identifying a spread crisis
 
-An episode is a spread crisis when the country's EMBIG spread crosses either
-of two thresholds: an absolute one at 1,000 basis points, and a
-country-specific one at the 99th percentile of that country's own historical
-spread distribution. The absolute criterion alone would over-select
-persistently high-spread sovereigns and under-select those whose spreads are
-normally tight; the relative criterion alone would generate an onset in every
-country's worst year regardless of whether the level was economically
-meaningful. Requiring either, rather than both, keeps episodes that are
-severe in level and episodes that are severe relative to the country's own
-history, which is the union the definition is meant to capture.
+A country-year meets the crisis criterion on either of two tests. The first,
+following Pescatori and Sy (2007), is a level test: the monthly EMBIG spread
+exceeded 1,000 basis points at some point during the calendar year. The second
+is a repricing test: the quarter-on-quarter *change* in the spread exceeded 378
+basis points, the threshold Horn, Reinhart and Trebesch (2021) calibrate as the
+99th percentile of pooled quarterly spread changes across 45 advanced and
+emerging economies since 1995. Requiring either rather than both captures two
+distinct forms of distress: a level test alone would over-select persistently
+high-spread sovereigns and miss sudden repricings of countries whose spreads
+are normally tight, while a change test alone would flag violent repricing from
+a benign starting point as equivalent to sustained distress.
+
+Episodes are then dated following Detragiache and Spilimbergo (2001). An
+episode begins in the first year the criterion is met when it was not met the
+year before; it continues through consecutive crisis years, and also through a
+single non-crisis year followed by a further crisis year, so that one prolonged
+distress is not fragmented into several artificial episodes; and it ends after
+two consecutive years in which the criterion is not met. Thirteen country-years
+sit inside an episode without meeting the annual criterion. Four of these are
+exceptions to the two-year termination rule that are retained as dated —
+Brazil 1996–97 bridges a two-year gap, and Ukraine 2010–11 trail the 2008
+episode. Applying the rule strictly would split Brazil into two episodes and
+create a 1998 onset, taking the count to 62.
 
 This yields 61 onsets across the 52 countries. Each episode is classified by
 how it was resolved: 40 are **non-default**, in which the spread crossed the

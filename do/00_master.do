@@ -60,6 +60,7 @@ do "$do/18_transforms.do"    // gdpg, lags, dy_h, pre-trends, sample -> panel_lp
 do "$do/02a_descriptive_facts.do"   // stylised facts: raw output paths, no controls (Data section)
 do "$do/02_lp_all.do"
 do "$do/03_lp_resolution.do"
+do "$do/20_lp_flow.do"               // FLOW treatment: in-crisis = every year of an episode (not just onset)
 do "$do/04_graphs.do"
 * 05_balance_table.do — RETIRED, superseded by 02a_descriptive_facts.do.
 * It compared the two resolution groups on the legacy control list

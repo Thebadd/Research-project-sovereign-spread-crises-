@@ -21,8 +21,49 @@ EMBIG Global**). Built in `10_skeleton.do`.
 | `spr_max`, `spr_mean` | Panel_Annual | EMBIG max / mean annual spread (bps) |
 | `crit1`, `crit2` | Panel_Annual | 1000bps / 99pct-HRT criterion flags |
 | `region`, `continuation`, `crisis_any` | Panel_Annual | — |
+| `in_crisis` | derived in `18_transforms.do` | episode membership (onset **or** continuation), the flow treatment — see below |
 | `iso3` | crosswalk in `10_skeleton.do` | 52-country ISO3 key |
 | `carryin` | added in `10_skeleton.do` | 1 = pre-entry scaffolding row (see below); **never in an estimation sample** |
+
+### Crisis criteria and episode dating (workbook README)
+
+**Criterion 1 (primary), after Pescatori & Sy (2007):** the monthly EMBIG spread
+exceeded **1,000 bps** at any point in the calendar year.
+
+**Criterion 2 (robustness), after Horn, Reinhart & Trebesch (2021):** the
+**quarter-on-quarter change** in the spread exceeded **378 bps/quarter** — the
+99th percentile of *pooled* QoQ changes on their 45-country sample post-1995.
+This is an absolute threshold on a *change*, not a country-specific percentile
+of the *level*; earlier drafts described it incorrectly and have been corrected.
+It adds 6 episodes, all non-default and all in 2008. All 22 default-linked
+episodes are identified by Criterion 1, so criterion choice cannot drive the
+resolution comparison.
+
+**Episode dating, after Detragiache & Spilimbergo (2001):** onset = criterion
+met in *t* but not *t−1*; continuation = consecutive crisis years **or a
+one-year gap followed by a crisis year**; end = two consecutive tranquil years.
+The gap clause prevents one prolonged distress fragmenting into several
+episodes.
+
+**Documented exception.** 13 country-years sit inside an episode without meeting
+the annual criterion (`crisis_any==0 & continuation==1`), so `crisis_any` is
+**not** episode membership — use `in_crisis`. Nine are rule-consistent one-year
+gaps: Brazil 2000, Côte d'Ivoire 2009, Ecuador 1997, Nigeria 1997, Nigeria 2021,
+Pakistan 2010, Venezuela 1997, Venezuela 2000, Zambia 2017. The other four
+*depart from the stated two-year termination rule and are retained deliberately*:
+Brazil 1996–97 bridges a **two-year** gap, and Ukraine 2010–11 are **trailing**
+years with no crisis after them. Applying the rule strictly would end Brazil's
+1994 episode in 1995 and make 1998 a fresh onset, splitting one 10-year episode
+into two and taking the sample to **62 episodes**. The dating is left as built;
+this note is the record of that choice.
+
+**Classification.** Default-Linked = an AT restructuring is active at onset **or**
+starts during the episode; Non-default = no AT event. Because Asonuma–Trebesch
+covers external *private* restructurings only, domestic-law and official-creditor
+credit events leave no trace — Jamaica's 2010 JDX and 2013 NDX are the clearest
+case, and Jamaica's 2008 episode is coded non-default. The workbook reports
+39/22; `panel_lp.dta` has 40/21 because of the Venezuela-2008 override at
+`10_skeleton.do:119-120` (restructuring began 109 months after onset).
 
 ### Carry-in rows — lag scaffolding at the panel's left edge
 The panel is **unbalanced on the left**: it begins when a country enters the JP Morgan

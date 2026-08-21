@@ -253,6 +253,75 @@ if !_rc {
     label var as_r_claims_govt "asinh(gdp_real*claims_govt): level robustness for claims_govt (see note above)"
 }
 
+* ══════════════════════════════════════════════════════════════════════════
+* FLOW TREATMENT — "being in a spread crisis" (consumed by 20_lp_flow.do)
+*
+* The headline design treats an episode as a point event: onset_all is 1 in the
+* first year only and `sample' below drops every continuation year. That answers
+* "what follows the START of an episode". It cannot answer "what is the output
+* cost of BEING IN a spread crisis", because the 173 country-years during which
+* countries were actually in their crises are discarded.
+*
+* This block builds the parallel objects for that second question. It ADDS
+* columns; it changes nothing existing, so every estimate in 02-13 is untouched.
+*
+* TREATMENT = EPISODE MEMBERSHIP, NOT THE ANNUAL CRITERION FLAG.
+* The workbook's episode rule (README sheet, after Detragiache & Spilimbergo
+* 2001) is: onset = criterion met in t but not t-1; continuation = consecutive
+* crisis years OR a one-year gap followed by a crisis year; end = two
+* consecutive tranquil years. The gap clause exists to stop a single prolonged
+* distress fragmenting into several "episodes".
+*
+* So `crisis_any' (the annual criterion flag) is NOT episode membership: it is 0
+* on 13 rows the dating rule places INSIDE an episode. Using it would contradict
+* the rule that generated the 61 episodes and would push mid-episode years into
+* the tranquil CONTROL pool — worse than either including or dropping them.
+* in_crisis therefore = onset_all | continuation (234 rows vs 221).
+*
+* The 13 gap rows are not homogeneous, and the breakdown is printed below rather
+* than left implicit:
+*   9 rule-consistent one-year gaps (a crisis year on BOTH sides) — Brazil 2000,
+*     Cote d'Ivoire 2009, Ecuador 1997, Nigeria 1997, Nigeria 2021, Pakistan
+*     2010, Venezuela 1997, Venezuela 2000, Zambia 2017.
+*   2 spanning a TWO-year gap — Brazil 1996, 1997 (crisis in 1995 and 1998).
+*   2 TRAILING — Ukraine 2010, 2011 (no crisis follows; 2014 is a fresh onset).
+* The last four are exceptions to the "two consecutive tranquil years ends the
+* episode" rule. They are retained deliberately (the dating is not revised), but
+* note what strict application would imply: Brazil would split into two episodes,
+* creating a 1998 onset that does not currently exist and taking the count to 62.
+* Documented in DATA_SOURCES.md section 1.
+* ══════════════════════════════════════════════════════════════════════════
+capture drop in_crisis ep_seq nd_ep in_crisis_nd in_crisis_def in_crisis_sp sample_flow gap_year
+
+gen byte in_crisis = (onset_all==1 | continuation==1) & carryin==0
+label var in_crisis "In a spread crisis (episode membership: onset or continuation)"
+
+* Annual-criterion variant, for the robustness column only.
+gen byte in_crisis_sp = (crisis_any==1) & carryin==0
+label var in_crisis_sp "In a spread crisis (annual criterion flag; robustness variant)"
+
+* The gap rows: inside an episode but below the annual criterion.
+gen byte gap_year = (in_crisis==1 & crisis_any==0)
+label var gap_year "Mid-episode year below the annual crisis criterion"
+
+* ── Episode sequence number, needed to forward-fill the resolution type ──────
+* nondefault is merged in 10_skeleton on country x ONSET YEAR, so it is present
+* on the 61 onset rows and MISSING on all 173 continuation rows. Splitting the
+* flow treatment by resolution without filling it first would silently drop
+* every continuation row — the exact rows this block exists to add — and would
+* still run without error, reporting plausible numbers. Hence the fill and the
+* assertions below.
+bysort cid (year): gen int ep_seq = sum(onset_all)
+label var ep_seq "Running episode counter within country (0 = before first onset)"
+
+bysort cid ep_seq: egen byte nd_ep = max(nondefault)
+label var nd_ep "Resolution type of the episode, filled to all its years (1=non-default)"
+
+gen byte in_crisis_nd  = (in_crisis==1 & nd_ep==1)
+gen byte in_crisis_def = (in_crisis==1 & nd_ep==0)
+label var in_crisis_nd  "In a NON-DEFAULT spread crisis"
+label var in_crisis_def "In a DEFAULT-LINKED spread crisis"
+
 * ── Estimation sample ───────────────────────────────────────────────────────
 * carryin==0 excludes the pre-EMBIG scaffolding rows added in 10_skeleton: they exist
 * only so the L. operators above have a previous row to point at, and carry no spread
@@ -260,6 +329,83 @@ if !_rc {
 capture drop sample
 gen byte sample = (continuation==0) & !missing(ln_gdp_base) & carryin==0
 label var sample "Estimation sample (onset + tranquil, excl. continuation & carry-in, GDP base present)"
+
+* Flow estimation sample: identical to `sample' EXCEPT that continuation years
+* are kept. Required because every existing regression is `if sample==1', which
+* by construction contains zero treated rows beyond each episode's onset year.
+* sample is nested inside sample_flow (asserted below).
+gen byte sample_flow = !missing(ln_gdp_base) & carryin==0
+label var sample_flow "Flow estimation sample (all episode years + tranquil, excl. carry-in)"
+
+* ── Assertions on the flow objects ──────────────────────────────────────────
+* These are cheap and they catch the two failure modes that would otherwise be
+* invisible: a treatment that silently lost the continuation rows, and a
+* resolution type that failed to propagate off the onset row.
+quietly count if in_crisis==1
+if r(N) != 234 di as error "  ** FLOW: in_crisis = `r(N)' rows, expected 234 — check onset_all/continuation/carryin"
+else           di as result "  FLOW: in_crisis = 234 rows (61 onset + 173 continuation)"
+
+quietly count if in_crisis==1 & missing(nd_ep)
+if r(N) != 0 di as error "  ** FLOW: `r(N)' episode-years have no resolution type — the nd_ep fill FAILED"
+
+* The fill must reproduce the source value on the onset row it came from. This
+* is the check that actually bites: egen max() over the wrong group would still
+* give a constant nd_ep, so testing constancy alone proves nothing.
+quietly count if onset_all==1 & carryin==0 & nd_ep != nondefault
+if r(N) != 0 di as error "  ** FLOW: nd_ep disagrees with nondefault on `r(N)' onset rows — ep_seq groups are wrong"
+
+* Each episode must carry exactly one onset row; more means ep_seq merged two.
+quietly preserve
+    quietly keep if in_crisis==1
+    quietly collapse (sum) nons=onset_all, by(cid ep_seq)
+    quietly count if nons != 1
+    local badep = r(N)
+    quietly count
+    local nep_flow = r(N)
+quietly restore
+if `badep' != 0 di as error "  ** FLOW: `badep' episodes do not have exactly one onset row"
+if `nep_flow' != 61 di as error "  ** FLOW: `nep_flow' distinct episodes, expected 61"
+else                di as result "  FLOW: 61 distinct episodes recovered from ep_seq (correct)"
+
+quietly count if sample==1 & sample_flow==0
+if r(N) != 0 di as error "  ** FLOW: `r(N)' rows in sample but not sample_flow — nesting violated"
+
+quietly count if in_crisis_nd==1
+local n_ndf = r(N)
+quietly count if in_crisis_def==1
+local n_deff = r(N)
+di as result "  FLOW: crisis-years by resolution — non-default `n_ndf', default-linked `n_deff'"
+di as result "        (expect 113 / 121 with the Venezuela-2008 override at 10_skeleton.do:119)"
+
+* Gap-year breakdown — the 13 rows inside an episode but below the annual criterion.
+quietly count if gap_year==1
+local ngap = r(N)
+di as result "  FLOW: gap years (in episode, criterion not met): `ngap' of 234 treated rows"
+if `ngap' > 0 {
+    di as result "        listed below; 9 are one-year gaps, 2 span a two-year gap (Brazil)"
+    di as result "        and 2 are trailing (Ukraine) — see the block above."
+    quietly levelsof country if gap_year==1, local(gapc)
+    foreach c of local gapc {
+        quietly levelsof year if gap_year==1 & country=="`c'", local(gy)
+        di as result "          `c': `gy'"
+    }
+}
+
+* Treated share of each country's panel years — flow coding concentrates the
+* treatment in a handful of chronic cases (Venezuela is in crisis in most of its
+* panel), which matters for how much the country fixed effects can absorb.
+di as result _n "  FLOW: countries with the highest treated share of panel years"
+preserve
+    quietly keep if carryin==0
+    collapse (sum) ncris=in_crisis (count) nyr=year, by(country)
+    gen double share = 100*ncris/nyr
+    gsort -ncris
+    quietly count
+    local nshow = min(8, r(N))
+    forvalues i = 1/`nshow' {
+        di as result "        " %-16s country[`i'] %3.0f ncris[`i'] " of " %3.0f nyr[`i'] " years (" %4.1f share[`i'] "%)"
+    }
+restore
 
 * ── Save the analysis file (drop-in replacement consumed by 02..16) ─────────
 compress

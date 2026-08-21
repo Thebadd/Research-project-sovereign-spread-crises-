@@ -114,4 +114,70 @@ twoway ///
 graph export "$figs/fig3_pretrend.pdf", replace
 graph export "$figs/fig3_pretrend.png", replace width(1200)
 di as result "Figure 3 saved."
+* ══════════════════════════════════════════════════════════════════════════
+* FIGURE 9 — FLOW SPECIFICATION (20_lp_flow.do)
+*
+* NOTE THE AXIS. This is not Figure 1 with more data. The treatment is being IN
+* a crisis in year t, so every treated row is its own reference and h=0 is
+* growth DURING that crisis year. h>0 is a forecast horizon from a treated row,
+* not time since onset — the label says so deliberately.
+* ══════════════════════════════════════════════════════════════════════════
+capture confirm file "$clean/irf_flow.dta"
+if _rc {
+    di as error "  ** irf_flow.dta not found — run 20_lp_flow.do first; Figure 9 skipped."
+}
+else {
+    local c_flow "23 55 94"
+    use "$clean/irf_flow.dta", clear
+    twoway ///
+        (rarea lo95 hi95 horizon, color("`c_flow'%15") lwidth(none)) ///
+        (rarea lo90 hi90 horizon, color("`c_flow'%25") lwidth(none)) ///
+        (connected b horizon, lcolor("`c_flow'") lwidth(medthick) ///
+            mcolor("`c_flow'") msize(medium) msymbol(circle)), ///
+        yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
+        xlabel(0(1)4, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
+        xtitle("Forecast horizon h (h=0 = growth during the crisis year)", size(medsmall)) ///
+        ytitle("Change in log real GDP (pp)", size(medsmall)) ///
+        title("Output While In a Sovereign Spread Crisis", size(medium)) ///
+        subtitle("Treatment = every year of an episode (234 country-years, 61 episodes)", size(small)) ///
+        note("Local projections, country and year FE, Driscoll-Kraay SE (lag max(2,h+3))." ///
+             "Controls: lagged GDP growth, debt, current account, banking-crisis duration," ///
+             "government spending, openness, bank credit, hyperinflation flag — all at t-1." ///
+             "h>0 is a horizon from a TREATED row, not time since onset: the estimate averages" ///
+             "over how long the country has already been in crisis. Not corrected for selection.", ///
+             size(vsmall)) ///
+        legend(order(3 "Point estimate" 2 "90% CI" 1 "95% CI") ring(0) pos(1) size(small)) ///
+        graphregion(color(white)) plotregion(color(white))
+    graph export "$figs/fig9_irf_flow.pdf", replace
+    graph export "$figs/fig9_irf_flow.png", replace width(1200)
+    di as result "Figure 9 saved."
+
+    * ── Figure 9b: by resolution type ───────────────────────────────────────
+    capture confirm file "$clean/irf_flow_nd.dta"
+    if _rc == 0 {
+        use "$clean/irf_flow_nd.dta", clear
+        append using "$clean/irf_flow_def.dta"
+        twoway ///
+            (rarea lo90 hi90 horizon if series=="flow_nd",  color("`c_nd'%20")  lwidth(none)) ///
+            (rarea lo90 hi90 horizon if series=="flow_def", color("`c_def'%20") lwidth(none)) ///
+            (connected b horizon if series=="flow_nd",  lcolor("`c_nd'")  mcolor("`c_nd'")  ///
+                msymbol(circle) lwidth(medthick)) ///
+            (connected b horizon if series=="flow_def", lcolor("`c_def'") mcolor("`c_def'") ///
+                msymbol(square) lpattern(dash) lwidth(medthick)), ///
+            yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
+            xlabel(0(1)4, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
+            xtitle("Forecast horizon h (h=0 = growth during the crisis year)", size(medsmall)) ///
+            ytitle("Change in log real GDP (pp)", size(medsmall)) ///
+            title("Output While In a Spread Crisis, by Resolution", size(medium)) ///
+            subtitle("Joint specification; tranquil country-years omitted", size(small)) ///
+            note("90% CIs. Difference tested by lincom, which uses the covariance between the two" ///
+                 "coefficients — countries with episodes of both types contribute to both arms." ///
+                 "Non-default carries 113 crisis-years, default-linked 121.", size(vsmall)) ///
+            legend(order(3 "Non-default" 4 "Default-linked") ring(0) pos(7) cols(1) size(small)) ///
+            graphregion(color(white)) plotregion(color(white))
+        graph export "$figs/fig9b_irf_flow_resolution.pdf", replace
+        di as result "Figure 9b saved."
+    }
+}
+
 di as result _n "All figures saved to: $figs"
