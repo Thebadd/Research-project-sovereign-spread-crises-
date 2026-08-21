@@ -18,9 +18,9 @@
 
   THE THREE STEPS, IN THE PAPER'S ORDER
   ------------------------------------
-  Eq. (1)  Outcome regression by OLS with country FE, IPW-weighted (their
-           IPWRA form: `reg g_h dum g_0 $convar [pweight=invwt]'), giving the
-           conditional means m1 and m0.
+  Eq. (1)  Outcome regression by PLAIN OLS with country FE, giving the
+           conditional means m1 and m0. This is 20_lp_flow.do's specification,
+           less the year FE.
   Eq. (2)  Propensity probit Pr(D=1 | X, Z) -> phat. Pooled, no country FE.
   Eq. (3)  Lambda_h = (1/N) sum { [D*y/p - (1-D)*y/(1-p)]
                                  - (D-p)/(p(1-p)) * [(1-p)*m1 + p*m0] }
@@ -36,9 +36,23 @@
     no year dummies. The project's rule is that two-stage estimators drop year
     FE to stay like-for-like with them (METHODOLOGY.md section 2); 20 keeps them
     because it is single-stage.
-  * `reg' RATHER THAN `xtscc'. Mechanical, not elective: xtscc does not accept
-    pweight, and Eq. (1) must be inverse-probability weighted. Same reason 08b
-    uses reg. Inference therefore comes from the bootstrap, not from DK SEs.
+  * `reg' RATHER THAN `xtscc'. Inference here comes from the paired cluster
+    bootstrap, not from analytic SEs, so the DK correction has nothing to do;
+    and Eq. (1) feeds conditional means into Eq. (3) rather than being read as
+    a coefficient in its own right.
+
+  ONE DELIBERATE DIFFERENCE FROM 08b, WORTH RECORDING
+  ---------------------------------------------------
+  The reference paper's TEXT says Eq. (1) is estimated "by OLS" and shows it
+  unweighted. Their CODE, inside the AIPW loop, weights it:
+      reg g_h dum g_0 $convar [pweight=invwt]
+  which makes their estimator IPWRA rather than plain AIPW. 08b_aipw.do follows
+  the code. This file follows the TEXT, and estimates Eq. (1) unweighted, for
+  two reasons: it is what the paper as written specifies, and it keeps Eq. (1)
+  identical to the model developed in 20_lp_flow.do apart from the year FE,
+  which is the whole point of this file. Both are doubly robust — each is
+  consistent if EITHER the outcome model or the propensity model is correct —
+  so this is a choice between two valid estimators, not a correction.
 
   WHICH CONTROL SET GOES WHERE — AND WHY THEY DIFFER
   --------------------------------------------------
@@ -72,10 +86,13 @@
   -------
     "$tabs/table10_aipw_flow.rtf"    the two type lines + the difference
     "$tabs/aipw_flow_diff.csv"       def-nd gap, bootstrap CI, Clogg z
-    "$tabs/aipw_flow_compare.csv"    onset AIPW vs flow AIPW vs flow OLS
     "$clean/irf_aipw_flow_nd.dta"    non-default AIPW IRF
     "$clean/irf_aipw_flow_def.dta"   default-linked AIPW IRF
     "$figs/fig10_aipw_flow.pdf/.png" the two-line resolution split
+
+  SELF-CONTAINED: this file reads nothing but $clean/panel_lp.dta. It does not
+  depend on 08b_aipw.do or 20_lp_flow.do having been run, and does not compare
+  itself to either; any such comparison belongs in the write-up, not the code.
 
   RUNTIME: the paired bootstrap refits Eq. (1)-(3) twice per draw per horizon.
   At nboot=1000 that is 10,000 probit+regression pairs. Expect several minutes.
@@ -124,21 +141,22 @@ program define _aipw, rclass
     marksample touse
     markout `touse' `omodel' `pmodel'
 
-    tempvar xb m0 m1 ps summ iwt
-    * Eq. (2) FIRST — the outcome regression is weighted by it (IPWRA).
-    quietly probit `D' `pmodel' if `touse'
-    quietly predict double `ps' if `touse', pr
-    quietly replace `ps' = .01 if `ps' < .01                & `touse'
-    quietly replace `ps' = .99 if `ps' > .99 & !missing(`ps') & `touse'
-    quietly gen double `iwt' = `D'/`ps' + (1-`D')/(1-`ps') if `touse'
-
-    * Eq. (1) — IPW-weighted OLS with country FE -> conditional means.
-    if "`fe'" != "" quietly reg `y' `D' `omodel' i.`fe' [pweight=`iwt'] if `touse'
-    else            quietly reg `y' `D' `omodel'         [pweight=`iwt'] if `touse'
+    tempvar xb m0 m1 ps summ
+    * Eq. (1) — PLAIN OLS with country FE, as the paper's text specifies
+    * ("we estimate the following regression model by OLS"). No weights: this
+    * is 20_lp_flow.do's specification, less the year FE. See the header for
+    * why this departs from 08b.
+    if "`fe'" != "" quietly reg `y' `D' `omodel' i.`fe' if `touse'
+    else            quietly reg `y' `D' `omodel'         if `touse'
     quietly predict double `xb' if `touse', xb
     quietly gen double `m0' = `xb' - _b[`D']*`D' if `touse'
     quietly gen double `m1' = `m0' + _b[`D']     if `touse'
 
+    * Eq. (2) — propensity probit, winsorised to bound the weights.
+    quietly probit `D' `pmodel' if `touse'
+    quietly predict double `ps' if `touse', pr
+    quietly replace `ps' = .01 if `ps' < .01                & `touse'
+    quietly replace `ps' = .99 if `ps' > .99 & !missing(`ps') & `touse'
     * Eq. (3) — the paper's exact algebraic form.
     quietly gen double `summ' = ///
         ( `D'*`y'/`ps' - (1-`D')*`y'/(1-`ps') ) ///
@@ -312,30 +330,57 @@ di as result "      absent, means the propensity is reading 'already in crisis'"
 di as result "      and the flow AIPW is not adding information over 08b."
 
 * ══════════════════════════════════════════════════════════════════════════
-* 2. IDENTITY ANCHOR — must reproduce 08b on the onset sample
+* 2. HOW MUCH WORK IS THE AUGMENTATION DOING?
 *
-* Restricted to sample==1 the continuation rows are gone, so in_crisis_nd IS
-* onset_nd, in_crisis_def IS onset_def, and epc_* collapses to row-dated. The
-* two estimators must therefore agree exactly. Same logic that validated
-* 20_lp_flow.do; it catches a mis-specified call before anything is read.
+* Eq. (3) is the IPW estimator plus an augmentation term:
+*     Lambda = [ D*y/p - (1-D)*y/(1-p) ]                        <- IPW piece
+*            - (D-p)/(p(1-p)) * [ (1-p)*m1 + p*m0 ]             <- augmentation
+* Reporting the two separately is a real specification diagnostic, not
+* bookkeeping. If the augmentation is small relative to the IPW piece, the
+* outcome model and the propensity model broadly agree and the doubly-robust
+* correction is doing little. If it is large, the two models disagree about
+* the counterfactual and the estimate is leaning heavily on Eq. (1) being
+* right — which is exactly the assumption flow coding strains.
+*
+* Self-contained: this reads nothing from any other file.
 * ══════════════════════════════════════════════════════════════════════════
 di as result _n "════════════════════════════════════════════════════════════"
-di as result "2. IDENTITY ANCHOR — flow AIPW on sample==1 must equal 08b"
+di as result "2. AIPW DECOMPOSITION — IPW piece vs augmentation (Year 1)"
 di as result "════════════════════════════════════════════════════════════"
-quietly _aipw dy_0 in_crisis_def if sample==1 & in_crisis_nd==0, ///
-    omodel(`com') pmodel(`cx' `cz_def') fe(cid)
-local anch_flow = r(theta)
-quietly _aipw dy_0 onset_def if sample==1 & onset_nd==0, ///
-    omodel($ctrl_core) pmodel(`cx' `cz_def') fe(cid)
-local anch_ons = r(theta)
-local anch_gap = abs(`anch_flow' - `anch_ons')
-di as result "  flow  (def, Year 1, sample==1): " %10.6f `anch_flow'
-di as result "  onset (def, Year 1, sample==1): " %10.6f `anch_ons'
-if `anch_gap' > 1e-6 {
-    di as error "  ** ANCHOR FAILED (difference " %10.6f `anch_gap' ")."
-    di as error "     The flow call is not the onset call on this sample. Stop and fix."
+
+foreach s2 in nd def {
+    if "`s2'" == "nd"  local rival in_crisis_def
+    else               local rival in_crisis_nd
+
+    capture drop _ps2 _m0 _m1 _xb2 _ipwterm _augterm
+    quietly probit in_crisis_`s2' `cx' `cz_def' if sample_flow==1 & `rival'==0
+    quietly predict double _ps2 if e(sample), pr
+    quietly replace _ps2 = .01 if _ps2 < .01 & !missing(_ps2)
+    quietly replace _ps2 = .99 if _ps2 > .99 & !missing(_ps2)
+
+    quietly reg dy_0 in_crisis_`s2' `com' i.cid if sample_flow==1 & `rival'==0 & !missing(_ps2)
+    quietly predict double _xb2 if e(sample), xb
+    quietly gen double _m0 = _xb2 - _b[in_crisis_`s2']*in_crisis_`s2'
+    quietly gen double _m1 = _m0 + _b[in_crisis_`s2']
+
+    quietly gen double _ipwterm = in_crisis_`s2'*dy_0/_ps2 - (1-in_crisis_`s2')*dy_0/(1-_ps2)
+    quietly gen double _augterm = -((in_crisis_`s2'-_ps2)/(_ps2*(1-_ps2))) * ///
+                                   ((1-_ps2)*_m1 + _ps2*_m0)
+    quietly summarize _ipwterm if !missing(_ipwterm,_augterm), meanonly
+    local ipwm = r(mean)
+    quietly summarize _augterm if !missing(_ipwterm,_augterm), meanonly
+    local augm = r(mean)
+    local tot = `ipwm' + `augm'
+    local shr = cond(abs(`tot')>1e-12, 100*abs(`augm')/abs(`tot'), .)
+    di as result "  `s2':  IPW piece = " %8.3f `ipwm' ///
+                 "   augmentation = " %8.3f `augm' ///
+                 "   total = " %8.3f `tot' ///
+                 "   |aug|/|total| = " %5.1f `shr' " pct"
 }
-else di as result "  MATCH (difference " %9.2e `anch_gap' ") — the transposition is exact."
+capture drop _ps2 _m0 _m1 _xb2 _ipwterm _augterm
+di as result _n "  A large augmentation share means the propensity and outcome models"
+di as result "  disagree about the counterfactual, so the estimate rests on Eq. (1)"
+di as result "  being correctly specified rather than on the weighting."
 
 * ══════════════════════════════════════════════════════════════════════════
 * 3. Eqs. (1)-(3) BY RESOLUTION TYPE, AND THE DIFFERENCE
@@ -418,86 +463,8 @@ di as result "  tranquil control pool), so it is the permissive statistic. Where
 di as result "  it and the bootstrap disagree, the bootstrap governs."
 
 * ══════════════════════════════════════════════════════════════════════════
-* 4. THE COMPARISON — what actually answers the question
-*
-* Three estimates of the same object, laid side by side:
-*   (i)   onset AIPW      08b_aipw.do        -> $tabs/aipw_act2_diff.csv
-*   (ii)  flow OLS        20_lp_flow.do      -> $tabs/flow_lp.csv
-*   (iii) flow AIPW       this file
-*
-* (i) vs (iii) varies the treatment definition holding the estimator fixed.
-* (ii) vs (iii) varies the estimator holding the treatment definition fixed.
-* Reading both together separates the two, which neither file could do alone.
+* 4. EXPORTS
 * ══════════════════════════════════════════════════════════════════════════
-di as result _n "════════════════════════════════════════════════════════════"
-di as result "4. COMPARISON — def-nd gap under three designs"
-di as result "════════════════════════════════════════════════════════════"
-
-tempname CMP
-tempfile cmpf
-postfile `CMP' int horizon double onset_aipw double flow_ols double flow_aipw ///
-    double flow_aipw_lo double flow_aipw_hi using "`cmpf'", replace
-
-* (i) onset AIPW, written by 08b
-matrix ONS = J(5,1,.)
-capture confirm file "$tabs/aipw_act2_diff.csv"
-if _rc {
-    di as error "  ** aipw_act2_diff.csv not found — run 08b_aipw.do for the onset column."
-}
-else {
-    preserve
-        quietly import delimited "$tabs/aipw_act2_diff.csv", clear varnames(1)
-        forvalues h = 1/5 {
-            quietly summarize dhl if horizon==`h', meanonly
-            if r(N) > 0 matrix ONS[`h',1] = r(mean)
-        }
-    restore
-}
-
-* (ii) flow OLS, written by 20
-matrix FOLS = J(5,1,.)
-capture confirm file "$tabs/flow_lp.csv"
-if _rc {
-    di as error "  ** flow_lp.csv not found — run 20_lp_flow.do for the OLS column."
-}
-else {
-    preserve
-        quietly import delimited "$tabs/flow_lp.csv", clear varnames(1)
-        forvalues h = 1/5 {
-            quietly summarize b if spec=="split" & term=="def_minus_nd" & hdisp==`h', meanonly
-            if r(N) > 0 matrix FOLS[`h',1] = r(mean)
-        }
-    restore
-}
-
-di as result "Year   onset AIPW   flow OLS   flow AIPW   [95% boot CI]"
-forvalues h = 1/5 {
-    di as result "  " %1.0f `h' "   " %10.3f ONS[`h',1] "  " %9.3f FOLS[`h',1] ///
-                 "  " %9.3f Fdiff_b[`h',1] ///
-                 "   [" %7.3f Fdiff_lo[`h',1] ", " %7.3f Fdiff_hi[`h',1] "]"
-    post `CMP' (`h') (ONS[`h',1]) (FOLS[`h',1]) (Fdiff_b[`h',1]) ///
-        (Fdiff_lo[`h',1]) (Fdiff_hi[`h',1])
-}
-postclose `CMP'
-
-di as result _n "  Agreement in SIGN and rough magnitude across the three columns"
-di as result "  means the resolution gap is not an artifact of either the"
-di as result "  treatment definition or the estimator. Divergence localises which."
-
-* ══════════════════════════════════════════════════════════════════════════
-* 5. EXPORTS
-* ══════════════════════════════════════════════════════════════════════════
-preserve
-    use "`cmpf'", clear
-    label var onset_aipw   "def-nd, onset AIPW (08b)"
-    label var flow_ols     "def-nd, flow OLS (20)"
-    label var flow_aipw    "def-nd, flow AIPW (this file)"
-    label var flow_aipw_lo "flow AIPW 95% percentile CI lower"
-    label var flow_aipw_hi "flow AIPW 95% percentile CI upper"
-    export delimited "$tabs/aipw_flow_compare.csv", replace
-    di as result "Comparison saved: $tabs/aipw_flow_compare.csv"
-restore
-
 preserve
     clear
     tempname pfd
@@ -544,7 +511,7 @@ foreach g in nd def {
 di as result "IRF datasets saved: irf_aipw_flow_nd.dta, irf_aipw_flow_def.dta"
 
 * ══════════════════════════════════════════════════════════════════════════
-* 6. FIGURE — drawn here, as 20_lp_flow.do does, so the file is self-contained
+* 5. FIGURE — drawn here, as 20_lp_flow.do does, so the file is self-contained
 * ══════════════════════════════════════════════════════════════════════════
 local c_nd   "0 84 166"
 local c_def  "157 36 73"

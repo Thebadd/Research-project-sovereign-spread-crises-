@@ -61,6 +61,7 @@ do "$do/02a_descriptive_facts.do"   // stylised facts: raw output paths, no cont
 do "$do/02_lp_all.do"
 do "$do/03_lp_resolution.do"
 do "$do/20_lp_flow.do"               // FLOW treatment: in-crisis = every year of an episode (not just onset)
+do "$do/21_aipw_flow.do"             // Asonuma Eqs. (1)-(3) on the FLOW treatment (self-contained)
 do "$do/04_graphs.do"
 * 05_balance_table.do — RETIRED, superseded by 02a_descriptive_facts.do.
 * It compared the two resolution groups on the legacy control list
@@ -75,9 +76,6 @@ do "$do/07_placebo.do"
 do "$do/08_ipw_lp.do"
 do "$do/08b_aipw.do"                  // IPWRA (the reference paper's headline estimator) + stratified bootstrap CIs
 do "$do/08c_first_stage_table.do"     // Table 1-style probit first stage (predictors/controls + chi2/ROC)
-do "$do/21_aipw_flow.do"              // Asonuma Eqs. (1)-(3) on the FLOW treatment: 08b's estimator, 20's treatment.
-*                                     Runs HERE, not next to 20, because its comparison block reads
-*                                     aipw_act2_diff.csv (written by 08b) for the onset-AIPW column.
 * do "$do/09_lp_imf.do"   // removed: IMF selection unpredictable from observables
 * do "$do/10_heterogeneity.do"  // removed: frontier variable poorly coded, duration data incomplete
 do "$do/11_channels.do"
