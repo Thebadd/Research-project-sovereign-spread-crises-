@@ -57,11 +57,17 @@
      [0.01, 0.99], following 08b, because an untrimmed 1/p explodes on thin
      cells — and under flow coding continuation rows are precisely the ones at
      risk of scores near 1. Section 1 reports how many rows this touches.
-  2. BOOTSTRAP UNIT. Their `bsample' has no cluster() option: it resamples ROWS
-     within treatment-type strata. This file resamples whole COUNTRIES
-     (`bsample, cluster(cid) strata(...) idcluster(_bid)'). Under flow coding
-     that matters far more than it did for onsets — row resampling would treat
-     Venezuela's 29 crisis-years as 29 independent draws.
+  2. BOOTSTRAP UNIT — NO LONGER A DEPARTURE. The baseline now uses their
+     scheme: row-level `bsample' within treatment-type strata, no cluster(),
+     country FE on cid so duplicated rows of a country share it. Section 3b
+     re-runs the identical estimator resampling whole COUNTRIES and prints the
+     two intervals side by side, because the choice matters here in a way it
+     does not in their paper: under onset coding a treated row is close to an
+     independent episode (194 across 76 countries), while under flow coding a
+     treated row is a crisis-YEAR and 234 of them carry 61 episodes in 52
+     countries, 29 of them Venezuela's. Point estimates are identical across
+     the two modes, so the comparison isolates the inference choice. Expect the
+     row intervals to be narrower; where the two verdicts differ, report both.
   3. YEAR FE. Neither has them; see below. (This is agreement, not a departure,
      but it is the thing most likely to be misread as one given 20 has them.)
 
@@ -133,8 +139,11 @@
   depend on 08b_aipw.do or 20_lp_flow.do having been run, and does not compare
   itself to either; any such comparison belongs in the write-up, not the code.
 
-  RUNTIME: the paired bootstrap refits Eq. (1)-(3) twice per draw per horizon.
-  At nboot=1000 that is 10,000 probit+regression pairs. Expect several minutes.
+  RUNTIME: the paired bootstrap refits Eq. (1)-(3) twice per draw per horizon,
+  and Section 3b repeats the whole loop under the other resampling unit. At
+  nboot=1000 that is ~20,000 probit+regression pairs. Expect several minutes.
+  If that is painful, drop the Section 3b comparison to 500 draws — never the
+  Section 3 baseline.
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -168,6 +177,10 @@ foreach m in b se lo hi {
 }
 matrix Fdiff_z = J(5,1,.)
 matrix Fdiff_p = J(5,1,.)
+foreach m in b lo hi {
+    matrix Cdiff_`m' = J(5,1,.)     // country-cluster bootstrap, comparison only
+}
+matrix Cdiff_n = J(5,1,.)
 
 * ══════════════════════════════════════════════════════════════════════════
 * PROGRAMS — copied from 08b_aipw.do so this file is self-contained
@@ -253,7 +266,12 @@ end
 capture program drop _aipwpairflow
 program define _aipwpairflow, rclass
     syntax , Y(string) D1(string) IF1(string) D2(string) IF2(string) ///
-             OMOD(string) PZ(string) REPS(integer)
+             OMOD(string) PZ(string) REPS(integer) [BOOT(string)]
+    if "`boot'" == "" local boot row
+    if !inlist("`boot'","row","cluster") {
+        di as error "  ** boot() must be row or cluster"
+        exit 198
+    }
     capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(cid)
     if _rc {
         return scalar ok = 0
@@ -270,23 +288,66 @@ program define _aipwpairflow, rclass
     local a2  = r(se)
     local dh  = `b1' - `b2'
 
-    _mkstrat `d1' `d2', generate(_strat)
+    * ── Build the resampling strata ─────────────────────────────────────────
+    * boot(row)     — THE REFERENCE PAPER'S SCHEME. Their bootstrap file splits
+    *                 the data into a control pool and one pool per treatment
+    *                 type, `bsample's each independently, and stacks:
+    *                     drop if dum1|dum2|dum3 ; bsample                (controls)
+    *                     keep if dum`s'==1 ; bsample ; append            (each type)
+    *                 `bsample, strata()' does exactly that in one command: it
+    *                 draws N_k rows WITH REPLACEMENT inside each stratum, so
+    *                 every pool keeps its original size. That is the device
+    *                 that stops a draw landing with no default-linked rows.
+    *                 Row-level strata, no cluster(), no idcluster — as theirs.
+    * boot(cluster) — resamples whole COUNTRIES within 4 country-level strata,
+    *                 with idcluster so a country drawn twice becomes two
+    *                 distinct pseudo-countries with separate fixed effects.
+    if "`boot'" == "row" {
+        capture drop _pool
+        * Parentheses matter: `if1'/`if2' are compound expressions and Stata
+        * gives & and | equal precedence, left to right.
+        quietly gen byte _pool = 0 if (`if1') | (`if2')
+        quietly replace _pool = 1 if `d1' == 1
+        quietly replace _pool = 2 if `d2' == 1
+    }
+    else {
+        _mkstrat `d1' `d2', generate(_strat)
+    }
+
     tempname pf
     tempfile bf
     quietly postfile `pf' double t1 double t2 double diff using "`bf'", replace
     forvalues b = 1/`reps' {
         preserve
-            capture drop _bid
-            bsample, cluster(cid) strata(_strat) idcluster(_bid)
-            capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(_bid)
-            local v1 = cond(_rc==0, r(theta), .)
-            capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(_bid)
-            local v2 = cond(_rc==0, r(theta), .)
+            if "`boot'" == "row" {
+                * Restrict to the estimation universe BEFORE resampling, which
+                * is what their `keep if sampmax == 1' does ahead of the
+                * split-bsample-stack. Rows outside it would otherwise be
+                * resampled into pool 0 and then dropped by the `if', adding
+                * nothing but changing the pool size.
+                quietly keep if !missing(_pool)
+                * Row resampling within pool; country FE stay on cid, so
+                * duplicated rows of a country share its fixed effect exactly
+                * as they share a c1-c74 dummy in the reference code.
+                quietly bsample, strata(_pool)
+                capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(cid)
+                local v1 = cond(_rc==0, r(theta), .)
+                capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(cid)
+                local v2 = cond(_rc==0, r(theta), .)
+            }
+            else {
+                capture drop _bid
+                bsample, cluster(cid) strata(_strat) idcluster(_bid)
+                capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(_bid)
+                local v1 = cond(_rc==0, r(theta), .)
+                capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(_bid)
+                local v2 = cond(_rc==0, r(theta), .)
+            }
             if !missing(`v1') & !missing(`v2') quietly post `pf' (`v1') (`v2') (`v1'-`v2')
         restore
     }
     quietly postclose `pf'
-    capture drop _strat
+    capture drop _strat _pool
 
     local se = .
     local lo = .
@@ -467,7 +528,7 @@ forvalues h = 0/4 {
     _aipwpairflow, y(dy_`h') ///
         d1(in_crisis_def) if1(sample_flow==1 & in_crisis_nd==0) ///
         d2(in_crisis_nd)  if2(sample_flow==1 & in_crisis_def==0) ///
-        omod(`com') pz(`cx' `cz_def') reps(`nboot')
+        omod(`com') pz(`cx' `cz_def') reps(`nboot') boot(row)
 
     if !r(ok) {
         di as error "  Year `hd': estimate failed (cell too thin)."
@@ -531,6 +592,80 @@ forvalues h = 0/4 {
                  "   def " %6.3f `S1'
 }
 
+* ══════════════════════════════════════════════════════════════════════════
+* 3b. THE SAME DIFFERENCE, COUNTRY-CLUSTER BOOTSTRAP — COMPARISON ONLY
+*
+* Section 3 uses the reference paper's resampling unit: ROWS, within
+* treatment-type strata. Under their onset coding a treated row is close to an
+* independent episode — 194 restructurings across 76 countries — so that is a
+* reasonable unit. Under flow coding a treated row is a crisis-YEAR: 234 of
+* them carry only 61 episodes in 52 countries, and Venezuela alone contributes
+* 29. Row resampling draws those 29 as 29 independent observations.
+*
+* This block re-runs the identical estimator resampling whole COUNTRIES, so the
+* cost of that choice is a number rather than an argument. The POINT ESTIMATES
+* are identical by construction — a bootstrap does not touch them — so the two
+* columns differ only in the interval, which is the point.
+*
+* Expect the row CIs to be narrower. If they are not, _pool is mis-built (it
+* must be row-level, not egen max()-ed to the country).
+*
+* Default-linked evidence comes from 14 countries: 4 with default episodes only
+* (Belize, Brazil, Cote d'Ivoire, Zambia) and 10 with both. Row resampling makes
+* that concentration invisible in the interval; cluster resampling does not.
+* ══════════════════════════════════════════════════════════════════════════
+di as result _n "════════════════════════════════════════════════════════════"
+di as result "3b. ROW vs COUNTRY-CLUSTER BOOTSTRAP (same point estimates)"
+di as result "════════════════════════════════════════════════════════════"
+di as result "Year   def-nd    [row CI: theirs]        [country-cluster CI]      width ratio  draws"
+
+forvalues h = 0/4 {
+    local row = `h' + 1
+    local hd  = `h' + 1
+
+    _aipwpairflow, y(dy_`h') ///
+        d1(in_crisis_def) if1(sample_flow==1 & in_crisis_nd==0) ///
+        d2(in_crisis_nd)  if2(sample_flow==1 & in_crisis_def==0) ///
+        omod(`com') pz(`cx' `cz_def') reps(`nboot') boot(cluster)
+
+    if !r(ok) {
+        di as error "  Year `hd': cluster-bootstrap comparison failed."
+        continue
+    }
+    local CD = r(dh)
+    local CL = r(lo)
+    local CH = r(hi)
+    local CN = r(nd)
+    matrix Cdiff_b[`row',1]  = `CD'
+    matrix Cdiff_lo[`row',1] = `CL'
+    matrix Cdiff_hi[`row',1] = `CH'
+    matrix Cdiff_n[`row',1]  = `CN'
+
+    * Point estimates MUST match Section 3 — the check that the resampling has
+    * not leaked into the estimate itself.
+    local gapchk = abs(`CD' - Fdiff_b[`row',1])
+    if `gapchk' > 1e-8 {
+        di as error "  ** Year `hd': point estimate differs across bootstrap modes by " ///
+                    %9.6f `gapchk' " — resampling has leaked into the estimate."
+    }
+
+    local wrow = Fdiff_hi[`row',1] - Fdiff_lo[`row',1]
+    local wclu = `CH' - `CL'
+    local wrat = cond(`wclu' > 0, `wrow'/`wclu', .)
+    local sigr = cond(!missing(Fdiff_lo[`row',1]) & (Fdiff_lo[`row',1]>0 | Fdiff_hi[`row',1]<0), "*", " ")
+    local sigc = cond(!missing(`CL') & (`CL'>0 | `CH'<0), "*", " ")
+
+    di as result "  " %1.0f `hd' "   " %8.3f `CD' ///
+                 "  [" %7.3f Fdiff_lo[`row',1] ", " %7.3f Fdiff_hi[`row',1] "]`sigr'" ///
+                 "  [" %7.3f `CL' ", " %7.3f `CH' "]`sigc'" ///
+                 "   " %5.2f `wrat' "   " %4.0f `CN'
+}
+
+di as result _n "  A width ratio well below 1 means the row bootstrap is treating"
+di as result "  repeated crisis-years of the same country as independent draws."
+di as result "  Where the two verdicts (*) differ, the write-up reports both and"
+di as result "  says which resampling unit produced which."
+
 di as result _n "  * = bootstrap 95% percentile CI for the gap excludes zero."
 di as result "  Clogg z assumes the two cells are independent (they share the"
 di as result "  tranquil control pool), so it is the permissive statistic. Where"
@@ -544,11 +679,13 @@ preserve
     tempname pfd
     tempfile diff2
     postfile `pfd' int horizon double dhl double se double lo double hi ///
-        double cloggz double cloggp using "`diff2'", replace
-    post `pfd' (0) (0) (0) (0) (0) (.) (.)
+        double cloggz double cloggp double clu_lo double clu_hi ///
+        using "`diff2'", replace
+    post `pfd' (0) (0) (0) (0) (0) (.) (.) (.) (.)
     forvalues h = 1/5 {
         post `pfd' (`h') (Fdiff_b[`h',1]) (Fdiff_se[`h',1]) ///
-            (Fdiff_lo[`h',1]) (Fdiff_hi[`h',1]) (Fdiff_z[`h',1]) (Fdiff_p[`h',1])
+            (Fdiff_lo[`h',1]) (Fdiff_hi[`h',1]) (Fdiff_z[`h',1]) (Fdiff_p[`h',1]) ///
+            (Cdiff_lo[`h',1]) (Cdiff_hi[`h',1])
     }
     postclose `pfd'
     use "`diff2'", clear
@@ -557,9 +694,13 @@ preserve
     label var hi      "95% percentile CI upper (bootstrap)"
     label var cloggz  "Clogg et al. (1995) z (permissive; assumes independence)"
     label var cloggp  "p-value of the Clogg z"
+    label var clu_lo  "95% CI lower, COUNTRY-CLUSTER bootstrap (comparison)"
+    label var clu_hi  "95% CI upper, COUNTRY-CLUSTER bootstrap (comparison)"
     gen byte sig95 = (!missing(lo) & (lo>0 | hi<0))
-    label var sig95 "Bootstrap CI excludes 0"
-    order horizon dhl se lo hi sig95 cloggz cloggp
+    label var sig95 "Row bootstrap CI excludes 0 (baseline, the paper's scheme)"
+    gen byte sig95_clu = (!missing(clu_lo) & (clu_lo>0 | clu_hi<0))
+    label var sig95_clu "Country-cluster CI excludes 0 (comparison)"
+    order horizon dhl se lo hi sig95 clu_lo clu_hi sig95_clu cloggz cloggp
     export delimited "$tabs/aipw_flow_diff.csv", replace
     di as result "Flow AIPW difference saved: $tabs/aipw_flow_diff.csv"
 restore
