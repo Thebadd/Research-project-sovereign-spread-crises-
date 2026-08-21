@@ -18,9 +18,9 @@
 
   THE THREE STEPS, IN THE PAPER'S ORDER
   ------------------------------------
-  Eq. (1)  Outcome regression by PLAIN OLS with country FE, giving the
-           conditional means m1 and m0. This is 20_lp_flow.do's specification,
-           less the year FE.
+  Eq. (1)  Outcome regression with country FE, INVERSE-PROBABILITY WEIGHTED
+           (their `reg g_h dum g_0 $convar [pweight=invwt]'), giving the
+           conditional means m1 and m0. Their estimator is IPWRA.
   Eq. (2)  Propensity probit Pr(D=1 | X, Z) -> phat. Pooled, no country FE.
   Eq. (3)  Lambda_h = (1/N) sum { [D*y/p - (1-D)*y/(1-p)]
                                  - (D-p)/(p(1-p)) * [(1-p)*m1 + p*m0] }
@@ -39,20 +39,31 @@
   * `reg' RATHER THAN `xtscc'. Inference here comes from the paired cluster
     bootstrap, not from analytic SEs, so the DK correction has nothing to do;
     and Eq. (1) feeds conditional means into Eq. (3) rather than being read as
-    a coefficient in its own right.
+    a coefficient in its own right. It is also mechanical: xtscc does not accept
+    pweight, and Eq. (1) is weighted.
 
-  ONE DELIBERATE DIFFERENCE FROM 08b, WORTH RECORDING
-  ---------------------------------------------------
-  The reference paper's TEXT says Eq. (1) is estimated "by OLS" and shows it
-  unweighted. Their CODE, inside the AIPW loop, weights it:
-      reg g_h dum g_0 $convar [pweight=invwt]
-  which makes their estimator IPWRA rather than plain AIPW. 08b_aipw.do follows
-  the code. This file follows the TEXT, and estimates Eq. (1) unweighted, for
-  two reasons: it is what the paper as written specifies, and it keeps Eq. (1)
-  identical to the model developed in 20_lp_flow.do apart from the year FE,
-  which is the whole point of this file. Both are doubly robust — each is
-  consistent if EITHER the outcome model or the propensity model is correct —
-  so this is a choice between two valid estimators, not a correction.
+  WHERE THIS DEPARTS FROM THEIR CODE — THREE THINGS, ALL DELIBERATE
+  ------------------------------------------------------------------
+  The estimator algebra is IDENTICAL to theirs. Their
+      iptw   = (2a-1)*g*invwt,  invwt = a/p + (1-a)/(1-p)
+  is g/p when treated and -g/(1-p) when control, i.e. the first bracket of
+  Eq. (3); and their
+      mdiff1 = -(a-p)*mu1/p - (a-p)*mu0/(1-p)
+  factors to -(a-p)[mu1/p + mu0/(1-p)], which is the adjustment term as written
+  above. The mu0/mu1 shift-by-_b[dum] construction is the same too. What differs
+  is three implementation choices:
+
+  1. TRIMMING. They do not trim pihat at all. This file winsorises to
+     [0.01, 0.99], following 08b, because an untrimmed 1/p explodes on thin
+     cells — and under flow coding continuation rows are precisely the ones at
+     risk of scores near 1. Section 1 reports how many rows this touches.
+  2. BOOTSTRAP UNIT. Their `bsample' has no cluster() option: it resamples ROWS
+     within treatment-type strata. This file resamples whole COUNTRIES
+     (`bsample, cluster(cid) strata(...) idcluster(_bid)'). Under flow coding
+     that matters far more than it did for onsets — row resampling would treat
+     Venezuela's 29 crisis-years as 29 independent draws.
+  3. YEAR FE. Neither has them; see below. (This is agreement, not a departure,
+     but it is the thing most likely to be misread as one given 20 has them.)
 
   WHICH CONTROL SET GOES WHERE — AND WHY THEY DIFFER
   --------------------------------------------------
@@ -169,22 +180,29 @@ program define _aipw, rclass
     marksample touse
     markout `touse' `omodel' `pmodel'
 
-    tempvar xb m0 m1 ps summ
-    * Eq. (1) — PLAIN OLS with country FE, as the paper's text specifies
-    * ("we estimate the following regression model by OLS"). No weights: this
-    * is 20_lp_flow.do's specification, less the year FE. See the header for
-    * why this departs from 08b.
-    if "`fe'" != "" quietly reg `y' `D' `omodel' i.`fe' if `touse'
-    else            quietly reg `y' `D' `omodel'         if `touse'
-    quietly predict double `xb' if `touse', xb
-    quietly gen double `m0' = `xb' - _b[`D']*`D' if `touse'
-    quietly gen double `m1' = `m0' + _b[`D']     if `touse'
-
-    * Eq. (2) — propensity probit, winsorised to bound the weights.
+    tempvar xb m0 m1 ps summ iwt
+    * ORDER FOLLOWS THEIR CODE: Eq. (2) runs FIRST, because Eq. (1) is weighted
+    * by the inverse propensity. Their replication file is unambiguous —
+    *     reg g_h dum g_0 $convar [pweight=invwt], cluster(wdicode) noconstant
+    * so the estimator is IPWRA, not plain AIPW. (Their TEXT says Eq. (1) is
+    * estimated "by OLS" and prints it unweighted; the code is what produced
+    * Table 2 and Fig. 4, so the code governs here. Both forms are doubly
+    * robust; this is a choice between two valid estimators, and this file
+    * exists to reproduce theirs.)
     quietly probit `D' `pmodel' if `touse'
     quietly predict double `ps' if `touse', pr
     quietly replace `ps' = .01 if `ps' < .01                & `touse'
     quietly replace `ps' = .99 if `ps' > .99 & !missing(`ps') & `touse'
+    quietly gen double `iwt' = `D'/`ps' + (1-`D')/(1-`ps') if `touse'
+
+    * Eq. (1) — IPW-weighted OLS with country FE -> conditional means m1, m0.
+    * Their mu0/mu1 construction (predict, then shift by _b[dum]) is
+    * algebraically what is done here.
+    if "`fe'" != "" quietly reg `y' `D' `omodel' i.`fe' [pweight=`iwt'] if `touse'
+    else            quietly reg `y' `D' `omodel'         [pweight=`iwt'] if `touse'
+    quietly predict double `xb' if `touse', xb
+    quietly gen double `m0' = `xb' - _b[`D']*`D' if `touse'
+    quietly gen double `m1' = `m0' + _b[`D']     if `touse'
     * Eq. (3) — the paper's exact algebraic form.
     quietly gen double `summ' = ///
         ( `D'*`y'/`ps' - (1-`D')*`y'/(1-`ps') ) ///
