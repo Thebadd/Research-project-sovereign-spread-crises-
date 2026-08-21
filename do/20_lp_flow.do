@@ -194,6 +194,30 @@ if "$ctrl_flow" == "" {
     di as error "  ** $ctrl_flow not set — re-run 18_transforms.do, then this file."
     exit 111
 }
+
+* NO YEAR FIXED EFFECTS — a deliberate exception to the project's rule.
+* METHODOLOGY.md section 2 says single-stage LPs carry country AND year FE
+* (02, 03) while two-stage estimators drop the year FE to stay like-for-like
+* with the reference paper. This file is single-stage but drops them anyway,
+* because it is the OLS half of a matched pair with 21_aipw_flow.do: their
+* Fig. 3 (OLS) and Fig. 4 (AIPW) are the same specification estimated two ways,
+* and their OLS regression
+*     reg g_h dum1 dum2 dum3 g_0 $convar, vce(robust) noconstant
+* carries $convar = ... c1-c74, i.e. country dummies and NO year dummies. A
+* year-FE version here would not be comparable with 21, which cannot have them.
+*
+* This is consequential and is reported, not assumed. In the year-FE run the
+* year dummies were large and economically real — 2020 at -8.95, 2019 at -9.92,
+* 2009 at -4.01 — and default-linked episodes cluster in 2019-2022, so global
+* shocks that year FE previously absorbed can now load on the treatment. The
+* year-FE specification is therefore kept as a robustness row (r_yearfe in
+* section 4) rather than discarded, and the write-up must compare them.
+*
+* One consequence to carry: EMPIRICAL_ANALYSIS.md section 1 justifies leaving
+* VIX / UST10Y out of the outcome equation on the grounds that year FE absorb
+* every shock common to all countries. That justification does not hold in this
+* file. The global-push terms are still excluded, but now by the same omission
+* the reference paper uses, not by absorption.
 local controls  $ctrl_flow
 local ctrl_row  $ctrl_core
 
@@ -233,7 +257,7 @@ forvalues h = 0/4 {
     local row = `h' + 3
     local lag = max(2, `h' + 3)
 
-    capture noisily xtscc dy_`h' in_crisis `controls' i.year ///
+    capture noisily xtscc dy_`h' in_crisis `controls' ///
         if sample_flow == 1, fe lag(`lag')
     if _rc {
         di as error "  ** h=`hd' failed (rc=" _rc ")"
@@ -275,14 +299,19 @@ forvalues h = 0/4 {
 * ══════════════════════════════════════════════════════════════════════════
 * 2. THE IDENTITY CHECK
 *
-* dy_0 is 100*(ln_gdp(t) - ln_gdp(t-1)), which is identically gdpg at t
-* (18_transforms.do). And restricted to sample==1 — which drops every
-* continuation row — in_crisis IS onset_all. So the flow h=0 coefficient
-* estimated on sample==1 must reproduce 02_lp_all.do's h=0 coefficient exactly.
+* Restricted to sample==1 — which drops every continuation row — in_crisis IS
+* onset_all, and epc_* collapses to the row-dated controls. So the flow
+* specification and the onset specification must return the SAME coefficient on
+* that sample. This is the check that catches a mis-built treatment or sample
+* flag. It must run on sample==1, NOT sample_flow==1: on the flow sample the two
+* legitimately differ, because the control group is no longer the same.
 *
-* This is the check that catches a mis-built treatment or sample flag. It must
-* run on sample==1, NOT sample_flow==1: on the flow sample the two legitimately
-* differ, because the control group is no longer the same.
+* TWO VERSIONS ARE RUN. Without year FE it is the internal equivalence just
+* described. WITH year FE it additionally reproduces 02_lp_all.do's Year-1
+* coefficient exactly, since that file's spec is onset + row-dated controls +
+* country and year FE — so it ties this file back to the published Table 1.
+* Since the baseline here drops year FE, only the second version can be
+* compared to 02, and both are reported so a failure localises.
 * ══════════════════════════════════════════════════════════════════════════
 di as result _n "════════════════════════════════════════════════════════════"
 di as result "2. IDENTITY CHECK — flow Year 1 on sample==1 must equal onset Year 1"
@@ -306,13 +335,23 @@ foreach X of global ctrl_core {
 if `nredate' != 0 di as error "  ** `nredate' rows where epc_ differs from row-dated INSIDE sample==1 — re-dating leaked"
 else              di as result "  Episode-dated controls collapse to row-dated on sample==1 (correct)"
 
-quietly xtscc dy_0 in_crisis `controls' i.year if sample==1, fe lag(1)
+* (i) no year FE — the baseline specification's own internal equivalence
+quietly xtscc dy_0 in_crisis `controls' if sample==1, fe lag(1)
 local b_flow0 = _b[in_crisis]
-quietly xtscc dy_0 onset_all `ctrl_row' i.year if sample==1, fe lag(1)
+quietly xtscc dy_0 onset_all `ctrl_row' if sample==1, fe lag(1)
 local b_ons0 = _b[onset_all]
 local gap0 = abs(`b_flow0' - `b_ons0')
-di as result "  flow  h=0 on sample==1: " %9.6f `b_flow0'
-di as result "  onset h=0 on sample==1: " %9.6f `b_ons0'
+di as result "  no year FE   flow: " %9.6f `b_flow0' "   onset: " %9.6f `b_ons0'
+
+* (ii) with year FE — additionally must equal 02_lp_all.do's Year-1 coefficient
+quietly xtscc dy_0 in_crisis `controls' i.year if sample==1, fe lag(1)
+local b_flow0y = _b[in_crisis]
+quietly xtscc dy_0 onset_all `ctrl_row' i.year if sample==1, fe lag(1)
+local b_ons0y = _b[onset_all]
+local gap0y = abs(`b_flow0y' - `b_ons0y')
+di as result "  with year FE flow: " %9.6f `b_flow0y' "   onset: " %9.6f `b_ons0y'
+di as result "               (the with-year-FE number is the one comparable to 02_lp_all.do)"
+if `gap0y' > 1e-6 di as error "  ** with-year-FE anchor FAILED (difference " %9.6f `gap0y' ")."
 if `gap0' > 1e-6 {
     di as error "  ** IDENTITY CHECK FAILED (difference " %9.6f `gap0' ")."
     di as error "     in_crisis or sample_flow is mis-built. Stop and fix before reading anything below."
@@ -352,7 +391,7 @@ forvalues h = 0/4 {
     local row = `h' + 3
     local lag = max(2, `h' + 3)
 
-    capture noisily xtscc dy_`h' in_crisis_nd in_crisis_def `controls' i.year ///
+    capture noisily xtscc dy_`h' in_crisis_nd in_crisis_def `controls' ///
         if sample_flow == 1, fe lag(`lag')
     if _rc {
         di as error "  ** h=`hd' split failed (rc=" _rc ")"
@@ -420,6 +459,11 @@ forvalues h = 0/4 {
 * Each variant states the concern it addresses, so that a reader knows what
 * would have counted as failure.
 *
+* (0) YEAR FE. The baseline drops them so this file pairs with 21_aipw_flow.do,
+*     whose two-stage design cannot have them. That is a departure from the
+*     project's single-stage rule and from 02/03, so the year-FE version runs
+*     here for both the pooled coefficient and the def-nd difference.
+*
 * (a) INFERENCE. The onset design's DK lag, max(1,h+1), covers the overlap of
 *     the outcome windows but not the serial correlation of the REGRESSOR
 *     within an episode, which flow coding introduces and onset coding does not
@@ -464,42 +508,60 @@ di as result "══════════════════════
 forvalues h = 0/4 {
     local hd = `h' + 1
 
+    * (0) YEAR FIXED EFFECTS — the project's standard for a single-stage LP,
+    *     dropped from the baseline here so this file pairs with 21. Because the
+    *     year dummies were large in the previous run and default-linked
+    *     episodes cluster in 2019-2022, this is the robustness row that matters
+    *     most: if the baseline and this diverge, global shocks are loading on
+    *     the treatment and the write-up says so.
+    capture quietly xtscc dy_`h' in_crisis `controls' i.year if sample_flow==1, fe lag(`=max(2,`h'+3)')
+    if _rc == 0 post `F' ("r_yearfe") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
+        (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
+
+    capture quietly xtscc dy_`h' in_crisis_nd in_crisis_def `controls' i.year if sample_flow==1, fe lag(`=max(2,`h'+3)')
+    if _rc == 0 {
+        quietly lincom in_crisis_def - in_crisis_nd
+        post `F' ("r_yearfe") ("def_minus_nd") (`hd') (r(estimate)) (r(se)) ///
+            (cond(!missing(r(df)) & r(df)>0, 2*ttail(r(df), abs(r(estimate)/r(se))), ///
+                  2*(1-normal(abs(r(estimate)/r(se)))))) (.) (.) (.) (e(N))
+    }
+
     * (a) onset-design lag, then country clustering
-    capture quietly xtscc dy_`h' in_crisis `controls' i.year if sample_flow==1, fe lag(`=max(1,`h'+1)')
+    capture quietly xtscc dy_`h' in_crisis `controls' if sample_flow==1, fe lag(`=max(1,`h'+1)')
     if _rc == 0 post `F' ("r_oldlag") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
         (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
 
-    capture quietly areg dy_`h' in_crisis `controls' i.year if sample_flow==1, absorb(cid) vce(cluster cid)
+    capture quietly areg dy_`h' in_crisis `controls' if sample_flow==1, absorb(cid) vce(cluster cid)
     if _rc == 0 post `F' ("r_cluster") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
         (2*ttail(e(df_r), abs(_b[in_crisis]/_se[in_crisis]))) (.) (.) (e(N_clust)) (e(N))
 
     * (b) treatment definition
-    capture quietly xtscc dy_`h' in_crisis_sp `controls' i.year if sample_flow==1, fe lag(`=max(2,`h'+3)')
+    capture quietly xtscc dy_`h' in_crisis_sp `controls' if sample_flow==1, fe lag(`=max(2,`h'+3)')
     if _rc == 0 post `F' ("r_critflag") ("in_crisis_sp") (`hd') (_b[in_crisis_sp]) (_se[in_crisis_sp]) ///
         (2*(1-normal(abs(_b[in_crisis_sp]/_se[in_crisis_sp])))) (.) (.) (.) (e(N))
 
-    capture quietly xtscc dy_`h' in_crisis `controls' i.year if sample_flow==1 & gap_year==0, fe lag(`=max(2,`h'+3)')
+    capture quietly xtscc dy_`h' in_crisis `controls' if sample_flow==1 & gap_year==0, fe lag(`=max(2,`h'+3)')
     if _rc == 0 post `F' ("r_nogap") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
         (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
 
     * (c) row-dated controls, and row-dated minus lagged growth
-    capture quietly xtscc dy_`h' in_crisis `ctrl_row' i.year if sample_flow==1, fe lag(`=max(2,`h'+3)')
+    capture quietly xtscc dy_`h' in_crisis `ctrl_row' if sample_flow==1, fe lag(`=max(2,`h'+3)')
     if _rc == 0 post `F' ("r_rowdated") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
         (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
 
-    capture quietly xtscc dy_`h' in_crisis `cflow' i.year if sample_flow==1, fe lag(`=max(2,`h'+3)')
+    capture quietly xtscc dy_`h' in_crisis `cflow' if sample_flow==1, fe lag(`=max(2,`h'+3)')
     if _rc == 0 post `F' ("r_rowdated_nog") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
         (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
 
     * (d) concentration
-    capture quietly xtscc dy_`h' in_crisis `controls' i.year if sample_flow==1 & country!="Venezuela", fe lag(`=max(2,`h'+3)')
+    capture quietly xtscc dy_`h' in_crisis `controls' if sample_flow==1 & country!="Venezuela", fe lag(`=max(2,`h'+3)')
     if _rc == 0 post `F' ("r_noven") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
         (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
 
     * (e) realised outcomes only
     capture confirm variable gdp_last_actual, exact
     if !_rc {
-        capture quietly xtscc dy_`h' in_crisis `controls' i.year ///
+        capture quietly xtscc dy_`h' in_crisis `controls' ///
             if sample_flow==1 & (year + `h') <= gdp_last_actual, fe lag(`=max(2,`h'+3)')
         if _rc == 0 post `F' ("r_outturn") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
             (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
@@ -527,7 +589,11 @@ capture esttab f1_h0 f1_h1 f1_h2 f1_h3 f1_h4 using "$tabs/table9_flow_lp.rtf", r
              "Controls are dated at the EPISODE's entry year and held fixed across its years; tranquil" ///
              "rows keep their own t-1. Row-dated controls would be outcomes of the crisis for any" ///
              "continuation row. Onset rows are unaffected, so this matches Table 1's control set at Year 1." ///
-             "Country and year fixed effects. Driscoll-Kraay SE, lag max(2,h+3): h+1 for the overlap of" ///
+             "Country fixed effects, NO year fixed effects — matching the reference paper's OLS" ///
+             "specification (their convar carries country dummies only) so this pairs with the AIPW" ///
+             "twin in 21_aipw_flow.do, which cannot carry them. The year-FE version, which is the" ///
+             "project's standard for a single-stage LP, is reported as robustness row r_yearfe." ///
+             "Driscoll-Kraay SE, lag max(2,h+3): h+1 for the overlap of" ///
              "outcome windows plus 2 for serial correlation of the treatment within an episode." ///
              "Report episodes and countries, not rows: 234 treated rows carry 61 episodes in 52 countries." ///
              "This specification does not correct for selection into crisis — see METHODOLOGY.md." ///
@@ -618,7 +684,7 @@ preserve
         ytitle("Change in log real GDP (pp)", size(medsmall)) ///
         title("Output While In a Sovereign Spread Crisis", size(medium)) ///
         subtitle("Treatment = every year of an episode (234 country-years, 61 episodes)", size(small)) ///
-        note("Local projections, country and year FE, Driscoll-Kraay SE (lag max(2,h+3))." ///
+        note("Local projections, country FE only (no year FE — see the file header), DK SE lag max(2,h+3)." ///
              "Controls are the common core dated at the EPISODE's entry year and held fixed" ///
              "across its years; tranquil rows keep their own t-1." ///
              "Same axis as Figure 1, but Year 1 is not the same object: it pools the first year of" ///
