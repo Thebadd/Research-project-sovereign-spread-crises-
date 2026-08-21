@@ -110,31 +110,33 @@ misread aspect of the design, so the table is authoritative:
 |---|---|---|
 | Single-stage local projection | `02`, `03`, `06`, `07`, `12b`, `13b`, and the OLS halves of `11`, `11b`, `12` | country **and year** |
 | Two-stage IPW / AIPW | `08`, `08b`, `13c`, `13d`, `21`, and the IPW halves of `11`, `11b`, `12` | country **only** |
-| Flow tier, single-stage | `20` | country **only** — an exception, see below |
+| Flow tier, single-stage | `20` | country **and year** — the rule applies |
 
-**`20_lp_flow.do` is the one exception and it is deliberate.** It is
-single-stage, so the rule above would give it year fixed effects, but it is
-the OLS half of a matched pair with `21_aipw_flow.do`: the two are the
-analogues of the reference paper's Fig. 3 and Fig. 4, the same specification
-estimated by OLS and then by AIPW. Their OLS regression carries `$convar =
-… c1-c74`, country dummies and no year dummies, and `21` cannot carry year FE
-because it is two-stage. A year-FE version of `20` would not be comparable
-with its own twin.
+**The flow tier splits across the rule, and that has a consequence worth
+stating.** `20_lp_flow.do` is single-stage and keeps year fixed effects;
+`21_aipw_flow.do` is two-stage and drops them, matching the reference paper,
+whose `$convar` carries `c1-c74` and no year dummies. So Figure 9b and
+Figure 10 — the analogues of their Fig. 3 (OLS) and Fig. 4 (AIPW) — differ in
+the **estimator and in the year fixed effects at the same time**, and the
+difference between them cannot be attributed to the estimator alone.
 
-The cost is real and is reported rather than assumed: the year-FE
-specification runs as robustness row `r_yearfe` in `20`, for both the pooled
-coefficient and the def−nd difference. Two things make that row worth reading
-closely. The year dummies in the earlier year-FE run were large and
-economically meaningful (2020 at −8.95, 2019 at −9.92, 2009 at −4.01), and
-default-linked episodes cluster in 2019–2022, so shocks the year FE previously
-absorbed can now load on the treatment. If the baseline and `r_yearfe` diverge
-materially, that is what is happening and the write-up must say so.
+`20` therefore reports a **`r_noyearfe`** robustness row, dropping year FE for
+both the pooled coefficient and the def−nd difference. That row is the
+specification `21` runs, so it is what isolates the estimator, and the write-up
+should quote it whenever the two figures are set side by side.
+
+Expect the row to differ materially from the baseline. The year dummies are
+economically real — 2020 at −8.95, 2019 at −9.92, 2009 at −4.01 — and
+default-linked episodes cluster in 2019–2022, so without them COVID and the GFC
+can load on the treatment. The onset analogue is on record below: the
+default-linked coefficient moves from −5.53/−6.75 at Years 1–2 with year FE to
+−7.58/−9.48 without.
 
 One consequence to carry forward: §1 of `EMPIRICAL_ANALYSIS.md` justifies
 leaving VIX and UST10Y out of the outcome equation on the grounds that year
 fixed effects absorb every shock common to all countries. That justification
-does not hold in `20` or `21`. The global-push terms remain excluded there,
-but by the same omission the reference paper uses, not by absorption.
+holds in `20` but **not** in `21`. The global-push terms remain excluded there,
+by the same omission the reference paper uses rather than by absorption.
 
 Year fixed effects in the single-stage projections are a deliberate
 improvement on the reference paper, whose `$convar` carries country dummies
