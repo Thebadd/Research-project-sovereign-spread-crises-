@@ -105,6 +105,12 @@ foreach var of local channels {
     quietly drop _ent_pre_`var'
 }
 
+* bysort above re-sorts the physical dataset by its by-list as a side effect
+* (independent of what xtset declared), leaving it sorted by cid ep_seq rather
+* than cid year. xtscc does its own sort check and errors r(5) "not sorted" if
+* this is not restored before the next panel command.
+sort cid year
+
 di as result _n "=== FLOW COVERAGE AT h=0 (sample_flow==1 & in_crisis==1) ==="
 foreach var of local channels {
     quietly count if in_crisis==1 & sample_flow==1 & !missing(ch_`var'_0)

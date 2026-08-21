@@ -83,6 +83,12 @@ foreach var of local channels {
     quietly drop _ent_pre_`var'
 }
 
+* bysort above re-sorts the physical dataset by its by-list as a side effect
+* (independent of what xtset declared), leaving it sorted by cid ep_seq rather
+* than cid year. xtscc does its own sort check and errors r(5) "not sorted" if
+* this is not restored before the next panel command.
+sort cid year
+
 local epc_lc epc_l_credit_bank
 local epc_lg epc_l_govexp
 local ctrl_credit      : list ctrl_flow - epc_lc
