@@ -85,7 +85,8 @@
     "$clean/irf_flow.dta"             pooled IRF
     "$clean/irf_flow_nd.dta"          non-default IRF
     "$clean/irf_flow_def.dta"         default-linked IRF
-    "$figs/fig9_irf_flow.pdf"         (built in 04_graphs.do)
+    "$figs/fig9_irf_flow.pdf/.png"    pooled figure (built HERE, not in 04)
+    "$figs/fig9b_irf_flow_resolution.pdf/.png"   by resolution type
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -578,5 +579,95 @@ foreach g in flow flow_nd flow_def {
     restore
 }
 di as result "IRF datasets saved: irf_flow.dta, irf_flow_nd.dta, irf_flow_def.dta"
+
+* ══════════════════════════════════════════════════════════════════════════
+* 6. FIGURES
+*
+* Drawn here rather than in 04_graphs.do so this file is self-contained: run it
+* alone and you get the tables, the CSV, the IRF datasets and the figures.
+* (02/03 hand their IRFs to 04 instead; the flow tier does not, so there is
+* only one place where Figures 9 and 9b are defined.)
+*
+* SAME AXIS AS FIGURE 1 (Year 0 = baseline t-1, Year 1 = the crisis year), so
+* the two can be laid over each other — but the Year-1 points are NOT the same
+* object: Figure 1's is the first year of every episode; this one pools the
+* first year of one episode with the fourth year of another, because the
+* treatment is being IN a crisis, not entering one.
+*
+* Colours repeat 04_graphs.do:15-17 so the flow figures sit visually alongside
+* Figures 1-2. Everything runs inside preserve/restore and every export is
+* wrapped in capture: a locked file or a missing $figs must not discard
+* estimates that are already computed.
+* ══════════════════════════════════════════════════════════════════════════
+local c_flow "23 55 94"
+local c_nd   "0 84 166"
+local c_def  "157 36 73"
+local c_zero "150 150 150"
+
+preserve
+    use "$clean/irf_flow.dta", clear
+    keep if horizon >= 0
+    twoway ///
+        (rarea lo95 hi95 horizon, color("`c_flow'%15") lwidth(none)) ///
+        (rarea lo90 hi90 horizon, color("`c_flow'%25") lwidth(none)) ///
+        (connected b horizon, lcolor("`c_flow'") lwidth(medthick) ///
+            mcolor("`c_flow'") msize(medium) msymbol(circle)), ///
+        yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
+        xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
+        xtitle("Year (Year 1 = the crisis year)", size(medsmall)) ///
+        ytitle("Change in log real GDP (pp)", size(medsmall)) ///
+        title("Output While In a Sovereign Spread Crisis", size(medium)) ///
+        subtitle("Treatment = every year of an episode (234 country-years, 61 episodes)", size(small)) ///
+        note("Local projections, country and year FE, Driscoll-Kraay SE (lag max(2,h+3))." ///
+             "Controls are the common core dated at the EPISODE's entry year and held fixed" ///
+             "across its years; tranquil rows keep their own t-1." ///
+             "Same axis as Figure 1, but Year 1 is not the same object: it pools the first year of" ///
+             "one episode with the fourth year of another. Not corrected for selection.", ///
+             size(vsmall)) ///
+        legend(order(3 "Point estimate" 2 "90% CI" 1 "95% CI") ring(0) pos(1) size(small)) ///
+        graphregion(color(white)) plotregion(color(white))
+    capture graph export "$figs/fig9_irf_flow.pdf", replace
+    if _rc di as error "  ** fig9_irf_flow.pdf export failed (rc=" _rc ") — is it open?"
+    else {
+        capture graph export "$figs/fig9_irf_flow.png", replace width(1200)
+        di as result "Figure 9 saved: fig9_irf_flow.pdf/.png"
+    }
+restore
+
+capture confirm file "$clean/irf_flow_nd.dta"
+if _rc {
+    di as error "  ** irf_flow_nd.dta not found — Figure 9b skipped."
+}
+else {
+    preserve
+        use "$clean/irf_flow_nd.dta", clear
+        append using "$clean/irf_flow_def.dta"
+        keep if horizon >= 0
+        twoway ///
+            (rarea lo90 hi90 horizon if series=="flow_nd",  color("`c_nd'%20")  lwidth(none)) ///
+            (rarea lo90 hi90 horizon if series=="flow_def", color("`c_def'%20") lwidth(none)) ///
+            (connected b horizon if series=="flow_nd",  lcolor("`c_nd'")  mcolor("`c_nd'")  ///
+                msymbol(circle) lwidth(medthick)) ///
+            (connected b horizon if series=="flow_def", lcolor("`c_def'") mcolor("`c_def'") ///
+                msymbol(square) lpattern(dash) lwidth(medthick)), ///
+            yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
+            xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
+            xtitle("Year (Year 1 = the crisis year)", size(medsmall)) ///
+            ytitle("Change in log real GDP (pp)", size(medsmall)) ///
+            title("Output While In a Spread Crisis, by Resolution", size(medium)) ///
+            subtitle("Joint specification; tranquil country-years omitted", size(small)) ///
+            note("90% CIs. Difference tested by lincom, which uses the covariance between the two" ///
+                 "coefficients — countries with episodes of both types contribute to both arms." ///
+                 "Non-default carries 113 crisis-years, default-linked 121.", size(vsmall)) ///
+            legend(order(3 "Non-default" 4 "Default-linked") ring(0) pos(7) cols(1) size(small)) ///
+            graphregion(color(white)) plotregion(color(white))
+        capture graph export "$figs/fig9b_irf_flow_resolution.pdf", replace
+        if _rc di as error "  ** fig9b export failed (rc=" _rc ") — is it open?"
+        else {
+            capture graph export "$figs/fig9b_irf_flow_resolution.png", replace width(1200)
+            di as result "Figure 9b saved: fig9b_irf_flow_resolution.pdf/.png"
+        }
+    restore
+}
 
 di as result _n "20_lp_flow.do complete."
