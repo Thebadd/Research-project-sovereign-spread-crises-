@@ -208,7 +208,7 @@ postfile `F' str16 spec str14 term int hdisp double b double se double p ///
     long nrow long nep long ncty long N using "`flowf'", replace
 
 di as result _n "════════════════════════════════════════════════════════════"
-di as result "1. POOLED — output while in a spread crisis, by forecast horizon"
+di as result "1. POOLED — output while in a spread crisis (Year 1 = the crisis year)"
 di as result "════════════════════════════════════════════════════════════"
 di as result "  Year 1 is growth DURING the crisis year. Later years are the"
 di as result "  cumulative change from t-1 associated with a crisis year — NOT"
@@ -427,7 +427,7 @@ local dropgdpg l1_gdpg
 local cflow : list controls - dropgdpg
 
 di as result _n "════════════════════════════════════════════════════════════"
-di as result "4. ROBUSTNESS (pooled, h=0 and h=2 shown; all horizons in the CSV)"
+di as result "4. ROBUSTNESS (all horizons written to the CSV)"
 di as result "════════════════════════════════════════════════════════════"
 
 forvalues h = 0/4 {
