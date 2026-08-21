@@ -317,6 +317,48 @@ label var ep_seq "Running episode counter within country (0 = before first onset
 bysort cid ep_seq: egen byte nd_ep = max(nondefault)
 label var nd_ep "Resolution type of the episode, filled to all its years (1=non-default)"
 
+* ── EPISODE-DATED CONTROLS ──────────────────────────────────────────────────
+* Under flow coding every element of $ctrl_core measured at a continuation
+* row's OWN t-1 is an outcome of the crisis that row is already in: lagged
+* growth most obviously, but debt, the current account, bank credit, government
+* spending and banking-crisis duration equally. A row three years into an
+* episode would be conditioned on covariates the episode itself produced —
+* mediators, on the right-hand side.
+*
+* The reference paper never faces this because every one of its treated rows is
+* an onset, so its L./L2. controls are predetermined by construction. Dating
+* the controls at the EPISODE's entry year reproduces exactly that timing:
+* $ctrl_core as it stood the year before the episode began, held fixed for all
+* of its years; tranquil rows keep their own t-1, which is predetermined for
+* them trivially. Onset rows are unchanged, since for them t-1 IS the entry
+* year — so the onset and flow specifications share an identical control set at
+* Year 1 and their Year-1 coefficients are directly comparable.
+*
+* Same construction as Callaway & Sant'Anna (2021), who measure covariates in
+* each cohort's pre-treatment period for this reason.
+*
+* $ctrl_flow is the flow BASELINE; $ctrl_core is retained as the row-dated
+* robustness column in 20_lp_flow.do, so the table shows what the choice costs.
+global ctrl_flow ""
+foreach X of global ctrl_core {
+    capture drop epc_`X' _ent_`X'
+    quietly bysort cid ep_seq: egen double _ent_`X' = max(cond(onset_all==1, `X', .))
+    quietly gen double epc_`X' = cond(in_crisis==1, _ent_`X', `X')
+    label var epc_`X' "`X' at episode entry (tranquil rows keep own t-1)"
+    quietly drop _ent_`X'
+    global ctrl_flow "$ctrl_flow epc_`X'"
+}
+di as result "  FLOW: episode-dated control set built -> $ctrl_flow"
+
+* Onset rows must be untouched by the re-dating: for them t-1 IS the entry year.
+local nbad = 0
+foreach X of global ctrl_core {
+    quietly count if onset_all==1 & carryin==0 & !missing(`X') & abs(epc_`X' - `X') > 1e-9
+    local nbad = `nbad' + r(N)
+}
+if `nbad' != 0 di as error "  ** FLOW: episode-dated controls differ from row-dated on `nbad' ONSET rows — ep_seq is wrong"
+else           di as result "  FLOW: episode-dated controls match row-dated on every onset row (correct)"
+
 gen byte in_crisis_nd  = (in_crisis==1 & nd_ep==1)
 gen byte in_crisis_def = (in_crisis==1 & nd_ep==0)
 label var in_crisis_nd  "In a NON-DEFAULT spread crisis"

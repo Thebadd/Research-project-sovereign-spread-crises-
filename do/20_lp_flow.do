@@ -182,7 +182,19 @@ di as result "  It is not the annual criterion flag — see the note in 18_trans
 * ══════════════════════════════════════════════════════════════════════════
 * 1. POOLED FLOW LP
 * ══════════════════════════════════════════════════════════════════════════
-local controls $ctrl_core
+* BASELINE CONTROLS ARE EPISODE-DATED ($ctrl_flow, built in 18_transforms.do):
+* $ctrl_core evaluated at the episode's entry year and held fixed across its
+* years, with tranquil rows keeping their own t-1. Row-dated controls would be
+* outcomes of the crisis for any continuation row — mediators on the RHS. This
+* dating reproduces the reference paper's timing, whose treated rows are always
+* onsets and whose L./L2. controls are therefore predetermined by construction.
+* The row-dated set runs as a robustness column in section 4.
+if "$ctrl_flow" == "" {
+    di as error "  ** $ctrl_flow not set — re-run 18_transforms.do, then this file."
+    exit 111
+}
+local controls  $ctrl_flow
+local ctrl_row  $ctrl_core
 
 * HORIZON CONVENTION — IDENTICAL TO 02/03 AND TO THE REFERENCE PAPER.
 * dy_h is differenced against the row's own t-1, so plugging h=-1 into the same
@@ -272,16 +284,30 @@ forvalues h = 0/4 {
 * differ, because the control group is no longer the same.
 * ══════════════════════════════════════════════════════════════════════════
 di as result _n "════════════════════════════════════════════════════════════"
-di as result "2. IDENTITY CHECK — flow h=0 on sample==1 must equal onset h=0"
+di as result "2. IDENTITY CHECK — flow Year 1 on sample==1 must equal onset Year 1"
 di as result "════════════════════════════════════════════════════════════"
 quietly count if sample==1 & in_crisis==1 & onset_all==0
 if r(N) != 0 {
     di as error "  ** `r(N)' rows have in_crisis==1 & onset_all==0 inside sample==1."
     di as error "     sample is supposed to exclude every continuation year — check 18."
 }
+* On sample==1 the episode-dated controls must be IDENTICAL to the row-dated
+* ones: continuation rows are excluded, so in_crisis==1 only on onset rows,
+* where the entry year IS t-1. Checking that first isolates a failure to the
+* right place if the coefficient test below fails.
+local nredate = 0
+foreach X of global ctrl_core {
+    capture confirm variable epc_`X', exact
+    if _rc continue
+    quietly count if sample==1 & !missing(`X') & abs(epc_`X' - `X') > 1e-9
+    local nredate = `nredate' + r(N)
+}
+if `nredate' != 0 di as error "  ** `nredate' rows where epc_ differs from row-dated INSIDE sample==1 — re-dating leaked"
+else              di as result "  Episode-dated controls collapse to row-dated on sample==1 (correct)"
+
 quietly xtscc dy_0 in_crisis `controls' i.year if sample==1, fe lag(1)
 local b_flow0 = _b[in_crisis]
-quietly xtscc dy_0 onset_all `controls' i.year if sample==1, fe lag(1)
+quietly xtscc dy_0 onset_all `ctrl_row' i.year if sample==1, fe lag(1)
 local b_ons0 = _b[onset_all]
 local gap0 = abs(`b_flow0' - `b_ons0')
 di as result "  flow  h=0 on sample==1: " %9.6f `b_flow0'
@@ -290,7 +316,7 @@ if `gap0' > 1e-6 {
     di as error "  ** IDENTITY CHECK FAILED (difference " %9.6f `gap0' ")."
     di as error "     in_crisis or sample_flow is mis-built. Stop and fix before reading anything below."
 }
-else di as result "  MATCH (difference " %9.2e `gap0' ") — treatment and sample flags are correct."
+else di as result "  MATCH (difference " %9.2e `gap0' ") — treatment, sample flag and control dating are all correct."
 
 * ══════════════════════════════════════════════════════════════════════════
 * 3. BY RESOLUTION TYPE — joint specification
@@ -408,11 +434,15 @@ forvalues h = 0/4 {
 *     Also: the gap years dropped entirely (neither treated nor control), which
 *     asserts nothing about them and contaminates nothing.
 *
-* (c) LAGGED GROWTH AS A CONTROL. l1_gdpg is predetermined for an onset row but
-*     NOT for a continuation row, where it is growth inside the same crisis —
-*     a treated outcome. Conditioning on it will absorb part of the very
-*     persistence being measured and bias beta toward zero. The version without
-*     it is the one to prefer under flow coding; both are reported.
+* (c) CONTROL DATING. The baseline dates $ctrl_core at the episode's entry year.
+*     The row-dated version conditions every continuation row on covariates the
+*     crisis itself produced — lagged growth most obviously, but debt, the
+*     current account, bank credit, government spending and banking duration
+*     equally — which will absorb part of the effect being measured and bias
+*     beta toward zero. If the two agree, one sentence closes the question; if
+*     they disagree, the gap measures how much the row-dated controls absorb.
+*     A row-dated-minus-l1_gdpg variant is reported as well, since lagged growth
+*     is the single worst offender.
 *
 * (d) CONCENTRATION. Flow coding weights episodes by their length, so a few
 *     chronic cases carry a large share of the treatment. Venezuela alone is in
@@ -424,7 +454,7 @@ forvalues h = 0/4 {
 *     long episodes run into the projection window at every horizon.
 * ══════════════════════════════════════════════════════════════════════════
 local dropgdpg l1_gdpg
-local cflow : list controls - dropgdpg
+local cflow : list ctrl_row - dropgdpg
 
 di as result _n "════════════════════════════════════════════════════════════"
 di as result "4. ROBUSTNESS (all horizons written to the CSV)"
@@ -451,9 +481,13 @@ forvalues h = 0/4 {
     if _rc == 0 post `F' ("r_nogap") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
         (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
 
-    * (c) drop lagged growth
+    * (c) row-dated controls, and row-dated minus lagged growth
+    capture quietly xtscc dy_`h' in_crisis `ctrl_row' i.year if sample_flow==1, fe lag(`=max(2,`h'+3)')
+    if _rc == 0 post `F' ("r_rowdated") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
+        (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
+
     capture quietly xtscc dy_`h' in_crisis `cflow' i.year if sample_flow==1, fe lag(`=max(2,`h'+3)')
-    if _rc == 0 post `F' ("r_nol1gdpg") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
+    if _rc == 0 post `F' ("r_rowdated_nog") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
         (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
 
     * (d) concentration
@@ -489,6 +523,9 @@ capture esttab f1_h0 f1_h1 f1_h2 f1_h3 f1_h4 using "$tabs/table9_flow_lp.rtf", r
              "crisis year. Year 1 here is growth DURING a crisis year, but it pools the first year of one" ///
              "episode with the fourth year of another, so it is NOT the same object as Year 1 in Table 1." ///
              "Later years are cumulative changes from t-1, not responses h years after onset." ///
+             "Controls are dated at the EPISODE's entry year and held fixed across its years; tranquil" ///
+             "rows keep their own t-1. Row-dated controls would be outcomes of the crisis for any" ///
+             "continuation row. Onset rows are unaffected, so this matches Table 1's control set at Year 1." ///
              "Country and year fixed effects. Driscoll-Kraay SE, lag max(2,h+3): h+1 for the overlap of" ///
              "outcome windows plus 2 for serial correlation of the treatment within an episode." ///
              "Report episodes and countries, not rows: 234 treated rows carry 61 episodes in 52 countries." ///

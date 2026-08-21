@@ -336,6 +336,26 @@ one is the first year of every episode, the flow one pools the first year of one
 episode with the fourth year of another. No pre-trend placebo is written at
 Year −1 (below).
 
+**Controls are dated at the episode's entry year.** Under flow coding, every
+element of `$ctrl_core` measured at a continuation row's own $t-1$ is an
+outcome of the crisis that row is already in — lagged growth most obviously,
+but debt, the current account, bank credit, government spending and
+banking-crisis duration equally. Conditioning on them is conditioning on
+mediators, on the right-hand side. `$ctrl_flow` (built in `18_transforms.do`)
+therefore evaluates the common core at the year the episode began and holds it
+fixed across the episode; tranquil rows keep their own $t-1$, which is
+predetermined for them trivially.
+
+This is not a departure from the reference paper — it *reproduces* their
+timing. Their treated rows are always onsets, so their `L.`/`L2.` controls are
+predetermined by construction and the question never arises for them; row-dated
+controls are the thing that would depart. Onset rows are unaffected here, since
+for them $t-1$ *is* the entry year, so the onset and flow specifications share
+an identical control set at Year 1 and their Year-1 coefficients are directly
+comparable. The construction follows Callaway & Sant'Anna (2021), who measure
+covariates in each cohort's pre-treatment period for the same reason. The
+row-dated set is reported as a robustness column so the choice is visible.
+
 **The flow tier stops at the single-stage projection, deliberately.** For a
 time-varying treatment the strongest predictor of being in crisis at *t* is
 being in crisis at *t−1* — a post-treatment outcome of the same episode — so
