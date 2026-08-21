@@ -103,6 +103,12 @@ foreach var of local channels {
     quietly gen double epc_pre_`var' = cond(in_crisis==1, _ent_pre_`var', pre_`var')
     label var epc_pre_`var' "pre_`var' at episode entry (tranquil rows keep own t-1)"
     quietly drop _ent_pre_`var'
+    * Restore panel order INSIDE the loop, not just after it: the preceding
+    * bysort silently re-sorts the physical dataset by cid ep_seq, and the
+    * NEXT iteration's `gen \`var'_base = L.\`src'' would then be computed on
+    * data no longer sorted cid year. Belt and suspenders with the sort after
+    * the loop closes.
+    sort cid year
 }
 
 * bysort above re-sorts the physical dataset by its by-list as a side effect
@@ -192,6 +198,8 @@ program define _nflowcount, rclass
     return scalar ncty = r(N)
 end
 
+sort cid year   // belt-and-suspenders: guaranteed panel order before the first xtscc call
+
 * ══════════════════════════════════════════════════════════════════════════
 * 3. IDENTITY CHECK — credit channel, on sample==1, must reproduce
 *    11_channels.do's h=0 credit coefficient. Same logic as 20's Section 2:
@@ -218,6 +226,8 @@ di as result "  with year FE flow: " %9.6f `f0y' "   onset: " %9.6f `o0y' ///
              "   (comparable to 11_channels.do's Table 3, Panel A, h=1)"
 if abs(`f0y'-`o0y') > 1e-6 di as error "  ** with-year-FE anchor FAILED (credit)."
 else                       di as result "  MATCH — treatment, sample flag and control dating are correct."
+
+sort cid year   // belt-and-suspenders: guaranteed panel order before the estimation loop
 
 * ══════════════════════════════════════════════════════════════════════════
 * 4. ESTIMATION — one loop over all six channels, pooled flow LP

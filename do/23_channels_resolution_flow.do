@@ -81,6 +81,8 @@ foreach var of local channels {
         max(cond(onset_all==1, pre_`var', .))
     quietly gen double epc_pre_`var' = cond(in_crisis==1, _ent_pre_`var', pre_`var')
     quietly drop _ent_pre_`var'
+    * See 22_channels_flow.do for why this sort is needed inside the loop.
+    sort cid year
 }
 
 * bysort above re-sorts the physical dataset by its by-list as a side effect
@@ -139,6 +141,8 @@ program define _nflowcount, rclass
     quietly count if `tagep'==1
     return scalar nep = r(N)
 end
+
+sort cid year   // belt-and-suspenders: guaranteed panel order before the estimation loop
 
 * ══════════════════════════════════════════════════════════════════════════
 * 2. ESTIMATION — joint nd/def per channel, tranquil omitted
