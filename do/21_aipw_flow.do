@@ -517,6 +517,11 @@ local c_nd   "0 84 166"
 local c_def  "157 36 73"
 local c_zero "150 150 150"
 
+* Common y-scale for the Fig.3 / Fig.4 pair — set this to the SAME string as
+* the `yrng' local in 20_lp_flow.do once both have run, so the OLS and AIPW
+* panels are literally comparable rather than merely similar.
+local yrng ""
+
 preserve
     use "$clean/irf_aipw_flow_nd.dta", clear
     append using "$clean/irf_aipw_flow_def.dta"
@@ -531,12 +536,16 @@ preserve
         xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
         xtitle("Year (Year 1 = the crisis year)", size(medsmall)) ///
         ytitle("Change in log real GDP (pp)", size(medsmall)) ///
-        title("Flow AIPW: Output While In a Spread Crisis, by Resolution", size(medium)) ///
-        subtitle("Asonuma et al. Eqs. (1)-(3) on the flow treatment; each type vs tranquil", size(small)) ///
-        note("Treatment = 1 in every year of an episode. Eq. (1) IPW-weighted OLS, country FE," ///
-             "episode-dated controls; Eq. (2) pooled probit on row-dated controls + predictors;" ///
-             "Eq. (3) the paper's AIPW form. Bands are +/-1.96 bootstrap SD from paired cluster" ///
-             "resamples. Not the same object as Figure 9: this corrects for selection into crisis.", ///
+        title("Output While In a Spread Crisis, by Resolution", size(medium)) ///
+        subtitle("AIPW — the reference paper's Eq. (3). Tranquil country-years omitted.", size(small)) ///
+        `yrng' ///
+        note("95% CIs (+/-1.96 bootstrap SD, paired stratified cluster resamples), as in the" ///
+             "reference paper. The AIPW half of a matched pair: this is the analogue of their" ///
+             "Fig. 4, and fig9b_irf_flow_resolution.pdf (20_lp_flow.do) is their Fig. 3 — the same" ///
+             "object estimated by OLS. Same treatment, same axis, same scale, so the two read side" ///
+             "by side and the estimator is the only thing that differs." ///
+             "Eq. (1) plain OLS with country FE and episode-dated controls; Eq. (2) pooled probit" ///
+             "on row-dated controls plus excluded predictors; Eq. (3) the paper's exact AIPW form.", ///
              size(vsmall)) ///
         legend(order(3 "Non-default" 4 "Default-linked") ring(0) pos(7) cols(1) size(small)) ///
         graphregion(color(white)) plotregion(color(white))

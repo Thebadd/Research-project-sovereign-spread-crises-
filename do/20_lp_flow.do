@@ -634,6 +634,13 @@ preserve
     }
 restore
 
+* ── Figure 9b — the OLS half of the Fig.3 / Fig.4 pair ──────────────────────
+* `yrng' sets a COMMON y-scale so this and fig10_aipw_flow.pdf can be shown
+* together. Left empty until both files have run and the AIPW magnitudes are
+* known; then set the SAME string here and in 21_aipw_flow.do, e.g.
+*     local yrng "yscale(range(-12 6)) ylabel(-12(3)6, format(%4.1f) labsize(medsmall))"
+local yrng ""
+
 capture confirm file "$clean/irf_flow_nd.dta"
 if _rc {
     di as error "  ** irf_flow_nd.dta not found — Figure 9b skipped."
@@ -644,8 +651,8 @@ else {
         append using "$clean/irf_flow_def.dta"
         keep if horizon >= 0
         twoway ///
-            (rarea lo90 hi90 horizon if series=="flow_nd",  color("`c_nd'%20")  lwidth(none)) ///
-            (rarea lo90 hi90 horizon if series=="flow_def", color("`c_def'%20") lwidth(none)) ///
+            (rarea lo95 hi95 horizon if series=="flow_nd",  color("`c_nd'%20")  lwidth(none)) ///
+            (rarea lo95 hi95 horizon if series=="flow_def", color("`c_def'%20") lwidth(none)) ///
             (connected b horizon if series=="flow_nd",  lcolor("`c_nd'")  mcolor("`c_nd'")  ///
                 msymbol(circle) lwidth(medthick)) ///
             (connected b horizon if series=="flow_def", lcolor("`c_def'") mcolor("`c_def'") ///
@@ -655,9 +662,13 @@ else {
             xtitle("Year (Year 1 = the crisis year)", size(medsmall)) ///
             ytitle("Change in log real GDP (pp)", size(medsmall)) ///
             title("Output While In a Spread Crisis, by Resolution", size(medium)) ///
-            subtitle("Joint specification; tranquil country-years omitted", size(small)) ///
-            note("90% CIs. Difference tested by lincom, which uses the covariance between the two" ///
-                 "coefficients — countries with episodes of both types contribute to both arms." ///
+            subtitle("OLS — the reference paper's Eq. (1). Tranquil country-years omitted.", size(small)) ///
+            `yrng' ///
+            note("95% CIs. The OLS half of a matched pair: this is the analogue of the reference" ///
+                 "paper's Fig. 3, and fig10_aipw_flow.pdf (21_aipw_flow.do) is their Fig. 4 — the" ///
+                 "same object estimated by AIPW. Same treatment, same axis, same scale, so the two" ///
+                 "read side by side and the estimator is the only thing that differs." ///
+                 "Difference tested by lincom, using the covariance between the two coefficients." ///
                  "Non-default carries 113 crisis-years, default-linked 121.", size(vsmall)) ///
             legend(order(3 "Non-default" 4 "Default-linked") ring(0) pos(7) cols(1) size(small)) ///
             graphregion(color(white)) plotregion(color(white))
