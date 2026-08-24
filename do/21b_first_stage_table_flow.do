@@ -91,7 +91,10 @@ foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def
     }
 }
 
-local X $ctrl_core
+* EXPLORATORY: set to 1 to test the alternate flow control set (see
+* 18_transforms.do's "EXPLORATORY ALTERNATE FLOW CONTROL SET"). Default 0.
+local use_flowalt_ctrl 0
+local X = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core")
 local Z l_fedfunds l_reg_crisis_share years_since_def_onset
 
 eststo clear

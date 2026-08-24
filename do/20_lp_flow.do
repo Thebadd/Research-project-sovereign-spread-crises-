@@ -212,8 +212,15 @@ if "$ctrl_flow" == "" {
 * no-year-FE robustness row (r_noyearfe, section 4) is what separates the two,
 * and the write-up should quote it when setting the figures side by side rather
 * than attributing the whole difference to the estimator.
-local controls  $ctrl_flow
-local ctrl_row  $ctrl_core
+* EXPLORATORY: set to 1 to test the alternate flow control set (drops
+* l_debt/l_ca, banking-crisis DUMMY instead of duration, adds exchange rate
+* and terms of trade -- see 18_transforms.do's "EXPLORATORY ALTERNATE FLOW
+* CONTROL SET"). Default 0 = current baseline, unchanged. Does NOT touch the
+* identity check below (section 2), which must keep matching $ctrl_core to
+* verify agreement with 02_lp_all.do's published onset-coded result.
+local use_flowalt_ctrl 0
+local controls  = cond(`use_flowalt_ctrl', "$ctrl_flow_flowalt", "$ctrl_flow")
+local ctrl_row  = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core")
 
 * HORIZON CONVENTION — IDENTICAL TO 02/03 AND TO THE REFERENCE PAPER.
 * dy_h is differenced against the row's own t-1, so plugging h=-1 into the same

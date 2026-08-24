@@ -122,6 +122,15 @@ gen double l_govexp       = L.govexp
 gen double l_open         = L.open
 gen double l_credit_bank  = L.credit_bank
 gen double l_credit       = L.credit
+* Exchange rate — robustness-tier, not in $ctrl_core. reer_chg (12_wdi.do) is
+* already a % change, so this is a plain lag, same pattern as every other
+* control here.
+capture confirm variable reer_chg
+if !_rc {
+    gen double l_reer_chg = L.reer_chg
+    label var l_reer_chg "L1 real effective exchange rate, % change (predetermined; robustness alt., not in core)"
+}
+else di as error "  ** reer_chg not found — skipping l_reer_chg (add REER_INDEX.xlsx to build it)."
 * debt, current account, and the banking-crisis flag lagged to t-1 so the ENTIRE
 * common core is predetermined (t-1) — internally coherent and matching the
 * reference paper's pre-crisis controls (avoids onset-year simultaneity/bad-control).
@@ -359,6 +368,31 @@ foreach X of global ctrl_core {
 if `nbad' != 0 di as error "  ** FLOW: episode-dated controls differ from row-dated on `nbad' ONSET rows — ep_seq is wrong"
 else           di as result "  FLOW: episode-dated controls match row-dated on every onset row (correct)"
 
+* ══════════════════════════════════════════════════════════════════════════
+* EXPLORATORY ALTERNATE FLOW CONTROL SET — $ctrl_core_flowalt / $ctrl_flow_flowalt
+*
+* NOT used anywhere by default. Drops l_debt/l_ca, swaps the banking-crisis
+* DURATION (l_banking_duration) for the DUMMY (l_banking_crisis), and adds
+* the exchange rate (l_reer_chg) and terms of trade (tot_chg) -- a one-off
+* "what happens if" test of the flow tier's control set, requested to be kept
+* separate from $ctrl_core/$ctrl_flow so every onset-tier file and every
+* flow-file identity check that depends on matching $ctrl_core keeps working
+* unchanged. Each flow file (20-24) reads this only if its own
+* `use_flowalt_ctrl' toggle is set to 1; default is 0 (current baseline).
+* Same episode-dating mechanism as $ctrl_flow above, just parameterised on a
+* different base list -- not a new pattern.
+global ctrl_core_flowalt "l1_gdpg l_govexp l_open l_credit_bank l_hyperinfl l_banking_crisis l_reer_chg tot_chg"
+global ctrl_flow_flowalt ""
+foreach X of global ctrl_core_flowalt {
+    capture drop epc_`X' _ent_`X'
+    quietly bysort cid ep_seq: egen double _ent_`X' = max(cond(onset_all==1, `X', .))
+    quietly gen double epc_`X' = cond(in_crisis==1, _ent_`X', `X')
+    label var epc_`X' "`X' at episode entry (tranquil rows keep own t-1) -- flowalt"
+    quietly drop _ent_`X'
+    global ctrl_flow_flowalt "$ctrl_flow_flowalt epc_`X'"
+}
+di as result "  FLOWALT (exploratory): episode-dated control set built -> $ctrl_flow_flowalt"
+
 gen byte in_crisis_nd  = (in_crisis==1 & nd_ep==1)
 gen byte in_crisis_def = (in_crisis==1 & nd_ep==0)
 label var in_crisis_nd  "In a NON-DEFAULT spread crisis"
@@ -472,7 +506,7 @@ if r(N) == 0 di as result "  carry-in rows: `ncar' present, 0 in sample (correct
 else         di as error  "  ** `r(N)' CARRY-IN ROWS LEAKED INTO sample==1 — investigate"
 di as result _n "Coverage at onsets (non-missing) for the key analysis variables:"
 foreach v in dy_0 l1_gdpg debt ca infl l_hyperinfl l_lninfl imf credit fdi claims_govt inv govexp pb ///
-             banking_crisis l_banking_crisis reer_chg revenue_gdp open claimsgov_assets ///
+             banking_crisis l_banking_crisis reer_chg l_reer_chg tot_chg revenue_gdp open claimsgov_assets ///
              claimpriv_assets vix fedfunds ust10y {
     capture confirm variable `v'
     if !_rc {

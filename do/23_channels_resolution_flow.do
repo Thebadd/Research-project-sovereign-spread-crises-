@@ -91,16 +91,25 @@ foreach var of local channels {
 * this is not restored before the next panel command.
 sort cid year
 
+* EXPLORATORY: set to 1 to test the alternate flow control set (see
+* 18_transforms.do's "EXPLORATORY ALTERNATE FLOW CONTROL SET"). Default 0.
+* No identity check in this file depends on $ctrl_flow specifically (unlike
+* 22), so the toggle can drive these locals directly rather than needing a
+* separate "_use" duplicate.
+local use_flowalt_ctrl 0
+if `use_flowalt_ctrl' local ctrl_flow_base $ctrl_flow_flowalt
+else                  local ctrl_flow_base $ctrl_flow
+
 local epc_lc epc_l_credit_bank
 local epc_lg epc_l_govexp
-local ctrl_credit      : list ctrl_flow - epc_lc
+local ctrl_credit      : list ctrl_flow_base - epc_lc
 local ctrl_credit      `ctrl_credit' epc_pre_credit
-local ctrl_claims_govt $ctrl_flow epc_pre_claims_govt
-local ctrl_inv         $ctrl_flow epc_pre_inv
-local ctrl_govexp      : list ctrl_flow - epc_lg
+local ctrl_claims_govt `ctrl_flow_base' epc_pre_claims_govt
+local ctrl_inv         `ctrl_flow_base' epc_pre_inv
+local ctrl_govexp      : list ctrl_flow_base - epc_lg
 local ctrl_govexp      `ctrl_govexp' epc_pre_govexp
-local ctrl_pb          $ctrl_flow epc_pre_pb
-local ctrl_fdi         $ctrl_flow epc_pre_fdi
+local ctrl_pb          `ctrl_flow_base' epc_pre_pb
+local ctrl_fdi         `ctrl_flow_base' epc_pre_fdi
 
 capture program drop _critvals
 program define _critvals, rclass

@@ -155,6 +155,23 @@ local ctrl_row_govexp      `ctrl_row_govexp' pre_govexp
 local ctrl_row_pb          $ctrl_core pre_pb
 local ctrl_row_fdi         $ctrl_core pre_fdi
 
+* EXPLORATORY: set to 1 to test the alternate flow control set (see
+* 18_transforms.do). Default 0. `ctrl_<ch>' above stay UNCHANGED and still
+* back the identity check in section 3 (must keep matching $ctrl_flow/
+* $ctrl_core to verify agreement with 11_channels.do's published result);
+* `ctrl_<ch>_use' below are what section 4's estimation loop actually reads.
+local use_flowalt_ctrl 0
+if `use_flowalt_ctrl' local ctrl_flow_base $ctrl_flow_flowalt
+else                  local ctrl_flow_base $ctrl_flow
+local ctrl_credit_use      : list ctrl_flow_base - epc_lc
+local ctrl_credit_use      `ctrl_credit_use' epc_pre_credit
+local ctrl_claims_govt_use `ctrl_flow_base' epc_pre_claims_govt
+local ctrl_inv_use         `ctrl_flow_base' epc_pre_inv
+local ctrl_govexp_use      : list ctrl_flow_base - epc_lg
+local ctrl_govexp_use      `ctrl_govexp_use' epc_pre_govexp
+local ctrl_pb_use          `ctrl_flow_base' epc_pre_pb
+local ctrl_fdi_use         `ctrl_flow_base' epc_pre_fdi
+
 capture program drop _critvals
 program define _critvals, rclass
     tempname dfr
@@ -256,7 +273,7 @@ foreach ch of local channels {
         local row = `h' + 3
         local lag = max(2, `h' + 3)
 
-        capture xtscc ch_`ch'_`h' in_crisis `ctrl_`ch'' i.year if sample_flow==1, fe lag(`lag')
+        capture xtscc ch_`ch'_`h' in_crisis `ctrl_`ch'_use' i.year if sample_flow==1, fe lag(`lag')
         if _rc {
             di as error "  h=`hd': failed for `ch' (rc=" _rc ")"
             continue
@@ -268,7 +285,7 @@ foreach ch of local channels {
         _critvals
         local c90=r(c90)
         local c95=r(c95)
-        _nflowcount in_crisis, outcome(ch_`ch'_`h') controls(`ctrl_`ch'') samp(sample_flow)
+        _nflowcount in_crisis, outcome(ch_`ch'_`h') controls(`ctrl_`ch'_use') samp(sample_flow)
         local nr=r(nrow)
         local ne=r(nep)
         local nc=r(ncty)
@@ -289,7 +306,7 @@ foreach ch of local channels {
         post `F' ("pooled") ("`ch'") (`hd') (`bb') (`ss') (`pp') (`nr') (`ne') (`nc') (e(N))
 
         * robustness: no year FE
-        capture quietly xtscc ch_`ch'_`h' in_crisis `ctrl_`ch'' if sample_flow==1, fe lag(`lag')
+        capture quietly xtscc ch_`ch'_`h' in_crisis `ctrl_`ch'_use' if sample_flow==1, fe lag(`lag')
         if _rc==0 post `F' ("r_noyearfe") ("`ch'") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
             (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
     }
