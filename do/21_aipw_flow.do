@@ -99,6 +99,36 @@
   from control is an empirical question, and Section 1 answers it before any
   coefficient is reported.
 
+  SECTION 1c — DOES ENTRY-DATING X FIX THE SEPARATION, OR JUST RELABEL IT?
+  --------------------------------------------------------------------------
+  Two distinct mechanisms could be behind Section 1(b)'s near-separation:
+  (1) CONTAMINATION — contemporaneous X has already been reshaped by the
+      ongoing crisis (22_channels_flow.do's own credit result: contraction
+      deepens every extra year in crisis), so the propensity model is partly
+      predicting treatment from treatment's own effects.
+  (2) NO INDEPENDENT SELECTION EVENT — a continuation row was never
+      independently selected into treatment; it is treated only because the
+      episode from its onset year hadn't ended. No choice of X fixes this.
+  Section 1c re-runs Section 1(b)'s exact diagnostic with the propensity
+  model's covariates swapped from row-dated $ctrl_core to entry-dated epc_X
+  (epc_X = X at the episode's entry year, built in 18_transforms.do, already
+  used for Eq. (1)'s $ctrl_flow — see above). epc_X is genuinely pre-treatment
+  for EVERY row of an episode, onset and continuation alike, so this isolates
+  mechanism (1): if near-separation is contamination-driven, freezing X at
+  entry should materially shrink the p(treated)/p(control) gap and the count
+  of p>0.99 rows relative to Section 1(b)'s numbers. If it does not, that is
+  evidence mechanism (2) dominates and only a two-part onset/persistence model
+  (not discussed further here) would address the remainder.
+  cz_def (l_fedfunds, l_reg_crisis_share, past_def_onsets) is left row-dated
+  in both 1b and 1c: fed funds and the regional contagion share are not shaped
+  by the country's OWN ongoing episode, and past_def_onsets is already a
+  predetermined running count, so none of the three carries the same
+  contamination risk as the country's own macro controls.
+  This is a DIAGNOSTIC ONLY. It does not change the baseline estimator in
+  Section 3 — pz(`cx' `cz_def') there is untouched. Whether to build an actual
+  epc_X estimation arm (or, if the gap doesn't close, an onset/persistence
+  model instead) is a decision for after reading what this section prints.
+
   Outputs
   -------
     "$tabs/table10_aipw_flow.rtf"    the two type lines + the difference
@@ -166,6 +196,19 @@ if "$ctrl_flow" == "" {
 local cx     $ctrl_core          // Eq. (2) baseline: row-dated, see header
 local com    $ctrl_flow          // Eq. (1) controls: episode-dated
 local cz_def l_fedfunds l_reg_crisis_share past_def_onsets
+
+* Entry-dated counterpart of $ctrl_core, for the Section 1c diagnostic only
+* (see header "SECTION 1c"). Built the same way Section 1(a) checks epc_X:
+* fail loudly, not silently, if 18_transforms.do hasn't built one of them.
+local cxe
+foreach X of local cx {
+    capture confirm variable epc_`X', exact
+    if _rc {
+        di as error "  ** epc_`X' not in panel_lp.dta — re-run 18_transforms.do first."
+        exit 111
+    }
+    local cxe `cxe' epc_`X'
+}
 
 set seed 20260819
 local nboot = 1000
@@ -454,6 +497,52 @@ foreach s in nd def {
 di as result _n "      A large share of treated rows at p>0.99, or continuation rows"
 di as result "      absent, means the propensity is reading 'already in crisis'"
 di as result "      and the flow AIPW is not adding information over 08b."
+
+* ══════════════════════════════════════════════════════════════════════════
+* 1c. DOES ENTRY-DATED X (epc_X) CLOSE THE GAP, OR IS THE PROBLEM STRUCTURAL?
+*
+* Same diagnostic as 1(b), same samples, same cz_def block — the ONLY change
+* is `cx' -> `cxe' in the propensity model. epc_X is genuinely pre-treatment
+* for every row of an episode (onset AND continuation), unlike contemporaneous
+* X, so this isolates whether near-separation is CONTAMINATION (X reshaped by
+* the ongoing crisis) or STRUCTURAL (continuation rows were never independently
+* selected into treatment at all, so no choice of X fixes it). See header
+* "SECTION 1c" for the full argument. Diagnostic only — does not touch Section
+* 3's baseline estimator.
+* ══════════════════════════════════════════════════════════════════════════
+di as result _n "  (c) Same check, entry-dated controls (epc_X) in place of row-dated X:"
+foreach s in nd def {
+    quietly probit in_crisis_`s' `cxe' `cz_def' if sample_flow==1
+    capture drop _pse_`s'
+    quietly predict double _pse_`s' if e(sample), pr
+    quietly count if in_crisis_`s'==1 & !missing(_pse_`s')
+    local nin = r(N)
+    quietly count if in_crisis_`s'==1 & !missing(_pse_`s') & onset_all==1
+    local non = r(N)
+    quietly count if in_crisis_`s'==1 & !missing(_pse_`s') & continuation==1
+    local ncn = r(N)
+    quietly summarize _pse_`s' if in_crisis_`s'==1, detail
+    local mt = r(mean)
+    quietly summarize _pse_`s' if in_crisis_`s'==0 & sample_flow==1, detail
+    local mc = r(mean)
+    quietly count if in_crisis_`s'==1 & _pse_`s' > .99 & !missing(_pse_`s')
+    local nwin = r(N)
+    di as result "      `s': treated rows in probit sample = " %4.0f `nin' ///
+                 "  (onset " %3.0f `non' ", continuation " %3.0f `ncn' ")"
+    di as result "          mean p(treated) = " %5.3f `mt' ///
+                 "   mean p(control) = " %5.3f `mc' ///
+                 "   treated rows with p>0.99 = " %3.0f `nwin'
+}
+di as result _n "      Compare these numbers to (b) directly above. If the gap between"
+di as result "      p(treated) and p(control), and the p>0.99 count, close substantially"
+di as result "      here, contamination was the dominant mechanism and epc_X is worth"
+di as result "      carrying into the estimator itself as a follow-up. If they do not"
+di as result "      move much, the remaining separation is structural -- continuation"
+di as result "      rows are never independently selected into treatment regardless of"
+di as result "      which X dates them -- and only a two-part onset/persistence model"
+di as result "      would address it. This section does not decide which; it reports"
+di as result "      both sets of numbers so that decision can be made from evidence."
+capture drop _pse_nd _pse_def
 
 * ══════════════════════════════════════════════════════════════════════════
 * 2. HOW MUCH WORK IS THE AUGMENTATION DOING?
