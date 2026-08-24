@@ -603,6 +603,68 @@ di as result "      contamination-vs-structural distinction 1c was built to test
 capture drop _psd_nd _psd_def
 
 * ══════════════════════════════════════════════════════════════════════════
+* 1e. IS IT past_def_onsets SPECIFICALLY, WITH l_ca/l_debt LEFT IN?
+*
+* Section 1d's coefficient table settled the original hypothesis: l_ca is not
+* even significant (p=.542) and l_debt, while significant (z=5.20), is not the
+* dominant term. past_def_onsets stood out at z=10.07 -- more than double the
+* next-largest z-stat in the model -- and the probit reported "17 failures and
+* 0 successes completely determined," Stata's own quasi-complete-separation
+* diagnostic, printed directly in that section's log.
+*
+* past_def_onsets is a running count of a country's OWN history of default
+* onsets. It barely moves within a country's sample window, so for a serial
+* defaulter it behaves close to a country fixed effect wearing a different
+* name, rather than a genuine time-varying predictor -- exactly the profile
+* of a variable that would produce quasi-complete separation on its own.
+*
+* This section isolates it: cx (row-dated $ctrl_core, l_ca and l_debt INCLUDED)
+* is left exactly as in the Section 1(b) baseline; only past_def_onsets is
+* dropped from cz_def. If this single change closes the gap far more than
+* Section 1d's l_ca/l_debt removal did, that confirms past_def_onsets as the
+* dominant driver of the near-separation Section 1(b) first flagged.
+* ══════════════════════════════════════════════════════════════════════════
+local past_onset_drop past_def_onsets
+local cz_noPD : list cz_def - past_onset_drop
+
+di as result _n "  (e) Is it past_def_onsets specifically, l_ca/l_debt left in --"
+di as result "      def-arm probit coefficients with past_def_onsets dropped:"
+probit in_crisis_def `cx' `cz_noPD' if sample_flow==1
+
+di as result _n "      Same overlap check as (b), row-dated X (l_ca, l_debt IN), past_def_onsets OUT:"
+foreach s in nd def {
+    quietly probit in_crisis_`s' `cx' `cz_noPD' if sample_flow==1
+    capture drop _pspd_`s'
+    quietly predict double _pspd_`s' if e(sample), pr
+    quietly count if in_crisis_`s'==1 & !missing(_pspd_`s')
+    local nin = r(N)
+    quietly count if in_crisis_`s'==1 & !missing(_pspd_`s') & onset_all==1
+    local non = r(N)
+    quietly count if in_crisis_`s'==1 & !missing(_pspd_`s') & continuation==1
+    local ncn = r(N)
+    quietly summarize _pspd_`s' if in_crisis_`s'==1, detail
+    local mt = r(mean)
+    quietly summarize _pspd_`s' if in_crisis_`s'==0 & sample_flow==1, detail
+    local mc = r(mean)
+    quietly count if in_crisis_`s'==1 & _pspd_`s' > .99 & !missing(_pspd_`s')
+    local nwin = r(N)
+    di as result "      `s': treated rows in probit sample = " %4.0f `nin' ///
+                 "  (onset " %3.0f `non' ", continuation " %3.0f `ncn' ")"
+    di as result "          mean p(treated) = " %5.3f `mt' ///
+                 "   mean p(control) = " %5.3f `mc' ///
+                 "   treated rows with p>0.99 = " %3.0f `nwin'
+}
+di as result _n "      Compare, def arm: (b) baseline 0.591/0.036/5 rows p>0.99;"
+di as result "      1d (l_ca,l_debt dropped) 0.523/0.045/3 rows p>0.99;"
+di as result "      1e (past_def_onsets dropped, l_ca/l_debt kept) printed just above."
+di as result "      If 1e closes the gap far more than 1d did, past_def_onsets -- not"
+di as result "      current account or debt -- is the dominant driver of the near-"
+di as result "      separation, and the follow-up decision is about that variable"
+di as result "      specifically: drop it from Eq. (2), or model a country's default"
+di as result "      history differently there."
+capture drop _pspd_nd _pspd_def
+
+* ══════════════════════════════════════════════════════════════════════════
 * 2. HOW MUCH WORK IS THE AUGMENTATION DOING?
 *
 * Eq. (3) is the IPW estimator plus an augmentation term:
