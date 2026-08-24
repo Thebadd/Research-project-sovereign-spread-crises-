@@ -150,37 +150,28 @@ sort cid year
 
 local epc_lc epc_l_credit_bank
 local epc_lg epc_l_govexp
-* ctrl_<ch> below stay UNCHANGED so Sections 1a/1b's already-run diagnostics
-* (credit, h=1) stay exactly as documented. Section 2's estimation loop reads
-* the "_use" duplicates built further below instead.
-local ctrl_credit      : list ctrl_flow - epc_lc
-local ctrl_credit      `ctrl_credit' epc_pre_credit
-local ctrl_claims_govt $ctrl_flow epc_pre_claims_govt
-local ctrl_inv         $ctrl_flow epc_pre_inv
-local ctrl_govexp      : list ctrl_flow - epc_lg
-local ctrl_govexp      `ctrl_govexp' epc_pre_govexp
-local ctrl_pb          $ctrl_flow epc_pre_pb
-local ctrl_fdi         $ctrl_flow epc_pre_fdi
 
 * EXPLORATORY: set to 1 to test the alternate flow control set (see
-* 18_transforms.do's "EXPLORATORY ALTERNATE FLOW CONTROL SET"). Default 0.
+* 18_transforms.do's "EXPLORATORY ALTERNATE FLOW CONTROL SET"). Default 0 =
+* current baseline. This drives every control-set reference below, INCLUDING
+* Sections 1a/1b's diagnostics -- with it on, their printed comparison
+* numbers describe the run that produced years_since_def_onset, not this
+* run, so read them as history rather than a live check when testing.
 local use_flowalt_ctrl 0
 if `use_flowalt_ctrl' local ctrl_flow_base $ctrl_flow_flowalt
 else                  local ctrl_flow_base $ctrl_flow
-local ctrl_credit_use      : list ctrl_flow_base - epc_lc
-local ctrl_credit_use      `ctrl_credit_use' epc_pre_credit
-local ctrl_claims_govt_use `ctrl_flow_base' epc_pre_claims_govt
-local ctrl_inv_use         `ctrl_flow_base' epc_pre_inv
-local ctrl_govexp_use      : list ctrl_flow_base - epc_lg
-local ctrl_govexp_use      `ctrl_govexp_use' epc_pre_govexp
-local ctrl_pb_use          `ctrl_flow_base' epc_pre_pb
-local ctrl_fdi_use         `ctrl_flow_base' epc_pre_fdi
+
+local ctrl_credit      : list ctrl_flow_base - epc_lc
+local ctrl_credit      `ctrl_credit' epc_pre_credit
+local ctrl_claims_govt `ctrl_flow_base' epc_pre_claims_govt
+local ctrl_inv         `ctrl_flow_base' epc_pre_inv
+local ctrl_govexp      : list ctrl_flow_base - epc_lg
+local ctrl_govexp      `ctrl_govexp' epc_pre_govexp
+local ctrl_pb          `ctrl_flow_base' epc_pre_pb
+local ctrl_fdi         `ctrl_flow_base' epc_pre_fdi
 
 * ── Propensity model — SAME as 21_aipw_flow.do, unchanged ───────────────────
-local cx     $ctrl_core          // Eq. (2): row-dated, fit on continuation==0 only
-* cx_use: what Section 2's estimation loop actually reads; `cx' above stays
-* unconditional so Sections 1a/1b stay exactly as documented.
-local cx_use = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core")
+local cx = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core")   // Eq. (2): row-dated, fit on continuation==0 only
 * cz_def: the ORIGINAL predictor set, kept so Sections 1a/1b's already-run
 * diagnostics stay exactly as documented. Not used by Section 2's estimation.
 local cz_def l_fedfunds l_reg_crisis_share past_def_onsets
@@ -597,7 +588,7 @@ foreach ch of local channels {
         _aipwpairflow, y(ch_`ch'_`h') ///
             d1(in_crisis_def) if1(sample_flow==1 & in_crisis_nd==0) ///
             d2(in_crisis_nd)  if2(sample_flow==1 & in_crisis_def==0) ///
-            omod(`ctrl_`ch'_use') pz(`cx_use' `cz_recency') reps(`nboot') boot(row)
+            omod(`ctrl_`ch'') pz(`cx' `cz_recency') reps(`nboot') boot(row)
 
         if !r(ok) {
             di as error "  h=`hd': estimate failed for `ch' (cell too thin)."

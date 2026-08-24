@@ -273,16 +273,15 @@ if "$ctrl_flow" == "" {
     exit 111
 }
 
-local cx     $ctrl_core          // Eq. (2) baseline: row-dated, see header
-local com    $ctrl_flow          // Eq. (1) controls: episode-dated
 * EXPLORATORY: set to 1 to test the alternate flow control set (see
-* 18_transforms.do's "EXPLORATORY ALTERNATE FLOW CONTROL SET"). Default 0.
-* `cx'/`com' above stay UNCHANGED and still drive Sections 1a-1f exactly as
-* documented; `cx_use'/`com_use' below are what Section 2/3/3b's active
-* estimator actually reads.
+* 18_transforms.do's "EXPLORATORY ALTERNATE FLOW CONTROL SET"). Default 0 =
+* current baseline. This drives every control-set reference in the file,
+* including Sections 1a-1f's diagnostics -- with it on, their printed
+* comparison numbers describe the run that produced years_since_def_onset,
+* not this run, so read them as history rather than a live check when testing.
 local use_flowalt_ctrl 0
-local cx_use  = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core")
-local com_use = cond(`use_flowalt_ctrl', "$ctrl_flow_flowalt", "$ctrl_flow")
+local cx     = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core")     // Eq. (2) baseline: row-dated, see header
+local com    = cond(`use_flowalt_ctrl', "$ctrl_flow_flowalt", "$ctrl_flow")    // Eq. (1) controls: episode-dated
 * cz_def: the ORIGINAL predictor set, kept unchanged so Sections 1b-1e's
 * already-reported diagnostic numbers stay reproducible -- see header
 * "PREDICTOR CHANGE". Not used by Section 2/3's active baseline.
@@ -845,12 +844,12 @@ foreach s2 in nd def {
     * sample used below (continuation rows included), so this decomposition is
     * computed under the SAME propensity construction Section 3 now uses.
     * cz_recency, not cz_def -- see header "PREDICTOR CHANGE".
-    quietly probit in_crisis_`s2' `cx_use' `cz_recency' if sample_flow==1 & `rival'==0 & continuation==0
+    quietly probit in_crisis_`s2' `cx' `cz_recency' if sample_flow==1 & `rival'==0 & continuation==0
     quietly predict double _ps2 if sample_flow==1 & `rival'==0, pr
     quietly replace _ps2 = .01 if _ps2 < .01 & !missing(_ps2)
     quietly replace _ps2 = .99 if _ps2 > .99 & !missing(_ps2)
 
-    quietly reg dy_0 in_crisis_`s2' `com_use' i.cid if sample_flow==1 & `rival'==0 & !missing(_ps2)
+    quietly reg dy_0 in_crisis_`s2' `com' i.cid if sample_flow==1 & `rival'==0 & !missing(_ps2)
     quietly predict double _xb2 if e(sample), xb
     quietly gen double _m0 = _xb2 - _b[in_crisis_`s2']*in_crisis_`s2'
     quietly gen double _m1 = _m0 + _b[in_crisis_`s2']
@@ -894,7 +893,7 @@ forvalues h = 0/4 {
     _aipwpairflow, y(dy_`h') ///
         d1(in_crisis_def) if1(sample_flow==1 & in_crisis_nd==0) ///
         d2(in_crisis_nd)  if2(sample_flow==1 & in_crisis_def==0) ///
-        omod(`com_use') pz(`cx_use' `cz_recency') reps(`nboot') boot(row)
+        omod(`com') pz(`cx' `cz_recency') reps(`nboot') boot(row)
 
     if !r(ok) {
         di as error "  Year `hd': estimate failed (cell too thin)."
@@ -992,7 +991,7 @@ forvalues h = 0/4 {
     _aipwpairflow, y(dy_`h') ///
         d1(in_crisis_def) if1(sample_flow==1 & in_crisis_nd==0) ///
         d2(in_crisis_nd)  if2(sample_flow==1 & in_crisis_def==0) ///
-        omod(`com_use') pz(`cx_use' `cz_recency') reps(`nboot') boot(cluster)
+        omod(`com') pz(`cx' `cz_recency') reps(`nboot') boot(cluster)
 
     if !r(ok) {
         di as error "  Year `hd': cluster-bootstrap comparison failed."
