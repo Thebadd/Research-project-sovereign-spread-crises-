@@ -62,6 +62,7 @@ do "$do/02_lp_all.do"
 do "$do/03_lp_resolution.do"
 do "$do/20_lp_flow.do"               // FLOW treatment: in-crisis = every year of an episode (not just onset)
 do "$do/21_aipw_flow.do"             // Asonuma Eqs. (1)-(3) on the FLOW treatment (self-contained)
+do "$do/21b_first_stage_table_flow.do"  // Table-1-style probit for 21's Eq. (2): predicting the START of a spread crisis
 do "$do/22_channels_flow.do"         // flow analogue of 11_channels.do: transmission channels, in-crisis treatment
 do "$do/23_channels_resolution_flow.do"  // flow analogue of 12's Spec A: channels by resolution type
 do "$do/04_graphs.do"
