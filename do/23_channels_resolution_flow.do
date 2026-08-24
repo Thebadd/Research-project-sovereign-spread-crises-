@@ -100,6 +100,13 @@ local use_flowalt_ctrl 0
 if `use_flowalt_ctrl' local ctrl_flow_base $ctrl_flow_flowalt
 else                  local ctrl_flow_base $ctrl_flow
 
+* EXPLORATORY: set to 1 to drop year FE and match the reference paper's
+* single-stage rule (country FE only), matching 20/22's toggle of the same
+* name. Default 0 = current baseline. No identity check in this file to
+* worry about protecting (see file header: none is built here).
+local drop_year_fe 0
+local yearfe = cond(`drop_year_fe', "", "i.year")
+
 local epc_lc epc_l_credit_bank
 local epc_lg epc_l_govexp
 local ctrl_credit      : list ctrl_flow_base - epc_lc
@@ -183,7 +190,7 @@ foreach ch of local channels {
         local row = `h' + 3
         local lag = max(2, `h' + 3)
 
-        capture xtscc ch_`ch'_`h' in_crisis_nd in_crisis_def `ctrl_`ch'' i.year ///
+        capture xtscc ch_`ch'_`h' in_crisis_nd in_crisis_def `ctrl_`ch'' `yearfe' ///
             if sample_flow==1, fe lag(`lag')
         if _rc {
             di as error "  h=`hd': failed for `ch' (rc=" _rc ")"

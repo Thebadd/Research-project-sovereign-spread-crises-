@@ -222,6 +222,19 @@ local use_flowalt_ctrl 0
 local controls  = cond(`use_flowalt_ctrl', "$ctrl_flow_flowalt", "$ctrl_flow")
 local ctrl_row  = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core")
 
+* EXPLORATORY: set to 1 to drop year FE and match the reference paper's
+* single-stage rule (country FE only, via c1-c74) instead of this project's
+* documented single-stage rule (country AND year FE, METHODOLOGY.md section
+* 2 -- see this file's own header for why: year dummies are large and
+* economically real, and default-linked episodes cluster in 2019-2022, so
+* without them COVID/GFC can load on the treatment). Default 0 = current
+* baseline. Drives Sections 1, 3 and the robustness table (section 4).
+* Does NOT touch the identity check (section 2), which deliberately runs
+* BOTH variants side by side regardless of this setting, or r_noyearfe
+* (already the no-year-FE row on its own terms).
+local drop_year_fe 0
+local yearfe = cond(`drop_year_fe', "", "i.year")
+
 * HORIZON CONVENTION — IDENTICAL TO 02/03 AND TO THE REFERENCE PAPER.
 * dy_h is differenced against the row's own t-1, so plugging h=-1 into the same
 * formula gives y(t-1) - y(t-1) = 0 by construction, for continuation rows
@@ -258,7 +271,7 @@ forvalues h = 0/4 {
     local row = `h' + 3
     local lag = max(2, `h' + 3)
 
-    capture noisily xtscc dy_`h' in_crisis `controls' i.year ///
+    capture noisily xtscc dy_`h' in_crisis `controls' `yearfe' ///
         if sample_flow == 1, fe lag(`lag')
     if _rc {
         di as error "  ** h=`hd' failed (rc=" _rc ")"
@@ -392,7 +405,7 @@ forvalues h = 0/4 {
     local row = `h' + 3
     local lag = max(2, `h' + 3)
 
-    capture noisily xtscc dy_`h' in_crisis_nd in_crisis_def `controls' i.year ///
+    capture noisily xtscc dy_`h' in_crisis_nd in_crisis_def `controls' `yearfe' ///
         if sample_flow == 1, fe lag(`lag')
     if _rc {
         di as error "  ** h=`hd' split failed (rc=" _rc ")"
@@ -537,41 +550,41 @@ forvalues h = 0/4 {
     }
 
     * (a) onset-design lag, then country clustering
-    capture quietly xtscc dy_`h' in_crisis `controls' i.year if sample_flow==1, fe lag(`=max(1,`h'+1)')
+    capture quietly xtscc dy_`h' in_crisis `controls' `yearfe' if sample_flow==1, fe lag(`=max(1,`h'+1)')
     if _rc == 0 post `F' ("r_oldlag") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
         (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
 
-    capture quietly areg dy_`h' in_crisis `controls' i.year if sample_flow==1, absorb(cid) vce(cluster cid)
+    capture quietly areg dy_`h' in_crisis `controls' `yearfe' if sample_flow==1, absorb(cid) vce(cluster cid)
     if _rc == 0 post `F' ("r_cluster") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
         (2*ttail(e(df_r), abs(_b[in_crisis]/_se[in_crisis]))) (.) (.) (e(N_clust)) (e(N))
 
     * (b) treatment definition
-    capture quietly xtscc dy_`h' in_crisis_sp `controls' i.year if sample_flow==1, fe lag(`=max(2,`h'+3)')
+    capture quietly xtscc dy_`h' in_crisis_sp `controls' `yearfe' if sample_flow==1, fe lag(`=max(2,`h'+3)')
     if _rc == 0 post `F' ("r_critflag") ("in_crisis_sp") (`hd') (_b[in_crisis_sp]) (_se[in_crisis_sp]) ///
         (2*(1-normal(abs(_b[in_crisis_sp]/_se[in_crisis_sp])))) (.) (.) (.) (e(N))
 
-    capture quietly xtscc dy_`h' in_crisis `controls' i.year if sample_flow==1 & gap_year==0, fe lag(`=max(2,`h'+3)')
+    capture quietly xtscc dy_`h' in_crisis `controls' `yearfe' if sample_flow==1 & gap_year==0, fe lag(`=max(2,`h'+3)')
     if _rc == 0 post `F' ("r_nogap") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
         (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
 
     * (c) row-dated controls, and row-dated minus lagged growth
-    capture quietly xtscc dy_`h' in_crisis `ctrl_row' i.year if sample_flow==1, fe lag(`=max(2,`h'+3)')
+    capture quietly xtscc dy_`h' in_crisis `ctrl_row' `yearfe' if sample_flow==1, fe lag(`=max(2,`h'+3)')
     if _rc == 0 post `F' ("r_rowdated") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
         (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
 
-    capture quietly xtscc dy_`h' in_crisis `cflow' i.year if sample_flow==1, fe lag(`=max(2,`h'+3)')
+    capture quietly xtscc dy_`h' in_crisis `cflow' `yearfe' if sample_flow==1, fe lag(`=max(2,`h'+3)')
     if _rc == 0 post `F' ("r_rowdated_nog") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
         (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
 
     * (d) concentration
-    capture quietly xtscc dy_`h' in_crisis `controls' i.year if sample_flow==1 & country!="Venezuela", fe lag(`=max(2,`h'+3)')
+    capture quietly xtscc dy_`h' in_crisis `controls' `yearfe' if sample_flow==1 & country!="Venezuela", fe lag(`=max(2,`h'+3)')
     if _rc == 0 post `F' ("r_noven") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
         (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
 
     * (e) realised outcomes only
     capture confirm variable gdp_last_actual, exact
     if !_rc {
-        capture quietly xtscc dy_`h' in_crisis `controls' i.year ///
+        capture quietly xtscc dy_`h' in_crisis `controls' `yearfe' ///
             if sample_flow==1 & (year + `h') <= gdp_last_actual, fe lag(`=max(2,`h'+3)')
         if _rc == 0 post `F' ("r_outturn") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
             (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
