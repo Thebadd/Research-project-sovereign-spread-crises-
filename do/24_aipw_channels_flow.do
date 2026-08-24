@@ -411,6 +411,114 @@ di as result "  an honest reflection of a thin, heterogeneous def sample -- not 
 di as result "  estimator artifact to engineer away."
 
 capture drop _psdiag _wtdiag _touse_diag _summand_diag
+sort cid year   // belt-and-suspenders before Section 1b / Section 2
+
+* ══════════════════════════════════════════════════════════════════════════
+* 1b. ALTERNATIVE PREDICTOR — years_since_def_onset IN PLACE OF past_def_onsets
+*
+* past_def_onsets (a running COUNT of a country's own default-linked onsets)
+* is 1a's prime suspect: it never resets, so for a serial defaulter it behaves
+* close to a permanent country identifier rather than a genuine time-varying
+* predictor -- exactly the profile that produces the weight concentration 1a
+* found (top 5% of rows = 98.9% of the summand's variance).
+*
+* years_since_def_onset measures RECENCY instead of FREQUENCY: years since
+* this country's most recent PRIOR default-linked onset (not the current
+* episode's own onset -- see construction below). Unlike a count, it does not
+* only grow -- it keeps distinguishing "just had a default" from "had one
+* long ago" for the same country, so it should not collapse a serial
+* defaulter's whole history into one high, unchanging value.
+*
+* CONSTRUCTION, WHY IT IS NOT CIRCULAR: _aipw fits Eq. (2) ONLY on tranquil
+* and onset rows (continuation==0) -- see 21_aipw_flow.do's Section 1f. For an
+* ONSET row, "years since the last onset" necessarily refers to an EARLIER,
+* DISTINCT episode (an onset row cannot be its own prior onset), so there is
+* no way for this to circularly measure the very episode being predicted. For
+* a TRANQUIL row it is unambiguous prior history. Continuation rows are never
+* part of the fitting step at all -- they are only scored afterward by
+* extrapolation, where this variable reads as "years into the current
+* episode," a different but well-defined quantity, not a problem for fitting.
+* No entry-dating trick (unlike epc_X) is needed for exactly this reason.
+*
+* CENSORING: countries with no PRIOR default-linked onset have no defined
+* "years since." Censored to 50 (safely beyond this panel's ~35-year span,
+* i.e. reads as "effectively never"), following past_def_onsets' own
+* convention of replacing missing with a fixed value rather than dropping
+* rows.
+* ══════════════════════════════════════════════════════════════════════════
+di as result _n "════════════════════════════════════════════════════════════"
+di as result "1b. ALTERNATIVE PREDICTOR: years_since_def_onset (credit, h=1)"
+di as result "════════════════════════════════════════════════════════════"
+
+capture drop _defyear _defyear_lag years_since_def
+* Carry forward the most recent default-onset YEAR seen so far (including the
+* current row if it is itself an onset) -- same bysort(cid year) logic
+* past_def_onsets' own cum_def uses, just tracking a year instead of a count.
+gen _defyear = year if onset_def==1
+bysort cid (year): replace _defyear = _defyear[_n-1] if missing(_defyear) & _n>1
+* Lag by one row/year, exactly as past_def_onsets = L.cum_def does, so the
+* current row's OWN onset status (if any) is excluded -- this is what makes
+* an onset row's value refer to an earlier, distinct episode, not itself.
+bysort cid (year): gen _defyear_lag = _defyear[_n-1]
+gen double years_since_def = year - _defyear_lag if !missing(_defyear_lag)
+replace years_since_def = 50 if missing(years_since_def)
+label var years_since_def "Years since country's most recent PRIOR default-linked onset (censored at 50)"
+drop _defyear _defyear_lag
+sort cid year
+
+local cz_altrecency l_fedfunds l_reg_crisis_share years_since_def
+
+di as result "  (i) def-arm probit coefficients, years_since_def_onset in place of past_def_onsets:"
+probit in_crisis_def `cx' `cz_altrecency' if sample_flow==1 & in_crisis_nd==0 & continuation==0
+
+di as result _n "  (ii) Same weight/concentration check as 1a, this predictor in place of past_def_onsets:"
+capture drop _psdiag2 _wtdiag2
+quietly probit in_crisis_def `cx' `cz_altrecency' if sample_flow==1 & in_crisis_nd==0 & continuation==0
+quietly predict double _psdiag2 if sample_flow==1 & in_crisis_nd==0, pr
+quietly replace _psdiag2 = .01 if _psdiag2 < .01                  & !missing(_psdiag2)
+quietly replace _psdiag2 = .99 if _psdiag2 > .99 & !missing(_psdiag2)
+quietly gen byte _touse_diag2 = !missing(ch_credit_0, in_crisis_def, _psdiag2)
+foreach v of local ctrl_credit {
+    quietly replace _touse_diag2 = 0 if missing(`v')
+}
+quietly gen double _wtdiag2 = in_crisis_def/_psdiag2 + (1-in_crisis_def)/(1-_psdiag2) if _touse_diag2==1
+
+quietly summarize _psdiag2 if in_crisis_def==1 & _touse_diag2==1, detail
+di as result "    p(treated=def): min=" %5.3f r(min) "  median=" %5.3f r(p50) "  max=" %5.3f r(max)
+quietly count if in_crisis_def==1 & _touse_diag2==1 & (_psdiag2<.05 | _psdiag2>.95)
+local ntr2 = r(N)
+quietly count if in_crisis_def==1 & _touse_diag2==1
+di as result "    rows with p<0.05 or p>0.95: " %3.0f `ntr2' " / " %3.0f r(N)
+
+quietly summarize _wtdiag2 if in_crisis_def==1 & _touse_diag2==1, detail
+di as result "    IPW weight: median=" %6.2f r(p50) "  p90=" %6.2f r(p90) "  max=" %6.2f r(max)
+
+quietly gen double _summand_diag2 = ///
+    in_crisis_def*ch_credit_0/_psdiag2 - (1-in_crisis_def)*ch_credit_0/(1-_psdiag2) if _touse_diag2==1
+preserve
+    quietly keep if _touse_diag2==1
+    quietly summarize _summand_diag2, meanonly
+    local summean2 = r(mean)
+    quietly gen double _sqdev_diag2 = (_summand_diag2 - `summean2')^2
+    quietly summarize _sqdev_diag2, meanonly
+    local alltopvar2 = r(sum)
+    local ntot2 = r(N)
+    local ntop2 = max(1, round(0.05*`ntot2'))
+    gsort -_sqdev_diag2
+    quietly summarize _sqdev_diag2 in 1/`ntop2', meanonly
+    local topvar2 = r(sum)
+restore
+di as result "    concentration: top 5% of rows (" %3.0f `ntop2' " of " %4.0f `ntot2' ///
+             ") account for " %5.1f 100*`topvar2'/`alltopvar2' " pct of the summand's variance."
+
+di as result _n "  Compare directly to 1a (past_def_onsets): p range 0.010-0.938, 15/65 rows"
+di as result "  with p<0.05 or p>0.95, top 5% of rows = 98.9 pct of variance, max weight 100.00."
+di as result "  A materially narrower p range, fewer extreme rows, and a lower concentration"
+di as result "  share here would say years_since_def_onset is both genuinely predictive AND"
+di as result "  better-behaved -- worth carrying into cz_def as a real replacement, not just"
+di as result "  a weaker stand-in chosen to shrink the numbers."
+
+capture drop _psdiag2 _wtdiag2 _touse_diag2 _summand_diag2
 sort cid year   // belt-and-suspenders before Section 2's estimation loop
 
 * ══════════════════════════════════════════════════════════════════════════
