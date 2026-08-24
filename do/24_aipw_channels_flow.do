@@ -319,6 +319,101 @@ program define _aipwpairflow, rclass
 end
 
 * ══════════════════════════════════════════════════════════════════════════
+* 1a. WHY IS THE def-ARM SE SO LARGE? PROPENSITY/WEIGHT DIAGNOSTIC (credit, h=1)
+*
+* Section 2 below is expected to show def-arm point estimates comparable in
+* size to the nd arm (or larger), but SEs several times bigger, wide enough
+* that def is often not individually significant despite large coefficients.
+* Two distinct explanations are possible: (a) a handful of continuation rows
+* have EXTRAPOLATED propensities still close to the [0.01,0.99] trim
+* boundary, so their IPW weight (1/p or 1/(1-p)) is huge and dominates the
+* variance of the AIPW summand; or (b) the def sample is just thin and
+* genuinely high-variance (14 countries, 10 of them also contributing nd
+* rows), and the wide SE is an honest reflection of that, not an estimator
+* artifact. This section checks (a) directly, using credit at h=1 as the
+* representative case (the channel/horizon with the most extreme def SE),
+* rather than assuming either explanation and picking a fix on that basis.
+* ══════════════════════════════════════════════════════════════════════════
+di as result _n "════════════════════════════════════════════════════════════"
+di as result "1a. def-ARM PROPENSITY/WEIGHT DIAGNOSTIC (credit, h=1)"
+di as result "════════════════════════════════════════════════════════════"
+
+capture drop _psdiag _wtdiag
+quietly probit in_crisis_def `cx' `cz_def' if sample_flow==1 & in_crisis_nd==0 & continuation==0
+quietly predict double _psdiag if sample_flow==1 & in_crisis_nd==0, pr
+quietly replace _psdiag = .01 if _psdiag < .01                  & !missing(_psdiag)
+quietly replace _psdiag = .99 if _psdiag > .99 & !missing(_psdiag)
+* Same touse markout _aipw would apply for this specific (y, omodel, pmodel) call.
+* missing() takes comma-separated arguments, not a varlist, so each control is
+* checked individually in the loop below rather than passed to missing() as a
+* group.
+quietly gen byte _touse_diag = !missing(ch_credit_0, in_crisis_def, _psdiag)
+foreach v of local ctrl_credit {
+    quietly replace _touse_diag = 0 if missing(`v')
+}
+quietly gen double _wtdiag = in_crisis_def/_psdiag + (1-in_crisis_def)/(1-_psdiag) if _touse_diag==1
+
+quietly count if in_crisis_def==1 & _touse_diag==1
+local ntr = r(N)
+quietly count if in_crisis_def==1 & _touse_diag==1 & onset_all==1
+local nonset = r(N)
+quietly count if in_crisis_def==1 & _touse_diag==1 & continuation==1
+local ncont = r(N)
+di as result "  treated (def) rows in this cell: " %4.0f `ntr' "  (onset " %3.0f `nonset' ", continuation " %3.0f `ncont' ")"
+
+di as result _n "  Extrapolated p(treated=def), among def==1 rows:"
+quietly summarize _psdiag if in_crisis_def==1 & _touse_diag==1, detail
+di as result "    min=" %5.3f r(min) "  p10=" %5.3f r(p10) "  median=" %5.3f r(p50) ///
+             "  p90=" %5.3f r(p90) "  max=" %5.3f r(max)
+quietly count if in_crisis_def==1 & _touse_diag==1 & (_psdiag<.05 | _psdiag>.95)
+di as result "    rows with p<0.05 or p>0.95: " %3.0f r(N) " / " %3.0f `ntr'
+quietly count if in_crisis_def==1 & _touse_diag==1 & (_psdiag<=.011 | _psdiag>=.989)
+di as result "    rows AT the trim boundary (<=.011 or >=.989): " %3.0f r(N) " / " %3.0f `ntr'
+
+di as result _n "  IPW weight (1/p or 1/(1-p)), among def==1 rows:"
+quietly summarize _wtdiag if in_crisis_def==1 & _touse_diag==1, detail
+di as result "    min=" %6.2f r(min) "  median=" %6.2f r(p50) "  p90=" %6.2f r(p90) "  max=" %6.2f r(max)
+di as result "    mean=" %6.2f r(mean) "  sd=" %6.2f r(sd)
+
+* Isolate whether a SMALL NUMBER of extreme-weight rows dominate the variance
+* of the summand -- the direct mechanism, not just a proxy via the weight.
+* Done in a preserve/keep block so gsort never has to contend with the
+* thousands of rows outside this estimation cell (which would have missing
+* _sqdev_diag and sort to the top of a descending gsort, corrupting the
+* "top 5%" selection below).
+quietly gen double _summand_diag = ///
+    in_crisis_def*ch_credit_0/_psdiag - (1-in_crisis_def)*ch_credit_0/(1-_psdiag) if _touse_diag==1
+
+preserve
+    quietly keep if _touse_diag==1
+    quietly summarize _summand_diag, meanonly
+    local summean = r(mean)
+    quietly gen double _sqdev_diag = (_summand_diag - `summean')^2
+    quietly summarize _sqdev_diag, meanonly
+    local alltopvar = r(sum)
+    local ntot = r(N)
+    local ntop = max(1, round(0.05*`ntot'))
+    gsort -_sqdev_diag
+    quietly summarize _sqdev_diag in 1/`ntop', meanonly
+    local topvar = r(sum)
+restore
+
+di as result _n "  Concentration check: top 5% of rows (" %3.0f `ntop' " of " %4.0f `ntot' ///
+             ") by squared deviation from the summand's mean account for " ///
+             %5.1f 100*`topvar'/`alltopvar' " pct of its total variance."
+
+di as result _n "  READ THIS AS: if a small handful of rows sit at the trim boundary AND"
+di as result "  carry a large share of the summand's variance, the SE is inflated by a"
+di as result "  few extreme extrapolated weights (fixable: tighter trim, or overlap"
+di as result "  weights). If p(treated) is spread out with none near the boundary, and"
+di as result "  the variance is NOT concentrated in a handful of rows, the wide SE is"
+di as result "  an honest reflection of a thin, heterogeneous def sample -- not an"
+di as result "  estimator artifact to engineer away."
+
+capture drop _psdiag _wtdiag _touse_diag _summand_diag
+sort cid year   // belt-and-suspenders before Section 2's estimation loop
+
+* ══════════════════════════════════════════════════════════════════════════
 * 2. ESTIMATION — loop over channels x horizons; levels + def-nd difference
 * ══════════════════════════════════════════════════════════════════════════
 tempname R
