@@ -545,6 +545,64 @@ di as result "      both sets of numbers so that decision can be made from evide
 capture drop _pse_nd _pse_def
 
 * ══════════════════════════════════════════════════════════════════════════
+* 1d. IS IT SPECIFICALLY l_ca / l_debt, RATHER THAN DATING, DRIVING THE
+*     def-ARM SEPARATION?
+*
+* Section 1c showed entry-dating X barely moved the def-arm gap (mean
+* p(treated) 0.591 -> 0.557, p>0.99 count 5 -> 6), which argues against
+* contamination-by-ongoing-crisis as the mechanism. A narrower, distinct
+* hypothesis: maybe it isn't WHEN X is dated but WHICH variables are in it --
+* current account and debt are the two controls a spread crisis moves hardest,
+* so maybe they are doing most of the separating work on their own, and that
+* would show up regardless of dating. Two checks, in order:
+*   (i)  the def probit's own coefficient table, printed rather than
+*        `quietly'-d, so a variable that dominates is visible directly;
+*   (ii) the SAME overlap diagnostic as 1(b), row-dated X, with l_ca and
+*        l_debt specifically dropped -- if THIS closes the gap that entry-
+*        dating did not, that is a different and more targeted finding than
+*        anything Section 1c established, and worth carrying forward on its
+*        own even if the structural (no-independent-selection-event) story
+*        from 1c also holds for the remainder.
+* Table 1 in DATA_SECTION_DRAFT.md is worth having in mind reading this: at
+* t-1 (pre-crisis), current account and debt do NOT differ significantly
+* between non-default and default-linked episodes (p=.861, p=.308). That is
+* the def/nd comparison, though -- this diagnostic is about a different
+* comparison, def-treated vs TRANQUIL, which is what Eq. (2)'s probit
+* actually estimates in Section 1(b)/(c)/3.
+* ══════════════════════════════════════════════════════════════════════════
+di as result _n "  (d) Is it CA/debt specifically, not dating -- def-arm probit coefficients:"
+probit in_crisis_def `cx' `cz_def' if sample_flow==1
+
+local dropvars l_ca l_debt
+local cx_noCD : list cx - dropvars
+di as result _n "      Same check as (b), row-dated X, l_ca and l_debt dropped:"
+foreach s in nd def {
+    quietly probit in_crisis_`s' `cx_noCD' `cz_def' if sample_flow==1
+    capture drop _psd_`s'
+    quietly predict double _psd_`s' if e(sample), pr
+    quietly count if in_crisis_`s'==1 & !missing(_psd_`s')
+    local nin = r(N)
+    quietly count if in_crisis_`s'==1 & !missing(_psd_`s') & continuation==1
+    local ncn = r(N)
+    quietly summarize _psd_`s' if in_crisis_`s'==1, detail
+    local mt = r(mean)
+    quietly summarize _psd_`s' if in_crisis_`s'==0 & sample_flow==1, detail
+    local mc = r(mean)
+    quietly count if in_crisis_`s'==1 & _psd_`s' > .99 & !missing(_psd_`s')
+    local nwin = r(N)
+    di as result "      `s': treated rows in probit sample = " %4.0f `nin' ///
+                 "  (continuation " %3.0f `ncn' ")"
+    di as result "          mean p(treated) = " %5.3f `mt' ///
+                 "   mean p(control) = " %5.3f `mc' ///
+                 "   treated rows with p>0.99 = " %3.0f `nwin'
+}
+di as result _n "      Compare to (b): mean p(treated)=0.591, p(control)=0.036, p>0.99=5 (def)."
+di as result "      If dropping l_ca/l_debt closes this gap where entry-dating did not,"
+di as result "      that points to those two variables specifically rather than to the"
+di as result "      contamination-vs-structural distinction 1c was built to test."
+capture drop _psd_nd _psd_def
+
+* ══════════════════════════════════════════════════════════════════════════
 * 2. HOW MUCH WORK IS THE AUGMENTATION DOING?
 *
 * Eq. (3) is the IPW estimator plus an augmentation term:
