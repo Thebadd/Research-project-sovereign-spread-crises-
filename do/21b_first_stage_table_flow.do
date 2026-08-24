@@ -44,10 +44,20 @@
         mechanically encode treatment).
 
   Diagnostic rows (source Table 1's bottom block):
-    Chi2 (predictors)  — joint Wald test that the 3 predictors are all zero
-    p-value            — of that test
-    Area under ROC     — lroc on the full model
+    Chi2 (predictors)      — joint Wald test that the 3 predictors are all zero
+    p-value                — of that test
+    AUROC, controls only   — lroc on a probit with ONLY $ctrl_core, no predictors
+    AUROC, with predictors — lroc on the full model
     Observations
+
+  WHY BOTH AUROCs, NOT JUST THE FULL MODEL'S: the source paper's actual
+  demonstration that predictors earn their place isn't the chi-squared test
+  alone -- it's the WITH-vs-WITHOUT-predictors AUROC comparison they report
+  directly in their text (0.87 vs 0.79 post-default, 0.94 vs 0.85 preemptive).
+  Chi2(predictors) only says the predictors are jointly non-zero; it says
+  nothing about how much discriminatory power they actually add on top of
+  what the baseline controls already provide. Reporting only the full model's
+  AUROC would assert predictive power without showing the counterfactual.
 
   Pooled probit, no country FE (matches 21_aipw_flow.do's Eq. (2), which is
   "Pooled, no country FE" per that file's own header). Clustered SEs by
@@ -77,16 +87,27 @@ eststo clear
 * ── Helper: run one column, add the χ²(predictors)/p/AUROC diagnostics ────────
 * Sample is FIXED across both columns: sample_flow==1 & continuation==0, plus
 * dropping the rival type -- the flow file's actual Eq. (2) fitting universe.
+*
+* AUROC WITH vs WITHOUT PREDICTORS -- the source Table 1's actual demonstration
+* that predictors add classification power (their 0.87 vs 0.79, 0.94 vs 0.85),
+* not just the chi2(predictors) joint-significance test. Controls-ONLY model is
+* fit FIRST so its AUROC can be estadd-ed onto the full model's stored estimate
+* once that is eststo-d (estadd only writes to the currently active estimates).
 capture program drop _fscolflow
 program define _fscolflow
     args nm dv ifcond xlist zlist
+    quietly probit `dv' `xlist' if `ifcond', vce(cluster cid)
+    quietly lroc, nograph
+    local aucctrl = r(area)
+
     probit `dv' `xlist' `zlist' if `ifcond', vce(cluster cid)
     eststo `nm'
     quietly test `zlist'
     estadd scalar chi2p = r(chi2)
     estadd scalar pp    = r(p)
     quietly lroc, nograph
-    estadd scalar auroc = r(area)
+    estadd scalar auroc     = r(area)
+    estadd scalar aurocctrl = `aucctrl'
 end
 
 _fscolflow ffs_nd  "in_crisis_nd"  "sample_flow==1 & continuation==0 & in_crisis_def==0" "`X'" "`Z'"
@@ -95,11 +116,18 @@ _fscolflow ffs_def "in_crisis_def" "sample_flow==1 & continuation==0 & in_crisis
 * ── Console echo of the diagnostics ──────────────────────────────────────────
 di as result _n "=== FLOW FIRST-STAGE PROBIT DIAGNOSTICS (predictors jointly) ==="
 di as result "     sample = tranquil + onset rows only (continuation==0)"
-di as result "col            chi2(pred)   p        AUROC"
+di as result "col            chi2(pred)   p        AUROC(ctrl only)  AUROC(+pred)  delta"
 foreach c in ffs_nd ffs_def {
     quietly estimates restore `c'
-    di as result %-14s "`c'" "  " %8.2f e(chi2p) "  " %6.3f e(pp) "  " %6.3f e(auroc)
+    local dlt = e(auroc) - e(aurocctrl)
+    di as result %-14s "`c'" "  " %8.2f e(chi2p) "  " %6.3f e(pp) "  " ///
+                 %8.3f e(aurocctrl) "        " %6.3f e(auroc) "       " %+6.3f `dlt'
 }
+di as result _n "      A near-zero delta means the predictors (fed funds, regional contagion,"
+di as result "      past default onsets) are adding little beyond what the baseline controls"
+di as result "      already discriminate -- the reference paper's own with/without comparison"
+di as result "      (0.87 vs 0.79, 0.94 vs 0.85) is how they demonstrate predictors are earning"
+di as result "      their place in the exclusion-restriction design, not asserted from theory alone."
 
 * ══════════════════════════════════════════════════════════════════════════
 * TABLE EXPORT — Table 1 style (Predictors / Baseline controls blocks + diags)
@@ -121,9 +149,9 @@ capture esttab ffs_nd ffs_def using "$tabs/table_first_stage_flow.rtf", replace 
               l_credit_bank "Private credit by banks / GDP (t-1)" ///
               l_hyperinfl "Hyperinflation dummy (t-1)") ///
     refcat(l_fedfunds "Predictors" l1_gdpg "Baseline controls", nolabel) ///
-    stats(chi2p pp auroc N, ///
-          labels("Chi-squared (predictors)" "  p-value" "Area under ROC curve" "Observations") ///
-          fmt(2 3 3 0)) ///
+    stats(chi2p pp aurocctrl auroc N, ///
+          labels("Chi-squared (predictors)" "  p-value" "AUROC, controls only" "AUROC, with predictors" "Observations") ///
+          fmt(2 3 3 3 0)) ///
     title("Table 1f. First-stage probit for the flow AIPW: predicting the START of a spread crisis") ///
     addnotes("Dependent variable: dummy = 1 in the onset year of the indicated crisis type; each type predicted vs tranquil years, the rival type dropped." ///
              "Sample restricted to tranquil years and ONSET rows only (continuation==0) -- this is the actual fitting sample 21_aipw_flow.do's Eq. (2) now" ///
@@ -131,7 +159,9 @@ capture esttab ffs_nd ffs_def using "$tabs/table_first_stage_flow.rtf", replace 
              "full flow-coded treatment; only the propensity model's fitting sample is bounded to the start year and tranquil years." ///
              "Pooled probit, no country fixed effects. Robust standard errors clustered by country in parentheses." ///
              "Predictors are excluded from the LP/AIPW outcome equation. Chi-squared (predictors) is the joint Wald test that the three predictors are zero." ///
-             "Area under ROC is for the full model. * p<0.10, ** p<0.05, *** p<0.01.")
+             "AUROC, controls only is from a probit on the baseline controls alone (no predictors); AUROC, with predictors adds the three predictors -- the" ///
+             "difference between the two is the source Table 1's own demonstration that predictors add classification power (their 0.87 vs 0.79, 0.94 vs 0.85)," ///
+             "not just the chi-squared joint-significance test. * p<0.10, ** p<0.05, *** p<0.01.")
 
 if _rc == 608 di as error "  ** table_first_stage_flow.rtf is OPEN IN WORD — close it and re-run to refresh."
 else if _rc  di as error "  ** Table (flow first stage): esttab failed (rc=" _rc ")"
