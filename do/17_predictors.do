@@ -51,10 +51,40 @@ replace past_def_onsets = 0 if missing(past_def_onsets)
 label var past_def_onsets "Z3(def): own default-linked onsets before year t"
 drop cum_def
 
+* ── Recency alternative to past_def_onsets: years since the most recent PRIOR
+* default-linked onset (Z3(def)-recency). past_def_onsets is a running COUNT
+* that never resets, so for a serial defaulter it behaves close to a
+* permanent country identifier rather than a genuine time-varying predictor —
+* diagnosed in 24_aipw_channels_flow.do's Section 1a as the main driver of
+* severe weight concentration in the flow AIPW's def-arm propensity model
+* (top 5% of rows = 98.9% of the AIPW summand's variance). Section 1b there
+* tested this recency measure as a replacement: individually significant
+* (z=-2.84, p=.005, credit h=1 specification) with the economically sensible
+* sign (more years since the last default, lower probability of a new one),
+* and adopted as the active predictor across the flow files on that basis —
+* NOT because it reduces the weight-concentration problem, which Section 1b
+* also found it does NOT meaningfully fix (98.9% -> 98.6%, essentially
+* unchanged). See 21_aipw_flow.do's header for the full adoption note.
+*
+* Construction: for an ONSET row, this necessarily refers to an EARLIER,
+* distinct episode (an onset row cannot be its own prior onset), so it is not
+* circular the way epc_X would be. For a TRANQUIL row it is unambiguous prior
+* history. Countries with no PRIOR default-linked onset are censored to 50
+* (safely beyond this panel's ~35-year span), following past_def_onsets' own
+* convention of replacing missing with a fixed value rather than dropping rows.
+capture drop _defyear _defyear_lag years_since_def_onset
+gen _defyear = year if onset_def==1
+bysort cid (year): replace _defyear = _defyear[_n-1] if missing(_defyear) & _n>1
+bysort cid (year): gen _defyear_lag = _defyear[_n-1]
+gen double years_since_def_onset = year - _defyear_lag if !missing(_defyear_lag)
+replace years_since_def_onset = 50 if missing(years_since_def_onset)
+label var years_since_def_onset "Z3(def) recency: years since most recent PRIOR default-linked onset (censored at 50)"
+drop _defyear _defyear_lag
+
 save "$clean/panel_build.dta", replace
 
 di as result _n "17_predictors.do complete."
-foreach v in l_reg_crisis_share past_onsets past_def_onsets {
+foreach v in l_reg_crisis_share past_onsets past_def_onsets years_since_def_onset {
     quietly count if !missing(`v') & sample_base==1
     di as result "  `v': `r(N)' non-missing sample rows"
 }

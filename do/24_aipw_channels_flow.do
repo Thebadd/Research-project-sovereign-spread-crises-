@@ -40,10 +40,21 @@
   every row (continuation included) because Eq. (1)/Eq. (3) keep the full
   flow-coded treatment. That investigation is not repeated here — this file's
   `_aipw' program is 21's, copied as it stands today, with every original
-  predictor (l_fedfunds, l_reg_crisis_share, past_def_onsets) and every
-  original control ($ctrl_core, including l_ca/l_debt) kept exactly as 21
-  keeps them. See 21_aipw_flow.do's header for the justification; it is
-  referenced here, not re-derived.
+  control ($ctrl_core, including l_ca/l_debt) kept exactly as 21 keeps them.
+  See 21_aipw_flow.do's header for the justification; it is referenced here,
+  not re-derived.
+
+  PREDICTOR CHANGE: past_def_onsets -> years_since_def_onset. Section 1a below
+  diagnosed severe weight concentration in the def arm even after the
+  continuation==0 fix, with past_def_onsets (a running COUNT that never
+  resets) as the leading suspect. Section 1b tested years_since_def_onset
+  (years since the country's most recent PRIOR default-linked onset) as a
+  replacement: individually significant, sensible sign, but it did NOT fix the
+  weight concentration (98.9% -> 98.6%, essentially unchanged) -- adopted for
+  being a better, independently-motivated predictor, not as a variance fix.
+  Section 2's estimation loop uses years_since_def_onset (via cz_recency,
+  built alongside the historical cz_def so Sections 1a/1b's own already-run
+  diagnostics stay exactly as documented and reproducible).
 
   Only the OUTCOME model (Eq. 1's `omodel') is channel-specific, exactly as
   in 13c: the propensity model is the SAME object regardless of which channel
@@ -94,7 +105,7 @@ if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_g
 sort cid year
 xtset cid year
 
-foreach v in in_crisis in_crisis_nd in_crisis_def sample_flow ep_seq {
+foreach v in in_crisis in_crisis_nd in_crisis_def sample_flow ep_seq years_since_def_onset {
     capture confirm variable `v', exact
     if _rc {
         di as error "  ** `v' not in panel_lp.dta — re-run 18_transforms.do first."
@@ -150,7 +161,12 @@ local ctrl_fdi         $ctrl_flow epc_pre_fdi
 
 * ── Propensity model — SAME as 21_aipw_flow.do, unchanged ───────────────────
 local cx     $ctrl_core          // Eq. (2): row-dated, fit on continuation==0 only
+* cz_def: the ORIGINAL predictor set, kept so Sections 1a/1b's already-run
+* diagnostics stay exactly as documented. Not used by Section 2's estimation.
 local cz_def l_fedfunds l_reg_crisis_share past_def_onsets
+* cz_recency: the ACTIVE predictor set Section 2 uses -- see header
+* "PREDICTOR CHANGE" and 21_aipw_flow.do's header for the full note.
+local cz_recency l_fedfunds l_reg_crisis_share years_since_def_onset
 
 set seed 20260819
 local nboot = 300
@@ -561,7 +577,7 @@ foreach ch of local channels {
         _aipwpairflow, y(ch_`ch'_`h') ///
             d1(in_crisis_def) if1(sample_flow==1 & in_crisis_nd==0) ///
             d2(in_crisis_nd)  if2(sample_flow==1 & in_crisis_def==0) ///
-            omod(`ctrl_`ch'') pz(`cx' `cz_def') reps(`nboot') boot(row)
+            omod(`ctrl_`ch'') pz(`cx' `cz_recency') reps(`nboot') boot(row)
 
         if !r(ok) {
             di as error "  h=`hd': estimate failed for `ch' (cell too thin)."

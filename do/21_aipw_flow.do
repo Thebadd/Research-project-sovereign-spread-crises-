@@ -172,6 +172,43 @@
   overlap diagnostic under this construction so the effect is visible before
   Section 3's baseline numbers are read.
 
+  PREDICTOR CHANGE, ADOPTED AFTER SECTION 1f — past_def_onsets REPLACED BY
+  years_since_def_onset IN THE ACTIVE BASELINE (Section 2 onward)
+  -----------------------------------------------------------------------------
+  Even after the Section 1f fitting-sample restriction, 24_aipw_channels_flow.do's
+  Section 1a diagnostic (credit, h=1) found the def arm's IPW weights severely
+  concentrated: the top 5% of rows accounted for 98.9% of the AIPW summand's
+  variance, with past_def_onsets (a running COUNT of a country's own default-
+  linked onsets that never resets) as the leading suspect — for a serial
+  defaulter it behaves close to a permanent country identifier rather than a
+  genuine time-varying predictor. Section 1b there tested years_since_def_onset
+  (years since the country's most recent PRIOR default-linked onset, built in
+  18_transforms.do's upstream stage 17_predictors.do, censored at 50 for
+  countries with no prior default) as a replacement: individually significant
+  (z=-2.84, p=.005) with the economically sensible sign, and NOT circular for
+  the same reason the Section 1f fitting-sample restriction is not — an onset
+  row's value necessarily refers to an earlier, distinct episode.
+  BE EXPLICIT ABOUT WHAT THIS DOES AND DOES NOT FIX: Section 1b also found the
+  weight-concentration problem barely moved under this predictor (98.9% ->
+  98.6%) — adopting it is NOT a fix for the def arm's wide standard errors, and
+  should not be described as one. It is adopted because it is a better,
+  independently-motivated predictor (real economic story, comparable or
+  stronger significance than past_def_onsets), not because it resolves the
+  variance problem, which remains open (see 24_aipw_channels_flow.do's Section
+  1a/1b for the full diagnostic and the remaining candidate fixes considered
+  and set aside there: overlap weights, rejected on estimand grounds -- they
+  target the ATO, not the treated population -- per a pharmacoepidemiology
+  methods commentary read alongside this decision; tighter trimming, not yet
+  tested; the MSM/two-part persistence model, the structural fix still not
+  built).
+  `local cz_def' below (l_fedfunds, l_reg_crisis_share, past_def_onsets) is
+  KEPT UNCHANGED and still drives Sections 1b-1e exactly as documented, so
+  their already-reported diagnostic numbers stay reproducible. A SEPARATE
+  local, `cz_recency' (l_fedfunds, l_reg_crisis_share, years_since_def_onset),
+  is what Section 2 and Section 3's baseline estimator actually use from here
+  on. Sections 1a-1f remain historical record under the original predictor;
+  they are not rerun under cz_recency in this file.
+
   Outputs
   -------
     "$tabs/table10_aipw_flow.rtf"    the two type lines + the difference
@@ -224,7 +261,7 @@ if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_g
 sort cid year
 xtset cid year
 
-foreach v in in_crisis in_crisis_nd in_crisis_def sample_flow {
+foreach v in in_crisis in_crisis_nd in_crisis_def sample_flow years_since_def_onset {
     capture confirm variable `v', exact
     if _rc {
         di as error "  ** `v' not in panel_lp.dta — re-run 18_transforms.do first."
@@ -238,7 +275,12 @@ if "$ctrl_flow" == "" {
 
 local cx     $ctrl_core          // Eq. (2) baseline: row-dated, see header
 local com    $ctrl_flow          // Eq. (1) controls: episode-dated
+* cz_def: the ORIGINAL predictor set, kept unchanged so Sections 1b-1e's
+* already-reported diagnostic numbers stay reproducible -- see header
+* "PREDICTOR CHANGE". Not used by Section 2/3's active baseline.
 local cz_def l_fedfunds l_reg_crisis_share past_def_onsets
+* cz_recency: the ACTIVE predictor set for Section 2 onward -- see header.
+local cz_recency l_fedfunds l_reg_crisis_share years_since_def_onset
 
 * Entry-dated counterpart of $ctrl_core, for the Section 1c diagnostic only
 * (see header "SECTION 1c"). Built the same way Section 1(a) checks epc_X:
@@ -794,7 +836,8 @@ foreach s2 in nd def {
     * tranquil+onset only (continuation==0), then extrapolate phat to the full
     * sample used below (continuation rows included), so this decomposition is
     * computed under the SAME propensity construction Section 3 now uses.
-    quietly probit in_crisis_`s2' `cx' `cz_def' if sample_flow==1 & `rival'==0 & continuation==0
+    * cz_recency, not cz_def -- see header "PREDICTOR CHANGE".
+    quietly probit in_crisis_`s2' `cx' `cz_recency' if sample_flow==1 & `rival'==0 & continuation==0
     quietly predict double _ps2 if sample_flow==1 & `rival'==0, pr
     quietly replace _ps2 = .01 if _ps2 < .01 & !missing(_ps2)
     quietly replace _ps2 = .99 if _ps2 > .99 & !missing(_ps2)
@@ -843,7 +886,7 @@ forvalues h = 0/4 {
     _aipwpairflow, y(dy_`h') ///
         d1(in_crisis_def) if1(sample_flow==1 & in_crisis_nd==0) ///
         d2(in_crisis_nd)  if2(sample_flow==1 & in_crisis_def==0) ///
-        omod(`com') pz(`cx' `cz_def') reps(`nboot') boot(row)
+        omod(`com') pz(`cx' `cz_recency') reps(`nboot') boot(row)
 
     if !r(ok) {
         di as error "  Year `hd': estimate failed (cell too thin)."
@@ -941,7 +984,7 @@ forvalues h = 0/4 {
     _aipwpairflow, y(dy_`h') ///
         d1(in_crisis_def) if1(sample_flow==1 & in_crisis_nd==0) ///
         d2(in_crisis_nd)  if2(sample_flow==1 & in_crisis_def==0) ///
-        omod(`com') pz(`cx' `cz_def') reps(`nboot') boot(cluster)
+        omod(`com') pz(`cx' `cz_recency') reps(`nboot') boot(cluster)
 
     if !r(ok) {
         di as error "  Year `hd': cluster-bootstrap comparison failed."

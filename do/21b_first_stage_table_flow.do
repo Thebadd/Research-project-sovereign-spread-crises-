@@ -33,10 +33,22 @@
 
   Rows, grouped as in the source Table 1:
     PREDICTORS (excluded from the LP/AIPW outcome eq. -- $ctrl_flow/$com):
-        Fed funds rate (global push) + regional contagion + past DEFAULT-
-        linked onsets. Both columns share past_def_onsets as their proneness
-        predictor, matching 21_aipw_flow.do's cz_def (used identically for
-        both nd and def there).
+        Fed funds rate (global push) + regional contagion + years since the
+        country's most recent PRIOR default-linked onset. Both columns share
+        this recency predictor, matching 21_aipw_flow.do's cz_recency (used
+        identically for both nd and def there).
+    PREDICTOR CHANGE FROM past_def_onsets: 24_aipw_channels_flow.do's Section
+        1a diagnostic (credit, h=1) found the def arm's propensity model
+        severely weight-concentrated, with past_def_onsets (a running COUNT
+        that never resets) as the leading suspect -- for a serial defaulter it
+        behaves close to a permanent country identifier. Section 1b there
+        tested years_since_def_onset as a replacement: individually
+        significant (z=-2.84, p=.005), economically sensible sign, and not
+        circular for the same reason the continuation==0 restriction above is
+        not. It did NOT meaningfully fix the weight concentration (98.9% ->
+        98.6%, essentially unchanged) -- adopted for being a better,
+        independently-motivated predictor, not as a variance fix. See
+        21_aipw_flow.do's header, "PREDICTOR CHANGE," for the full note.
     BASELINE CONTROLS: $ctrl_core -- the SAME row-dated set 21_aipw_flow.do's
         `cx' uses for Eq. (2) (NOT $ctrl_flow/epc_*, which the header of
         21_aipw_flow.do -- Section 1(a) -- demonstrates cannot be used in the
@@ -71,7 +83,7 @@
 use "$clean/panel_lp.dta", clear
 if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
 
-foreach v in in_crisis_nd in_crisis_def sample_flow continuation {
+foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def_onset {
     capture confirm variable `v', exact
     if _rc {
         di as error "  ** `v' not in panel_lp.dta — re-run 18_transforms.do first."
@@ -80,7 +92,7 @@ foreach v in in_crisis_nd in_crisis_def sample_flow continuation {
 }
 
 local X $ctrl_core
-local Z l_fedfunds l_reg_crisis_share past_def_onsets
+local Z l_fedfunds l_reg_crisis_share years_since_def_onset
 
 eststo clear
 
@@ -125,8 +137,8 @@ foreach c in ffs_nd ffs_def {
                  %8.3f e(aurocctrl) "        " %6.3f e(auroc) "       " "`dltsign'" %6.3f `dlt'
 }
 di as result _n "      A near-zero delta means the predictors (fed funds, regional contagion,"
-di as result "      past default onsets) are adding little beyond what the baseline controls"
-di as result "      already discriminate -- the reference paper's own with/without comparison"
+di as result "      years since the last default onset) are adding little beyond what the"
+di as result "      baseline controls already discriminate -- the reference paper's own with/without comparison"
 di as result "      (0.87 vs 0.79, 0.94 vs 0.85) is how they demonstrate predictors are earning"
 di as result "      their place in the exclusion-restriction design, not asserted from theory alone."
 
@@ -136,11 +148,11 @@ di as result "      their place in the exclusion-restriction design, not asserte
 capture esttab ffs_nd ffs_def using "$tabs/table_first_stage_flow.rtf", replace ///
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
     mtitles("Non-default" "Default-linked") ///
-    order(l_fedfunds l_reg_crisis_share past_def_onsets ///
+    order(l_fedfunds l_reg_crisis_share years_since_def_onset ///
           l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl) ///
     coeflabel(l_fedfunds "US fed funds rate (t-1)" ///
               l_reg_crisis_share "Regional contagion (t-1)" ///
-              past_def_onsets "Past default-linked onsets" ///
+              years_since_def_onset "Years since last default onset" ///
               l1_gdpg "GDP growth (t-1)" ///
               l_debt "Public debt / GDP (t-1)" ///
               l_ca "Current account / GDP (t-1)" ///
