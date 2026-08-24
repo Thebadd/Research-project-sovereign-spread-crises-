@@ -129,6 +129,49 @@
   epc_X estimation arm (or, if the gap doesn't close, an onset/persistence
   model instead) is a decision for after reading what this section prints.
 
+  SECTIONS 1d/1e — WHICH COVARIATE IS ACTUALLY DRIVING THE def-ARM SEPARATION
+  -----------------------------------------------------------------------------
+  Neither Section 1c's dating fix, nor dropping l_ca/l_debt (Section 1d),
+  materially closed the def-arm gap. Section 1d's printed coefficient table
+  showed why: l_ca is not even significant (p=.542), and the standout term is
+  past_def_onsets at z=10.07 — more than double the next-largest z-stat — with
+  the probit itself reporting "17 failures and 0 successes completely
+  determined." Section 1e confirmed it empirically: dropping past_def_onsets
+  alone (l_ca, l_debt left in) cut the def-arm gap by more than half (0.555 ->
+  0.261) and the completely-determined count nearly in half (17 -> 10) — far
+  more than any other single change tested. past_def_onsets is a running count
+  of a country's OWN default history, close to a country identifier rather
+  than a genuine time-varying predictor, which is exactly the profile of a
+  variable that produces this kind of separation.
+
+  ESTIMATOR CHANGE, SECTION 1f ONWARD — PROPENSITY FIT SAMPLE RESTRICTED TO
+  TRANQUIL + ONSET, ALL ORIGINAL PREDICTORS KEPT
+  -----------------------------------------------------------------------------
+  Rather than drop past_def_onsets (which would depart from the reference
+  paper's own predictor set), this file instead adopts a different fix,
+  informed by an IMF working paper's stated construction (Asonuma-style AIPW
+  applied to debt restructurings): its first-stage probit is described as
+  "based on data in the year of the start of the restructuring and in the
+  previous year" — i.e. its probit's FITTING sample never includes
+  continuation years. NOTE: this is adopted on the user's own reading of that
+  paper's Section 4.1, stated to this file explicitly, not independently
+  verified against that paper's replication code the way Asonuma et al.
+  (2024)'s Eq. (1) weighting was settled earlier in this project — if that
+  matters for the write-up, say so explicitly rather than citing it as if it
+  were code-verified.
+
+  From this point on, `_aipw' fits Eq. (2) ONLY on tranquil and onset rows
+  (`probit `D' `pmodel' if `touse' & continuation==0'), then PREDICTS phat for
+  EVERY row of `touse', continuation rows included, by extrapolating the
+  fitted coefficients. Eq. (1) and Eq. (3) are UNCHANGED: `D' is still the
+  full flow-coded treatment (continuation years remain treated), and every
+  original predictor — l_fedfunds, l_reg_crisis_share, past_def_onsets, and
+  all of $ctrl_core including l_ca and l_debt — is kept exactly as before.
+  Only the probit's fitting sample is restricted; nothing about what counts as
+  treated, anywhere else in the file, has changed. Section 1f reruns the
+  overlap diagnostic under this construction so the effect is visible before
+  Section 3's baseline numbers are read.
+
   Outputs
   -------
     "$tabs/table10_aipw_flow.rtf"    the two type lines + the difference
@@ -245,7 +288,14 @@ program define _aipw, rclass
     * Table 2 and Fig. 4, so the code governs here. Both forms are doubly
     * robust; this is a choice between two valid estimators, and this file
     * exists to reproduce theirs.)
-    quietly probit `D' `pmodel' if `touse'
+    * PROPENSITY FIT SAMPLE EXCLUDES CONTINUATION ROWS -- see header "SECTION
+    * 1f / ESTIMATOR CHANGE". Eq. (2) is fit only on tranquil and onset rows
+    * (continuation==0); the fitted model is then EXTRAPOLATED to every row of
+    * `touse', continuation rows included, because Eq. (1) and Eq. (3) still
+    * use the FULL flow-coded `D' (continuation years remain treated). Only the
+    * first stage's FITTING sample is restricted -- the treatment definition
+    * used everywhere else in this program is untouched.
+    quietly probit `D' `pmodel' if `touse' & continuation==0
     quietly predict double `ps' if `touse', pr
     quietly replace `ps' = .01 if `ps' < .01                & `touse'
     quietly replace `ps' = .99 if `ps' > .99 & !missing(`ps') & `touse'
@@ -665,6 +715,58 @@ di as result "      history differently there."
 capture drop _pspd_nd _pspd_def
 
 * ══════════════════════════════════════════════════════════════════════════
+* 1f. THE ESTIMATOR CHANGE ADOPTED FROM HERE ON: PROPENSITY FIT SAMPLE
+*     RESTRICTED TO TRANQUIL + ONSET, EXTRAPOLATED TO CONTINUATION ROWS
+*
+* An IMF working paper (not this project's own literature check -- adopted on
+* the user's reading, stated explicitly, of that paper's Section 4.1) states
+* its first-stage probit is "based on data in the year of the start of the
+* restructuring and in the previous year." Taken at face value: their probit's
+* FITTING sample is bounded to two years per episode -- onset and the year
+* before -- never continuation years. This section adopts that construction
+* for _aipw's Eq. (2) from here on (see the change directly inside _aipw,
+* `probit `D' `pmodel' if `touse' & continuation==0'), while Eq. (1) and Eq.
+* (3) keep the FULL flow-coded `D' unchanged -- continuation rows are still
+* treated in the outcome model and the AIPW summand, and every original
+* predictor (l_fedfunds, l_reg_crisis_share, past_def_onsets, and all of
+* $ctrl_core including l_ca and l_debt) is kept exactly as it was. Only the
+* probit's FITTING sample is restricted; the fitted model is then predicted
+* out to every row, continuation included, by extrapolation.
+* This section reruns the Section 1(b) overlap diagnostic under the new
+* construction so the effect is visible before it is taken as the baseline.
+* ══════════════════════════════════════════════════════════════════════════
+di as result _n "  (f) Estimator change: probit fit on tranquil+onset only (continuation==0),"
+di as result "      extrapolated to continuation rows -- all original predictors kept:"
+foreach s in nd def {
+    quietly probit in_crisis_`s' `cx' `cz_def' if sample_flow==1 & continuation==0
+    capture drop _psf_`s'
+    quietly predict double _psf_`s' if sample_flow==1, pr
+    quietly count if in_crisis_`s'==1 & !missing(_psf_`s')
+    local nin = r(N)
+    quietly count if in_crisis_`s'==1 & !missing(_psf_`s') & onset_all==1
+    local non = r(N)
+    quietly count if in_crisis_`s'==1 & !missing(_psf_`s') & continuation==1
+    local ncn = r(N)
+    quietly summarize _psf_`s' if in_crisis_`s'==1, detail
+    local mt = r(mean)
+    quietly summarize _psf_`s' if in_crisis_`s'==0 & sample_flow==1, detail
+    local mc = r(mean)
+    quietly count if in_crisis_`s'==1 & _psf_`s' > .99 & !missing(_psf_`s')
+    local nwin = r(N)
+    di as result "      `s': treated rows scored = " %4.0f `nin' ///
+                 "  (onset " %3.0f `non' ", continuation " %3.0f `ncn' ")"
+    di as result "          mean p(treated) = " %5.3f `mt' ///
+                 "   mean p(control) = " %5.3f `mc' ///
+                 "   treated rows with p>0.99 = " %3.0f `nwin'
+}
+di as result _n "      Compare, def arm: (b) baseline (fit on ALL rows) 0.591/0.036/5 rows p>0.99."
+di as result "      Continuation rows here are SCORED (extrapolated) but were NOT part of"
+di as result "      the likelihood the probit was fit on -- if their propensity still comes"
+di as result "      out extreme, that is the fitted model extrapolating with confidence to"
+di as result "      rows resembling ones it was trained on, not the model re-learning them."
+capture drop _psf_nd _psf_def
+
+* ══════════════════════════════════════════════════════════════════════════
 * 2. HOW MUCH WORK IS THE AUGMENTATION DOING?
 *
 * Eq. (3) is the IPW estimator plus an augmentation term:
@@ -688,8 +790,12 @@ foreach s2 in nd def {
     else               local rival in_crisis_nd
 
     capture drop _ps2 _m0 _m1 _xb2 _ipwterm _augterm
-    quietly probit in_crisis_`s2' `cx' `cz_def' if sample_flow==1 & `rival'==0
-    quietly predict double _ps2 if e(sample), pr
+    * Matches the Section 1f / _aipw estimator change: fit Eq. (2) on
+    * tranquil+onset only (continuation==0), then extrapolate phat to the full
+    * sample used below (continuation rows included), so this decomposition is
+    * computed under the SAME propensity construction Section 3 now uses.
+    quietly probit in_crisis_`s2' `cx' `cz_def' if sample_flow==1 & `rival'==0 & continuation==0
+    quietly predict double _ps2 if sample_flow==1 & `rival'==0, pr
     quietly replace _ps2 = .01 if _ps2 < .01 & !missing(_ps2)
     quietly replace _ps2 = .99 if _ps2 > .99 & !missing(_ps2)
 
