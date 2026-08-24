@@ -120,8 +120,9 @@ di as result "col            chi2(pred)   p        AUROC(ctrl only)  AUROC(+pred
 foreach c in ffs_nd ffs_def {
     quietly estimates restore `c'
     local dlt = e(auroc) - e(aurocctrl)
+    local dltsign = cond(`dlt' >= 0, "+", "")
     di as result %-14s "`c'" "  " %8.2f e(chi2p) "  " %6.3f e(pp) "  " ///
-                 %8.3f e(aurocctrl) "        " %6.3f e(auroc) "       " %+6.3f `dlt'
+                 %8.3f e(aurocctrl) "        " %6.3f e(auroc) "       " "`dltsign'" %6.3f `dlt'
 }
 di as result _n "      A near-zero delta means the predictors (fed funds, regional contagion,"
 di as result "      past default onsets) are adding little beyond what the baseline controls"
