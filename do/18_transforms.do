@@ -384,7 +384,16 @@ else           di as result "  FLOW: episode-dated controls match row-dated on e
 global ctrl_core_flowalt "l1_gdpg l_govexp l_open l_credit_bank l_hyperinfl l_banking_crisis l_reer_chg tot_chg"
 global ctrl_flow_flowalt ""
 foreach X of global ctrl_core_flowalt {
-    capture drop epc_`X' _ent_`X'
+    * Dropped SEPARATELY, not as `drop epc_`X' _ent_`X''  in one command: five
+    * of these eight variables (l1_gdpg, l_govexp, l_open, l_credit_bank,
+    * l_hyperinfl) are shared with $ctrl_core, so epc_`X' already exists from
+    * the $ctrl_flow loop above while _ent_`X' (a temp-in-spirit var, always
+    * dropped at the end of each iteration) does not. `drop A B' fails as a
+    * whole when EITHER is missing, so a combined capture drop would silently
+    * fail to remove epc_`X', and the `gen' below would then error "already
+    * defined" -- exactly what happened the first time this ran.
+    capture drop epc_`X'
+    capture drop _ent_`X'
     quietly bysort cid ep_seq: egen double _ent_`X' = max(cond(onset_all==1, `X', .))
     quietly gen double epc_`X' = cond(in_crisis==1, _ent_`X', `X')
     label var epc_`X' "`X' at episode entry (tranquil rows keep own t-1) -- flowalt"
