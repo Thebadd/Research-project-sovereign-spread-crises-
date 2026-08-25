@@ -117,7 +117,7 @@ if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_g
 sort cid year
 xtset cid year
 
-foreach v in in_crisis in_crisis_nd in_crisis_def sample_flow ep_seq years_since_def_onset {
+foreach v in in_crisis in_crisis_nd in_crisis_def sample_flow ep_seq years_since_def_onset l_contagion_dist {
     capture confirm variable `v', exact
     if _rc {
         di as error "  ** `v' not in panel_lp.dta — re-run 18_transforms.do first."
@@ -198,8 +198,10 @@ local cx_active = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core_flo
 * diagnostics stay exactly as documented. Not used by Section 2's estimation.
 local cz_def l_fedfunds l_reg_crisis_share past_def_onsets
 * cz_recency: the ACTIVE predictor set Section 2 uses -- see header
-* "PREDICTOR CHANGE" and 21_aipw_flow.do's header for the full note.
-local cz_recency l_fedfunds l_reg_crisis_share years_since_def_onset
+* "PREDICTOR CHANGE" and 21_aipw_flow.do's header ("SECOND PREDICTOR CHANGE")
+* for the full note. l_contagion_dist (distance-weighted, CEPII great-circle)
+* in place of l_reg_crisis_share (flat regional share).
+local cz_recency l_fedfunds l_contagion_dist years_since_def_onset
 
 set seed 20260819
 local nboot = 300

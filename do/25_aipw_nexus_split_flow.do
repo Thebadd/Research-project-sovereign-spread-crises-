@@ -28,8 +28,10 @@
     from 22/23/24's identical loop, restricted to the four channels 13d uses
     (credit, inv, claims_govt, claimpriv_assets — govexp/pb/fdi were never
     part of 13d and are not added here).
-  * cz_recency (years_since_def_onset in place of past_def_onsets): 24's
-    adopted predictor — see that file's header, "PREDICTOR CHANGE".
+  * cz_recency (years_since_def_onset in place of past_def_onsets,
+    l_contagion_dist in place of l_reg_crisis_share): the adopted predictor
+    set — see 24's header "PREDICTOR CHANGE" and 21_aipw_flow.do's header
+    "SECOND PREDICTOR CHANGE".
 
   WHAT IS NEW
   -----------
@@ -96,7 +98,7 @@ sort cid year
 xtset cid year
 
 foreach v in in_crisis in_crisis_nd in_crisis_def sample_flow ep_seq ///
-             years_since_def_onset claimsgov_assets {
+             years_since_def_onset claimsgov_assets l_contagion_dist {
     capture confirm variable `v', exact
     if _rc {
         di as error "  ** `v' not in panel_lp.dta — re-run 18_transforms.do / 01c_merge_nexus.do first."
@@ -205,7 +207,10 @@ local ctrl_gdp                `ctrl_flow_base'
 
 * ── Propensity model — SAME as 21/24's ACTIVE (`cx_active') baseline ───────
 local cx = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core_flowbase")
-local cz_recency l_fedfunds l_reg_crisis_share years_since_def_onset
+* l_contagion_dist (distance-weighted, CEPII great-circle) in place of
+* l_reg_crisis_share -- matches 21_aipw_flow.do's cz_recency, "SECOND
+* PREDICTOR CHANGE".
+local cz_recency l_fedfunds l_contagion_dist years_since_def_onset
 
 set seed 20260819
 local nboot = 300

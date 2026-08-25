@@ -33,9 +33,11 @@
 
   Rows, grouped as in the source Table 1:
     PREDICTORS (excluded from the LP/AIPW outcome eq. -- $ctrl_flow/$com):
-        Fed funds rate (global push) + regional contagion + years since the
+        Fed funds rate (global push) + distance-weighted contagion
+        (l_contagion_dist, CEPII great-circle -- see 17_predictors.do and
+        21_aipw_flow.do's "SECOND PREDICTOR CHANGE") + years since the
         country's most recent PRIOR default-linked onset. Both columns share
-        this recency predictor, matching 21_aipw_flow.do's cz_recency (used
+        these predictors, matching 21_aipw_flow.do's cz_recency (used
         identically for both nd and def there).
     PREDICTOR CHANGE FROM past_def_onsets: 24_aipw_channels_flow.do's Section
         1a diagnostic (credit, h=1) found the def arm's propensity model
@@ -83,7 +85,7 @@
 use "$clean/panel_lp.dta", clear
 if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
 
-foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def_onset {
+foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def_onset l_contagion_dist {
     capture confirm variable `v', exact
     if _rc {
         di as error "  ** `v' not in panel_lp.dta — re-run 18_transforms.do first."
@@ -98,7 +100,10 @@ foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def
 * "EXPLORATORY ALTERNATE FLOW CONTROL SET").
 local use_flowalt_ctrl 0
 local X = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core_flowbase")
-local Z l_fedfunds l_reg_crisis_share years_since_def_onset
+* l_contagion_dist (distance-weighted, CEPII great-circle) in place of
+* l_reg_crisis_share (flat regional share) -- matches 21_aipw_flow.do's
+* cz_recency, "SECOND PREDICTOR CHANGE".
+local Z l_fedfunds l_contagion_dist years_since_def_onset
 
 eststo clear
 
@@ -154,10 +159,10 @@ di as result "      their place in the exclusion-restriction design, not asserte
 capture esttab ffs_nd ffs_def using "$tabs/table_first_stage_flow.rtf", replace ///
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
     mtitles("Non-default" "Default-linked") ///
-    order(l_fedfunds l_reg_crisis_share years_since_def_onset ///
+    order(l_fedfunds l_contagion_dist years_since_def_onset ///
           l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl tot_chg) ///
     coeflabel(l_fedfunds "US fed funds rate (t-1)" ///
-              l_reg_crisis_share "Regional contagion (t-1)" ///
+              l_contagion_dist "Distance-weighted contagion (t-1)" ///
               years_since_def_onset "Years since last default onset" ///
               l1_gdpg "GDP growth (t-1)" ///
               l_debt "Public debt / GDP (t-1)" ///

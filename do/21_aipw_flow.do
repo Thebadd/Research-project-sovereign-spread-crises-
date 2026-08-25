@@ -182,10 +182,28 @@
   `local cz_def' below (l_fedfunds, l_reg_crisis_share, past_def_onsets) is
   KEPT UNCHANGED and still drives Sections 1b and 1f exactly as documented, so
   their already-reported diagnostic numbers stay reproducible. A SEPARATE
-  local, `cz_recency' (l_fedfunds, l_reg_crisis_share, years_since_def_onset),
-  is what Section 2 and Section 3's baseline estimator actually use from here
-  on. Sections 1a, 1b and 1f remain historical record under the original
-  predictor; they are not rerun under cz_recency in this file.
+  local, `cz_recency', is what Section 2 and Section 3's baseline estimator
+  actually use from here on. Sections 1a, 1b and 1f remain historical record
+  under the original predictor set; they are not rerun under cz_recency in
+  this file.
+
+  SECOND PREDICTOR CHANGE — l_reg_crisis_share REPLACED BY l_contagion_dist
+  IN cz_recency
+  -----------------------------------------------------------------------------
+  l_reg_crisis_share (leave-one-out share of OTHER same-region countries with
+  an onset) treats every country in a coarse geographic region as an equally
+  weighted neighbor and ignores every country outside it. l_contagion_dist
+  (17_predictors.do) relaxes that: a distance-weighted sum of every OTHER
+  country's onset that year, using the reference paper's own contagion
+  construction (their Section 4.1) applied to onset_all instead of a
+  restructuring dummy, with great-circle distance between capital cities
+  (CEPII geo_cepii) in place of a fixed regional grouping. It is a
+  contemporaneous, country-year-specific spatial lag, not a slow-moving
+  characteristic of country i itself -- the same property that made
+  years_since_def_onset preferable to past_def_onsets. `cz_recency' below now
+  carries l_contagion_dist in place of l_reg_crisis_share; `cz_def' (the
+  frozen Section 1b/1f history) is untouched, since those sections' printed
+  numbers are reproducing a documented prior run, not the current baseline.
 
   COUNTRY FE IN THE PROBIT — TESTED AND REJECTED
   -----------------------------------------------------------------------------
@@ -255,7 +273,7 @@ if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_g
 sort cid year
 xtset cid year
 
-foreach v in in_crisis in_crisis_nd in_crisis_def sample_flow years_since_def_onset {
+foreach v in in_crisis in_crisis_nd in_crisis_def sample_flow years_since_def_onset l_contagion_dist {
     capture confirm variable `v', exact
     if _rc {
         di as error "  ** `v' not in panel_lp.dta — re-run 18_transforms.do first."
@@ -293,8 +311,9 @@ local com    = cond(`use_flowalt_ctrl', "$ctrl_flow_flowalt", "$ctrl_flow")    /
 * already-reported diagnostic numbers stay reproducible -- see header
 * "PREDICTOR CHANGE". Not used by Section 2/3's active baseline.
 local cz_def l_fedfunds l_reg_crisis_share past_def_onsets
-* cz_recency: the ACTIVE predictor set for Section 2 onward -- see header.
-local cz_recency l_fedfunds l_reg_crisis_share years_since_def_onset
+* cz_recency: the ACTIVE predictor set for Section 2 onward -- see header
+* "SECOND PREDICTOR CHANGE". l_contagion_dist in place of l_reg_crisis_share.
+local cz_recency l_fedfunds l_contagion_dist years_since_def_onset
 
 set seed 20260819
 local nboot = 1000
