@@ -76,9 +76,9 @@
   Eq. (1) outcome model:  $ctrl_flow          (episode-dated, epc_*)
   Eq. (2) propensity:     $ctrl_core_flowbase (row-dated) via `cx_active' — see
                           "ADOPTED FLOW-TIER CORE CONTROL SET" below. Sections
-                          1a-1f's diagnostic HISTORY stays on the original,
-                          frozen $ctrl_core via `cx' — see that local's own
-                          comment for why.
+                          1a, 1b and 1f's diagnostic HISTORY stays on the
+                          original, frozen $ctrl_core via `cx' — see that
+                          local's own comment for why.
 
   The row-dated/episode-dated split described next is not an oversight. epc_X is built as
       epc_X = cond(in_crisis==1, X at episode entry, X at own t-1)
@@ -103,53 +103,27 @@
   from control is an empirical question, and Section 1 answers it before any
   coefficient is reported.
 
-  SECTION 1c — DOES ENTRY-DATING X FIX THE SEPARATION, OR JUST RELABEL IT?
-  --------------------------------------------------------------------------
-  Two distinct mechanisms could be behind Section 1(b)'s near-separation:
-  (1) CONTAMINATION — contemporaneous X has already been reshaped by the
-      ongoing crisis (22_channels_flow.do's own credit result: contraction
-      deepens every extra year in crisis), so the propensity model is partly
-      predicting treatment from treatment's own effects.
-  (2) NO INDEPENDENT SELECTION EVENT — a continuation row was never
-      independently selected into treatment; it is treated only because the
-      episode from its onset year hadn't ended. No choice of X fixes this.
-  Section 1c re-runs Section 1(b)'s exact diagnostic with the propensity
-  model's covariates swapped from row-dated $ctrl_core to entry-dated epc_X
-  (epc_X = X at the episode's entry year, built in 18_transforms.do, already
-  used for Eq. (1)'s $ctrl_flow — see above). epc_X is genuinely pre-treatment
-  for EVERY row of an episode, onset and continuation alike, so this isolates
-  mechanism (1): if near-separation is contamination-driven, freezing X at
-  entry should materially shrink the p(treated)/p(control) gap and the count
-  of p>0.99 rows relative to Section 1(b)'s numbers. If it does not, that is
-  evidence mechanism (2) dominates and only a two-part onset/persistence model
-  (not discussed further here) would address the remainder.
-  cz_def (l_fedfunds, l_reg_crisis_share, past_def_onsets) is left row-dated
-  in both 1b and 1c: fed funds and the regional contagion share are not shaped
-  by the country's OWN ongoing episode, and past_def_onsets is already a
-  predetermined running count, so none of the three carries the same
-  contamination risk as the country's own macro controls.
-  This is a DIAGNOSTIC ONLY. It does not change the baseline estimator in
-  Section 3 — pz(`cx' `cz_def') there is untouched. Whether to build an actual
-  epc_X estimation arm (or, if the gap doesn't close, an onset/persistence
-  model instead) is a decision for after reading what this section prints.
-
-  SECTIONS 1d/1e — WHICH COVARIATE IS ACTUALLY DRIVING THE def-ARM SEPARATION
+  SECTIONS 1c/1d/1e — TESTED, NOT ADOPTED (removed; kept as a one-line summary)
   -----------------------------------------------------------------------------
-  Neither Section 1c's dating fix, nor dropping l_ca/l_debt (Section 1d),
-  materially closed the def-arm gap. Section 1d's printed coefficient table
-  showed why: l_ca is not even significant (p=.542), and the standout term is
-  past_def_onsets at z=10.07 — more than double the next-largest z-stat — with
-  the probit itself reporting "17 failures and 0 successes completely
-  determined." Section 1e confirmed it empirically: dropping past_def_onsets
-  alone (l_ca, l_debt left in) cut the def-arm gap by more than half (0.555 ->
-  0.261) and the completely-determined count nearly in half (17 -> 10) — far
-  more than any other single change tested. past_def_onsets is a running count
-  of a country's OWN default history, close to a country identifier rather
-  than a genuine time-varying predictor, which is exactly the profile of a
-  variable that produces this kind of separation.
+  Three fixes for Section 1(b)'s near-separation were tried and rejected
+  before landing on the one below. Entry-dating the propensity model's
+  covariates (epc_X, isolating contamination from an ongoing crisis as the
+  mechanism) barely moved the gap (mean p(treated) 0.591 -> 0.557, p>0.99
+  rows 5 -> 6) -- evidence the separation is structural, not contamination.
+  Dropping l_ca/l_debt helped a little (0.591 -> 0.523, p>0.99 5 -> 3);
+  l_ca's own coefficient was not even significant (p=.542). Dropping
+  past_def_onsets instead helped roughly twice as much (0.591 -> 0.321,
+  p>0.99 5 -> 2) -- past_def_onsets (z=10.07, more than double the
+  next-largest) was the dominant driver, a running count that behaves close
+  to a country identifier for a serial defaulter rather than a genuine
+  time-varying predictor. None of the three closed the gap anywhere near as
+  much as the fitting-sample restriction below, which is why that is what
+  got adopted rather than any single-variable drop. The diagnostic code for
+  these three is not kept in this file (see git history if it is ever
+  needed again).
 
-  ESTIMATOR CHANGE, SECTION 1f ONWARD — PROPENSITY FIT SAMPLE RESTRICTED TO
-  TRANQUIL + ONSET, ALL ORIGINAL PREDICTORS KEPT
+  ESTIMATOR CHANGE, SECTION 1f — THE FIX ACTUALLY ADOPTED: PROPENSITY FIT
+  SAMPLE RESTRICTED TO TRANQUIL + ONSET, ALL ORIGINAL PREDICTORS KEPT
   -----------------------------------------------------------------------------
   Rather than drop past_def_onsets (which would depart from the reference
   paper's own predictor set), this file instead adopts a different fix,
@@ -206,12 +180,12 @@
   tested; the MSM/two-part persistence model, the structural fix still not
   built).
   `local cz_def' below (l_fedfunds, l_reg_crisis_share, past_def_onsets) is
-  KEPT UNCHANGED and still drives Sections 1b-1e exactly as documented, so
+  KEPT UNCHANGED and still drives Sections 1b and 1f exactly as documented, so
   their already-reported diagnostic numbers stay reproducible. A SEPARATE
   local, `cz_recency' (l_fedfunds, l_reg_crisis_share, years_since_def_onset),
   is what Section 2 and Section 3's baseline estimator actually use from here
-  on. Sections 1a-1f remain historical record under the original predictor;
-  they are not rerun under cz_recency in this file.
+  on. Sections 1a, 1b and 1f remain historical record under the original
+  predictor; they are not rerun under cz_recency in this file.
 
   COUNTRY FE IN THE PROBIT — TESTED AND REJECTED
   -----------------------------------------------------------------------------
@@ -296,44 +270,31 @@ if "$ctrl_flow" == "" {
 * EXPLORATORY: set to 1 to test the alternate flow control set (see
 * 18_transforms.do's "EXPLORATORY ALTERNATE FLOW CONTROL SET"). Default 0 =
 * the bigger alternate's OFF state. This drives every control-set reference
-* in the file, including Sections 1a-1f's diagnostics -- with it on, their
+* in the file, including Sections 1a/1b/1f's diagnostics -- with it on, their
 * printed comparison numbers describe the run that produced
 * years_since_def_onset, not this run, so read them as history rather than a
 * live check when testing.
 local use_flowalt_ctrl 0
 * `cx' is DELIBERATELY FROZEN on the ORIGINAL $ctrl_core (or the bigger
-* alternate, if toggled) -- Sections 1a-1f's diagnostic history bakes in
-* literal comparison numbers (e.g. Section 1d/1e/1f's "0.591/0.036/5 rows
-* p>0.99") that were generated under $ctrl_core, and those must stay
-* reproducible exactly as documented. `cx' therefore does NOT follow the
-* flow tier's adopted core-control change (18_transforms.do's
-* "ADOPTED FLOW-TIER CORE CONTROL SET") -- see `cx_active' below, which does.
-* Same split pattern already used for cz_def (frozen) vs cz_recency (active).
+* alternate, if toggled) -- Sections 1b/1f's diagnostic history bakes in
+* literal comparison numbers (e.g. Section 1f's "0.591/0.036/5 rows p>0.99")
+* that were generated under $ctrl_core, and those must stay reproducible
+* exactly as documented. `cx' therefore does NOT follow the flow tier's
+* adopted core-control change (18_transforms.do's "ADOPTED FLOW-TIER CORE
+* CONTROL SET") -- see `cx_active' below, which does. Same split pattern
+* already used for cz_def (frozen) vs cz_recency (active).
 local cx     = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core")     // Eq. (2) HISTORY baseline: row-dated $ctrl_core, see header
 * `cx_active' is what Section 2 and Section 3's ACTUAL estimator use: the
 * flow tier's adopted core control set (l_banking_crisis, tot_chg in place
 * of l_banking_duration, l_ca) rather than the frozen original.
 local cx_active = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core_flowbase")  // Eq. (2) ACTIVE baseline: row-dated, ADOPTED set
 local com    = cond(`use_flowalt_ctrl', "$ctrl_flow_flowalt", "$ctrl_flow")    // Eq. (1) controls: episode-dated (already the adopted set via 18_transforms.do)
-* cz_def: the ORIGINAL predictor set, kept unchanged so Sections 1b-1e's
+* cz_def: the ORIGINAL predictor set, kept unchanged so Sections 1b and 1f's
 * already-reported diagnostic numbers stay reproducible -- see header
 * "PREDICTOR CHANGE". Not used by Section 2/3's active baseline.
 local cz_def l_fedfunds l_reg_crisis_share past_def_onsets
 * cz_recency: the ACTIVE predictor set for Section 2 onward -- see header.
 local cz_recency l_fedfunds l_reg_crisis_share years_since_def_onset
-
-* Entry-dated counterpart of $ctrl_core, for the Section 1c diagnostic only
-* (see header "SECTION 1c"). Built the same way Section 1(a) checks epc_X:
-* fail loudly, not silently, if 18_transforms.do hasn't built one of them.
-local cxe
-foreach X of local cx {
-    capture confirm variable epc_`X', exact
-    if _rc {
-        di as error "  ** epc_`X' not in panel_lp.dta — re-run 18_transforms.do first."
-        exit 111
-    }
-    local cxe `cxe' epc_`X'
-}
 
 set seed 20260819
 local nboot = 1000
@@ -629,172 +590,6 @@ foreach s in nd def {
 di as result _n "      A large share of treated rows at p>0.99, or continuation rows"
 di as result "      absent, means the propensity is reading 'already in crisis'"
 di as result "      and the flow AIPW is not adding information over 08b."
-
-* ══════════════════════════════════════════════════════════════════════════
-* 1c. DOES ENTRY-DATED X (epc_X) CLOSE THE GAP, OR IS THE PROBLEM STRUCTURAL?
-*
-* Same diagnostic as 1(b), same samples, same cz_def block — the ONLY change
-* is `cx' -> `cxe' in the propensity model. epc_X is genuinely pre-treatment
-* for every row of an episode (onset AND continuation), unlike contemporaneous
-* X, so this isolates whether near-separation is CONTAMINATION (X reshaped by
-* the ongoing crisis) or STRUCTURAL (continuation rows were never independently
-* selected into treatment at all, so no choice of X fixes it). See header
-* "SECTION 1c" for the full argument. Diagnostic only — does not touch Section
-* 3's baseline estimator.
-* ══════════════════════════════════════════════════════════════════════════
-di as result _n "  (c) Same check, entry-dated controls (epc_X) in place of row-dated X:"
-foreach s in nd def {
-    quietly probit in_crisis_`s' `cxe' `cz_def' if sample_flow==1
-    capture drop _pse_`s'
-    quietly predict double _pse_`s' if e(sample), pr
-    quietly count if in_crisis_`s'==1 & !missing(_pse_`s')
-    local nin = r(N)
-    quietly count if in_crisis_`s'==1 & !missing(_pse_`s') & onset_all==1
-    local non = r(N)
-    quietly count if in_crisis_`s'==1 & !missing(_pse_`s') & continuation==1
-    local ncn = r(N)
-    quietly summarize _pse_`s' if in_crisis_`s'==1, detail
-    local mt = r(mean)
-    quietly summarize _pse_`s' if in_crisis_`s'==0 & sample_flow==1, detail
-    local mc = r(mean)
-    quietly count if in_crisis_`s'==1 & _pse_`s' > .99 & !missing(_pse_`s')
-    local nwin = r(N)
-    di as result "      `s': treated rows in probit sample = " %4.0f `nin' ///
-                 "  (onset " %3.0f `non' ", continuation " %3.0f `ncn' ")"
-    di as result "          mean p(treated) = " %5.3f `mt' ///
-                 "   mean p(control) = " %5.3f `mc' ///
-                 "   treated rows with p>0.99 = " %3.0f `nwin'
-}
-di as result _n "      Compare these numbers to (b) directly above. If the gap between"
-di as result "      p(treated) and p(control), and the p>0.99 count, close substantially"
-di as result "      here, contamination was the dominant mechanism and epc_X is worth"
-di as result "      carrying into the estimator itself as a follow-up. If they do not"
-di as result "      move much, the remaining separation is structural -- continuation"
-di as result "      rows are never independently selected into treatment regardless of"
-di as result "      which X dates them -- and only a two-part onset/persistence model"
-di as result "      would address it. This section does not decide which; it reports"
-di as result "      both sets of numbers so that decision can be made from evidence."
-capture drop _pse_nd _pse_def
-
-* ══════════════════════════════════════════════════════════════════════════
-* 1d. IS IT SPECIFICALLY l_ca / l_debt, RATHER THAN DATING, DRIVING THE
-*     def-ARM SEPARATION?
-*
-* Section 1c showed entry-dating X barely moved the def-arm gap (mean
-* p(treated) 0.591 -> 0.557, p>0.99 count 5 -> 6), which argues against
-* contamination-by-ongoing-crisis as the mechanism. A narrower, distinct
-* hypothesis: maybe it isn't WHEN X is dated but WHICH variables are in it --
-* current account and debt are the two controls a spread crisis moves hardest,
-* so maybe they are doing most of the separating work on their own, and that
-* would show up regardless of dating. Two checks, in order:
-*   (i)  the def probit's own coefficient table, printed rather than
-*        `quietly'-d, so a variable that dominates is visible directly;
-*   (ii) the SAME overlap diagnostic as 1(b), row-dated X, with l_ca and
-*        l_debt specifically dropped -- if THIS closes the gap that entry-
-*        dating did not, that is a different and more targeted finding than
-*        anything Section 1c established, and worth carrying forward on its
-*        own even if the structural (no-independent-selection-event) story
-*        from 1c also holds for the remainder.
-* Table 1 in DATA_SECTION_DRAFT.md is worth having in mind reading this: at
-* t-1 (pre-crisis), current account and debt do NOT differ significantly
-* between non-default and default-linked episodes (p=.861, p=.308). That is
-* the def/nd comparison, though -- this diagnostic is about a different
-* comparison, def-treated vs TRANQUIL, which is what Eq. (2)'s probit
-* actually estimates in Section 1(b)/(c)/3.
-* ══════════════════════════════════════════════════════════════════════════
-di as result _n "  (d) Is it CA/debt specifically, not dating -- def-arm probit coefficients:"
-probit in_crisis_def `cx' `cz_def' if sample_flow==1
-
-local dropvars l_ca l_debt
-local cx_noCD : list cx - dropvars
-di as result _n "      Same check as (b), row-dated X, l_ca and l_debt dropped:"
-foreach s in nd def {
-    quietly probit in_crisis_`s' `cx_noCD' `cz_def' if sample_flow==1
-    capture drop _psd_`s'
-    quietly predict double _psd_`s' if e(sample), pr
-    quietly count if in_crisis_`s'==1 & !missing(_psd_`s')
-    local nin = r(N)
-    quietly count if in_crisis_`s'==1 & !missing(_psd_`s') & continuation==1
-    local ncn = r(N)
-    quietly summarize _psd_`s' if in_crisis_`s'==1, detail
-    local mt = r(mean)
-    quietly summarize _psd_`s' if in_crisis_`s'==0 & sample_flow==1, detail
-    local mc = r(mean)
-    quietly count if in_crisis_`s'==1 & _psd_`s' > .99 & !missing(_psd_`s')
-    local nwin = r(N)
-    di as result "      `s': treated rows in probit sample = " %4.0f `nin' ///
-                 "  (continuation " %3.0f `ncn' ")"
-    di as result "          mean p(treated) = " %5.3f `mt' ///
-                 "   mean p(control) = " %5.3f `mc' ///
-                 "   treated rows with p>0.99 = " %3.0f `nwin'
-}
-di as result _n "      Compare to (b): mean p(treated)=0.591, p(control)=0.036, p>0.99=5 (def)."
-di as result "      If dropping l_ca/l_debt closes this gap where entry-dating did not,"
-di as result "      that points to those two variables specifically rather than to the"
-di as result "      contamination-vs-structural distinction 1c was built to test."
-capture drop _psd_nd _psd_def
-
-* ══════════════════════════════════════════════════════════════════════════
-* 1e. IS IT past_def_onsets SPECIFICALLY, WITH l_ca/l_debt LEFT IN?
-*
-* Section 1d's coefficient table settled the original hypothesis: l_ca is not
-* even significant (p=.542) and l_debt, while significant (z=5.20), is not the
-* dominant term. past_def_onsets stood out at z=10.07 -- more than double the
-* next-largest z-stat in the model -- and the probit reported "17 failures and
-* 0 successes completely determined," Stata's own quasi-complete-separation
-* diagnostic, printed directly in that section's log.
-*
-* past_def_onsets is a running count of a country's OWN history of default
-* onsets. It barely moves within a country's sample window, so for a serial
-* defaulter it behaves close to a country fixed effect wearing a different
-* name, rather than a genuine time-varying predictor -- exactly the profile
-* of a variable that would produce quasi-complete separation on its own.
-*
-* This section isolates it: cx (row-dated $ctrl_core, l_ca and l_debt INCLUDED)
-* is left exactly as in the Section 1(b) baseline; only past_def_onsets is
-* dropped from cz_def. If this single change closes the gap far more than
-* Section 1d's l_ca/l_debt removal did, that confirms past_def_onsets as the
-* dominant driver of the near-separation Section 1(b) first flagged.
-* ══════════════════════════════════════════════════════════════════════════
-local past_onset_drop past_def_onsets
-local cz_noPD : list cz_def - past_onset_drop
-
-di as result _n "  (e) Is it past_def_onsets specifically, l_ca/l_debt left in --"
-di as result "      def-arm probit coefficients with past_def_onsets dropped:"
-probit in_crisis_def `cx' `cz_noPD' if sample_flow==1
-
-di as result _n "      Same overlap check as (b), row-dated X (l_ca, l_debt IN), past_def_onsets OUT:"
-foreach s in nd def {
-    quietly probit in_crisis_`s' `cx' `cz_noPD' if sample_flow==1
-    capture drop _pspd_`s'
-    quietly predict double _pspd_`s' if e(sample), pr
-    quietly count if in_crisis_`s'==1 & !missing(_pspd_`s')
-    local nin = r(N)
-    quietly count if in_crisis_`s'==1 & !missing(_pspd_`s') & onset_all==1
-    local non = r(N)
-    quietly count if in_crisis_`s'==1 & !missing(_pspd_`s') & continuation==1
-    local ncn = r(N)
-    quietly summarize _pspd_`s' if in_crisis_`s'==1, detail
-    local mt = r(mean)
-    quietly summarize _pspd_`s' if in_crisis_`s'==0 & sample_flow==1, detail
-    local mc = r(mean)
-    quietly count if in_crisis_`s'==1 & _pspd_`s' > .99 & !missing(_pspd_`s')
-    local nwin = r(N)
-    di as result "      `s': treated rows in probit sample = " %4.0f `nin' ///
-                 "  (onset " %3.0f `non' ", continuation " %3.0f `ncn' ")"
-    di as result "          mean p(treated) = " %5.3f `mt' ///
-                 "   mean p(control) = " %5.3f `mc' ///
-                 "   treated rows with p>0.99 = " %3.0f `nwin'
-}
-di as result _n "      Compare, def arm: (b) baseline 0.591/0.036/5 rows p>0.99;"
-di as result "      1d (l_ca,l_debt dropped) 0.523/0.045/3 rows p>0.99;"
-di as result "      1e (past_def_onsets dropped, l_ca/l_debt kept) printed just above."
-di as result "      If 1e closes the gap far more than 1d did, past_def_onsets -- not"
-di as result "      current account or debt -- is the dominant driver of the near-"
-di as result "      separation, and the follow-up decision is about that variable"
-di as result "      specifically: drop it from Eq. (2), or model a country's default"
-di as result "      history differently there."
-capture drop _pspd_nd _pspd_def
 
 * ══════════════════════════════════════════════════════════════════════════
 * 1f. THE ESTIMATOR CHANGE ADOPTED FROM HERE ON: PROPENSITY FIT SAMPLE
