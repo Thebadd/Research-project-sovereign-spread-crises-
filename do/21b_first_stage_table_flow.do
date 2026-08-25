@@ -155,18 +155,18 @@ capture esttab ffs_nd ffs_def using "$tabs/table_first_stage_flow.rtf", replace 
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
     mtitles("Non-default" "Default-linked") ///
     order(l_fedfunds l_reg_crisis_share years_since_def_onset ///
-          l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl) ///
+          l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl tot_chg) ///
     coeflabel(l_fedfunds "US fed funds rate (t-1)" ///
               l_reg_crisis_share "Regional contagion (t-1)" ///
               years_since_def_onset "Years since last default onset" ///
               l1_gdpg "GDP growth (t-1)" ///
               l_debt "Public debt / GDP (t-1)" ///
-              l_ca "Current account / GDP (t-1)" ///
-              l_banking_duration "Banking crisis: years so far (t-1)" ///
+              l_banking_crisis "Banking crisis dummy (t-1)" ///
               l_govexp "Govt expenditure / GDP (t-1)" ///
               l_open "Trade openness (t-1)" ///
               l_credit_bank "Private credit by banks / GDP (t-1)" ///
-              l_hyperinfl "Hyperinflation dummy (t-1)") ///
+              l_lninfl "Log gross inflation (t-1)" ///
+              tot_chg "Terms-of-trade log-change (t-1)") ///
     refcat(l_fedfunds "Predictors" l1_gdpg "Baseline controls", nolabel) ///
     stats(chi2p pp aurocctrl auroc N, ///
           labels("Chi-squared (predictors)" "  p-value" "AUROC, controls only" "AUROC, with predictors" "Observations") ///
