@@ -404,6 +404,27 @@ foreach X of global ctrl_core_flowbase {
 if `nbad' != 0 di as error "  ** FLOW: episode-dated controls differ from row-dated on `nbad' ONSET rows — ep_seq is wrong"
 else           di as result "  FLOW: episode-dated controls match row-dated on every onset row (correct)"
 
+* ── ORPHANED $ctrl_core TERMS: entry-dated counterparts kept for HISTORY ────
+* l_ca, l_banking_duration, l_hyperinfl are no longer part of
+* $ctrl_core_flowbase (see "ADOPTED FLOW-TIER CORE CONTROL SET" above), so
+* the main $ctrl_flow loop no longer builds epc_ versions of them. But
+* 21_aipw_flow.do's FROZEN historical diagnostics (`cx' = $ctrl_core,
+* Section 1c's entry-dated `cxe' test specifically) still need entry-dated
+* counterparts of the FULL original $ctrl_core to stay reproducible exactly
+* as documented -- built here, separately, so removing these three terms
+* from the ADOPTED set does not silently break that history.
+local _orphaned_core l_ca l_banking_duration l_hyperinfl
+foreach X of local _orphaned_core {
+    capture drop epc_`X' _ent_`X'
+    quietly bysort cid ep_seq: egen double _ent_`X' = max(cond(onset_all==1, `X', .))
+    quietly gen double epc_`X' = cond(in_crisis==1, _ent_`X', `X')
+    label var epc_`X' "`X' at episode entry (tranquil rows keep own t-1) -- HISTORY ONLY, not in the adopted set"
+    quietly drop _ent_`X'
+}
+di as result "  HISTORY: entry-dated counterparts built for orphaned \$ctrl_core terms"
+di as result "           (l_ca, l_banking_duration, l_hyperinfl) -- 21_aipw_flow.do's"
+di as result "           frozen diagnostics only, not part of \$ctrl_flow/\$ctrl_core_flowbase."
+
 * ══════════════════════════════════════════════════════════════════════════
 * EXPLORATORY ALTERNATE FLOW CONTROL SET — $ctrl_core_flowalt / $ctrl_flow_flowalt
 *
