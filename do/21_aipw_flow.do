@@ -478,6 +478,72 @@ quietly count if sample_flow==1 & in_crisis==0
 di as result "  tranquil controls:               " %4.0f r(N)
 
 * ══════════════════════════════════════════════════════════════════════════
+* 1g. DIAGNOSTIC ONLY — COUNTRY FE IN THE PROBIT, MATCHING THE REFERENCE
+*     PAPER'S DESIGN
+*
+* Their first-stage probit carries country dummies directly ($cf = c1-c74,
+* noconstant) alongside $convar and $instrument. This project's _aipw has
+* never done this -- Eq. (2) is pooled across countries, country FE enter
+* only the OUTCOME model via fe(cid). A version of this test was run once
+* before (on an earlier predictor/control set, see the header's "COUNTRY FE
+* IN THE PROBIT -- TESTED AND REJECTED") and rejected for causing complete
+* separation on the def arm; that diagnostic code was removed once settled.
+* This re-runs the same question on TODAY's adopted construction
+* (cx_active/cz_recency, fit sample restricted to continuation==0) rather
+* than assuming the earlier verdict still holds under the predictor changes
+* made since (l_contagion_dist, years_since_def_onset).
+*
+* THE EXPECTED FAILURE MODE, STATED IN ADVANCE. Any country with ZERO
+* outcome variation in a given arm (e.g. never had a default-linked crisis)
+* gets dropped from that arm's probit automatically -- Stata's own "predicts
+* failure/success perfectly" note. On the def arm (a handful of treated
+* countries under flow coding), this could mean the usable control pool
+* shrinks sharply, not just wider SEs. Checked directly below, not assumed.
+* ══════════════════════════════════════════════════════════════════════════
+di as result _n "════════════════════════════════════════════════════════════"
+di as result "1g. DIAGNOSTIC: country FE added to the probit (i.cid), matching the reference paper"
+di as result "════════════════════════════════════════════════════════════"
+foreach s in nd def {
+    di as result _n "  `s' arm, WITH i.cid (raw probit output, watch for separation notes):"
+    capture noisily probit in_crisis_`s' `cx_active' `cz_recency' i.cid ///
+        if sample_flow==1 & continuation==0
+    if _rc {
+        di as error "  ** `s' arm: probit FAILED to converge (rc=" _rc ")."
+        continue
+    }
+    quietly levelsof cid if sample_flow==1 & continuation==0, local(allcty)
+    quietly levelsof cid if e(sample)==1, local(keptcty)
+    local ndrop : list allcty - keptcty
+    local ndropn : word count `ndrop'
+    local nallc  : word count `allcty'
+    di as result "  countries in the continuation==0 fitting sample: " `nallc' ///
+                 "  |  dropped for zero outcome variation: " `ndropn'
+
+    capture drop _psg_`s'
+    quietly predict double _psg_`s' if sample_flow==1, pr
+    quietly count if in_crisis_`s'==1 & !missing(_psg_`s')
+    local nin = r(N)
+    quietly summarize _psg_`s' if in_crisis_`s'==1, detail
+    local mt = r(mean)
+    quietly summarize _psg_`s' if in_crisis_`s'==0 & sample_flow==1 & !missing(_psg_`s'), detail
+    local mc = r(mean)
+    quietly count if in_crisis_`s'==1 & _psg_`s' > .99 & !missing(_psg_`s')
+    local nwin = r(N)
+    di as result "  `s': treated rows scored = " %4.0f `nin' ///
+                 "   mean p(treated) = " %5.3f `mt' ///
+                 "   mean p(control) = " %5.3f `mc' ///
+                 "   treated rows with p>0.99 = " %3.0f `nwin'
+}
+di as result _n "  Compare to Section 1f's history (no country FE, same predictor set/fit sample,"
+di as result "  see the header): if country FE closes the propensity gap without collapsing the"
+di as result "  def arm's control pool, it is worth adopting as the estimator everywhere; if it"
+di as result "  drops most of the def arm's usable countries or fails to converge, that is the"
+di as result "  honest reason this project's _aipw has never carried it, and the write-up should"
+di as result "  say so rather than silently keeping the pooled probit. DIAGNOSTIC ONLY -- pmodel()"
+di as result "  in Section 3's estimation loop below is UNCHANGED by this section."
+capture drop _psg_nd _psg_def
+
+* ══════════════════════════════════════════════════════════════════════════
 * 2. HOW MUCH WORK IS THE AUGMENTATION DOING?
 *
 * Eq. (3) is the IPW estimator plus an augmentation term:
