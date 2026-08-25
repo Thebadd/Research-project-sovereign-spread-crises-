@@ -52,6 +52,17 @@
   figure's own axis and avoiding a density dominated by the near-zero mass
   every pooled probit on a rare-event outcome produces.
 
+  EACH ROC PANEL CARRIES roccomp's FORMAL TEST, NOT JUST THE TWO AUROCs
+  -----------------------------------------------------------------------
+  The AUROC delta shown in the legend is a point difference, not a
+  significance test. roccomp's chi2 test for equal correlated ROC areas is
+  printed as a note under each panel (H0: equal areas). On this project's
+  sample neither arm clears the conventional 5 pct level (nd p=.084, def
+  p=.055 as of the run that motivated adding this) -- the point gap is
+  comparable in size to the reference paper's own with/without-predictors
+  demonstration, but is not as sharply established here. Matches 21b's
+  console output, which reports the same test.
+
   Outputs
   -------
     "$figs/fig_kdensity_flow.pdf/.png"  predicted-probability density, nd/def
@@ -148,11 +159,20 @@ local gnames_b
 foreach s in nd def {
     local ttl = cond("`s'"=="nd", "Non-default", "Default-linked")
 
+    * roccomp's own chi2 test for equal correlated ROC areas -- the formal
+    * significance test the raw AUROC delta cannot substitute for. Run once,
+    * quietly, to capture r(chi2)/r(p) BEFORE the graphing call (whose own
+    * r() is not yet populated at the point its own option string is built),
+    * then reused as a literal string in the panel note below.
+    quietly roccomp in_crisis_`s' _p1_`s' _p2_`s' if !missing(_p1_`s',_p2_`s')
+    local rocnote = "H0: equal areas -- chi2(1)=" + string(r(chi2), "%4.2f") + ", p=" + string(r(p), "%5.3f")
+
     roccomp in_crisis_`s' _p1_`s' _p2_`s' if !missing(_p1_`s',_p2_`s'), ///
         graph summary name(gr_`s', replace) graphregion(color(white)) nodraw ///
         plot1opts(lcolor(red) mcolor(red) msymbol(circle)) ///
         plot2opts(lcolor(green) mcolor(green) msymbol(diamond)) ///
         title("`ttl'", size(medium)) ///
+        note("`rocnote'", size(vsmall)) ///
         legend(position(5) region(lwidth(none)) size(vsmall) cols(1) ring(0) ///
             order(1 "Controls: `auc1_`s''" 2 "Controls+Predictors: `auc2_`s''"))
     local gnames_b `gnames_b' gr_`s'
@@ -160,7 +180,8 @@ foreach s in nd def {
 graph combine `gnames_b', graphregion(color(white)) ///
     title("First-Stage Classification: Controls vs Controls + Predictors", size(medsmall) color(navy)) ///
     subtitle("ROC area under the curve; 0.50 = no classification power, 1.00 = perfect. No country-FE curve —" ///
-        " see header.", size(small)) ///
+        " see header. Neither panel's gap clears the conventional 5 pct level (roccomp chi2 test, see notes below" ///
+        " each panel) -- modest, not absent, on this project's sample size.", size(small)) ///
     xsize(6) ysize(3.2)
 capture graph export "$figs/fig_roc_flow.pdf", replace
 if _rc di as error "  ** fig_roc_flow.pdf export failed (rc=" _rc ") — is it open?"

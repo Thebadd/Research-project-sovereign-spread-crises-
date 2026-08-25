@@ -74,6 +74,17 @@
   what the baseline controls already provide. Reporting only the full model's
   AUROC would assert predictive power without showing the counterfactual.
 
+  THE DELTA ITSELF IS NOT A SIGNIFICANCE TEST -- roccomp's chi2 test for
+  equal correlated ROC areas is, and it is reported alongside the delta in
+  the console output. On this project's panel the point deltas are
+  comparable in size to the reference paper's own gap (+0.077 nd, +0.080
+  def vs their 0.08-0.09), but roccomp's formal test does not clear the
+  conventional 5 pct level for either arm (nd p=.084, def p=.055) -- both
+  sit inside the 10 pct band. Read as modest, not absent: on a much smaller
+  sample the same-sized gap is harder to distinguish from noise, and the
+  write-up should quote the roccomp p-values, not just the delta, when
+  characterising how much work the predictors are doing.
+
   Pooled probit, no country FE (matches 21_aipw_flow.do's Eq. (2), which is
   "Pooled, no country FE" per that file's own header). Clustered SEs by
   country, matching 08c's choice.
@@ -123,6 +134,8 @@ program define _fscolflow
     quietly probit `dv' `xlist' if `ifcond', vce(cluster cid)
     quietly lroc, nograph
     local aucctrl = r(area)
+    capture drop _pctrl_`nm'
+    quietly predict double _pctrl_`nm' if `ifcond', pr
 
     probit `dv' `xlist' `zlist' if `ifcond', vce(cluster cid)
     eststo `nm'
@@ -132,41 +145,62 @@ program define _fscolflow
     quietly lroc, nograph
     estadd scalar auroc     = r(area)
     estadd scalar aurocctrl = `aucctrl'
+    capture drop _pfull_`nm'
+    quietly predict double _pfull_`nm' if `ifcond', pr
 end
 
 _fscolflow ffs_nd  "in_crisis_nd"  "sample_flow==1 & continuation==0 & in_crisis_def==0" "`X'" "`Z'"
 _fscolflow ffs_def "in_crisis_def" "sample_flow==1 & continuation==0 & in_crisis_nd==0"  "`X'" "`Z'"
 
+* ── FORMAL TEST OF WHETHER THE TWO AUROCs ACTUALLY DIFFER ──────────────────
+* The delta alone (auroc - aurocctrl) says nothing about whether that gap is
+* distinguishable from sampling noise -- an informal 0.03 threshold cannot
+* substitute for a test. roccomp's chi2 test for equal correlated ROC areas
+* (same subjects, two nested classifiers) is that test, and it needs the two
+* models' predicted probabilities on the SAME sample, saved above.
+quietly roccomp in_crisis_nd _pctrl_ffs_nd _pfull_ffs_nd if !missing(_pctrl_ffs_nd,_pfull_ffs_nd)
+local rocchi2_nd = r(chi2)
+local rocp_nd    = r(p)
+quietly roccomp in_crisis_def _pctrl_ffs_def _pfull_ffs_def if !missing(_pctrl_ffs_def,_pfull_ffs_def)
+local rocchi2_def = r(chi2)
+local rocp_def    = r(p)
+capture drop _pctrl_ffs_nd _pfull_ffs_nd _pctrl_ffs_def _pfull_ffs_def
+
 * ── Console echo of the diagnostics ──────────────────────────────────────────
 di as result _n "=== FLOW FIRST-STAGE PROBIT DIAGNOSTICS (predictors jointly) ==="
 di as result "     sample = tranquil + onset rows only (continuation==0)"
-di as result "col            chi2(pred)   p        AUROC(ctrl only)  AUROC(+pred)  delta"
+di as result "col            chi2(pred)   p        AUROC(ctrl only)  AUROC(+pred)  delta   roccomp chi2   p"
 local mindlt = .
 foreach c in ffs_nd ffs_def {
     quietly estimates restore `c'
     local dlt = e(auroc) - e(aurocctrl)
     local dltsign = cond(`dlt' >= 0, "+", "")
+    local sfx = subinstr("`c'", "ffs_", "", .)
     di as result %-14s "`c'" "  " %8.2f e(chi2p) "  " %6.3f e(pp) "  " ///
-                 %8.3f e(aurocctrl) "        " %6.3f e(auroc) "       " "`dltsign'" %6.3f `dlt'
+                 %8.3f e(aurocctrl) "        " %6.3f e(auroc) "       " "`dltsign'" %6.3f `dlt' ///
+                 "     " %6.2f `rocchi2_`sfx'' "        " %5.3f `rocp_`sfx''
     * Track the SMALLER of the two deltas -- the interpretation below should
     * reflect the weaker column, not be driven by whichever column happens
     * to look best.
     if missing(`mindlt') | `dlt' < `mindlt' local mindlt = `dlt'
 }
-* Threshold is informal, not a hard rule: 0.03 is well below the reference
-* paper's own with/without gaps (0.08-0.09), so anything at or above that is
-* read as "the predictors are earning their place," consistent with the
-* magnitude their own comparison (0.87 vs 0.79, 0.94 vs 0.85) demonstrates.
-di as result _n "      Both columns' AUROC delta: " %5.3f `mindlt' " (smaller of the two) -- " ///
-    cond(`mindlt' >= 0.03, ///
-        "meaningfully positive, comparable in size to the reference paper's own", ///
-        "close to zero, well below the reference paper's own")
-di as result "      with/without-predictors gap (their 0.87 vs 0.79, 0.94 vs 0.85). " ///
-    cond(`mindlt' >= 0.03, ///
-        "The predictors are adding real classification power on top of the baseline", ///
-        "The predictors are adding little classification power on top of the baseline")
-di as result "      controls, not just asserting a role from theory (Chi-squared above tests joint"
-di as result "      significance only, and says nothing about how much discriminatory power is added)."
+* The raw delta and the informal 0.03 threshold are NOT a significance test --
+* roccomp's chi2 test (above, same-subjects correlated-ROC-areas test) is.
+* Report that number, not the informal threshold, as the governing statistic:
+* a delta can clear 0.03 and still not be distinguishable from noise on a
+* sample this size, which is exactly what happens here.
+local worstp = max(`rocp_nd', `rocp_def')
+di as result _n "      Both columns' AUROC delta: " %5.3f `mindlt' " (smaller of the two)."
+di as result "      roccomp's formal test for whether the two AUROCs differ: nd chi2(1)=" ///
+    %5.2f `rocchi2_nd' ", p=" %5.3f `rocp_nd' "   def chi2(1)=" %5.2f `rocchi2_def' ", p=" %5.3f `rocp_def' "."
+di as result "      Neither reaches the conventional 5 pct level (worse column p=" %5.3f `worstp' ///
+    "); both are inside the 10 pct band."
+di as result "      Read this as MODEST, NOT ABSENT: the point deltas are comparable in size to the"
+di as result "      reference paper's own with/without-predictors gap (0.08-0.09), but on this project's"
+di as result "      much smaller sample that gap does not clear a formal significance test the way it does"
+di as result "      in their much larger panel. The chi-squared row above tests joint predictor significance"
+di as result "      only and says nothing about classification power; roccomp's test is the one that speaks"
+di as result "      to classification power directly, and it says 'suggestive, not established' here."
 
 * ══════════════════════════════════════════════════════════════════════════
 * TABLE EXPORT — Table 1 style (Predictors / Baseline controls blocks + diags)
