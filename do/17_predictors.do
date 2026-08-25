@@ -8,6 +8,9 @@
     reg_crisis_share    leave-one-out share of OTHER same-region countries with
                         an onset in year t
     l_reg_crisis_share  Z2: lagged regional crisis share (contagion)
+    contagion_dist      Z2b: distance-weighted sum of OTHER countries' onsets
+                        (year t), CEPII great-circle distance (GEO_CEPII.xlsx)
+    l_contagion_dist    Z2b lagged (predetermined)
     past_onsets         Z3: cumulative own onsets before year t (proneness)
     past_def_onsets     Z3(def): cumulative own default-linked onsets before t
 ===========================================================================*/
@@ -36,6 +39,106 @@ drop reg_n_onset reg_n_members
 xtset cid year
 gen double l_reg_crisis_share = L.reg_crisis_share
 label var l_reg_crisis_share "Z2: lagged regional crisis share (contagion predictor)"
+
+* ── Distance-weighted contagion (Z2b): CEPII geo-based inverse-distance sum ──
+* Contagion_it = sum_k [ onset_all_kt / W_ik ],  W_ik = Dist_ik / sum_k' Dist_ik'
+* Same construction as the reference paper's restructuring-contagion variable
+* (their Section 4.1), applied here to ANY spread-crisis onset rather than a
+* restructuring dummy specifically. Dist_ik is the great-circle distance
+* between capital cities (Haversine formula on lat/lon), from CEPII's
+* geo_cepii reference file (data/raw/GEO_CEPII.xlsx). Dividing by W_ik (a
+* SHARE of country i's total distance to every other country) amplifies close
+* neighbours and shrinks distant ones -- an inverse-distance weighting, just
+* parameterised as a division rather than a multiplication by 1/distance.
+* Two panel countries carry non-standard codes in this CEPII vintage:
+* Romania is "ROM" (not ISO "ROU") and Serbia is "YUG" ("Serbia and
+* Montenegro" -- same capital, Belgrade, so the coordinates are still valid);
+* both are remapped to this project's iso3 codes below before merging.
+preserve
+    import excel "$raw/GEO_CEPII.xlsx", sheet(geo_cepii) firstrow clear
+    keep iso3 lat lon
+    destring lat lon, replace force
+    replace iso3 = "ROU" if iso3=="ROM"
+    replace iso3 = "SRB" if iso3=="YUG"
+    duplicates drop iso3, force
+    tempfile geo
+    save `geo'
+restore
+
+* Distinct panel countries with lat/lon -- carryin==0, matching
+* reg_crisis_share's own restriction (carry-in rows are pre-EMBIG scaffolding,
+* not real countries to weight contagion against).
+preserve
+    keep if carryin==0
+    contract iso3
+    merge 1:1 iso3 using `geo', keep(match master) nogen
+    quietly count if missing(lat)
+    if r(N) > 0 {
+        di as error "  ** GEO_CEPII: `r(N)' panel countries have no lat/lon match -- contagion_dist will be missing for them:"
+        list iso3 if missing(lat)
+    }
+    tempfile ctylist
+    save `ctylist'
+restore
+
+* All ordered pairs (i,k), i != k, and their Haversine distance + weight.
+* Time-invariant (geography doesn't change), so this is built once, not per year.
+preserve
+    use `ctylist', clear
+    rename iso3 iso3_k
+    rename lat lat_k
+    rename lon lon_k
+    tempfile klist
+    save `klist'
+
+    use `ctylist', clear
+    rename iso3 iso3_i
+    rename lat lat_i
+    rename lon lon_i
+    cross using `klist'
+    drop if iso3_i == iso3_k
+    drop if missing(lat_i) | missing(lat_k)
+
+    * Great-circle distance via the spherical law of cosines, in km (Earth
+    * radius 6371 km). The acos() argument is clipped to [-1,1]: floating-point
+    * rounding can push it fractionally outside that range for very close
+    * points, which would otherwise return a missing distance.
+    gen double _arg = sin(lat_i*c(pi)/180)*sin(lat_k*c(pi)/180) ///
+        + cos(lat_i*c(pi)/180)*cos(lat_k*c(pi)/180)*cos((lon_k-lon_i)*c(pi)/180)
+    replace _arg = min(1, max(-1, _arg))
+    gen double dist_ik = 6371 * acos(_arg)
+    drop _arg
+
+    bysort iso3_i: egen double _sumdist_i = total(dist_ik)
+    gen double w_ik = dist_ik / _sumdist_i
+    keep iso3_i iso3_k w_ik
+    tempfile weights
+    save `weights'
+restore
+
+* Join the (i,k) weights to every (k,t) onset, then collapse to (i,t):
+* contagion_dist_it = sum over k of onset_all_kt / w_ik.
+preserve
+    keep if carryin==0
+    keep iso3 year onset_all
+    rename iso3 iso3_k
+    tempfile donors
+    save `donors'
+
+    use `weights', clear
+    joinby iso3_k using `donors'
+    gen double _contrib = onset_all / w_ik
+    collapse (sum) contagion_dist = _contrib, by(iso3_i year)
+    rename iso3_i iso3
+    label var contagion_dist "Z2b: distance-weighted sum of OTHER countries' onset_all (year t), CEPII great-circle"
+    tempfile contagion
+    save `contagion'
+restore
+
+merge m:1 iso3 year using `contagion', keep(master match) nogen
+xtset cid year
+gen double l_contagion_dist = L.contagion_dist
+label var l_contagion_dist "Z2b: lagged distance-weighted contagion (any onset), predetermined"
 
 * ── Proneness: cumulative own onsets, lagged (Z3) ───────────────────────────
 capture drop cum_onset past_onsets cum_def past_def_onsets
@@ -84,7 +187,7 @@ drop _defyear _defyear_lag
 save "$clean/panel_build.dta", replace
 
 di as result _n "17_predictors.do complete."
-foreach v in l_reg_crisis_share past_onsets past_def_onsets years_since_def_onset {
+foreach v in l_reg_crisis_share l_contagion_dist past_onsets past_def_onsets years_since_def_onset {
     quietly count if !missing(`v') & sample_base==1
     di as result "  `v': `r(N)' non-missing sample rows"
 }
