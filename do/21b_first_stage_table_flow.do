@@ -203,6 +203,87 @@ di as result "      only and says nothing about classification power; roccomp's 
 di as result "      to classification power directly, and it says 'suggestive, not established' here."
 
 * ══════════════════════════════════════════════════════════════════════════
+* DIAGNOSTIC ONLY — DOES l_contagion_dist DILUTE THE JOINT AUROC TEST?
+*
+* Of the three predictors, l_contagion_dist is never close to individually
+* significant in either arm (nd z=-0.67, def z=-0.96, from the coefficient
+* table above), while l_fedfunds (nd) and years_since_def_onset (both arms)
+* are. A predictor that adds nothing can dilute a JOINT test's power without
+* adding anything -- both chi2(predictors) and the roccomp comparison above
+* are joint/aggregate tests over the full vector. This section tests that
+* directly rather than assuming it: a THIRD model per arm, controls +
+* {l_fedfunds, years_since_def_onset} only (no l_contagion_dist), with its
+* own AUROC and its own roccomp test against controls-only, PLUS a direct
+* roccomp comparison of the two PREDICTOR models against each other -- the
+* number that actually answers "does dropping contagion sharpen things,"
+* since comparing each separately to controls-only does not.
+*
+* cz_recency itself is NOT changed here -- same discipline as the
+* l_contagion_def_dist test (built, tested, reverted since it did not help):
+* test first, decide after. Dropping a predictor from the ACTIVE set used by
+* 21_aipw_flow.do/24/25 is a separate, larger decision than this console
+* diagnostic.
+* ══════════════════════════════════════════════════════════════════════════
+local Zred l_fedfunds years_since_def_onset
+
+di as result _n "=== DOES DROPPING l_contagion_dist SHARPEN THE AUROC GAIN? ==="
+di as result "     3 predictors = l_fedfunds l_contagion_dist years_since_def_onset (cz_recency, unchanged)"
+di as result "     2 predictors = l_fedfunds years_since_def_onset only (contagion dropped, diagnostic only)"
+di as result "col       AUROC(ctrl)  AUROC(3pred)  AUROC(2pred)   roc: ctrl v 3pred    ctrl v 2pred    3pred v 2pred"
+
+* All three models (controls-only, controls+cz_recency, controls+Zred) refit
+* here on predicted-probability variables kept in memory throughout, so every
+* roccomp call below compares curves computed on the identical estimation
+* sample -- nothing here reads back into ffs_nd/ffs_def's stored estimates.
+foreach c in nd def {
+    local dv  = cond("`c'"=="nd", "in_crisis_nd", "in_crisis_def")
+    local ifc = cond("`c'"=="nd", "sample_flow==1 & continuation==0 & in_crisis_def==0", ///
+                                    "sample_flow==1 & continuation==0 & in_crisis_nd==0")
+
+    capture drop _pc_`c' _pf_`c' _pr_`c'
+    quietly probit `dv' `X' if `ifc', vce(cluster cid)
+    quietly lroc, nograph
+    local aucctrl = r(area)
+    quietly predict double _pc_`c' if `ifc', pr
+
+    quietly probit `dv' `X' `Z' if `ifc', vce(cluster cid)
+    quietly lroc, nograph
+    local aucfull = r(area)
+    quietly predict double _pf_`c' if `ifc', pr
+
+    quietly probit `dv' `X' `Zred' if `ifc', vce(cluster cid)
+    quietly lroc, nograph
+    local aucred = r(area)
+    quietly predict double _pr_`c' if `ifc', pr
+
+    * Two PAIRWISE two-curve tests, not one three-curve overall test: an
+    * overall 3-way equality test would not isolate "does 2pred beat ctrl"
+    * from "does 3pred beat 2pred," which are the two questions that matter
+    * here.
+    quietly roccomp `dv' _pc_`c' _pr_`c' if !missing(_pc_`c',_pr_`c')
+    local p_ctrl_red = r(p)
+    local c_ctrl_red = r(chi2)
+
+    quietly roccomp `dv' _pf_`c' _pr_`c' if !missing(_pf_`c',_pr_`c')
+    local p_full_red = r(p)
+    local c_full_red = r(chi2)
+
+    di as result %-8s "`c'" "  " %8.3f `aucctrl' "      " %8.3f `aucfull' "      " %8.3f `aucred' ///
+        "      " %5.2f `rocchi2_`c'' "/" %5.3f `rocp_`c'' ///
+        "        " %5.2f `c_ctrl_red' "/" %5.3f `p_ctrl_red' ///
+        "        " %5.2f `c_full_red' "/" %5.3f `p_full_red'
+
+    capture drop _pc_`c' _pf_`c' _pr_`c'
+}
+di as result _n "      Rightmost column (3pred vs 2pred) is the number that actually answers the"
+di as result "      question: a large p there means dropping l_contagion_dist does not measurably"
+di as result "      change classification power, i.e. it is genuinely inert rather than merely"
+di as result "      diluting the joint test -- supports dropping it from cz_recency. A small p"
+di as result "      (2pred beats 3pred) would be stronger evidence still. If 3pred edges out 2pred,"
+di as result "      that argues against dropping it despite the individual coefficient's insignificance."
+di as result "      Diagnostic only -- cz_recency/l_contagion_dist unchanged by this comparison."
+
+* ══════════════════════════════════════════════════════════════════════════
 * TABLE EXPORT — Table 1 style (Predictors / Baseline controls blocks + diags)
 * ══════════════════════════════════════════════════════════════════════════
 capture esttab ffs_nd ffs_def using "$tabs/table_first_stage_flow.rtf", replace ///
