@@ -310,6 +310,49 @@ first stage at all, so nothing is being excluded there; the global cycle is
 absorbed by year fixed effects, which is why a pure time-series regressor
 would be redundant in those specifications rather than excluded from them.
 
+**The regional contagion measure, and a distance-weighted alternative.**
+The baseline contagion predictor, `l_reg_crisis_share`, is a leave-one-out
+share: the fraction of *other* countries in the same coarse geographic
+region with a crisis onset in year *t*, lagged one year. It treats every
+other country in the region as an equally weighted neighbor and ignores
+countries outside it entirely, which is a strong assumption about who a
+country's crisis is contagious from.
+
+A distance-weighted alternative, `contagion_dist`, was built to relax that
+assumption, following the construction the reference paper's own
+methodology section describes for its restructuring-contagion variable:
+
+```
+Contagion_it = sum_k [ onset_all_kt / W_ik ],   W_ik = Dist_ik / sum_k' Dist_ik'
+```
+
+applied here to any spread-crisis onset (`onset_all`) rather than a
+restructuring dummy specifically. `Dist_ik` is the great-circle distance
+between country *i* and *k*'s capital cities, computed from CEPII's
+`geo_cepii` reference file (`data/raw/GEO_CEPII.xlsx`) via the Haversine
+formula on each country's coordinates. Dividing by `W_ik` — country *i*'s
+distance to *k* as a share of its total distance to every other country —
+amplifies close neighbors and shrinks distant ones, so this is a genuine
+inverse-distance weighting rather than the flat regional average
+`l_reg_crisis_share` uses. Two panel countries carried non-standard codes in
+this CEPII vintage (Romania as `ROM`, Serbia as `YUG` "Serbia and
+Montenegro") and were remapped before merging; both have valid capital
+coordinates so no country is lost. Four countries in this vintage's file
+also carry a second, non-capital city row (Bolivia, Brazil, Nigeria,
+Turkey) — the construction filters to the `cap==1` row before deduplicating
+so the correct capital's coordinates are always used, not whichever row the
+sheet happens to list first.
+
+Unlike `l_reg_crisis_share` (a fixed regional grouping) or `past_def_onsets`
+(a slow-moving running count that behaves close to a country identifier for
+a serial defaulter), `contagion_dist` is a contemporaneous, country-year–
+specific spatial lag: its value changes with who else is in crisis that
+particular year, weighted by proximity, rather than being a near-permanent
+characteristic of country *i* itself. It is built and available
+(`17_predictors.do`) but, as of this writing, not yet adopted in place of
+`l_reg_crisis_share` in any estimator's predictor set — that is a separate
+decision, to be made after comparing the two empirically.
+
 ---
 
 ## 5. Treatment definition
