@@ -67,6 +67,17 @@ label var l_reg_crisis_share "Z2: lagged regional crisis share (contagion predic
 * both are remapped to this project's iso3 codes below before merging.
 preserve
     import excel "$raw/GEO_CEPII.xlsx", sheet(geo_cepii) firstrow clear
+    * GEO_CEPII lists one row per MAJOR CITY, not one row per country: several
+    * countries here have 2+ rows (a capital plus a secondary/former capital or
+    * largest city), flagged by `cap' (1 = the official capital; 2 = a
+    * secondary/other capital; 0 = a major city, not a capital). Filtering to
+    * cap==1 BEFORE deduplicating is essential -- without it, `duplicates drop'
+    * keeps whichever row the sheet happens to list first, which for this
+    * panel is the WRONG city for four countries: Bolivia (La Paz, cap=2,
+    * ahead of Sucre, cap=1), Brazil (Sao Paulo, cap=0, ahead of Brasilia),
+    * Nigeria (Lagos, cap=2, ahead of Abuja), and Turkey (Istanbul, cap=0,
+    * ahead of Ankara) -- confirmed by inspecting the raw file directly.
+    keep if cap == 1
     keep iso3 lat lon
     destring lat lon, replace force
     replace iso3 = "ROU" if iso3=="ROM"
