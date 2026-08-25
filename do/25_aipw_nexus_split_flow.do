@@ -186,8 +186,12 @@ di as result "   result is not merely a development proxy — same check as 13d'
 * ══════════════════════════════════════════════════════════════════════════
 local epc_lc epc_l_credit_bank
 
-* EXPLORATORY: set to 1 to test the alternate flow control set, matching
-* 20/22/23/24's toggle of the same name. Default 0 = current baseline.
+* CONTROL SET. Default 0 = the ADOPTED flow-tier baseline: $ctrl_flow, built
+* in 18_transforms.do from $ctrl_core_flowbase (l_banking_duration -> the
+* l_banking_crisis DUMMY, l_ca -> tot_chg, l_hyperinfl -> l_lninfl -- see
+* that file's "ADOPTED FLOW-TIER CORE CONTROL SET"). Set to 1 to test the
+* bigger, still-exploratory alternate set instead, matching 20/22/23/24's
+* toggle of the same name.
 local use_flowalt_ctrl 0
 if `use_flowalt_ctrl' local ctrl_flow_base $ctrl_flow_flowalt
 else                  local ctrl_flow_base $ctrl_flow
@@ -199,8 +203,8 @@ local ctrl_claims_govt       `ctrl_flow_base' epc_pre_claims_govt
 local ctrl_claimpriv_assets  `ctrl_flow_base' epc_pre_claimpriv_assets
 local ctrl_gdp                `ctrl_flow_base'
 
-* ── Propensity model — SAME as 21/24, unchanged ─────────────────────────────
-local cx = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core")
+* ── Propensity model — SAME as 21/24's ACTIVE (`cx_active') baseline ───────
+local cx = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core_flowbase")
 local cz_recency l_fedfunds l_reg_crisis_share years_since_def_onset
 
 set seed 20260819

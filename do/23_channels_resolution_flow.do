@@ -97,11 +97,16 @@ foreach var of local channels {
 * this is not restored before the next panel command.
 sort cid year
 
-* EXPLORATORY: set to 1 to test the alternate flow control set (see
-* 18_transforms.do's "EXPLORATORY ALTERNATE FLOW CONTROL SET"). Default 0.
-* No identity check in this file depends on $ctrl_flow specifically (unlike
-* 22), so the toggle can drive these locals directly rather than needing a
-* separate "_use" duplicate.
+* CONTROL SET. Default 0 = the ADOPTED flow-tier baseline: $ctrl_flow, built
+* in 18_transforms.do from $ctrl_core_flowbase (l_banking_duration -> the
+* l_banking_crisis DUMMY, l_ca -> tot_chg, l_hyperinfl -> l_lninfl -- see
+* that file's "ADOPTED FLOW-TIER CORE CONTROL SET"). Set to 1 to test the
+* bigger, still-exploratory alternate set instead (18_transforms.do's
+* "EXPLORATORY ALTERNATE FLOW CONTROL SET"). No identity check in this file
+* depends on $ctrl_flow specifically (unlike 22), so the toggle can drive
+* these locals directly rather than needing a separate "_use" duplicate, and
+* no code change was needed here for the core-control adoption -- this file
+* inherits it automatically once $ctrl_flow itself is redefined in 18.
 local use_flowalt_ctrl 0
 if `use_flowalt_ctrl' local ctrl_flow_base $ctrl_flow_flowalt
 else                  local ctrl_flow_base $ctrl_flow

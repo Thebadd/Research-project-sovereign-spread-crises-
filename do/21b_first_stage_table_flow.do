@@ -49,16 +49,16 @@
         98.6%, essentially unchanged) -- adopted for being a better,
         independently-motivated predictor, not as a variance fix. See
         21_aipw_flow.do's header, "PREDICTOR CHANGE," for the full note.
-    BASELINE CONTROLS: $ctrl_core -- the SAME row-dated set 21_aipw_flow.do's
-        `cx' uses for Eq. (2) (NOT $ctrl_flow/epc_*, which the header of
-        21_aipw_flow.do -- Section 1(a) -- demonstrates cannot be used in the
-        probit: epc_X differs from X only on continuation rows, so it would
-        mechanically encode treatment).
+    BASELINE CONTROLS: $ctrl_core_flowbase -- the SAME row-dated ADOPTED set
+        21_aipw_flow.do's `cx_active' uses for Eq. (2) (NOT $ctrl_flow/epc_*,
+        which the header of 21_aipw_flow.do -- Section 1(a) -- demonstrates
+        cannot be used in the probit: epc_X differs from X only on
+        continuation rows, so it would mechanically encode treatment).
 
   Diagnostic rows (source Table 1's bottom block):
     Chi2 (predictors)      — joint Wald test that the 3 predictors are all zero
     p-value                — of that test
-    AUROC, controls only   — lroc on a probit with ONLY $ctrl_core, no predictors
+    AUROC, controls only   — lroc on a probit with ONLY $ctrl_core_flowbase, no predictors
     AUROC, with predictors — lroc on the full model
     Observations
 
@@ -91,10 +91,13 @@ foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def
     }
 }
 
-* EXPLORATORY: set to 1 to test the alternate flow control set (see
-* 18_transforms.do's "EXPLORATORY ALTERNATE FLOW CONTROL SET"). Default 0.
+* CONTROL SET. Default 0 = the ADOPTED flow-tier baseline, $ctrl_core_flowbase
+* (18_transforms.do's "ADOPTED FLOW-TIER CORE CONTROL SET": l_banking_crisis,
+* tot_chg, l_lninfl in place of l_banking_duration, l_ca, l_hyperinfl). Set to
+* 1 to test the bigger, still-exploratory alternate set instead (18_transforms.do's
+* "EXPLORATORY ALTERNATE FLOW CONTROL SET").
 local use_flowalt_ctrl 0
-local X = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core")
+local X = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core_flowbase")
 local Z l_fedfunds l_reg_crisis_share years_since_def_onset
 
 eststo clear

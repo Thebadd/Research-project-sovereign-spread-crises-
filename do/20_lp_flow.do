@@ -212,15 +212,25 @@ if "$ctrl_flow" == "" {
 * no-year-FE robustness row (r_noyearfe, section 4) is what separates the two,
 * and the write-up should quote it when setting the figures side by side rather
 * than attributing the whole difference to the estimator.
-* EXPLORATORY: set to 1 to test the alternate flow control set (drops
-* l_debt/l_ca, banking-crisis DUMMY instead of duration, adds exchange rate
-* and terms of trade -- see 18_transforms.do's "EXPLORATORY ALTERNATE FLOW
-* CONTROL SET"). Default 0 = current baseline, unchanged. Does NOT touch the
-* identity check below (section 2), which must keep matching $ctrl_core to
-* verify agreement with 02_lp_all.do's published onset-coded result.
+* CONTROL SET. Default 0 = the ADOPTED flow-tier baseline: $ctrl_flow, built
+* in 18_transforms.do from $ctrl_core_flowbase (l_banking_duration swapped
+* for the l_banking_crisis DUMMY, l_ca swapped for tot_chg -- see that
+* file's "ADOPTED FLOW-TIER CORE CONTROL SET"). Set to 1 to test the bigger,
+* still-exploratory alternate set instead (drops l_debt/l_ca, banking-crisis
+* dummy, adds exchange rate AND terms of trade -- 18_transforms.do's
+* "EXPLORATORY ALTERNATE FLOW CONTROL SET"). Because the ADOPTED set is no
+* longer term-for-term identical to $ctrl_core, the identity check below
+* (section 2) no longer reproduces 02_lp_all.do's published onset-coded
+* coefficient under the default -- it is a pure self-consistency check
+* (flow collapses to onset coding under whichever control set is active),
+* not a literal match to the published figure. `ctrl_row' (and r_rowdated,
+* section 4) also now report the ADOPTED set's row-dated form, not the
+* ORIGINAL $ctrl_core's -- there is no longer a built-in bridge back to
+* 02_lp_all.do's exact published number anywhere in this file; that
+* comparison belongs in 02_lp_all.do itself.
 local use_flowalt_ctrl 0
 local controls  = cond(`use_flowalt_ctrl', "$ctrl_flow_flowalt", "$ctrl_flow")
-local ctrl_row  = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core")
+local ctrl_row  = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core_flowbase")
 
 * EXPLORATORY: set to 1 to drop year FE and match the reference paper's
 * single-stage rule (country FE only, via c1-c74) instead of this project's
@@ -320,12 +330,17 @@ forvalues h = 0/4 {
 * flag. It must run on sample==1, NOT sample_flow==1: on the flow sample the two
 * legitimately differ, because the control group is no longer the same.
 *
-* TWO VERSIONS ARE RUN. Without year FE it is the internal equivalence just
-* described. WITH year FE it additionally reproduces 02_lp_all.do's Year-1
-* coefficient exactly, since that file's spec is onset + row-dated controls +
-* country and year FE — so it ties this file back to the published Table 1.
-* Since the baseline here drops year FE, only the second version can be
-* compared to 02, and both are reported so a failure localises.
+* TWO VERSIONS ARE RUN, both testing the SAME thing: that flow-coded in_crisis
+* on sample==1 (which drops every continuation row) reproduces onset_all's
+* coefficient under the ACTIVE control set (`controls'/`ctrl_row', currently
+* the adopted $ctrl_flow/$ctrl_core_flowbase by default). This is now a pure
+* internal self-consistency check, NOT a literal match to 02_lp_all.do's
+* published Table 1 coefficient: since the flow tier's adopted core control
+* set (18_transforms.do's $ctrl_core_flowbase) swaps l_banking_duration for
+* l_banking_crisis and l_ca for tot_chg, it is no longer term-for-term
+* identical to 02's $ctrl_core. Both variants are still reported so a
+* failure localises to either the treatment/sample construction (variant i)
+* or something FE-specific (variant ii).
 * ══════════════════════════════════════════════════════════════════════════
 di as result _n "════════════════════════════════════════════════════════════"
 di as result "2. IDENTITY CHECK — flow Year 1 on sample==1 must equal onset Year 1"
@@ -340,7 +355,7 @@ if r(N) != 0 {
 * where the entry year IS t-1. Checking that first isolates a failure to the
 * right place if the coefficient test below fails.
 local nredate = 0
-foreach X of global ctrl_core {
+foreach X of global ctrl_core_flowbase {
     capture confirm variable epc_`X', exact
     if _rc continue
     quietly count if sample==1 & !missing(`X') & abs(epc_`X' - `X') > 1e-9
@@ -357,14 +372,18 @@ local b_ons0 = _b[onset_all]
 local gap0 = abs(`b_flow0' - `b_ons0')
 di as result "  no year FE   flow: " %9.6f `b_flow0' "   onset: " %9.6f `b_ons0'
 
-* (ii) with year FE — additionally must equal 02_lp_all.do's Year-1 coefficient
+* (ii) with year FE — flow vs onset under the SAME active control set. No
+* longer comparable to 02_lp_all.do's published number under the default
+* (adopted) control set — see the section header.
 quietly xtscc dy_0 in_crisis `controls' i.year if sample==1, fe lag(1)
 local b_flow0y = _b[in_crisis]
 quietly xtscc dy_0 onset_all `ctrl_row' i.year if sample==1, fe lag(1)
 local b_ons0y = _b[onset_all]
 local gap0y = abs(`b_flow0y' - `b_ons0y')
 di as result "  with year FE flow: " %9.6f `b_flow0y' "   onset: " %9.6f `b_ons0y'
-di as result "               (the with-year-FE number is the one comparable to 02_lp_all.do)"
+di as result "               (self-consistency check under the ACTIVE control set;"
+di as result "                not a literal match to 02_lp_all.do's published Table 1"
+di as result "                unless use_flowalt_ctrl points ctrl_row at \$ctrl_core)"
 if `gap0y' > 1e-6 di as error "  ** with-year-FE anchor FAILED (difference " %9.6f `gap0y' ")."
 if `gap0' > 1e-6 {
     di as error "  ** IDENTITY CHECK FAILED (difference " %9.6f `gap0' ")."

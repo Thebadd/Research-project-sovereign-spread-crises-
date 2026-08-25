@@ -327,29 +327,61 @@ bysort cid ep_seq: egen byte nd_ep = max(nondefault)
 label var nd_ep "Resolution type of the episode, filled to all its years (1=non-default)"
 
 * ── EPISODE-DATED CONTROLS ──────────────────────────────────────────────────
-* Under flow coding every element of $ctrl_core measured at a continuation
-* row's OWN t-1 is an outcome of the crisis that row is already in: lagged
-* growth most obviously, but debt, the current account, bank credit, government
-* spending and banking-crisis duration equally. A row three years into an
-* episode would be conditioned on covariates the episode itself produced —
-* mediators, on the right-hand side.
+* Under flow coding every element of the flow tier's core control set,
+* measured at a continuation row's OWN t-1, is an outcome of the crisis that
+* row is already in: lagged growth most obviously, but debt, bank credit,
+* government spending and banking-crisis status equally. A row three years
+* into an episode would be conditioned on covariates the episode itself
+* produced — mediators, on the right-hand side.
 *
 * The reference paper never faces this because every one of its treated rows is
 * an onset, so its L./L2. controls are predetermined by construction. Dating
 * the controls at the EPISODE's entry year reproduces exactly that timing:
-* $ctrl_core as it stood the year before the episode began, held fixed for all
-* of its years; tranquil rows keep their own t-1, which is predetermined for
-* them trivially. Onset rows are unchanged, since for them t-1 IS the entry
-* year — so the onset and flow specifications share an identical control set at
-* Year 1 and their Year-1 coefficients are directly comparable.
+* the flow tier's core set as it stood the year before the episode began,
+* held fixed for all of its years; tranquil rows keep their own t-1, which is
+* predetermined for them trivially. Onset rows are unchanged, since for them
+* t-1 IS the entry year — so the onset and flow specifications share an
+* identical control set at Year 1 and their Year-1 coefficients are directly
+* comparable (see the row-dated $ctrl_core robustness column, however, for
+* the caveat that the flow tier's ADOPTED set is no longer identical to
+* $ctrl_core term-for-term — see "ADOPTED FLOW-TIER CORE CONTROL SET" below).
 *
 * Same construction as Callaway & Sant'Anna (2021), who measure covariates in
 * each cohort's pre-treatment period for this reason.
 *
 * $ctrl_flow is the flow BASELINE; $ctrl_core is retained as the row-dated
 * robustness column in 20_lp_flow.do, so the table shows what the choice costs.
+*
+* ══════════════════════════════════════════════════════════════════════════
+* ADOPTED FLOW-TIER CORE CONTROL SET — $ctrl_core_flowbase / $ctrl_flow
+*
+* Three swaps relative to $ctrl_core:
+*   l_banking_duration (years-so-far)   -> l_banking_crisis (0/1 dummy)
+*   l_ca (current account)              -> tot_chg (terms-of-trade log-change)
+*   l_hyperinfl (L.infl>50 dummy)       -> l_lninfl (continuous log inflation)
+* The third swap was added after 21_aipw_flow.do's diagnostic history (its
+* def-arm probit coefficient tables, Sections 1d/1e) repeatedly showed
+* l_hyperinfl driving quasi-complete separation on its own -- a binary flag
+* that is 1 almost exclusively on default-linked country-years functions
+* close to a near-perfect predictor of the def arm by construction, not a
+* genuine covariate. l_lninfl (= ln(1+L.infl/100), already built above as a
+* robustness alternative, not previously in the core) keeps the same
+* underlying inflation information as a continuous variable, which cannot
+* by itself perfectly separate treated from control the way a threshold
+* dummy can.
+* l1_gdpg, l_debt, l_govexp, l_open and l_credit_bank are unchanged. This is
+* the FLOW TIER'S ACTUAL DEFAULT -- not exploratory -- so $ctrl_flow below is
+* built from this set, not from $ctrl_core. $ctrl_core itself is UNCHANGED
+* and untouched: every onset-tier file (02, 03, 08b, 11, 12, 13c, 13d) reads
+* it directly and their identity checks depend on it matching their own
+* published numbers exactly, which this adoption has no reason to disturb.
+* $ctrl_core remains available as the row-dated robustness column in the
+* flow files that report one (20_lp_flow.do's r_rowdated).
+* ══════════════════════════════════════════════════════════════════════════
+global ctrl_core_flowbase "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl tot_chg"
+
 global ctrl_flow ""
-foreach X of global ctrl_core {
+foreach X of global ctrl_core_flowbase {
     capture drop epc_`X' _ent_`X'
     quietly bysort cid ep_seq: egen double _ent_`X' = max(cond(onset_all==1, `X', .))
     quietly gen double epc_`X' = cond(in_crisis==1, _ent_`X', `X')
@@ -360,8 +392,12 @@ foreach X of global ctrl_core {
 di as result "  FLOW: episode-dated control set built -> $ctrl_flow"
 
 * Onset rows must be untouched by the re-dating: for them t-1 IS the entry year.
+* Loops over $ctrl_core_flowbase, NOT $ctrl_core -- epc_* is only built for
+* the flowbase set's members (l_ca and l_banking_duration no longer have an
+* epc_ counterpart at all, since they are not part of the flow tier's
+* adopted set any more).
 local nbad = 0
-foreach X of global ctrl_core {
+foreach X of global ctrl_core_flowbase {
     quietly count if onset_all==1 & carryin==0 & !missing(`X') & abs(epc_`X' - `X') > 1e-9
     local nbad = `nbad' + r(N)
 }

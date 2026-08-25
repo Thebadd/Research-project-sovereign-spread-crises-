@@ -149,19 +149,23 @@ local epc_lg epc_l_govexp
 local lc0    l_credit_bank
 local lg0    l_govexp
 
-* EXPLORATORY: set to 1 to test the alternate flow control set (see
-* 18_transforms.do's "EXPLORATORY ALTERNATE FLOW CONTROL SET"). Default 0 =
-* current baseline. This drives every control-set reference below, INCLUDING
-* the identity check in section 3 -- with it on, that check compares flow
-* vs onset under the alternate set instead of matching 11_channels.do's
-* published number, which is still a valid self-consistency check (flow must
-* still collapse to onset on the restricted sample), just not a literal match
-* to that published figure.
+* CONTROL SET. Default 0 = the ADOPTED flow-tier baseline: $ctrl_flow, built
+* in 18_transforms.do from $ctrl_core_flowbase (l_banking_duration -> the
+* l_banking_crisis DUMMY, l_ca -> tot_chg, l_hyperinfl -> l_lninfl -- see
+* that file's "ADOPTED FLOW-TIER CORE CONTROL SET"). Set to 1 to test the
+* bigger, still-exploratory alternate set instead (18_transforms.do's
+* "EXPLORATORY ALTERNATE FLOW CONTROL SET"). This drives every control-set
+* reference below, INCLUDING the identity check in section 3 -- because the
+* ADOPTED set is no longer term-for-term identical to $ctrl_core, that check
+* no longer reproduces 11_channels.do's published credit-channel coefficient
+* under the default; it is a pure self-consistency check (flow must still
+* collapse to onset coding under whichever control set is active), not a
+* literal match to that published figure.
 local use_flowalt_ctrl 0
 if `use_flowalt_ctrl' local ctrl_flow_base $ctrl_flow_flowalt
 else                  local ctrl_flow_base $ctrl_flow
 if `use_flowalt_ctrl' local ctrl_core_base $ctrl_core_flowalt
-else                  local ctrl_core_base $ctrl_core
+else                  local ctrl_core_base $ctrl_core_flowbase
 
 * EXPLORATORY: set to 1 to drop year FE and match the reference paper's
 * single-stage rule (country FE only), matching 20_lp_flow.do's toggle of the
@@ -239,11 +243,15 @@ end
 sort cid year   // belt-and-suspenders: guaranteed panel order before the first xtscc call
 
 * ══════════════════════════════════════════════════════════════════════════
-* 3. IDENTITY CHECK — credit channel, on sample==1, must reproduce
-*    11_channels.do's h=0 credit coefficient. Same logic as 20's Section 2:
-*    on sample==1 continuation rows are excluded, in_crisis IS onset_all, and
-*    epc_* collapses to row-dated. Run once (credit); the same construction
-*    governs the other five channels.
+* 3. IDENTITY CHECK — credit channel, on sample==1. Same logic as 20's
+*    Section 2: on sample==1 continuation rows are excluded, in_crisis IS
+*    onset_all, and epc_* collapses to row-dated, so flow and onset must
+*    return the SAME coefficient under whichever control set is active.
+*    Under the ADOPTED default this is a pure self-consistency check, NOT a
+*    literal match to 11_channels.do's published Table 3 coefficient (see
+*    the `use_flowalt_ctrl' comment above) -- the adopted set is no longer
+*    term-for-term identical to $ctrl_core. Run once (credit); the same
+*    construction governs the other channels.
 * ══════════════════════════════════════════════════════════════════════════
 di as result _n "════════════════════════════════════════════════════════════"
 di as result "3. IDENTITY CHECK (credit channel) — flow on sample==1 must equal 11_channels"
@@ -261,7 +269,8 @@ local f0y = _b[in_crisis]
 quietly xtscc ch_credit_0 onset_all `ctrl_row_credit' i.year if sample==1, fe lag(1)
 local o0y = _b[onset_all]
 di as result "  with year FE flow: " %9.6f `f0y' "   onset: " %9.6f `o0y' ///
-             "   (comparable to 11_channels.do's Table 3, Panel A, h=1)"
+             "   (self-consistency under the ACTIVE control set; not a literal" ///
+             "    match to 11_channels.do's published Table 3 under the default)"
 if abs(`f0y'-`o0y') > 1e-6 di as error "  ** with-year-FE anchor FAILED (credit)."
 else                       di as result "  MATCH — treatment, sample flag and control dating are correct."
 

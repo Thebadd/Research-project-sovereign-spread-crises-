@@ -163,12 +163,15 @@ sort cid year
 local epc_lc epc_l_credit_bank
 local epc_lg epc_l_govexp
 
-* EXPLORATORY: set to 1 to test the alternate flow control set (see
-* 18_transforms.do's "EXPLORATORY ALTERNATE FLOW CONTROL SET"). Default 0 =
-* current baseline. This drives every control-set reference below, INCLUDING
-* Sections 1a/1b's diagnostics -- with it on, their printed comparison
-* numbers describe the run that produced years_since_def_onset, not this
-* run, so read them as history rather than a live check when testing.
+* CONTROL SET. Default 0 = the ADOPTED flow-tier baseline: $ctrl_flow, built
+* in 18_transforms.do from $ctrl_core_flowbase (l_banking_duration -> the
+* l_banking_crisis DUMMY, l_ca -> tot_chg, l_hyperinfl -> l_lninfl -- see
+* that file's "ADOPTED FLOW-TIER CORE CONTROL SET"). Set to 1 to test the
+* bigger, still-exploratory alternate set instead. This drives the channel
+* outcome-model controls (`ctrl_<ch>') below, INCLUDING Sections 1a/1b's
+* diagnostics -- with it on, their printed comparison numbers describe the
+* run that produced years_since_def_onset, not this run, so read them as
+* history rather than a live check when testing.
 local use_flowalt_ctrl 0
 if `use_flowalt_ctrl' local ctrl_flow_base $ctrl_flow_flowalt
 else                  local ctrl_flow_base $ctrl_flow
@@ -182,8 +185,15 @@ local ctrl_govexp      `ctrl_govexp' epc_pre_govexp
 local ctrl_pb          `ctrl_flow_base' epc_pre_pb
 local ctrl_fdi         `ctrl_flow_base' epc_pre_fdi
 
-* ── Propensity model — SAME as 21_aipw_flow.do, unchanged ───────────────────
-local cx = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core")   // Eq. (2): row-dated, fit on continuation==0 only
+* ── Propensity model — SAME as 21_aipw_flow.do ──────────────────────────────
+* `cx' is DELIBERATELY FROZEN on the ORIGINAL $ctrl_core (or the bigger
+* alternate, if toggled) -- Sections 1a/1b's diagnostic history bakes in
+* literal comparison numbers (weight concentration, "98.9% -> 98.6%") that
+* were generated under $ctrl_core, and must stay reproducible exactly as
+* documented. `cx_active' is what Section 2's ACTUAL estimator uses: the
+* flow tier's adopted core control set. Same split as 21_aipw_flow.do's.
+local cx = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core")   // Eq. (2) HISTORY: row-dated $ctrl_core, fit on continuation==0 only
+local cx_active = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core_flowbase")  // Eq. (2) ACTIVE: row-dated, ADOPTED set
 * cz_def: the ORIGINAL predictor set, kept so Sections 1a/1b's already-run
 * diagnostics stay exactly as documented. Not used by Section 2's estimation.
 local cz_def l_fedfunds l_reg_crisis_share past_def_onsets
@@ -601,7 +611,7 @@ foreach ch of local channels {
         _aipwpairflow, y(ch_`ch'_`h') ///
             d1(in_crisis_def) if1(sample_flow==1 & in_crisis_nd==0) ///
             d2(in_crisis_nd)  if2(sample_flow==1 & in_crisis_def==0) ///
-            omod(`ctrl_`ch'') pz(`cx' `cz_recency') reps(`nboot') boot(row)
+            omod(`ctrl_`ch'') pz(`cx_active' `cz_recency') reps(`nboot') boot(row)
 
         if !r(ok) {
             di as error "  h=`hd': estimate failed for `ch' (cell too thin)."

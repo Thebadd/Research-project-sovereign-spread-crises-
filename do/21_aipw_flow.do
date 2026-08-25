@@ -73,10 +73,14 @@
 
   WHICH CONTROL SET GOES WHERE — AND WHY THEY DIFFER
   --------------------------------------------------
-  Eq. (1) outcome model:  $ctrl_flow  (episode-dated, epc_*)
-  Eq. (2) propensity:     $ctrl_core  (row-dated)
+  Eq. (1) outcome model:  $ctrl_flow          (episode-dated, epc_*)
+  Eq. (2) propensity:     $ctrl_core_flowbase (row-dated) via `cx_active' — see
+                          "ADOPTED FLOW-TIER CORE CONTROL SET" below. Sections
+                          1a-1f's diagnostic HISTORY stays on the original,
+                          frozen $ctrl_core via `cx' — see that local's own
+                          comment for why.
 
-  This is not an oversight. epc_X is built as
+  The row-dated/episode-dated split described next is not an oversight. epc_X is built as
       epc_X = cond(in_crisis==1, X at episode entry, X at own t-1)
   so its VALUE depends on the treatment status of the row. Tranquil and onset
   rows have epc_X == X by construction; continuation rows generally do not.
@@ -289,13 +293,26 @@ if "$ctrl_flow" == "" {
 
 * EXPLORATORY: set to 1 to test the alternate flow control set (see
 * 18_transforms.do's "EXPLORATORY ALTERNATE FLOW CONTROL SET"). Default 0 =
-* current baseline. This drives every control-set reference in the file,
-* including Sections 1a-1f's diagnostics -- with it on, their printed
-* comparison numbers describe the run that produced years_since_def_onset,
-* not this run, so read them as history rather than a live check when testing.
+* the bigger alternate's OFF state. This drives every control-set reference
+* in the file, including Sections 1a-1f's diagnostics -- with it on, their
+* printed comparison numbers describe the run that produced
+* years_since_def_onset, not this run, so read them as history rather than a
+* live check when testing.
 local use_flowalt_ctrl 0
-local cx     = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core")     // Eq. (2) baseline: row-dated, see header
-local com    = cond(`use_flowalt_ctrl', "$ctrl_flow_flowalt", "$ctrl_flow")    // Eq. (1) controls: episode-dated
+* `cx' is DELIBERATELY FROZEN on the ORIGINAL $ctrl_core (or the bigger
+* alternate, if toggled) -- Sections 1a-1g's diagnostic history bakes in
+* literal comparison numbers (e.g. Section 1d/1e/1f's "0.591/0.036/5 rows
+* p>0.99") that were generated under $ctrl_core, and those must stay
+* reproducible exactly as documented. `cx' therefore does NOT follow the
+* flow tier's adopted core-control change (18_transforms.do's
+* "ADOPTED FLOW-TIER CORE CONTROL SET") -- see `cx_active' below, which does.
+* Same split pattern already used for cz_def (frozen) vs cz_recency (active).
+local cx     = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core")     // Eq. (2) HISTORY baseline: row-dated $ctrl_core, see header
+* `cx_active' is what Section 2 and Section 3's ACTUAL estimator use: the
+* flow tier's adopted core control set (l_banking_crisis, tot_chg in place
+* of l_banking_duration, l_ca) rather than the frozen original.
+local cx_active = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core_flowbase")  // Eq. (2) ACTIVE baseline: row-dated, ADOPTED set
+local com    = cond(`use_flowalt_ctrl', "$ctrl_flow_flowalt", "$ctrl_flow")    // Eq. (1) controls: episode-dated (already the adopted set via 18_transforms.do)
 * cz_def: the ORIGINAL predictor set, kept unchanged so Sections 1b-1e's
 * already-reported diagnostic numbers stay reproducible -- see header
 * "PREDICTOR CHANGE". Not used by Section 2/3's active baseline.
@@ -858,13 +875,21 @@ capture drop _psf_nd _psf_def
 * countries that have ALSO had a default-linked episode at some point,
 * which changes who the propensity model is even estimated over. This is
 * checked directly below, not assumed.
+*
+* Uses `cx_active', NOT `cx' -- this section tracks whatever the CURRENTLY
+* ADOPTED baseline is (see the "ADOPTED FLOW-TIER CORE CONTROL SET" note
+* above `cx_active''s definition), unlike Sections 1a-1f which are frozen
+* history. This means its own printed numbers move whenever the adopted set
+* changes -- by design, since it exists to test "on top of" whatever that is
+* -- so a country-dropout count read from an earlier run under a different
+* core control set is NOT the number a fresh run will reproduce.
 * ══════════════════════════════════════════════════════════════════════════
 di as result _n "════════════════════════════════════════════════════════════"
 di as result "1g. COUNTRY FIXED EFFECTS IN THE PROBIT — DOES IT EVEN CONVERGE?"
 di as result "════════════════════════════════════════════════════════════"
 foreach s in nd def {
     di as result _n "      `s' arm, WITH i.cid (raw probit output, watch for separation notes):"
-    capture noisily probit in_crisis_`s' `cx' `cz_recency' i.cid ///
+    capture noisily probit in_crisis_`s' `cx_active' `cz_recency' i.cid ///
         if sample_flow==1 & continuation==0
     if _rc {
         di as error "      `s' arm: probit FAILED to converge (rc=" _rc ")."
@@ -931,7 +956,7 @@ foreach s2 in nd def {
     * sample used below (continuation rows included), so this decomposition is
     * computed under the SAME propensity construction Section 3 now uses.
     * cz_recency, not cz_def -- see header "PREDICTOR CHANGE".
-    quietly probit in_crisis_`s2' `cx' `cz_recency' if sample_flow==1 & `rival'==0 & continuation==0
+    quietly probit in_crisis_`s2' `cx_active' `cz_recency' if sample_flow==1 & `rival'==0 & continuation==0
     quietly predict double _ps2 if sample_flow==1 & `rival'==0, pr
     quietly replace _ps2 = .01 if _ps2 < .01 & !missing(_ps2)
     quietly replace _ps2 = .99 if _ps2 > .99 & !missing(_ps2)
@@ -980,7 +1005,7 @@ forvalues h = 0/4 {
     _aipwpairflow, y(dy_`h') ///
         d1(in_crisis_def) if1(sample_flow==1 & in_crisis_nd==0) ///
         d2(in_crisis_nd)  if2(sample_flow==1 & in_crisis_def==0) ///
-        omod(`com') pz(`cx' `cz_recency') reps(`nboot') boot(row)
+        omod(`com') pz(`cx_active' `cz_recency') reps(`nboot') boot(row)
 
     if !r(ok) {
         di as error "  Year `hd': estimate failed (cell too thin)."
@@ -1078,7 +1103,7 @@ forvalues h = 0/4 {
     _aipwpairflow, y(dy_`h') ///
         d1(in_crisis_def) if1(sample_flow==1 & in_crisis_nd==0) ///
         d2(in_crisis_nd)  if2(sample_flow==1 & in_crisis_def==0) ///
-        omod(`com') pz(`cx' `cz_recency') reps(`nboot') boot(cluster)
+        omod(`com') pz(`cx_active' `cz_recency') reps(`nboot') boot(cluster)
 
     if !r(ok) {
         di as error "  Year `hd': cluster-bootstrap comparison failed."
