@@ -917,7 +917,9 @@ di as result _n "═════════════════════
 di as result "3. FLOW AIPW BY RESOLUTION TYPE (Year 1 = the crisis year)"
 di as result "════════════════════════════════════════════════════════════"
 di as result "Year   ND (se_a)          DEF (se_a)         def-nd   [95% boot CI]      Clogg z    p     draws"
-di as result "       se_a = analytic influence-function SE (the paper's); sd_b = bootstrap SD (diagnostic)"
+di as result "       se_a = analytic influence-function SE (the paper's own construction)."
+di as result "       ND/DEF stars are the paper's 'conventional t-test' vs zero (b/se_a): * p<.10 ** p<.05 *** p<.01."
+di as result "       def-nd's own * marks the bootstrap CI excluding 0 -- the conservative, governing test for the difference."
 
 forvalues h = 0/4 {
     local row = `h' + 1
@@ -940,8 +942,6 @@ forvalues h = 0/4 {
     local B2 = r(b2)
     local A1 = r(a1)      // analytic influence-function SE, def  (the paper's)
     local A2 = r(a2)      // analytic influence-function SE, nd
-    local S1 = r(s1)      // bootstrap SD, def  (diagnostic only)
-    local S2 = r(s2)      // bootstrap SD, nd   (diagnostic only)
     local DH = r(dh)
     local SE = r(se)
     local LO = r(lo)
@@ -981,13 +981,22 @@ forvalues h = 0/4 {
         matrix Fdiff_p[`row',1] = `pz'
     }
 
+    * Conventional t-test for each level vs zero, exactly as the paper's Table 2
+    * reports it: coefficient over its OWN analytic SE, no bootstrap involved --
+    * "conventional" there is explicitly contrasted against the bootstrap/Clogg
+    * methods used for the DIFFERENCE, not applied to this test.
+    local tnd  = cond(`A2'>0, `B2'/`A2', .)
+    local pnd  = cond(!missing(`tnd'), 2*(1-normal(abs(`tnd'))), .)
+    local sgnd = cond(missing(`pnd'), "", cond(`pnd'<.01,"***",cond(`pnd'<.05,"**",cond(`pnd'<.10,"*",""))))
+    local tdef  = cond(`A1'>0, `B1'/`A1', .)
+    local pdef  = cond(!missing(`tdef'), 2*(1-normal(abs(`tdef'))), .)
+    local sgdef = cond(missing(`pdef'), "", cond(`pdef'<.01,"***",cond(`pdef'<.05,"**",cond(`pdef'<.10,"*",""))))
+
     local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
-    di as result "  " %1.0f `hd' "  " %8.3f `B2' " (" %5.3f `A2' ")  " ///
-                 %8.3f `B1' " (" %5.3f `A1' ")  " %8.3f `DH' ///
+    di as result "  " %1.0f `hd' "  " %8.3f `B2' "`sgnd'" " (" %5.3f `A2' ")  " ///
+                 %8.3f `B1' "`sgdef'" " (" %5.3f `A1' ")  " %8.3f `DH' ///
                  " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
                  " " %7.3f `zz' " " %5.3f `pz' " " %4.0f `ND'
-    di as result "        bootstrap SD for comparison:  nd " %6.3f `S2' ///
-                 "   def " %6.3f `S1'
 }
 
 * ══════════════════════════════════════════════════════════════════════════
