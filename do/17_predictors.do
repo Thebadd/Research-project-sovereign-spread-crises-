@@ -11,6 +11,9 @@
     contagion_dist      Z2b: distance-weighted sum of OTHER countries' onsets
                         (year t), CEPII great-circle distance (GEO_CEPII.xlsx)
     l_contagion_dist    Z2b lagged (predetermined)
+    contagion_def_dist  Z2c: same, but donors restricted to default-linked
+                        onsets (onset_def) only
+    l_contagion_def_dist Z2c lagged (predetermined)
     past_onsets         Z3: cumulative own onsets before year t (proneness)
     past_def_onsets     Z3(def): cumulative own default-linked onsets before t
 ===========================================================================*/
@@ -168,6 +171,39 @@ xtset cid year
 gen double l_contagion_dist = L.contagion_dist
 label var l_contagion_dist "Z2b: lagged distance-weighted contagion (any onset), predetermined"
 
+* ── Distance-weighted contagion, DEFAULT-LINKED ONSETS ONLY (Z2c) ───────────
+* Same construction and weights (`weights', built above) as contagion_dist,
+* but the donor numerator is restricted to onset_def rather than onset_all.
+* This is closer to the reference paper's own contagion variable, which is
+* built from restructuring onsets specifically, not any spread-crisis onset —
+* onset_all above is this project's generalisation, not theirs. Built here as
+* a SEPARATE candidate predictor, tested against l_contagion_dist in
+* 21b_first_stage_table_flow.do's AUROC comparison before any decision about
+* replacing cz_recency's l_contagion_dist with it.
+preserve
+    keep if carryin==0
+    keep iso3 year onset_def
+    rename iso3 iso3_k
+    tempfile donors_def
+    save `donors_def'
+
+    use `weights', clear
+    joinby iso3_k using `donors_def'
+    gen double _contrib_def = onset_def / w_ik
+    collapse (sum) contagion_def_dist = _contrib_def, by(iso3_i year)
+    rename iso3_i iso3
+    label var contagion_def_dist "Z2c: distance-weighted sum of OTHER countries' onset_def (year t), CEPII great-circle"
+    tempfile contagion_def
+    save `contagion_def'
+restore
+
+capture drop contagion_def_dist
+capture drop l_contagion_def_dist
+merge m:1 iso3 year using `contagion_def', keep(master match) nogen
+xtset cid year
+gen double l_contagion_def_dist = L.contagion_def_dist
+label var l_contagion_def_dist "Z2c: lagged distance-weighted contagion (default-linked onset only), predetermined"
+
 * ── Proneness: cumulative own onsets, lagged (Z3) ───────────────────────────
 * Dropped SEPARATELY -- same reasoning as reg_crisis_share above: cum_onset/
 * cum_def are working variables dropped again below and never saved, while
@@ -226,7 +262,7 @@ drop _defyear _defyear_lag
 save "$clean/panel_build.dta", replace
 
 di as result _n "17_predictors.do complete."
-foreach v in l_reg_crisis_share l_contagion_dist past_onsets past_def_onsets years_since_def_onset {
+foreach v in l_reg_crisis_share l_contagion_dist l_contagion_def_dist past_onsets past_def_onsets years_since_def_onset {
     quietly count if !missing(`v') & sample_base==1
     di as result "  `v': `r(N)' non-missing sample rows"
 }

@@ -348,10 +348,29 @@ Unlike `l_reg_crisis_share` (a fixed regional grouping) or `past_def_onsets`
 a serial defaulter), `contagion_dist` is a contemporaneous, country-year–
 specific spatial lag: its value changes with who else is in crisis that
 particular year, weighted by proximity, rather than being a near-permanent
-characteristic of country *i* itself. It is built and available
-(`17_predictors.do`) but, as of this writing, not yet adopted in place of
-`l_reg_crisis_share` in any estimator's predictor set — that is a separate
-decision, to be made after comparing the two empirically.
+characteristic of country *i* itself. `l_contagion_dist` has been adopted in
+place of `l_reg_crisis_share` in the flow tier's active predictor set
+(`cz_recency`, used by `21_aipw_flow.do`, `24_aipw_channels_flow.do`,
+`25_aipw_nexus_split_flow.do`), on the basis of an AUROC comparison in
+`21b_first_stage_table_flow.do` showing the distance-weighted measure adds
+classification power on top of the baseline controls comparable in size to
+the reference paper's own with/without-predictors demonstration.
+
+**A narrower variant, restricted to default-linked donors.** The reference
+paper's own contagion variable is built from restructuring onsets
+specifically, not any spread-crisis onset — `contagion_dist`'s use of
+`onset_all` is this project's generalization, not a literal match to theirs.
+A second variant, `contagion_def_dist`, applies the identical distance-weight
+construction with the donor numerator restricted to `onset_def` (default-
+linked onsets only), which is closer to their literal construction. It is
+built alongside `contagion_dist` in `17_predictors.do` and tested head-to-head
+against it via AUROC in `21b_first_stage_table_flow.do` (a diagnostic-only
+comparison; it does not alter `cz_recency` or the exported table). Default-
+linked onsets are a small subset of all onsets, so `contagion_def_dist` is
+zero for most country-years — the same sparsity profile that made
+`past_def_onsets` behave like a near-constant country identifier — which is
+the reason it was tested rather than adopted outright even though it is the
+closer match to the source paper.
 
 ---
 

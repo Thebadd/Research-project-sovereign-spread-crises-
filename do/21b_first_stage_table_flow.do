@@ -81,12 +81,18 @@
   Output: $tabs/table_first_stage_flow.rtf. Run AFTER 21_aipw_flow.do (reads
   only $clean/panel_lp.dta, so it does not actually depend on 21 having run,
   but is numbered to sit beside it for the reader).
+
+  DIAGNOSTIC ONLY, NOT IN THE EXPORTED TABLE: a head-to-head AUROC comparison
+  of l_contagion_dist (donors = any onset) against l_contagion_def_dist
+  (donors = default-linked onsets only, closer to the reference paper's own
+  restructuring-based contagion variable). Console output only; cz_recency
+  and the exported table are unaffected either way.
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
 if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
 
-foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def_onset l_contagion_dist {
+foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def_onset l_contagion_dist l_contagion_def_dist {
     capture confirm variable `v', exact
     if _rc {
         di as error "  ** `v' not in panel_lp.dta — re-run 18_transforms.do first."
@@ -167,6 +173,42 @@ di as result "      with/without-predictors gap (their 0.87 vs 0.79, 0.94 vs 0.8
         "The predictors are adding little classification power on top of the baseline")
 di as result "      controls, not just asserting a role from theory (Chi-squared above tests joint"
 di as result "      significance only, and says nothing about how much discriminatory power is added)."
+
+* ══════════════════════════════════════════════════════════════════════════
+* DIAGNOSTIC ONLY — l_contagion_def_dist HEAD-TO-HEAD AGAINST l_contagion_dist
+*
+* l_contagion_dist (in cz_recency/`Z' above) is distance-weighted using ANY
+* spread-crisis onset as the donor. l_contagion_def_dist (17_predictors.do)
+* is the same construction restricted to DEFAULT-LINKED onsets only -- closer
+* to the reference paper's own contagion variable, which is built from
+* restructuring onsets specifically, not any onset. This section swaps it in
+* for l_contagion_dist, ONLY here, and compares AUROC directly against the
+* columns above -- cz_recency/`Z' itself is NOT changed by this block.
+* ══════════════════════════════════════════════════════════════════════════
+local Zdef l_fedfunds l_contagion_def_dist years_since_def_onset
+_fscolflow ffs_nd_def  "in_crisis_nd"  "sample_flow==1 & continuation==0 & in_crisis_def==0" "`X'" "`Zdef'"
+_fscolflow ffs_def_def "in_crisis_def" "sample_flow==1 & continuation==0 & in_crisis_nd==0"  "`X'" "`Zdef'"
+
+di as result _n "=== l_contagion_def_dist (default-onset-only) vs l_contagion_dist (any-onset) ==="
+di as result "col            AUROC(any-onset)  AUROC(def-onset-only)  delta"
+foreach pair in "ffs_nd ffs_nd_def" "ffs_def ffs_def_def" {
+    local c1 : word 1 of `pair'
+    local c2 : word 2 of `pair'
+    quietly estimates restore `c1'
+    local a1 = e(auroc)
+    quietly estimates restore `c2'
+    local a2 = e(auroc)
+    local dd = `a2' - `a1'
+    local ddsign = cond(`dd' >= 0, "+", "")
+    di as result %-14s "`c1'" "  " %8.3f `a1' "          " %8.3f `a2' "            " "`ddsign'" %6.3f `dd'
+}
+di as result _n "      Same predictor role, different donor set. A materially higher AUROC for the"
+di as result "      def-onset-only version would say restricting to default-linked donors sharpens"
+di as result "      the contagion signal (closer to the reference paper's own construction); a"
+di as result "      similar or lower AUROC says the broader any-onset version is not losing anything"
+di as result "      by pooling in non-default onsets too, and there is no case for the narrower,"
+di as result "      sparser measure. Diagnostic only -- cz_recency/l_contagion_dist is unchanged"
+di as result "      by this comparison; adopting l_contagion_def_dist would be a separate decision."
 
 * ══════════════════════════════════════════════════════════════════════════
 * TABLE EXPORT — Table 1 style (Predictors / Baseline controls blocks + diags)
