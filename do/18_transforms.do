@@ -562,17 +562,39 @@ foreach v in dy_0 l1_gdpg debt ca infl l_hyperinfl l_lninfl imf credit fdi claim
 }
 
 * ── Inflation control: confirm the log transform tamed the tail ─────────────
-* The core carries l_hyperinfl. These lines report how many observations trip the
-* 50% threshold and what the continuous alternatives look like, so the choice stays
-* visible in the run log.
+* $ctrl_core (onset tier) still carries l_hyperinfl. $ctrl_core_flowbase (the
+* flow tier's ADOPTED set) carries l_lninfl instead -- see 18's "ADOPTED
+* FLOW-TIER CORE CONTROL SET". These lines report how many observations trip
+* the 50% threshold and what the continuous alternative looks like, so the
+* choice stays visible in the run log for both tiers.
 capture confirm variable l_lninfl
 if !_rc {
-    di as result _n "Inflation control (core uses l_hyperinfl = L.infl > 50):"
+    di as result _n "Inflation control (onset tier uses l_hyperinfl = L.infl > 50;"
+    di as result "                    flow tier uses l_lninfl, continuous):"
     quietly count if l_hyperinfl==1 & sample==1
     di as result "    l_hyperinfl==1 in estimation sample: `r(N)'"
     di as result "       (was 1 pre-rebuild, when the panel was truncated at 2018)"
     quietly summarize l_infl if sample==1, detail
     di as result "    raw  l_infl   median " %8.2f r(p50) "   max " %11.1f r(max)
     quietly summarize l_lninfl if sample==1, detail
-    di as result "    log  l_lninfl median " %8.3f r(p50) "   max " %11.3f r(max)   "  (alt., not in core)"
+    di as result "    log  l_lninfl median " %8.3f r(p50) "   max " %11.3f r(max) ///
+                 "  min " %8.3f r(min) "  (adopted, flow tier core)"
+}
+
+* ── Flow-tier ADOPTED core set: distribution sanity check for every term ────
+* Verifies no term in $ctrl_core_flowbase has a tail extreme enough to worry
+* about (the reason l_hyperinfl -> l_lninfl and the raw ln(x/GDP) checks
+* exist above) -- printed rather than assumed, same standard applied to
+* inflation. min/max/skewness flagged if skewness exceeds 3 in absolute
+* value, an informal threshold, not a hard rule.
+di as result _n "Flow-tier ADOPTED core set ($ctrl_core_flowbase) — distribution check:"
+foreach X of global ctrl_core_flowbase {
+    quietly summarize `X' if sample_flow==1, detail
+    if r(N) > 0 {
+        local skew = cond(r(sd) > 0, ///
+            (r(mean) - r(p50)) / r(sd) * 3, .)   // Pearson's 2nd skewness coefficient, a cheap proxy
+        local flag = cond(!missing(`skew') & abs(`skew') > 3, "  ** long tail, check", "")
+        di as result "    " %-20s "`X'" "min " %9.2f r(min) "  median " %9.2f r(p50) ///
+                     "  max " %9.2f r(max) "  skew~" %6.2f `skew' "`flag'"
+    }
 }
