@@ -209,6 +209,20 @@
   on. Sections 1a-1f remain historical record under the original predictor;
   they are not rerun under cz_recency in this file.
 
+  SECTION 1g — DOES THE REFERENCE PAPER'S OWN DESIGN CHOICE (COUNTRY FE IN
+  THE PROBIT) SURVIVE ON THIS PROJECT'S THINNER SAMPLE?
+  -----------------------------------------------------------------------------
+  Their first-stage probit carries country dummies directly ($cf = c1-c74,
+  noconstant) alongside $convar and $instrument. This project's _aipw has
+  never done that — Eq. (2) is pooled across countries; country FE enter
+  only the outcome model via fe(cid). Section 1g tests adding i.cid to Eq.
+  (2), on top of the currently adopted cz_recency/continuation==0
+  construction, and reports directly whether it converges and how many
+  countries get dropped for zero outcome variation in the def arm (7-14
+  treated countries under flow coding, out of a much smaller total country
+  count than their 74). Diagnostic only — Section 3's estimator is
+  unchanged pending what this section shows.
+
   Outputs
   -------
     "$tabs/table10_aipw_flow.rtf"    the two type lines + the difference
@@ -814,6 +828,79 @@ di as result "      the likelihood the probit was fit on -- if their propensity 
 di as result "      out extreme, that is the fitted model extrapolating with confidence to"
 di as result "      rows resembling ones it was trained on, not the model re-learning them."
 capture drop _psf_nd _psf_def
+
+* ══════════════════════════════════════════════════════════════════════════
+* 1g. DOES ADDING COUNTRY FIXED EFFECTS TO THE PROBIT MATCH THE REFERENCE
+*     PAPER'S DESIGN, OR DOES IT BREAK ON THIS PROJECT'S THINNER SAMPLE?
+*
+* The reference paper's own first-stage probit includes country dummies
+* directly ($cf = c1-c74, entered with noconstant) alongside $convar and
+* $instrument. This project's _aipw has never done this -- Eq. (2) is
+* pooled across countries, country FE enter only the OUTCOME model via
+* fe(cid). This section tests adding i.cid to Eq. (2) directly, on TOP of
+* the currently adopted construction (cz_recency, fit sample restricted to
+* continuation==0 -- Section 1f), rather than re-deriving history.
+*
+* NOTE ON SCALE: the reference paper has 74 countries. This project's panel
+* does not -- 20_lp_flow.do's header cites 52 countries as having
+* contributed at least one episode; the full panel (tranquil-only countries
+* included) is smaller still relative to theirs. i.cid below creates exactly
+* as many dummies as this panel actually has, whatever that number is -- no
+* count is assumed.
+*
+* THE EXPECTED FAILURE MODE, STATED IN ADVANCE. Any country with ZERO
+* outcome variation in a given arm (e.g., a country that never had a
+* default-linked crisis, so in_crisis_def==0 in every one of its rows) gets
+* dropped from that arm's probit automatically -- Stata's own "predicts
+* failure/success perfectly" note. On the def arm (7-14 treated countries
+* under flow coding), this could mean far more than a handful of dropped
+* countries: it could mean the control pool for that arm shrinks to only
+* countries that have ALSO had a default-linked episode at some point,
+* which changes who the propensity model is even estimated over. This is
+* checked directly below, not assumed.
+* ══════════════════════════════════════════════════════════════════════════
+di as result _n "════════════════════════════════════════════════════════════"
+di as result "1g. COUNTRY FIXED EFFECTS IN THE PROBIT — DOES IT EVEN CONVERGE?"
+di as result "════════════════════════════════════════════════════════════"
+foreach s in nd def {
+    di as result _n "      `s' arm, WITH i.cid (raw probit output, watch for separation notes):"
+    capture noisily probit in_crisis_`s' `cx' `cz_recency' i.cid ///
+        if sample_flow==1 & continuation==0
+    if _rc {
+        di as error "      `s' arm: probit FAILED to converge (rc=" _rc ")."
+        continue
+    }
+    * how many countries were dropped for zero outcome variation in this arm?
+    quietly levelsof cid if sample_flow==1 & continuation==0, local(allcty)
+    quietly levelsof cid if e(sample)==1, local(keptcty)
+    local ndrop : list allcty - keptcty
+    local ndropn : word count `ndrop'
+    local nallc  : word count `allcty'
+    di as result "      countries in the continuation==0 fitting sample: " `nallc' ///
+                 "  |  dropped for zero outcome variation: " `ndropn'
+
+    capture drop _psg_`s'
+    quietly predict double _psg_`s' if sample_flow==1, pr
+    quietly count if in_crisis_`s'==1 & !missing(_psg_`s')
+    local nin = r(N)
+    quietly summarize _psg_`s' if in_crisis_`s'==1, detail
+    local mt = r(mean)
+    quietly summarize _psg_`s' if in_crisis_`s'==0 & sample_flow==1 & !missing(_psg_`s'), detail
+    local mc = r(mean)
+    quietly count if in_crisis_`s'==1 & _psg_`s' > .99 & !missing(_psg_`s')
+    local nwin = r(N)
+    di as result "      `s': treated rows scored = " %4.0f `nin' ///
+                 "   mean p(treated) = " %5.3f `mt' ///
+                 "   mean p(control) = " %5.3f `mc' ///
+                 "   treated rows with p>0.99 = " %3.0f `nwin'
+}
+di as result _n "      Compare to Section 1f (no country FE, same predictor set/fit sample):"
+di as result "      if country FE closes the propensity gap without collapsing the def-arm"
+di as result "      control pool, it is worth adopting as the estimator everywhere; if it"
+di as result "      drops most of the def arm's usable countries or fails to converge, that"
+di as result "      is the honest reason this project's _aipw has never carried it, and the"
+di as result "      write-up should say so rather than silently keeping the pooled probit."
+capture drop _psg_nd _psg_def
 
 * ══════════════════════════════════════════════════════════════════════════
 * 2. HOW MUCH WORK IS THE AUGMENTATION DOING?
