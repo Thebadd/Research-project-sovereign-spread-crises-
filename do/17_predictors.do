@@ -28,7 +28,18 @@ sort cid year
 * The region aggregates are restricted to carryin==0: carry-in rows are pre-EMBIG
 * lag scaffolding with no spread data, so counting them would inflate the member
 * denominator and dilute the share for the real observations.
-capture drop reg_n_onset reg_n_members reg_crisis_share l_reg_crisis_share
+* Dropped SEPARATELY, not as one combined `drop A B C D': reg_n_onset/
+* reg_n_members are working variables dropped again at the end of this block
+* (line ~37) and so are never saved to panel_build.dta, while reg_crisis_share/
+* l_reg_crisis_share ARE saved -- so on any run after the first, this list
+* mixes variables that exist with ones that don't. `drop' fails as a WHOLE
+* when EITHER is missing, and `capture' then silently swallows that failure,
+* leaving reg_crisis_share undropped and the `gen' below erroring "already
+* defined" -- exactly what happened on the second run.
+capture drop reg_n_onset
+capture drop reg_n_members
+capture drop reg_crisis_share
+capture drop l_reg_crisis_share
 bysort region year: egen reg_n_onset   = total(onset_all) if carryin==0
 bysort region year: egen reg_n_members = count(cid)       if carryin==0
 gen double reg_crisis_share = (reg_n_onset - onset_all) / (reg_n_members - 1) ///
@@ -135,13 +146,26 @@ preserve
     save `contagion'
 restore
 
+* Dropped before the merge/gen below, not combined -- same reasoning as
+* reg_crisis_share/past_onsets above: both persist to panel_build.dta, so a
+* second run would otherwise hit "already defined" (merge conflict on
+* contagion_dist, then gen conflict on l_contagion_dist).
+capture drop contagion_dist
+capture drop l_contagion_dist
 merge m:1 iso3 year using `contagion', keep(master match) nogen
 xtset cid year
 gen double l_contagion_dist = L.contagion_dist
 label var l_contagion_dist "Z2b: lagged distance-weighted contagion (any onset), predetermined"
 
 * ── Proneness: cumulative own onsets, lagged (Z3) ───────────────────────────
-capture drop cum_onset past_onsets cum_def past_def_onsets
+* Dropped SEPARATELY -- same reasoning as reg_crisis_share above: cum_onset/
+* cum_def are working variables dropped again below and never saved, while
+* past_onsets/past_def_onsets ARE saved, so a combined drop fails as a whole
+* on any run after the first.
+capture drop cum_onset
+capture drop past_onsets
+capture drop cum_def
+capture drop past_def_onsets
 bysort cid (year): gen cum_onset = sum(onset_all)
 gen past_onsets = L.cum_onset
 replace past_onsets = 0 if missing(past_onsets)
@@ -175,7 +199,11 @@ drop cum_def
 * history. Countries with no PRIOR default-linked onset are censored to 50
 * (safely beyond this panel's ~35-year span), following past_def_onsets' own
 * convention of replacing missing with a fixed value rather than dropping rows.
-capture drop _defyear _defyear_lag years_since_def_onset
+* Dropped SEPARATELY, same reasoning: _defyear/_defyear_lag never persist to
+* panel_build.dta (dropped below), years_since_def_onset does.
+capture drop _defyear
+capture drop _defyear_lag
+capture drop years_since_def_onset
 gen _defyear = year if onset_def==1
 bysort cid (year): replace _defyear = _defyear[_n-1] if missing(_defyear) & _n>1
 bysort cid (year): gen _defyear_lag = _defyear[_n-1]
