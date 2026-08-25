@@ -22,8 +22,8 @@
     which itself copies them verbatim from 21_aipw_flow.do. The propensity
     model's fix for flow-coding's near-separation problem (Eq. 2 fit on
     tranquil+onset rows only, continuation==0, then EXTRAPOLATED to every row)
-    is not re-derived here — see 21's header for the full diagnostic history
-    (Sections 1a-1f) and justification.
+    is not re-derived here — see 21's header ("DIAGNOSTIC HISTORY") for the
+    settled justification; the diagnostic code itself is no longer kept there.
   * Channel outcome construction (ch_<var>_h, pre_<var>, epc_pre_<var>): copied
     from 22/23/24's identical loop, restricted to the four channels 13d uses
     (credit, inv, claims_govt, claimpriv_assets — govexp/pb/fdi were never

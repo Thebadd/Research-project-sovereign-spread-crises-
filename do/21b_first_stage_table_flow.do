@@ -10,8 +10,8 @@
   (onset coding). 21_aipw_flow.do's Eq. (2) now fits on the SAME kind of
   restricted sample — tranquil and onset rows only, continuation years
   excluded (`if `touse' & continuation==0' inside _aipw, adopted per the
-  estimator change documented in 21_aipw_flow.do's header, "SECTIONS 1d/1e"
-  and "ESTIMATOR CHANGE, SECTION 1f ONWARD"). This file is that model, styled
+  estimator change documented in 21_aipw_flow.do's header, "DIAGNOSTIC
+  HISTORY"). This file is that model, styled
   the same way 08c styles its onset probit: PREDICTING THE START of a spread
   crisis, non-default and default-linked, never continuation years — matching
   the reference IMF working paper's own Table 1, whose main specification
@@ -21,7 +21,7 @@
 
   SAMPLE: sample_flow==1 & continuation==0 -- tranquil country-years plus
   ONSET rows only. This is deliberately NOT sample_flow==1 alone: the whole
-  point of the Section 1f estimator change was to keep continuation years out
+  point of the adopted estimator change was to keep continuation years out
   of the probit's fitting sample while still scoring them (Eq. 1/Eq. 3 keep
   the full flow-coded treatment) -- this table documents exactly the sample
   the actual estimator fits on, not the broader sample it later extrapolates
@@ -39,23 +39,24 @@
         country's most recent PRIOR default-linked onset. Both columns share
         these predictors, matching 21_aipw_flow.do's cz_recency (used
         identically for both nd and def there).
-    PREDICTOR CHANGE FROM past_def_onsets: 24_aipw_channels_flow.do's Section
-        1a diagnostic (credit, h=1) found the def arm's propensity model
+    PREDICTOR CHANGE FROM past_def_onsets: a diagnostic run in
+        24_aipw_channels_flow.do (credit, h=1; the code is no longer kept
+        there, see that file's header) found the def arm's propensity model
         severely weight-concentrated, with past_def_onsets (a running COUNT
         that never resets) as the leading suspect -- for a serial defaulter it
-        behaves close to a permanent country identifier. Section 1b there
-        tested years_since_def_onset as a replacement: individually
-        significant (z=-2.84, p=.005), economically sensible sign, and not
-        circular for the same reason the continuation==0 restriction above is
-        not. It did NOT meaningfully fix the weight concentration (98.9% ->
-        98.6%, essentially unchanged) -- adopted for being a better,
-        independently-motivated predictor, not as a variance fix. See
-        21_aipw_flow.do's header, "PREDICTOR CHANGE," for the full note.
+        behaves close to a permanent country identifier. years_since_def_onset
+        was tested as a replacement: individually significant (z=-2.84,
+        p=.005), economically sensible sign, and not circular for the same
+        reason the continuation==0 restriction above is not. It did NOT
+        meaningfully fix the weight concentration (98.9% -> 98.6%, essentially
+        unchanged) -- adopted for being a better, independently-motivated
+        predictor, not as a variance fix. See 21_aipw_flow.do's header,
+        "PREDICTOR CHANGE," for the full note.
     BASELINE CONTROLS: $ctrl_core_flowbase -- the SAME row-dated ADOPTED set
         21_aipw_flow.do's `cx_active' uses for Eq. (2) (NOT $ctrl_flow/epc_*,
-        which the header of 21_aipw_flow.do -- Section 1(a) -- demonstrates
-        cannot be used in the probit: epc_X differs from X only on
-        continuation rows, so it would mechanically encode treatment).
+        which 21_aipw_flow.do's header explains cannot be used in the probit:
+        epc_X differs from X only on continuation rows, so it would
+        mechanically encode treatment).
 
   Diagnostic rows (source Table 1's bottom block):
     Chi2 (predictors)      — joint Wald test that the 3 predictors are all zero

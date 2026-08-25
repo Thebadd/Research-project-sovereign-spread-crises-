@@ -75,10 +75,7 @@
   --------------------------------------------------
   Eq. (1) outcome model:  $ctrl_flow          (episode-dated, epc_*)
   Eq. (2) propensity:     $ctrl_core_flowbase (row-dated) via `cx_active' — see
-                          "ADOPTED FLOW-TIER CORE CONTROL SET" below. Sections
-                          1a, 1b and 1f's diagnostic HISTORY stays on the
-                          original, frozen $ctrl_core via `cx' — see that
-                          local's own comment for why.
+                          "ADOPTED FLOW-TIER CORE CONTROL SET" below.
 
   The row-dated/episode-dated split described next is not an oversight. epc_X is built as
       epc_X = cond(in_crisis==1, X at episode entry, X at own t-1)
@@ -103,89 +100,27 @@
   from control is an empirical question, and Section 1 answers it before any
   coefficient is reported.
 
-  SECTIONS 1c/1d/1e — TESTED, NOT ADOPTED (removed; kept as a one-line summary)
+  DIAGNOSTIC HISTORY — SECTIONS 1a/1b/1c/1d/1e/1f, ALL REMOVED
   -----------------------------------------------------------------------------
-  Three fixes for Section 1(b)'s near-separation were tried and rejected
-  before landing on the one below. Entry-dating the propensity model's
-  covariates (epc_X, isolating contamination from an ongoing crisis as the
-  mechanism) barely moved the gap (mean p(treated) 0.591 -> 0.557, p>0.99
-  rows 5 -> 6) -- evidence the separation is structural, not contamination.
-  Dropping l_ca/l_debt helped a little (0.591 -> 0.523, p>0.99 5 -> 3);
-  l_ca's own coefficient was not even significant (p=.542). Dropping
-  past_def_onsets instead helped roughly twice as much (0.591 -> 0.321,
-  p>0.99 5 -> 2) -- past_def_onsets (z=10.07, more than double the
-  next-largest) was the dominant driver, a running count that behaves close
-  to a country identifier for a serial defaulter rather than a genuine
-  time-varying predictor. None of the three closed the gap anywhere near as
-  much as the fitting-sample restriction below, which is why that is what
-  got adopted rather than any single-variable drop. The diagnostic code for
-  these three is not kept in this file (see git history if it is ever
-  needed again).
-
-  ESTIMATOR CHANGE, SECTION 1f — THE FIX ACTUALLY ADOPTED: PROPENSITY FIT
-  SAMPLE RESTRICTED TO TRANQUIL + ONSET, ALL ORIGINAL PREDICTORS KEPT
-  -----------------------------------------------------------------------------
-  Rather than drop past_def_onsets (which would depart from the reference
-  paper's own predictor set), this file instead adopts a different fix,
-  informed by an IMF working paper's stated construction (Asonuma-style AIPW
-  applied to debt restructurings): its first-stage probit is described as
-  "based on data in the year of the start of the restructuring and in the
-  previous year" — i.e. its probit's FITTING sample never includes
-  continuation years. NOTE: this is adopted on the user's own reading of that
-  paper's Section 4.1, stated to this file explicitly, not independently
-  verified against that paper's replication code the way Asonuma et al.
-  (2024)'s Eq. (1) weighting was settled earlier in this project — if that
-  matters for the write-up, say so explicitly rather than citing it as if it
-  were code-verified.
-
-  From this point on, `_aipw' fits Eq. (2) ONLY on tranquil and onset rows
-  (`probit `D' `pmodel' if `touse' & continuation==0'), then PREDICTS phat for
-  EVERY row of `touse', continuation rows included, by extrapolating the
-  fitted coefficients. Eq. (1) and Eq. (3) are UNCHANGED: `D' is still the
-  full flow-coded treatment (continuation years remain treated), and every
-  original predictor — l_fedfunds, l_reg_crisis_share, past_def_onsets, and
-  all of $ctrl_core including l_ca and l_debt — is kept exactly as before.
-  Only the probit's fitting sample is restricted; nothing about what counts as
-  treated, anywhere else in the file, has changed. Section 1f reruns the
-  overlap diagnostic under this construction so the effect is visible before
-  Section 3's baseline numbers are read.
-
-  PREDICTOR CHANGE, ADOPTED AFTER SECTION 1f — past_def_onsets REPLACED BY
-  years_since_def_onset IN THE ACTIVE BASELINE (Section 2 onward)
-  -----------------------------------------------------------------------------
-  Even after the Section 1f fitting-sample restriction, 24_aipw_channels_flow.do's
-  Section 1a diagnostic (credit, h=1) found the def arm's IPW weights severely
-  concentrated: the top 5% of rows accounted for 98.9% of the AIPW summand's
-  variance, with past_def_onsets (a running COUNT of a country's own default-
-  linked onsets that never resets) as the leading suspect — for a serial
-  defaulter it behaves close to a permanent country identifier rather than a
-  genuine time-varying predictor. Section 1b there tested years_since_def_onset
-  (years since the country's most recent PRIOR default-linked onset, built in
-  18_transforms.do's upstream stage 17_predictors.do, censored at 50 for
-  countries with no prior default) as a replacement: individually significant
-  (z=-2.84, p=.005) with the economically sensible sign, and NOT circular for
-  the same reason the Section 1f fitting-sample restriction is not — an onset
-  row's value necessarily refers to an earlier, distinct episode.
-  BE EXPLICIT ABOUT WHAT THIS DOES AND DOES NOT FIX: Section 1b also found the
-  weight-concentration problem barely moved under this predictor (98.9% ->
-  98.6%) — adopting it is NOT a fix for the def arm's wide standard errors, and
-  should not be described as one. It is adopted because it is a better,
-  independently-motivated predictor (real economic story, comparable or
-  stronger significance than past_def_onsets), not because it resolves the
-  variance problem, which remains open (see 24_aipw_channels_flow.do's Section
-  1a/1b for the full diagnostic and the remaining candidate fixes considered
-  and set aside there: overlap weights, rejected on estimand grounds -- they
-  target the ATO, not the treated population -- per a pharmacoepidemiology
-  methods commentary read alongside this decision; tighter trimming, not yet
-  tested; the MSM/two-part persistence model, the structural fix still not
-  built).
-  `local cz_def' below (l_fedfunds, l_reg_crisis_share, past_def_onsets) is
-  KEPT UNCHANGED and still drives Sections 1b and 1f exactly as documented, so
-  their already-reported diagnostic numbers stay reproducible. A SEPARATE
-  local, `cz_recency', is what Section 2 and Section 3's baseline estimator
-  actually use from here on. Sections 1a, 1b and 1f remain historical record
-  under the original predictor set; they are not rerun under cz_recency in
-  this file.
+  This file previously carried an extended diagnostic sequence establishing,
+  step by step, that the flow AIPW's pooled propensity model near-separates on
+  continuation rows (mean p(treated) 0.591, 5 rows p>0.99 in the def arm), that
+  entry-dating the covariates barely helped (0.591 -> 0.557), that dropping
+  l_ca/l_debt or past_def_onsets individually helped only partially (0.591 ->
+  0.523 / 0.321), and that the fix actually adopted — restricting the probit's
+  FITTING sample to tranquil+onset rows (continuation==0), then extrapolating
+  phat to continuation rows — closed the gap far more (0.591 -> 0.147, p>0.99
+  5 -> 0) than any single-variable drop. A follow-on predictor swap
+  (past_def_onsets -> years_since_def_onset, motivated by 24_aipw_channels_flow.do's
+  own weight-concentration diagnostic) was adopted on similar grounds: a
+  better-motivated predictor, not a fix for the def arm's wide SEs, which
+  remains open. Both decisions — the continuation==0 fitting-sample
+  restriction and the years_since_def_onset predictor — are now settled and
+  are the estimator this file always runs, with no toggle back to the
+  alternatives. The diagnostic code establishing them is not kept in this
+  file; see git history if it is ever needed again. `local cz_def' and the
+  frozen `cx' (row-dated on the original $ctrl_core) are gone with it — the
+  file now defines only the active predictor/control set, `cz_recency'/`cx_active'.
 
   SECOND PREDICTOR CHANGE — l_reg_crisis_share REPLACED BY l_contagion_dist
   IN cz_recency
@@ -201,9 +136,7 @@
   contemporaneous, country-year-specific spatial lag, not a slow-moving
   characteristic of country i itself -- the same property that made
   years_since_def_onset preferable to past_def_onsets. `cz_recency' below now
-  carries l_contagion_dist in place of l_reg_crisis_share; `cz_def' (the
-  frozen Section 1b/1f history) is untouched, since those sections' printed
-  numbers are reproducing a documented prior run, not the current baseline.
+  carries l_contagion_dist in place of l_reg_crisis_share.
 
   COUNTRY FE IN THE PROBIT — TESTED AND REJECTED
   -----------------------------------------------------------------------------
@@ -287,32 +220,15 @@ if "$ctrl_flow" == "" {
 
 * EXPLORATORY: set to 1 to test the alternate flow control set (see
 * 18_transforms.do's "EXPLORATORY ALTERNATE FLOW CONTROL SET"). Default 0 =
-* the bigger alternate's OFF state. This drives every control-set reference
-* in the file, including Sections 1a/1b/1f's diagnostics -- with it on, their
-* printed comparison numbers describe the run that produced
-* years_since_def_onset, not this run, so read them as history rather than a
-* live check when testing.
+* the adopted flow-tier baseline.
 local use_flowalt_ctrl 0
-* `cx' is DELIBERATELY FROZEN on the ORIGINAL $ctrl_core (or the bigger
-* alternate, if toggled) -- Sections 1b/1f's diagnostic history bakes in
-* literal comparison numbers (e.g. Section 1f's "0.591/0.036/5 rows p>0.99")
-* that were generated under $ctrl_core, and those must stay reproducible
-* exactly as documented. `cx' therefore does NOT follow the flow tier's
-* adopted core-control change (18_transforms.do's "ADOPTED FLOW-TIER CORE
-* CONTROL SET") -- see `cx_active' below, which does. Same split pattern
-* already used for cz_def (frozen) vs cz_recency (active).
-local cx     = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core")     // Eq. (2) HISTORY baseline: row-dated $ctrl_core, see header
-* `cx_active' is what Section 2 and Section 3's ACTUAL estimator use: the
-* flow tier's adopted core control set (l_banking_crisis, tot_chg in place
-* of l_banking_duration, l_ca) rather than the frozen original.
-local cx_active = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core_flowbase")  // Eq. (2) ACTIVE baseline: row-dated, ADOPTED set
+* `cx_active' is the row-dated propensity control set: the flow tier's
+* adopted core control set (l_banking_crisis, tot_chg in place of
+* l_banking_duration, l_ca), or the bigger alternate if toggled.
+local cx_active = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core_flowbase")  // Eq. (2) baseline: row-dated, ADOPTED set
 local com    = cond(`use_flowalt_ctrl', "$ctrl_flow_flowalt", "$ctrl_flow")    // Eq. (1) controls: episode-dated (already the adopted set via 18_transforms.do)
-* cz_def: the ORIGINAL predictor set, kept unchanged so Sections 1b and 1f's
-* already-reported diagnostic numbers stay reproducible -- see header
-* "PREDICTOR CHANGE". Not used by Section 2/3's active baseline.
-local cz_def l_fedfunds l_reg_crisis_share past_def_onsets
-* cz_recency: the ACTIVE predictor set for Section 2 onward -- see header
-* "SECOND PREDICTOR CHANGE". l_contagion_dist in place of l_reg_crisis_share.
+* cz_recency: the adopted predictor set -- l_contagion_dist in place of
+* l_reg_crisis_share, years_since_def_onset in place of past_def_onsets.
 local cz_recency l_fedfunds l_contagion_dist years_since_def_onset
 
 set seed 20260819
@@ -541,22 +457,17 @@ program define _aipwpairflow, rclass
 end
 
 * ══════════════════════════════════════════════════════════════════════════
-* 1. DIAGNOSTICS — PRINTED BEFORE ANY COEFFICIENT
+* 1. TREATMENT/CONTROL COUNTS
 *
-* Two questions decide whether anything below is worth reading.
-*
-* (a) Is the episode-dated control set usable in the probit? No — and this
-*     block shows why rather than asserting it. epc_X differs from X only on
-*     continuation rows, so the difference is a readout of treatment status.
-*
-* (b) Does the propensity separate treated from control WITHOUT collapsing the
-*     flow treatment back into onset coding? The [0.01,0.99] winsorisation
-*     bounds the weights, but if continuation rows are pushed to scores near 1
-*     they contribute almost nothing and this file is silently re-running 08b.
-*     The survival counts below are the test.
+* The propensity-model diagnostic sequence that used to run here (separation
+* checks, the continuation==0 fitting-sample restriction, the predictor swap)
+* is settled and no longer kept in this file -- see the header's "DIAGNOSTIC
+* HISTORY" note and git history if it is ever needed again. What remains is
+* the basic sample count, so the estimation loop below is read against a
+* known N rather than a number pulled from nowhere.
 * ══════════════════════════════════════════════════════════════════════════
 di as result _n "════════════════════════════════════════════════════════════"
-di as result "1. DIAGNOSTICS"
+di as result "1. SAMPLE COUNTS"
 di as result "════════════════════════════════════════════════════════════"
 
 quietly count if in_crisis_nd==1
@@ -565,102 +476,6 @@ quietly count if in_crisis_def==1
 di as result "  treated, default-linked (flow):  " %4.0f r(N) "   (expect 121)"
 quietly count if sample_flow==1 & in_crisis==0
 di as result "  tranquil controls:               " %4.0f r(N)
-
-di as result _n "  (a) Why the probit cannot use the episode-dated controls:"
-di as result "      rows where epc_X differs from the row-dated X, by control —"
-di as result "      these are continuation rows, so the variable encodes treatment."
-foreach X of global ctrl_core {
-    capture confirm variable epc_`X', exact
-    if _rc continue
-    quietly count if !missing(`X') & abs(epc_`X' - `X') > 1e-9
-    local ndiff = r(N)
-    quietly count if !missing(`X') & abs(epc_`X' - `X') > 1e-9 & continuation==1
-    di as result "        " %-22s "`X'" %5.0f `ndiff' " rows differ, " ///
-                 %5.0f r(N) " of them continuation"
-}
-
-di as result _n "  (b) Propensity overlap and continuation survival:"
-foreach s in nd def {
-    quietly probit in_crisis_`s' `cx' `cz_def' if sample_flow==1
-    capture drop _ps_`s'
-    quietly predict double _ps_`s' if e(sample), pr
-    quietly count if in_crisis_`s'==1 & !missing(_ps_`s')
-    local nin = r(N)
-    quietly count if in_crisis_`s'==1 & !missing(_ps_`s') & onset_all==1
-    local non = r(N)
-    quietly count if in_crisis_`s'==1 & !missing(_ps_`s') & continuation==1
-    local ncn = r(N)
-    quietly summarize _ps_`s' if in_crisis_`s'==1, detail
-    local mt = r(mean)
-    quietly summarize _ps_`s' if in_crisis_`s'==0 & sample_flow==1, detail
-    local mc = r(mean)
-    quietly count if in_crisis_`s'==1 & _ps_`s' > .99 & !missing(_ps_`s')
-    local nwin = r(N)
-    di as result "      `s': treated rows in probit sample = " %4.0f `nin' ///
-                 "  (onset " %3.0f `non' ", continuation " %3.0f `ncn' ")"
-    di as result "          mean p(treated) = " %5.3f `mt' ///
-                 "   mean p(control) = " %5.3f `mc' ///
-                 "   treated rows with p>0.99 = " %3.0f `nwin'
-    if `ncn' == 0 {
-        di as error "      ** `s': NO continuation rows survive — this has collapsed"
-        di as error "         into onset coding and the check below is vacuous."
-    }
-}
-di as result _n "      A large share of treated rows at p>0.99, or continuation rows"
-di as result "      absent, means the propensity is reading 'already in crisis'"
-di as result "      and the flow AIPW is not adding information over 08b."
-
-* ══════════════════════════════════════════════════════════════════════════
-* 1f. THE ESTIMATOR CHANGE ADOPTED FROM HERE ON: PROPENSITY FIT SAMPLE
-*     RESTRICTED TO TRANQUIL + ONSET, EXTRAPOLATED TO CONTINUATION ROWS
-*
-* An IMF working paper (not this project's own literature check -- adopted on
-* the user's reading, stated explicitly, of that paper's Section 4.1) states
-* its first-stage probit is "based on data in the year of the start of the
-* restructuring and in the previous year." Taken at face value: their probit's
-* FITTING sample is bounded to two years per episode -- onset and the year
-* before -- never continuation years. This section adopts that construction
-* for _aipw's Eq. (2) from here on (see the change directly inside _aipw,
-* `probit `D' `pmodel' if `touse' & continuation==0'), while Eq. (1) and Eq.
-* (3) keep the FULL flow-coded `D' unchanged -- continuation rows are still
-* treated in the outcome model and the AIPW summand, and every original
-* predictor (l_fedfunds, l_reg_crisis_share, past_def_onsets, and all of
-* $ctrl_core including l_ca and l_debt) is kept exactly as it was. Only the
-* probit's FITTING sample is restricted; the fitted model is then predicted
-* out to every row, continuation included, by extrapolation.
-* This section reruns the Section 1(b) overlap diagnostic under the new
-* construction so the effect is visible before it is taken as the baseline.
-* ══════════════════════════════════════════════════════════════════════════
-di as result _n "  (f) Estimator change: probit fit on tranquil+onset only (continuation==0),"
-di as result "      extrapolated to continuation rows -- all original predictors kept:"
-foreach s in nd def {
-    quietly probit in_crisis_`s' `cx' `cz_def' if sample_flow==1 & continuation==0
-    capture drop _psf_`s'
-    quietly predict double _psf_`s' if sample_flow==1, pr
-    quietly count if in_crisis_`s'==1 & !missing(_psf_`s')
-    local nin = r(N)
-    quietly count if in_crisis_`s'==1 & !missing(_psf_`s') & onset_all==1
-    local non = r(N)
-    quietly count if in_crisis_`s'==1 & !missing(_psf_`s') & continuation==1
-    local ncn = r(N)
-    quietly summarize _psf_`s' if in_crisis_`s'==1, detail
-    local mt = r(mean)
-    quietly summarize _psf_`s' if in_crisis_`s'==0 & sample_flow==1, detail
-    local mc = r(mean)
-    quietly count if in_crisis_`s'==1 & _psf_`s' > .99 & !missing(_psf_`s')
-    local nwin = r(N)
-    di as result "      `s': treated rows scored = " %4.0f `nin' ///
-                 "  (onset " %3.0f `non' ", continuation " %3.0f `ncn' ")"
-    di as result "          mean p(treated) = " %5.3f `mt' ///
-                 "   mean p(control) = " %5.3f `mc' ///
-                 "   treated rows with p>0.99 = " %3.0f `nwin'
-}
-di as result _n "      Compare, def arm: (b) baseline (fit on ALL rows) 0.591/0.036/5 rows p>0.99."
-di as result "      Continuation rows here are SCORED (extrapolated) but were NOT part of"
-di as result "      the likelihood the probit was fit on -- if their propensity still comes"
-di as result "      out extreme, that is the fitted model extrapolating with confidence to"
-di as result "      rows resembling ones it was trained on, not the model re-learning them."
-capture drop _psf_nd _psf_def
 
 * ══════════════════════════════════════════════════════════════════════════
 * 2. HOW MUCH WORK IS THE AUGMENTATION DOING?
@@ -686,11 +501,9 @@ foreach s2 in nd def {
     else               local rival in_crisis_nd
 
     capture drop _ps2 _m0 _m1 _xb2 _ipwterm _augterm
-    * Matches the Section 1f / _aipw estimator change: fit Eq. (2) on
-    * tranquil+onset only (continuation==0), then extrapolate phat to the full
-    * sample used below (continuation rows included), so this decomposition is
-    * computed under the SAME propensity construction Section 3 now uses.
-    * cz_recency, not cz_def -- see header "PREDICTOR CHANGE".
+    * _aipw's fitting-sample restriction (continuation==0, extrapolated to the
+    * full sample) applied directly here, so this decomposition is computed
+    * under the SAME propensity construction Section 3 uses.
     quietly probit in_crisis_`s2' `cx_active' `cz_recency' if sample_flow==1 & `rival'==0 & continuation==0
     quietly predict double _ps2 if sample_flow==1 & `rival'==0, pr
     quietly replace _ps2 = .01 if _ps2 < .01 & !missing(_ps2)
@@ -999,5 +812,3 @@ restore
 capture drop _ps_nd _ps_def
 
 di as result _n "21_aipw_flow.do complete."
-di as result "  Read Section 1 before Section 3: if continuation rows do not"
-di as result "  survive the propensity, this file re-ran 08b and says nothing new."

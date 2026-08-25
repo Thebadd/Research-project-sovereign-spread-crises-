@@ -33,28 +33,27 @@
   THE PROPENSITY MODEL IS NOT RE-DERIVED HERE — IT IS 21_AIPW_FLOW.DO'S,
   UNCHANGED
   ----------------------------------------------------------------------
-  21_aipw_flow.do's header (Sections 1a-1f) documents an extended diagnostic
-  investigation into why the flow AIPW's propensity model near-separates on
-  continuation rows, and settles on a fix: Eq. (2) is fit ONLY on tranquil and
-  onset rows (continuation==0), and the fitted model is then EXTRAPOLATED to
-  every row (continuation included) because Eq. (1)/Eq. (3) keep the full
-  flow-coded treatment. That investigation is not repeated here — this file's
-  `_aipw' program is 21's, copied as it stands today, with every original
-  control ($ctrl_core, including l_ca/l_debt) kept exactly as 21 keeps them.
-  See 21_aipw_flow.do's header for the justification; it is referenced here,
-  not re-derived.
+  21_aipw_flow.do's header documents (as settled history, the diagnostic code
+  itself no longer kept there) why the flow AIPW's propensity model
+  near-separates on continuation rows and the fix adopted: Eq. (2) is fit
+  ONLY on tranquil and onset rows (continuation==0), and the fitted model is
+  then EXTRAPOLATED to every row (continuation included) because Eq. (1)/Eq.
+  (3) keep the full flow-coded treatment. This file's `_aipw' program is
+  21's, copied as it stands today. See 21_aipw_flow.do's header for the
+  justification; it is referenced here, not re-derived.
 
-  PREDICTOR CHANGE: past_def_onsets -> years_since_def_onset. Section 1a below
-  diagnosed severe weight concentration in the def arm even after the
-  continuation==0 fix, with past_def_onsets (a running COUNT that never
-  resets) as the leading suspect. Section 1b tested years_since_def_onset
+  PREDICTOR CHANGE: past_def_onsets -> years_since_def_onset. This file
+  previously carried a diagnostic sequence (Sections 1a/1b) establishing that
+  the def arm's IPW weights were severely concentrated (top 5% of rows =
+  98.9% of the AIPW summand's variance) with past_def_onsets (a running COUNT
+  that never resets) as the leading suspect, and testing years_since_def_onset
   (years since the country's most recent PRIOR default-linked onset) as a
   replacement: individually significant, sensible sign, but it did NOT fix the
   weight concentration (98.9% -> 98.6%, essentially unchanged) -- adopted for
-  being a better, independently-motivated predictor, not as a variance fix.
-  Section 2's estimation loop uses years_since_def_onset (via cz_recency,
-  built alongside the historical cz_def so Sections 1a/1b's own already-run
-  diagnostics stay exactly as documented and reproducible).
+  being a better, independently-motivated predictor, not as a variance fix,
+  which remains open. That decision is settled and this file now always uses
+  years_since_def_onset (via cz_recency); the diagnostic code establishing it
+  is not kept here (see git history if it is ever needed again).
 
   Only the OUTCOME model (Eq. 1's `omodel') is channel-specific, exactly as
   in 13c: the propensity model is the SAME object regardless of which channel
@@ -168,10 +167,7 @@ local epc_lg epc_l_govexp
 * l_banking_crisis DUMMY, l_ca -> tot_chg, l_hyperinfl -> l_lninfl -- see
 * that file's "ADOPTED FLOW-TIER CORE CONTROL SET"). Set to 1 to test the
 * bigger, still-exploratory alternate set instead. This drives the channel
-* outcome-model controls (`ctrl_<ch>') below, INCLUDING Sections 1a/1b's
-* diagnostics -- with it on, their printed comparison numbers describe the
-* run that produced years_since_def_onset, not this run, so read them as
-* history rather than a live check when testing.
+* outcome-model controls (`ctrl_<ch>') below.
 local use_flowalt_ctrl 0
 if `use_flowalt_ctrl' local ctrl_flow_base $ctrl_flow_flowalt
 else                  local ctrl_flow_base $ctrl_flow
@@ -186,21 +182,13 @@ local ctrl_pb          `ctrl_flow_base' epc_pre_pb
 local ctrl_fdi         `ctrl_flow_base' epc_pre_fdi
 
 * ── Propensity model — SAME as 21_aipw_flow.do ──────────────────────────────
-* `cx' is DELIBERATELY FROZEN on the ORIGINAL $ctrl_core (or the bigger
-* alternate, if toggled) -- Sections 1a/1b's diagnostic history bakes in
-* literal comparison numbers (weight concentration, "98.9% -> 98.6%") that
-* were generated under $ctrl_core, and must stay reproducible exactly as
-* documented. `cx_active' is what Section 2's ACTUAL estimator uses: the
-* flow tier's adopted core control set. Same split as 21_aipw_flow.do's.
-local cx = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core")   // Eq. (2) HISTORY: row-dated $ctrl_core, fit on continuation==0 only
-local cx_active = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core_flowbase")  // Eq. (2) ACTIVE: row-dated, ADOPTED set
-* cz_def: the ORIGINAL predictor set, kept so Sections 1a/1b's already-run
-* diagnostics stay exactly as documented. Not used by Section 2's estimation.
-local cz_def l_fedfunds l_reg_crisis_share past_def_onsets
-* cz_recency: the ACTIVE predictor set Section 2 uses -- see header
-* "PREDICTOR CHANGE" and 21_aipw_flow.do's header ("SECOND PREDICTOR CHANGE")
-* for the full note. l_contagion_dist (distance-weighted, CEPII great-circle)
-* in place of l_reg_crisis_share (flat regional share).
+* `cx_active' is the row-dated propensity control set: the flow tier's
+* adopted core control set (or the bigger alternate, if toggled). Same
+* construction as 21_aipw_flow.do's.
+local cx_active = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core_flowbase")  // Eq. (2): row-dated, ADOPTED set
+* cz_recency: the adopted predictor set -- l_contagion_dist (distance-weighted,
+* CEPII great-circle) in place of l_reg_crisis_share, years_since_def_onset in
+* place of past_def_onsets. See 21_aipw_flow.do's header for the full note.
 local cz_recency l_fedfunds l_contagion_dist years_since_def_onset
 
 set seed 20260819
@@ -369,207 +357,6 @@ program define _aipwpairflow, rclass
     return scalar nd = `nd'
 end
 
-* ══════════════════════════════════════════════════════════════════════════
-* 1a. WHY IS THE def-ARM SE SO LARGE? PROPENSITY/WEIGHT DIAGNOSTIC (credit, h=1)
-*
-* Section 2 below is expected to show def-arm point estimates comparable in
-* size to the nd arm (or larger), but SEs several times bigger, wide enough
-* that def is often not individually significant despite large coefficients.
-* Two distinct explanations are possible: (a) a handful of continuation rows
-* have EXTRAPOLATED propensities still close to the [0.01,0.99] trim
-* boundary, so their IPW weight (1/p or 1/(1-p)) is huge and dominates the
-* variance of the AIPW summand; or (b) the def sample is just thin and
-* genuinely high-variance (14 countries, 10 of them also contributing nd
-* rows), and the wide SE is an honest reflection of that, not an estimator
-* artifact. This section checks (a) directly, using credit at h=1 as the
-* representative case (the channel/horizon with the most extreme def SE),
-* rather than assuming either explanation and picking a fix on that basis.
-* ══════════════════════════════════════════════════════════════════════════
-di as result _n "════════════════════════════════════════════════════════════"
-di as result "1a. def-ARM PROPENSITY/WEIGHT DIAGNOSTIC (credit, h=1)"
-di as result "════════════════════════════════════════════════════════════"
-
-capture drop _psdiag _wtdiag
-quietly probit in_crisis_def `cx' `cz_def' if sample_flow==1 & in_crisis_nd==0 & continuation==0
-quietly predict double _psdiag if sample_flow==1 & in_crisis_nd==0, pr
-quietly replace _psdiag = .01 if _psdiag < .01                  & !missing(_psdiag)
-quietly replace _psdiag = .99 if _psdiag > .99 & !missing(_psdiag)
-* Same touse markout _aipw would apply for this specific (y, omodel, pmodel) call.
-* missing() takes comma-separated arguments, not a varlist, so each control is
-* checked individually in the loop below rather than passed to missing() as a
-* group.
-quietly gen byte _touse_diag = !missing(ch_credit_0, in_crisis_def, _psdiag)
-foreach v of local ctrl_credit {
-    quietly replace _touse_diag = 0 if missing(`v')
-}
-quietly gen double _wtdiag = in_crisis_def/_psdiag + (1-in_crisis_def)/(1-_psdiag) if _touse_diag==1
-
-quietly count if in_crisis_def==1 & _touse_diag==1
-local ntr = r(N)
-quietly count if in_crisis_def==1 & _touse_diag==1 & onset_all==1
-local nonset = r(N)
-quietly count if in_crisis_def==1 & _touse_diag==1 & continuation==1
-local ncont = r(N)
-di as result "  treated (def) rows in this cell: " %4.0f `ntr' "  (onset " %3.0f `nonset' ", continuation " %3.0f `ncont' ")"
-
-di as result _n "  Extrapolated p(treated=def), among def==1 rows:"
-quietly summarize _psdiag if in_crisis_def==1 & _touse_diag==1, detail
-di as result "    min=" %5.3f r(min) "  p10=" %5.3f r(p10) "  median=" %5.3f r(p50) ///
-             "  p90=" %5.3f r(p90) "  max=" %5.3f r(max)
-quietly count if in_crisis_def==1 & _touse_diag==1 & (_psdiag<.05 | _psdiag>.95)
-di as result "    rows with p<0.05 or p>0.95: " %3.0f r(N) " / " %3.0f `ntr'
-quietly count if in_crisis_def==1 & _touse_diag==1 & (_psdiag<=.011 | _psdiag>=.989)
-di as result "    rows AT the trim boundary (<=.011 or >=.989): " %3.0f r(N) " / " %3.0f `ntr'
-
-di as result _n "  IPW weight (1/p or 1/(1-p)), among def==1 rows:"
-quietly summarize _wtdiag if in_crisis_def==1 & _touse_diag==1, detail
-di as result "    min=" %6.2f r(min) "  median=" %6.2f r(p50) "  p90=" %6.2f r(p90) "  max=" %6.2f r(max)
-di as result "    mean=" %6.2f r(mean) "  sd=" %6.2f r(sd)
-
-* Isolate whether a SMALL NUMBER of extreme-weight rows dominate the variance
-* of the summand -- the direct mechanism, not just a proxy via the weight.
-* Done in a preserve/keep block so gsort never has to contend with the
-* thousands of rows outside this estimation cell (which would have missing
-* _sqdev_diag and sort to the top of a descending gsort, corrupting the
-* "top 5%" selection below).
-quietly gen double _summand_diag = ///
-    in_crisis_def*ch_credit_0/_psdiag - (1-in_crisis_def)*ch_credit_0/(1-_psdiag) if _touse_diag==1
-
-preserve
-    quietly keep if _touse_diag==1
-    quietly summarize _summand_diag, meanonly
-    local summean = r(mean)
-    quietly gen double _sqdev_diag = (_summand_diag - `summean')^2
-    quietly summarize _sqdev_diag, meanonly
-    local alltopvar = r(sum)
-    local ntot = r(N)
-    local ntop = max(1, round(0.05*`ntot'))
-    gsort -_sqdev_diag
-    quietly summarize _sqdev_diag in 1/`ntop', meanonly
-    local topvar = r(sum)
-restore
-
-di as result _n "  Concentration check: top 5% of rows (" %3.0f `ntop' " of " %4.0f `ntot' ///
-             ") by squared deviation from the summand's mean account for " ///
-             %5.1f 100*`topvar'/`alltopvar' " pct of its total variance."
-
-di as result _n "  READ THIS AS: if a small handful of rows sit at the trim boundary AND"
-di as result "  carry a large share of the summand's variance, the SE is inflated by a"
-di as result "  few extreme extrapolated weights (fixable: tighter trim, or overlap"
-di as result "  weights). If p(treated) is spread out with none near the boundary, and"
-di as result "  the variance is NOT concentrated in a handful of rows, the wide SE is"
-di as result "  an honest reflection of a thin, heterogeneous def sample -- not an"
-di as result "  estimator artifact to engineer away."
-
-capture drop _psdiag _wtdiag _touse_diag _summand_diag
-sort cid year   // belt-and-suspenders before Section 1b / Section 2
-
-* ══════════════════════════════════════════════════════════════════════════
-* 1b. ALTERNATIVE PREDICTOR — years_since_def_onset IN PLACE OF past_def_onsets
-*
-* past_def_onsets (a running COUNT of a country's own default-linked onsets)
-* is 1a's prime suspect: it never resets, so for a serial defaulter it behaves
-* close to a permanent country identifier rather than a genuine time-varying
-* predictor -- exactly the profile that produces the weight concentration 1a
-* found (top 5% of rows = 98.9% of the summand's variance).
-*
-* years_since_def_onset measures RECENCY instead of FREQUENCY: years since
-* this country's most recent PRIOR default-linked onset (not the current
-* episode's own onset -- see construction below). Unlike a count, it does not
-* only grow -- it keeps distinguishing "just had a default" from "had one
-* long ago" for the same country, so it should not collapse a serial
-* defaulter's whole history into one high, unchanging value.
-*
-* CONSTRUCTION, WHY IT IS NOT CIRCULAR: _aipw fits Eq. (2) ONLY on tranquil
-* and onset rows (continuation==0) -- see 21_aipw_flow.do's Section 1f. For an
-* ONSET row, "years since the last onset" necessarily refers to an EARLIER,
-* DISTINCT episode (an onset row cannot be its own prior onset), so there is
-* no way for this to circularly measure the very episode being predicted. For
-* a TRANQUIL row it is unambiguous prior history. Continuation rows are never
-* part of the fitting step at all -- they are only scored afterward by
-* extrapolation, where this variable reads as "years into the current
-* episode," a different but well-defined quantity, not a problem for fitting.
-* No entry-dating trick (unlike epc_X) is needed for exactly this reason.
-*
-* CENSORING: countries with no PRIOR default-linked onset have no defined
-* "years since." Censored to 50 (safely beyond this panel's ~35-year span,
-* i.e. reads as "effectively never"), following past_def_onsets' own
-* convention of replacing missing with a fixed value rather than dropping
-* rows.
-* ══════════════════════════════════════════════════════════════════════════
-di as result _n "════════════════════════════════════════════════════════════"
-di as result "1b. ALTERNATIVE PREDICTOR: years_since_def_onset (credit, h=1)"
-di as result "════════════════════════════════════════════════════════════"
-
-capture drop _defyear _defyear_lag years_since_def
-* Carry forward the most recent default-onset YEAR seen so far (including the
-* current row if it is itself an onset) -- same bysort(cid year) logic
-* past_def_onsets' own cum_def uses, just tracking a year instead of a count.
-gen _defyear = year if onset_def==1
-bysort cid (year): replace _defyear = _defyear[_n-1] if missing(_defyear) & _n>1
-* Lag by one row/year, exactly as past_def_onsets = L.cum_def does, so the
-* current row's OWN onset status (if any) is excluded -- this is what makes
-* an onset row's value refer to an earlier, distinct episode, not itself.
-bysort cid (year): gen _defyear_lag = _defyear[_n-1]
-gen double years_since_def = year - _defyear_lag if !missing(_defyear_lag)
-replace years_since_def = 50 if missing(years_since_def)
-label var years_since_def "Years since country's most recent PRIOR default-linked onset (censored at 50)"
-drop _defyear _defyear_lag
-sort cid year
-
-local cz_altrecency l_fedfunds l_reg_crisis_share years_since_def
-
-di as result "  (i) def-arm probit coefficients, years_since_def_onset in place of past_def_onsets:"
-probit in_crisis_def `cx' `cz_altrecency' if sample_flow==1 & in_crisis_nd==0 & continuation==0
-
-di as result _n "  (ii) Same weight/concentration check as 1a, this predictor in place of past_def_onsets:"
-capture drop _psdiag2 _wtdiag2
-quietly probit in_crisis_def `cx' `cz_altrecency' if sample_flow==1 & in_crisis_nd==0 & continuation==0
-quietly predict double _psdiag2 if sample_flow==1 & in_crisis_nd==0, pr
-quietly replace _psdiag2 = .01 if _psdiag2 < .01                  & !missing(_psdiag2)
-quietly replace _psdiag2 = .99 if _psdiag2 > .99 & !missing(_psdiag2)
-quietly gen byte _touse_diag2 = !missing(ch_credit_0, in_crisis_def, _psdiag2)
-foreach v of local ctrl_credit {
-    quietly replace _touse_diag2 = 0 if missing(`v')
-}
-quietly gen double _wtdiag2 = in_crisis_def/_psdiag2 + (1-in_crisis_def)/(1-_psdiag2) if _touse_diag2==1
-
-quietly summarize _psdiag2 if in_crisis_def==1 & _touse_diag2==1, detail
-di as result "    p(treated=def): min=" %5.3f r(min) "  median=" %5.3f r(p50) "  max=" %5.3f r(max)
-quietly count if in_crisis_def==1 & _touse_diag2==1 & (_psdiag2<.05 | _psdiag2>.95)
-local ntr2 = r(N)
-quietly count if in_crisis_def==1 & _touse_diag2==1
-di as result "    rows with p<0.05 or p>0.95: " %3.0f `ntr2' " / " %3.0f r(N)
-
-quietly summarize _wtdiag2 if in_crisis_def==1 & _touse_diag2==1, detail
-di as result "    IPW weight: median=" %6.2f r(p50) "  p90=" %6.2f r(p90) "  max=" %6.2f r(max)
-
-quietly gen double _summand_diag2 = ///
-    in_crisis_def*ch_credit_0/_psdiag2 - (1-in_crisis_def)*ch_credit_0/(1-_psdiag2) if _touse_diag2==1
-preserve
-    quietly keep if _touse_diag2==1
-    quietly summarize _summand_diag2, meanonly
-    local summean2 = r(mean)
-    quietly gen double _sqdev_diag2 = (_summand_diag2 - `summean2')^2
-    quietly summarize _sqdev_diag2, meanonly
-    local alltopvar2 = r(sum)
-    local ntot2 = r(N)
-    local ntop2 = max(1, round(0.05*`ntot2'))
-    gsort -_sqdev_diag2
-    quietly summarize _sqdev_diag2 in 1/`ntop2', meanonly
-    local topvar2 = r(sum)
-restore
-di as result "    concentration: top 5% of rows (" %3.0f `ntop2' " of " %4.0f `ntot2' ///
-             ") account for " %5.1f 100*`topvar2'/`alltopvar2' " pct of the summand's variance."
-
-di as result _n "  Compare directly to 1a (past_def_onsets): p range 0.010-0.938, 15/65 rows"
-di as result "  with p<0.05 or p>0.95, top 5% of rows = 98.9 pct of variance, max weight 100.00."
-di as result "  A materially narrower p range, fewer extreme rows, and a lower concentration"
-di as result "  share here would say years_since_def_onset is both genuinely predictive AND"
-di as result "  better-behaved -- worth carrying into cz_def as a real replacement, not just"
-di as result "  a weaker stand-in chosen to shrink the numbers."
-
-capture drop _psdiag2 _wtdiag2 _touse_diag2 _summand_diag2
 sort cid year   // belt-and-suspenders before Section 2's estimation loop
 
 * ══════════════════════════════════════════════════════════════════════════
