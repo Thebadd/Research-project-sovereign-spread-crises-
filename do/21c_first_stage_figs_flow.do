@@ -150,6 +150,8 @@ foreach s in nd def {
 
     roccomp in_crisis_`s' _p1_`s' _p2_`s' if !missing(_p1_`s',_p2_`s'), ///
         graph summary name(gr_`s', replace) graphregion(color(white)) nodraw ///
+        plot1opts(lcolor(red) mcolor(red) msymbol(circle)) ///
+        plot2opts(lcolor(green) mcolor(green) msymbol(diamond)) ///
         title("`ttl'", size(medium)) ///
         legend(position(5) region(lwidth(none)) size(vsmall) cols(1) ring(0) ///
             order(1 "Controls: `auc1_`s''" 2 "Controls+Predictors: `auc2_`s''"))
