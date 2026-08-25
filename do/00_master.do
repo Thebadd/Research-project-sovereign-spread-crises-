@@ -66,6 +66,7 @@ do "$do/21b_first_stage_table_flow.do"  // Table-1-style probit for 21's Eq. (2)
 do "$do/22_channels_flow.do"         // flow analogue of 11_channels.do: transmission channels, in-crisis treatment
 do "$do/23_channels_resolution_flow.do"  // flow analogue of 12's Spec A: channels by resolution type
 do "$do/24_aipw_channels_flow.do"    // flow analogue of 13c's Act 2: doubly-robust AIPW for the channels, nd vs def
+do "$do/25_aipw_nexus_split_flow.do" // flow analogue of 13d: sovereign-bank nexus heterogeneity split, nd/def x high/low
 do "$do/04_graphs.do"
 * 05_balance_table.do — RETIRED, superseded by 02a_descriptive_facts.do.
 * It compared the two resolution groups on the legacy control list
