@@ -5,10 +5,12 @@
   WHY THIS FILE EXISTS
   --------------------
   12_channels_resolution.do splits each of the six channels from
-  11_channels.do into non-default vs default-linked, under ONSET coding. This
-  file re-runs its Spec A (joint OLS, both types entered together, tranquil
-  omitted — the reference-paper baseline) on the FLOW treatment built in
-  18_transforms.do and used in 20_lp_flow.do and 22_channels_flow.do.
+  11_channels.do, plus the two sovereign-bank nexus channels
+  (claimsgov_assets, claimpriv_assets — see 11b_nexus_channels.do), into
+  non-default vs default-linked, under ONSET coding. This file re-runs its
+  Spec A (joint OLS, both types entered together, tranquil omitted — the
+  reference-paper baseline) on the FLOW treatment built in 18_transforms.do
+  and used in 20_lp_flow.do and 22_channels_flow.do.
 
   NOT BUILT: a flow version of 12's Spec B (IPW, per-type-vs-tranquil, two
   first stages). Same reason the two-stage tier stops at 21_aipw_flow.do: for
@@ -39,8 +41,8 @@
   -------
     "$tabs/table12_channels_resolution_flow.rtf"  one panel per channel
     "$tabs/channels_resolution_flow.csv"           raw coefficients
-    "$clean/irf_flow_ch_<var>_nd.dta / _def.dta"   12 IRF datasets
-    "$figs/fig12_channels_resolution_flow.pdf/.png"  2x3 grid, nd/def overlay
+    "$clean/irf_flow_ch_<var>_nd.dta / _def.dta"   16 IRF datasets
+    "$figs/fig12_channels_resolution_flow.pdf/.png"  3x3 grid (8 panels), nd/def overlay
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -63,7 +65,11 @@ if "$ctrl_flow" == "" {
 * ══════════════════════════════════════════════════════════════════════════
 * 1. CHANNEL OUTCOMES — identical construction to 11/22
 * ══════════════════════════════════════════════════════════════════════════
-local channels credit claims_govt inv govexp pb fdi
+* claimsgov_assets/claimpriv_assets (nexus channels, 11b_nexus_channels.do)
+* are asset-share ratios, not GDP ratios, so like pb/fdi they take no ln_r_
+* transform. Coverage is thin (IMF nexus data start 2001, 6 panel countries
+* entirely absent -- see 22_channels_flow.do and 01c_merge_nexus.do).
+local channels credit claims_govt inv govexp pb fdi claimsgov_assets claimpriv_assets
 
 foreach var of local channels {
     local src `var'
@@ -117,6 +123,9 @@ local ctrl_govexp      : list ctrl_flow_base - epc_lg
 local ctrl_govexp      `ctrl_govexp' epc_pre_govexp
 local ctrl_pb          `ctrl_flow_base' epc_pre_pb
 local ctrl_fdi         `ctrl_flow_base' epc_pre_fdi
+* Nexus channels: no core term dropped, same convention as 11b/13c/22.
+local ctrl_claimsgov_assets `ctrl_flow_base' epc_pre_claimsgov_assets
+local ctrl_claimpriv_assets `ctrl_flow_base' epc_pre_claimpriv_assets
 
 capture program drop _critvals
 program define _critvals, rclass
@@ -254,6 +263,8 @@ local ptitle_inv         "Panel C: Investment"
 local ptitle_govexp      "Panel D: Govt expenditure"
 local ptitle_pb          "Panel E: Primary balance/GDP"
 local ptitle_fdi         "Panel F: FDI/GDP"
+local ptitle_claimsgov_assets "Panel G: Bank claims on govt / bank assets (nexus, doom-loop)"
+local ptitle_claimpriv_assets "Panel H: Bank claims on private sector / bank assets (nexus, reallocation)"
 
 local writemode replace
 foreach ch of local channels {
@@ -305,7 +316,7 @@ foreach ch of local channels {
         restore
     }
 }
-di as result "IRF datasets saved: irf_flow_ch_<channel>_nd/_def.dta (12)"
+di as result "IRF datasets saved: irf_flow_ch_<channel>_nd/_def.dta (16)"
 
 local c_nd "0 84 166"
 local c_def "157 36 73"
@@ -316,6 +327,8 @@ local title_inv "Investment"
 local title_govexp "Govt expenditure"
 local title_pb "Primary balance"
 local title_fdi "FDI"
+local title_claimsgov_assets "Nexus: claims on govt"
+local title_claimpriv_assets "Nexus: claims on private"
 
 local i = 1
 local gnames

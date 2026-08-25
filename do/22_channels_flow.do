@@ -5,8 +5,12 @@
   WHY THIS FILE EXISTS
   --------------------
   11_channels.do re-runs the Act-1 output LP on six intermediate outcomes
-  (credit, sovereign-bank nexus, investment, government spending, primary
-  balance, FDI) under ONSET coding: one treated row per episode. This file
+  (credit, claims on govt/GDP, investment, government spending, primary
+  balance, FDI) under ONSET coding: one treated row per episode; two further
+  sovereign-bank NEXUS channels (claimsgov_assets, claimpriv_assets, bank
+  claims scaled by bank assets rather than GDP) are added the same way by
+  11b_nexus_channels.do/13c_aipw_channels.do. Both sets are ported here. This
+  file
   asks the same question 20_lp_flow.do asks of GDP — what does each channel do
   WHILE a country is in a spread crisis, not just after one starts — using the
   same flow treatment (in_crisis, built in 18_transforms.do; 234 treated
@@ -56,8 +60,8 @@
   -------
     "$tabs/table11_channels_flow.rtf"   one panel per channel, flow spec
     "$tabs/channels_flow.csv"           raw coefficients, all channels, all variants
-    "$clean/irf_flow_ch_<var>.dta"      one IRF dataset per channel (6)
-    "$figs/fig11_channels_flow.pdf/.png"  2x3 grid, drawn here (self-contained)
+    "$clean/irf_flow_ch_<var>.dta"      one IRF dataset per channel (8)
+    "$figs/fig11_channels_flow.pdf/.png"  3x3 grid (8 panels), drawn here (self-contained)
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -80,7 +84,15 @@ if "$ctrl_flow" == "" {
 * ══════════════════════════════════════════════════════════════════════════
 * 1. CHANNEL OUTCOMES — identical construction to 11_channels.do
 * ══════════════════════════════════════════════════════════════════════════
-local channels credit claims_govt inv govexp pb fdi
+* claimsgov_assets/claimpriv_assets (the "nexus" channels, 11b_nexus_channels.do)
+* are asset-share ratios (bank claims / bank assets), not GDP ratios, so like
+* pb/fdi they take no ln_r_ transform -- they fall through to the raw `src'
+* branch below unchanged. Coverage is thin: IMF nexus data start 2001 and 6
+* panel countries are entirely absent (China, Ecuador, El Salvador, India,
+* Lebanon, Vietnam -- see 01c_merge_nexus.do), worse again once L2. (for
+* pre_<var>) and episode-averaging (for epc_pre_<var>) are layered on; the
+* coverage report right after this loop makes that visible per channel.
+local channels credit claims_govt inv govexp pb fdi claimsgov_assets claimpriv_assets
 
 foreach var of local channels {
     local src `var'
@@ -167,6 +179,10 @@ local ctrl_govexp      : list ctrl_flow_base - epc_lg
 local ctrl_govexp      `ctrl_govexp' epc_pre_govexp
 local ctrl_pb          `ctrl_flow_base' epc_pre_pb
 local ctrl_fdi         `ctrl_flow_base' epc_pre_fdi
+* Nexus channels: no core term dropped, same convention as 11b/13c (they are
+* not literally identical to any $ctrl_core regressor, unlike credit/govexp).
+local ctrl_claimsgov_assets `ctrl_flow_base' epc_pre_claimsgov_assets
+local ctrl_claimpriv_assets `ctrl_flow_base' epc_pre_claimpriv_assets
 
 local ctrl_row_credit      : list ctrl_core_base - lc0
 local ctrl_row_credit      `ctrl_row_credit' pre_credit
@@ -326,6 +342,8 @@ local ptitle_inv         "Panel C: Investment"
 local ptitle_govexp      "Panel D: Govt expenditure"
 local ptitle_pb          "Panel E: Primary balance/GDP"
 local ptitle_fdi         "Panel F: FDI/GDP"
+local ptitle_claimsgov_assets "Panel G: Bank claims on govt / bank assets (nexus, doom-loop)"
+local ptitle_claimpriv_assets "Panel H: Bank claims on private sector / bank assets (nexus, reallocation)"
 
 local writemode replace
 foreach ch of local channels {
@@ -383,6 +401,8 @@ local title_inv "Investment"
 local title_govexp "Govt expenditure"
 local title_pb "Primary balance"
 local title_fdi "FDI"
+local title_claimsgov_assets "Nexus: claims on govt"
+local title_claimpriv_assets "Nexus: claims on private"
 
 local i = 1
 local gnames
