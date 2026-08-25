@@ -85,6 +85,18 @@
   (08b_aipw.do's own file takes the other, "conservative" route — bootstrap
   for levels too — see 21's header for why the two files differ on this).
 
+  The def-nd difference also carries a Clogg et al. (1995) z as a companion
+  statistic (`aipw_channels_flow_diff.csv`'s cloggz/cloggp columns), matching
+  21_aipw_flow.do's Section 3 and the reference paper's own Table 3, which
+  reports both a bootstrap CI and a Clogg z for every between-cell
+  difference. The Clogg z is the PERMISSIVE number: it assumes the two cells
+  are independent, which they are not here (they share the tranquil control
+  pool, and under flow coding a country can contribute treated rows to both
+  arms), so the bootstrap CI governs where the two disagree — the z is
+  reported for comparability with the reference paper's table format, not
+  because it is the more defensible statistic on this project's thinner
+  cells.
+
   NOT BUILT: the country-cluster bootstrap comparison (21's Section 3b). Can
   be added as a follow-up per channel if wanted; out of scope for this file.
 
@@ -559,7 +571,8 @@ postfile `R' str24 channel str4 series byte horizon double b double se double lo
 tempname Rd
 tempfile diffresf
 postfile `Rd' str24 channel byte horizon double dhl double bdef double bnd ///
-    double se double lo double hi long nd using "`diffresf'", replace
+    double se double lo double hi long nd double cloggz double cloggp ///
+    using "`diffresf'", replace
 
 foreach ch of local channels {
     foreach g in nd def {
@@ -579,7 +592,7 @@ foreach ch of local channels {
     di as result _n "--- CHANNEL: `ch' ---"
     post `R' ("`ch'") ("nd")  (0) (0) (0) (0) (0)
     post `R' ("`ch'") ("def") (0) (0) (0) (0) (0)
-    post `Rd' ("`ch'") (0) (0) (0) (0) (0) (0) (0) (0)
+    post `Rd' ("`ch'") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)
 
     forvalues h = 0/4 {
         local hd  = `h' + 1
@@ -615,13 +628,27 @@ foreach ch of local channels {
         post `R' ("`ch'") ("def") (`hd') (`B1') (`A1') (`B1'-1.96*`A1') (`B1'+1.96*`A1')
         post `R' ("`ch'") ("nd")  (`hd') (`B2') (`A2') (`B2'-1.96*`A2') (`B2'+1.96*`A2')
 
+        * Clogg et al. (1995) z, built from the same analytic influence-function
+        * SEs used for the level bands -- identical construction to
+        * 21_aipw_flow.do's Section 3. It is the PERMISSIVE statistic: it treats
+        * the two cells as independent, and they are not, since they share the
+        * tranquil control pool. The bootstrap percentile CI is the conservative
+        * number and governs where the two disagree.
+        local zz = .
+        local pz = .
+        if !missing(`A1') & !missing(`A2') & (`A1'^2 + `A2'^2) > 0 {
+            local zz = `DH' / sqrt(`A1'^2 + `A2'^2)
+            local pz = 2*(1 - normal(abs(`zz')))
+        }
+
         local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
         di as result "  h=" %1.0f `hd' "  ND=" %8.3f `B2' " (" %5.3f `A2' ")" ///
              "  DEF=" %8.3f `B1' " (" %5.3f `A1' ")" ///
              "  diff=" %8.3f `DH' " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
-             "  " %4.0f `ND' "/`nboot'"
+             "  " %4.0f `ND' "/`nboot'" ///
+             "  Clogg z=" %7.3f `zz' " p=" %5.3f `pz'
 
-        post `Rd' ("`ch'") (`hd') (`DH') (`B1') (`B2') (`SE') (`LO') (`HI') (`ND')
+        post `Rd' ("`ch'") (`hd') (`DH') (`B1') (`B2') (`SE') (`LO') (`HI') (`ND') (`zz') (`pz')
     }
 }
 postclose `R'
@@ -641,7 +668,9 @@ preserve
     label var nd   "Valid bootstrap draws"
     gen byte sig95 = (nd>=50 & (lo>0 | hi<0))
     label var sig95 "Gap CI excludes 0"
-    order channel horizon dhl bdef bnd se lo hi nd sig95
+    label var cloggz "Clogg et al. (1995) z (permissive; assumes independence)"
+    label var cloggp "p-value of the Clogg z"
+    order channel horizon dhl bdef bnd se lo hi nd sig95 cloggz cloggp
     export delimited "$tabs/aipw_channels_flow_diff.csv", replace
     di as result _n "AIPW flow channel def-nd difference CSV saved: $tabs/aipw_channels_flow_diff.csv"
 restore
