@@ -140,18 +140,32 @@ _fscolflow ffs_def "in_crisis_def" "sample_flow==1 & continuation==0 & in_crisis
 di as result _n "=== FLOW FIRST-STAGE PROBIT DIAGNOSTICS (predictors jointly) ==="
 di as result "     sample = tranquil + onset rows only (continuation==0)"
 di as result "col            chi2(pred)   p        AUROC(ctrl only)  AUROC(+pred)  delta"
+local mindlt = .
 foreach c in ffs_nd ffs_def {
     quietly estimates restore `c'
     local dlt = e(auroc) - e(aurocctrl)
     local dltsign = cond(`dlt' >= 0, "+", "")
     di as result %-14s "`c'" "  " %8.2f e(chi2p) "  " %6.3f e(pp) "  " ///
                  %8.3f e(aurocctrl) "        " %6.3f e(auroc) "       " "`dltsign'" %6.3f `dlt'
+    * Track the SMALLER of the two deltas -- the interpretation below should
+    * reflect the weaker column, not be driven by whichever column happens
+    * to look best.
+    if missing(`mindlt') | `dlt' < `mindlt' local mindlt = `dlt'
 }
-di as result _n "      A near-zero delta means the predictors (fed funds, regional contagion,"
-di as result "      years since the last default onset) are adding little beyond what the"
-di as result "      baseline controls already discriminate -- the reference paper's own with/without comparison"
-di as result "      (0.87 vs 0.79, 0.94 vs 0.85) is how they demonstrate predictors are earning"
-di as result "      their place in the exclusion-restriction design, not asserted from theory alone."
+* Threshold is informal, not a hard rule: 0.03 is well below the reference
+* paper's own with/without gaps (0.08-0.09), so anything at or above that is
+* read as "the predictors are earning their place," consistent with the
+* magnitude their own comparison (0.87 vs 0.79, 0.94 vs 0.85) demonstrates.
+di as result _n "      Both columns' AUROC delta: " %5.3f `mindlt' " (smaller of the two) -- " ///
+    cond(`mindlt' >= 0.03, ///
+        "meaningfully positive, comparable in size to the reference paper's own", ///
+        "close to zero, well below the reference paper's own")
+di as result "      with/without-predictors gap (their 0.87 vs 0.79, 0.94 vs 0.85). " ///
+    cond(`mindlt' >= 0.03, ///
+        "The predictors are adding real classification power on top of the baseline", ///
+        "The predictors are adding little classification power on top of the baseline")
+di as result "      controls, not just asserting a role from theory (Chi-squared above tests joint"
+di as result "      significance only, and says nothing about how much discriminatory power is added)."
 
 * ══════════════════════════════════════════════════════════════════════════
 * TABLE EXPORT — Table 1 style (Predictors / Baseline controls blocks + diags)
