@@ -455,6 +455,12 @@ di as result "           frozen diagnostics only, not part of \$ctrl_flow/\$ctrl
 * episode-dating mechanism as $ctrl_flow above, just parameterised on a
 * different base list -- not a new pattern.
 * ══════════════════════════════════════════════════════════════════════════
+* The preceding bysort (ORPHANED $ctrl_core TERMS block above) re-sorts the
+* physical dataset by cid ep_seq as a side effect, same as every other
+* bysort/egen loop in this file -- L.imf then needs the data back in
+* cid year order to match what xtset declared, or it errors r(5) "not
+* sorted" (confirmed the hard way; belt-and-suspenders here as elsewhere).
+sort cid year
 capture drop l_imf
 gen byte l_imf = L.imf
 label var l_imf "L1 IMF-supported program dummy (predetermined)"
