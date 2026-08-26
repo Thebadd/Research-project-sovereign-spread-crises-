@@ -218,15 +218,25 @@ if "$ctrl_flow" == "" {
     exit 111
 }
 
-* EXPLORATORY: set to 1 to test the alternate flow control set (see
-* 18_transforms.do's "EXPLORATORY ALTERNATE FLOW CONTROL SET"). Default 0 =
-* the adopted flow-tier baseline.
-local use_flowalt_ctrl 0
+* EXPLORATORY: flow_ctrl_variant -- 0 = adopted flow-tier baseline (default);
+* 1 = the bigger exploratory alternate set (18_transforms.do's "EXPLORATORY
+* ALTERNATE FLOW CONTROL SET"); 2 = adopted core PLUS the reference paper's
+* own additional predictors, ex_dum1-ex_dum5 and l_imf (18_transforms.do's
+* "SECOND ALTERNATE FLOW CONTROL SET").
+local flow_ctrl_variant 0
+if `flow_ctrl_variant'==2 & "$ctrl_core_flowplus"=="" {
+    di as error "  ** flow_ctrl_variant==2 requested but \$ctrl_core_flowplus is empty (ex_dum1-5"
+    di as error "     unavailable, exch missing) -- re-run 01_build_panel.do/12_wdi.do/18_transforms.do"
+    di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0/1."
+    exit 111
+}
 * `cx_active' is the row-dated propensity control set: the flow tier's
 * adopted core control set (l_banking_crisis, tot_chg in place of
-* l_banking_duration, l_ca), or the bigger alternate if toggled.
-local cx_active = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core_flowbase")  // Eq. (2) baseline: row-dated, ADOPTED set
-local com    = cond(`use_flowalt_ctrl', "$ctrl_flow_flowalt", "$ctrl_flow")    // Eq. (1) controls: episode-dated (already the adopted set via 18_transforms.do)
+* l_banking_duration, l_ca), or one of the two alternates if toggled.
+local cx_active = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowalt", ///
+                   cond(`flow_ctrl_variant'==2, "$ctrl_core_flowplus", "$ctrl_core_flowbase"))  // Eq. (2) baseline: row-dated, ADOPTED set
+local com    = cond(`flow_ctrl_variant'==1, "$ctrl_flow_flowalt", ///
+                cond(`flow_ctrl_variant'==2, "$ctrl_flow_flowplus", "$ctrl_flow"))    // Eq. (1) controls: episode-dated (already the adopted set via 18_transforms.do)
 * cz_recency: the adopted predictor set -- l_contagion_dist in place of
 * l_reg_crisis_share, years_since_def_onset in place of past_def_onsets.
 local cz_recency l_fedfunds l_contagion_dist years_since_def_onset

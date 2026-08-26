@@ -212,25 +212,36 @@ if "$ctrl_flow" == "" {
 * no-year-FE robustness row (r_noyearfe, section 4) is what separates the two,
 * and the write-up should quote it when setting the figures side by side rather
 * than attributing the whole difference to the estimator.
-* CONTROL SET. Default 0 = the ADOPTED flow-tier baseline: $ctrl_flow, built
-* in 18_transforms.do from $ctrl_core_flowbase (l_banking_duration swapped
-* for the l_banking_crisis DUMMY, l_ca swapped for tot_chg -- see that
-* file's "ADOPTED FLOW-TIER CORE CONTROL SET"). Set to 1 to test the bigger,
-* still-exploratory alternate set instead (drops l_debt/l_ca, banking-crisis
-* dummy, adds exchange rate AND terms of trade -- 18_transforms.do's
-* "EXPLORATORY ALTERNATE FLOW CONTROL SET"). Because the ADOPTED set is no
-* longer term-for-term identical to $ctrl_core, the identity check below
-* (section 2) no longer reproduces 02_lp_all.do's published onset-coded
-* coefficient under the default -- it is a pure self-consistency check
-* (flow collapses to onset coding under whichever control set is active),
-* not a literal match to the published figure. `ctrl_row' (and r_rowdated,
-* section 4) also now report the ADOPTED set's row-dated form, not the
-* ORIGINAL $ctrl_core's -- there is no longer a built-in bridge back to
-* 02_lp_all.do's exact published number anywhere in this file; that
-* comparison belongs in 02_lp_all.do itself.
-local use_flowalt_ctrl 0
-local controls  = cond(`use_flowalt_ctrl', "$ctrl_flow_flowalt", "$ctrl_flow")
-local ctrl_row  = cond(`use_flowalt_ctrl', "$ctrl_core_flowalt", "$ctrl_core_flowbase")
+* CONTROL SET. flow_ctrl_variant: 0 = the ADOPTED flow-tier baseline,
+* $ctrl_flow, built in 18_transforms.do from $ctrl_core_flowbase
+* (l_banking_duration swapped for the l_banking_crisis DUMMY, l_ca swapped
+* for tot_chg -- see that file's "ADOPTED FLOW-TIER CORE CONTROL SET").
+* 1 = the bigger, still-exploratory alternate set (drops l_debt/l_ca,
+* banking-crisis dummy, adds exchange rate AND terms of trade --
+* 18_transforms.do's "EXPLORATORY ALTERNATE FLOW CONTROL SET"). 2 = the
+* adopted core PLUS the reference paper's own additional predictors
+* (exchange-rate depreciation severity bins ex_dum1-ex_dum5, an IMF-program
+* dummy l_imf -- 18_transforms.do's "SECOND ALTERNATE FLOW CONTROL SET").
+* Default 0. Because the ADOPTED set is no longer term-for-term identical to
+* $ctrl_core, the identity check below (section 2) no longer reproduces
+* 02_lp_all.do's published onset-coded coefficient under the default -- it
+* is a pure self-consistency check (flow collapses to onset coding under
+* whichever control set is active), not a literal match to the published
+* figure. `ctrl_row' (and r_rowdated, section 4) also now report the ACTIVE
+* variant's row-dated form, not the ORIGINAL $ctrl_core's -- there is no
+* longer a built-in bridge back to 02_lp_all.do's exact published number
+* anywhere in this file; that comparison belongs in 02_lp_all.do itself.
+local flow_ctrl_variant 0
+if `flow_ctrl_variant'==2 & "$ctrl_core_flowplus"=="" {
+    di as error "  ** flow_ctrl_variant==2 requested but \$ctrl_core_flowplus is empty (ex_dum1-5"
+    di as error "     unavailable, exch missing) -- re-run 01_build_panel.do/12_wdi.do/18_transforms.do"
+    di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0/1."
+    exit 111
+}
+local controls  = cond(`flow_ctrl_variant'==1, "$ctrl_flow_flowalt", ///
+                   cond(`flow_ctrl_variant'==2, "$ctrl_flow_flowplus", "$ctrl_flow"))
+local ctrl_row  = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowalt", ///
+                   cond(`flow_ctrl_variant'==2, "$ctrl_core_flowplus", "$ctrl_core_flowbase"))
 
 * EXPLORATORY: set to 1 to drop year FE and match the reference paper's
 * single-stage rule (country FE only, via c1-c74) instead of this project's
@@ -383,7 +394,7 @@ local gap0y = abs(`b_flow0y' - `b_ons0y')
 di as result "  with year FE flow: " %9.6f `b_flow0y' "   onset: " %9.6f `b_ons0y'
 di as result "               (self-consistency check under the ACTIVE control set;"
 di as result "                not a literal match to 02_lp_all.do's published Table 1"
-di as result "                unless use_flowalt_ctrl points ctrl_row at \$ctrl_core)"
+di as result "                since none of the flow_ctrl_variant options point ctrl_row at \$ctrl_core exactly)"
 if `gap0y' > 1e-6 di as error "  ** with-year-FE anchor FAILED (difference " %9.6f `gap0y' ")."
 if `gap0' > 1e-6 {
     di as error "  ** IDENTITY CHECK FAILED (difference " %9.6f `gap0' ")."

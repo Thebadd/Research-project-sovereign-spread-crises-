@@ -434,8 +434,8 @@ di as result "           frozen diagnostics only, not part of \$ctrl_flow/\$ctrl
 * "what happens if" test of the flow tier's control set, requested to be kept
 * separate from $ctrl_core/$ctrl_flow so every onset-tier file and every
 * flow-file identity check that depends on matching $ctrl_core keeps working
-* unchanged. Each flow file (20-24) reads this only if its own
-* `use_flowalt_ctrl' toggle is set to 1; default is 0 (current baseline).
+* unchanged. Each flow file (20-25) reads this only if its own
+* `flow_ctrl_variant' toggle is set to 1; default is 0 (current baseline).
 * Same episode-dating mechanism as $ctrl_flow above, just parameterised on a
 * different base list -- not a new pattern.
 global ctrl_core_flowalt "l1_gdpg l_govexp l_open l_credit_bank l_hyperinfl l_banking_crisis l_reer_chg tot_chg"
@@ -458,6 +458,59 @@ foreach X of global ctrl_core_flowalt {
     global ctrl_flow_flowalt "$ctrl_flow_flowalt epc_`X'"
 }
 di as result "  FLOWALT (exploratory): episode-dated control set built -> $ctrl_flow_flowalt"
+
+* ══════════════════════════════════════════════════════════════════════════
+* SECOND ALTERNATE FLOW CONTROL SET — $ctrl_core_flowplus / $ctrl_flow_flowplus
+*
+* The ADOPTED core ($ctrl_core_flowbase) PLUS predictors the reference
+* paper's own $convar carries that this project's core set does not:
+*   - ex_dum1-ex_dum5: exchange-rate depreciation SEVERITY BINS, exactly the
+*     reference paper's own construction -- <p5, p5-p25, p25-p50, p50-p75,
+*     p75-p95 of the log FX change (built above from officialexchangerate.xlsx,
+*     "ROBUSTNESS-tier controls" block; already predetermined, based on L./L2.
+*     exchange rates).
+*   - l_imf: an IMF-supported-program dummy, lagged (predetermined). `imf' is
+*     already in panel_build.dta (01_build_panel.do); this is the first place
+*     it is lagged and entry-dated for use as a CONTROL rather than as the
+*     treatment modifier 09_lp_imf.do studies it as.
+* Freedom House civil-liberties/political-rights indices were also
+* considered but are NOT built here -- no raw source file for them exists in
+* this project yet; add them the same way GEO_CEPII.xlsx was added for the
+* contagion predictor if that data becomes available.
+*
+* NOT used anywhere by default. Selected via each flow file's
+* `flow_ctrl_variant' toggle (0=adopted core, 1=bigger exploratory alt set,
+* 2=this set), default 0. Same episode-dating mechanism as $ctrl_flow/
+* $ctrl_flow_flowalt above, just parameterised on a third base list.
+* ══════════════════════════════════════════════════════════════════════════
+capture drop l_imf
+gen byte l_imf = L.imf
+label var l_imf "L1 IMF-supported program dummy (predetermined)"
+
+capture confirm variable ex_dum1
+if !_rc {
+    global ctrl_core_flowplus "$ctrl_core_flowbase ex_dum1 ex_dum2 ex_dum3 ex_dum4 ex_dum5 l_imf"
+    global ctrl_flow_flowplus ""
+    foreach X of global ctrl_core_flowplus {
+        * Dropped SEPARATELY -- same reasoning as the FLOWALT block above:
+        * the 8 $ctrl_core_flowbase terms already have epc_ built from the
+        * $ctrl_flow loop, so only _ent_`X' is guaranteed absent for those.
+        capture drop epc_`X'
+        capture drop _ent_`X'
+        quietly bysort cid ep_seq: egen double _ent_`X' = max(cond(onset_all==1, `X', .))
+        quietly gen double epc_`X' = cond(in_crisis==1, _ent_`X', `X')
+        label var epc_`X' "`X' at episode entry (tranquil rows keep own t-1) -- flowplus"
+        quietly drop _ent_`X'
+        global ctrl_flow_flowplus "$ctrl_flow_flowplus epc_`X'"
+    }
+    di as result "  FLOWPLUS (exploratory): episode-dated control set built -> $ctrl_flow_flowplus"
+}
+else {
+    global ctrl_core_flowplus ""
+    global ctrl_flow_flowplus ""
+    di as error "  ** ex_dum1-5 not built (exch missing) -- \$ctrl_core_flowplus/\$ctrl_flow_flowplus left empty."
+    di as error "     add data/raw/officialexchangerate.xlsx and re-run 01_build_panel.do/12_wdi.do first."
+}
 
 gen byte in_crisis_nd  = (in_crisis==1 & nd_ep==1)
 gen byte in_crisis_def = (in_crisis==1 & nd_ep==0)

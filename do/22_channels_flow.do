@@ -149,23 +149,33 @@ local epc_lg epc_l_govexp
 local lc0    l_credit_bank
 local lg0    l_govexp
 
-* CONTROL SET. Default 0 = the ADOPTED flow-tier baseline: $ctrl_flow, built
-* in 18_transforms.do from $ctrl_core_flowbase (l_banking_duration -> the
-* l_banking_crisis DUMMY, l_ca -> tot_chg, l_hyperinfl -> l_lninfl -- see
-* that file's "ADOPTED FLOW-TIER CORE CONTROL SET"). Set to 1 to test the
-* bigger, still-exploratory alternate set instead (18_transforms.do's
-* "EXPLORATORY ALTERNATE FLOW CONTROL SET"). This drives every control-set
-* reference below, INCLUDING the identity check in section 3 -- because the
-* ADOPTED set is no longer term-for-term identical to $ctrl_core, that check
-* no longer reproduces 11_channels.do's published credit-channel coefficient
-* under the default; it is a pure self-consistency check (flow must still
-* collapse to onset coding under whichever control set is active), not a
-* literal match to that published figure.
-local use_flowalt_ctrl 0
-if `use_flowalt_ctrl' local ctrl_flow_base $ctrl_flow_flowalt
-else                  local ctrl_flow_base $ctrl_flow
-if `use_flowalt_ctrl' local ctrl_core_base $ctrl_core_flowalt
-else                  local ctrl_core_base $ctrl_core_flowbase
+* CONTROL SET. flow_ctrl_variant: 0 = the ADOPTED flow-tier baseline,
+* $ctrl_flow, built in 18_transforms.do from $ctrl_core_flowbase
+* (l_banking_duration -> the l_banking_crisis DUMMY, l_ca -> tot_chg,
+* l_hyperinfl -> l_lninfl -- see that file's "ADOPTED FLOW-TIER CORE CONTROL
+* SET"). 1 = the bigger, still-exploratory alternate set (18_transforms.do's
+* "EXPLORATORY ALTERNATE FLOW CONTROL SET"). 2 = the adopted core PLUS the
+* reference paper's own additional predictors, ex_dum1-ex_dum5 and l_imf
+* (18_transforms.do's "SECOND ALTERNATE FLOW CONTROL SET"). Default 0. This
+* drives every control-set reference below, INCLUDING the identity check in
+* section 3 -- because the ADOPTED set is no longer term-for-term identical
+* to $ctrl_core, that check no longer reproduces 11_channels.do's published
+* credit-channel coefficient under the default; it is a pure self-consistency
+* check (flow must still collapse to onset coding under whichever control
+* set is active), not a literal match to that published figure.
+local flow_ctrl_variant 0
+if `flow_ctrl_variant'==2 & "$ctrl_core_flowplus"=="" {
+    di as error "  ** flow_ctrl_variant==2 requested but \$ctrl_core_flowplus is empty (ex_dum1-5"
+    di as error "     unavailable, exch missing) -- re-run 01_build_panel.do/12_wdi.do/18_transforms.do"
+    di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0/1."
+    exit 111
+}
+if `flow_ctrl_variant'==1      local ctrl_flow_base $ctrl_flow_flowalt
+else if `flow_ctrl_variant'==2 local ctrl_flow_base $ctrl_flow_flowplus
+else                            local ctrl_flow_base $ctrl_flow
+if `flow_ctrl_variant'==1      local ctrl_core_base $ctrl_core_flowalt
+else if `flow_ctrl_variant'==2 local ctrl_core_base $ctrl_core_flowplus
+else                            local ctrl_core_base $ctrl_core_flowbase
 
 * EXPLORATORY: set to 1 to drop year FE and match the reference paper's
 * single-stage rule (country FE only), matching 20_lp_flow.do's toggle of the
@@ -249,7 +259,7 @@ sort cid year   // belt-and-suspenders: guaranteed panel order before the first 
 *    return the SAME coefficient under whichever control set is active.
 *    Under the ADOPTED default this is a pure self-consistency check, NOT a
 *    literal match to 11_channels.do's published Table 3 coefficient (see
-*    the `use_flowalt_ctrl' comment above) -- the adopted set is no longer
+*    the `flow_ctrl_variant' comment above) -- the adopted set is no longer
 *    term-for-term identical to $ctrl_core. Run once (credit); the same
 *    construction governs the other channels.
 * ══════════════════════════════════════════════════════════════════════════
