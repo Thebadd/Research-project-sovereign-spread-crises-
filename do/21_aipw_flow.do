@@ -220,10 +220,10 @@ if "$ctrl_flow" == "" {
 
 * EXPLORATORY: flow_ctrl_variant -- 0 = adopted flow-tier baseline (default);
 * 1 = adopted core PLUS the reference paper's own additional predictors,
-* ex_dum1-ex_dum5 and l_imf (18_transforms.do's "ALTERNATE FLOW CONTROL SET").
+* exchange2 and l_imf (18_transforms.do's "ALTERNATE FLOW CONTROL SET").
 local flow_ctrl_variant 0
 if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
-    di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (ex_dum1-5"
+    di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (exchange2"
     di as error "     unavailable, exch missing) -- re-run 01_build_panel.do/12_wdi.do/18_transforms.do"
     di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0."
     exit 111

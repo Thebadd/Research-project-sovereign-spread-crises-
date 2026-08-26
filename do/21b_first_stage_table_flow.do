@@ -109,11 +109,11 @@ foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def
 * $ctrl_core_flowbase (18_transforms.do's "ADOPTED FLOW-TIER CORE CONTROL
 * SET": l_banking_crisis, tot_chg, l_lninfl in place of l_banking_duration,
 * l_ca, l_hyperinfl). 1 = the adopted core PLUS the reference paper's own
-* additional predictors, ex_dum1-ex_dum5 and l_imf (18_transforms.do's
+* additional predictors, exchange2 and l_imf (18_transforms.do's
 * "ALTERNATE FLOW CONTROL SET"). Default 0.
 local flow_ctrl_variant 0
 if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
-    di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (ex_dum1-5"
+    di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (exchange2"
     di as error "     unavailable, exch missing) -- re-run 01_build_panel.do/12_wdi.do/18_transforms.do"
     di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0."
     exit 111

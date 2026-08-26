@@ -154,7 +154,7 @@ local lg0    l_govexp
 * (l_banking_duration -> the l_banking_crisis DUMMY, l_ca -> tot_chg,
 * l_hyperinfl -> l_lninfl -- see that file's "ADOPTED FLOW-TIER CORE CONTROL
 * SET"). 1 = the adopted core PLUS the reference paper's own additional
-* predictors, ex_dum1-ex_dum5 and l_imf (18_transforms.do's "ALTERNATE FLOW
+* predictors, exchange2 and l_imf (18_transforms.do's "ALTERNATE FLOW
 * CONTROL SET"). Default 0. This drives every control-set reference below,
 * INCLUDING the identity check in section 3 -- because the ADOPTED set is
 * no longer term-for-term identical to $ctrl_core, that check no longer
@@ -164,7 +164,7 @@ local lg0    l_govexp
 * literal match to that published figure.
 local flow_ctrl_variant 0
 if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
-    di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (ex_dum1-5"
+    di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (exchange2"
     di as error "     unavailable, exch missing) -- re-run 01_build_panel.do/12_wdi.do/18_transforms.do"
     di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0."
     exit 111

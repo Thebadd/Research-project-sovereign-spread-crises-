@@ -217,7 +217,7 @@ if "$ctrl_flow" == "" {
 * (l_banking_duration swapped for the l_banking_crisis DUMMY, l_ca swapped
 * for tot_chg -- see that file's "ADOPTED FLOW-TIER CORE CONTROL SET").
 * 1 = the adopted core PLUS the reference paper's own additional predictors
-* (exchange-rate depreciation severity bins ex_dum1-ex_dum5, an IMF-program
+* (the continuous exchange-rate change exchange2, an IMF-program
 * dummy l_imf -- 18_transforms.do's "ALTERNATE FLOW CONTROL SET"). Default
 * 0. Because the ADOPTED set is no longer term-for-term identical to
 * $ctrl_core, the identity check below (section 2) no longer reproduces
@@ -230,7 +230,7 @@ if "$ctrl_flow" == "" {
 * anywhere in this file; that comparison belongs in 02_lp_all.do itself.
 local flow_ctrl_variant 0
 if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
-    di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (ex_dum1-5"
+    di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (exchange2"
     di as error "     unavailable, exch missing) -- re-run 01_build_panel.do/12_wdi.do/18_transforms.do"
     di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0."
     exit 111

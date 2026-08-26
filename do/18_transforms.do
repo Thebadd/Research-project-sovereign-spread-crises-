@@ -434,13 +434,22 @@ di as result "           frozen diagnostics only, not part of \$ctrl_flow/\$ctrl
 * user's request -- it is no longer a toggle option anywhere. Only one
 * alternate to the adopted core remains, and it is this one.
 *
-* The ADOPTED core ($ctrl_core_flowbase) PLUS predictors the reference
-* paper's own $convar carries that this project's core set does not:
-*   - ex_dum1-ex_dum5: exchange-rate depreciation SEVERITY BINS, exactly the
-*     reference paper's own construction -- <p5, p5-p25, p25-p50, p50-p75,
-*     p75-p95 of the log FX change (built above from officialexchangerate.xlsx,
-*     "ROBUSTNESS-tier controls" block; already predetermined, based on L./L2.
-*     exchange rates).
+* The ADOPTED core ($ctrl_core_flowbase) PLUS two additional predictors:
+*   - exchange2: the CONTINUOUS log FX change (built above from
+*     officialexchangerate.xlsx, "ROBUSTNESS-tier controls" block; already
+*     predetermined, ln(1+L.exch)-ln(1+L2.exch)). NOT the reference paper's
+*     own ex_dum1-ex_dum5 percentile-bin dummies -- those were tried first
+*     and REJECTED: on this project's much smaller panel, ex_dum1 (and, in
+*     the def arm, ex_dum2 as well) has ZERO outcome variation, so Stata
+*     drops the dummy AND every row in that bin automatically ("predicts
+*     failure perfectly") -- 27 rows (nd) / 173 rows (def, both bins
+*     combined) lost. That mechanically shrank and reshaped the estimation
+*     sample (696->494 obs, def arm) in a way that inflated the AUROC
+*     comparison without any of ex_dum2-ex_dum5 being individually
+*     significant in either arm -- a sample-composition artifact, not real
+*     signal, the same separation pathology already documented for country
+*     FE and past_def_onsets on this panel. The continuous level has no
+*     empty-cell separation risk the way a 5-way categorical split does.
 *   - l_imf: an IMF-supported-program dummy, lagged (predetermined). `imf' is
 *     already in panel_build.dta (01_build_panel.do); this is the first place
 *     it is lagged and entry-dated for use as a CONTROL rather than as the
@@ -465,9 +474,9 @@ capture drop l_imf
 gen byte l_imf = L.imf
 label var l_imf "L1 IMF-supported program dummy (predetermined)"
 
-capture confirm variable ex_dum1
+capture confirm variable exchange2
 if !_rc {
-    global ctrl_core_flowplus "$ctrl_core_flowbase ex_dum1 ex_dum2 ex_dum3 ex_dum4 ex_dum5 l_imf"
+    global ctrl_core_flowplus "$ctrl_core_flowbase exchange2 l_imf"
     global ctrl_flow_flowplus ""
     foreach X of global ctrl_core_flowplus {
         * Dropped SEPARATELY -- same reasoning as the FLOWALT block above:
@@ -486,7 +495,7 @@ if !_rc {
 else {
     global ctrl_core_flowplus ""
     global ctrl_flow_flowplus ""
-    di as error "  ** ex_dum1-5 not built (exch missing) -- \$ctrl_core_flowplus/\$ctrl_flow_flowplus left empty."
+    di as error "  ** exchange2 not built (exch missing) -- \$ctrl_core_flowplus/\$ctrl_flow_flowplus left empty."
     di as error "     add data/raw/officialexchangerate.xlsx and re-run 01_build_panel.do/12_wdi.do first."
 }
 
