@@ -216,9 +216,10 @@ if "$ctrl_flow" == "" {
 * $ctrl_flow, built in 18_transforms.do from $ctrl_core_flowbase
 * (l_banking_duration swapped for the l_banking_crisis DUMMY, l_ca swapped
 * for tot_chg, tot_chg swapped for exchange2 -- see that file's "ADOPTED
-* FLOW-TIER CORE CONTROL SET"). 1 = the adopted core PLUS one further
-* candidate, an IMF-program dummy l_imf (18_transforms.do's "ALTERNATE FLOW
-* CONTROL SET"). Default 0. Because the ADOPTED set is no longer term-for-term identical to
+* FLOW-TIER CORE CONTROL SET"). 1 = the adopted core PLUS two further
+* candidates, tot_chg (the term exchange2 replaced) and an IMF-program
+* dummy l_imf (18_transforms.do's "ALTERNATE FLOW CONTROL SET"). Default 0.
+* Because the ADOPTED set is no longer term-for-term identical to
 * $ctrl_core, the identity check below (section 2) no longer reproduces
 * 02_lp_all.do's published onset-coded coefficient under the default -- it
 * is a pure self-consistency check (flow collapses to onset coding under

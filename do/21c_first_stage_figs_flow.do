@@ -85,7 +85,7 @@ foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def
 
 * Same toggle and control sets as 21b_first_stage_table_flow.do — kept in
 * sync manually, since this file does not source that one. 0=adopted core,
-* 1=adopted core + exchange2/l_imf.
+* 1=adopted core + tot_chg (the term exchange2 replaced)/l_imf.
 local flow_ctrl_variant 0
 if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
     di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (exchange2"

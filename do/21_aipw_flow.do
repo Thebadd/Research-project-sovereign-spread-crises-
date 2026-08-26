@@ -220,7 +220,7 @@ if "$ctrl_flow" == "" {
 
 * EXPLORATORY: flow_ctrl_variant -- 0 = adopted flow-tier baseline (default);
 * 1 = adopted core PLUS the reference paper's own additional predictors,
-* l_imf, since exchange2 is now already inside the adopted core (18_transforms.do's "ALTERNATE FLOW CONTROL SET").
+* tot_chg (the term exchange2 replaced) and l_imf (18_transforms.do's "ALTERNATE FLOW CONTROL SET").
 local flow_ctrl_variant 0
 if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
     di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (exchange2"

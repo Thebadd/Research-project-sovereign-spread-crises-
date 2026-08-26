@@ -154,7 +154,7 @@ local lg0    l_govexp
 * (l_banking_duration -> the l_banking_crisis DUMMY, l_ca -> tot_chg -> exchange2,
 * l_hyperinfl -> l_lninfl -- see that file's "ADOPTED FLOW-TIER CORE CONTROL
 * SET"). 1 = the adopted core PLUS the reference paper's own additional
-* predictors, l_imf, since exchange2 is now already inside the adopted core (18_transforms.do's "ALTERNATE FLOW
+* predictors, tot_chg (the term exchange2 replaced) and l_imf (18_transforms.do's "ALTERNATE FLOW
 * CONTROL SET"). Default 0. This drives every control-set reference below,
 * INCLUDING the identity check in section 3 -- because the ADOPTED set is
 * no longer term-for-term identical to $ctrl_core, that check no longer

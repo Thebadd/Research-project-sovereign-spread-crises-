@@ -476,8 +476,16 @@ di as result "           frozen diagnostics only, not part of \$ctrl_flow/\$ctrl
 * exchange2 (continuous log FX change) used to be this alternate's own
 * addition; it has since been ADOPTED into $ctrl_core_flowbase itself (see
 * that block's header, "THE FOURTH SWAP"), so it is no longer a
-* differentiator here. This set is now just the adopted core PLUS one
-* remaining candidate:
+* differentiator here. This set is now the adopted core PLUS two remaining
+* candidates:
+*   - tot_chg: terms-of-trade log-change, the term exchange2 REPLACED in the
+*     adopted core. Kept available here rather than discarded: the fourth
+*     swap was made on literature-fidelity grounds despite tot_chg
+*     outperforming exchange2 empirically as an outcome-equation control
+*     (20_lp_flow.do's retired diagnostic found it significant at 4 of 5
+*     horizons vs exchange2's 1 of 5) -- this lets that empirical strength
+*     be tested back in ALONGSIDE exchange2, rather than forcing a choice
+*     between the two.
 *   - l_imf: an IMF-supported-program dummy, lagged (predetermined). `imf' is
 *     already in panel_build.dta (01_build_panel.do); this is the first place
 *     it is lagged and entry-dated for use as a CONTROL rather than as the
@@ -502,7 +510,13 @@ capture drop l_imf
 gen byte l_imf = L.imf
 label var l_imf "L1 IMF-supported program dummy (predetermined)"
 
-global ctrl_core_flowplus "$ctrl_core_flowbase l_imf"
+capture confirm variable tot_chg
+if _rc {
+    di as error "  ** tot_chg not built (tot missing) -- \$ctrl_core_flowplus will exclude it."
+    di as error "     add data/raw/termsoftrade.xlsx and re-run 01_build_panel.do first if wanted."
+    global ctrl_core_flowplus "$ctrl_core_flowbase l_imf"
+}
+else global ctrl_core_flowplus "$ctrl_core_flowbase tot_chg l_imf"
 global ctrl_flow_flowplus ""
 foreach X of global ctrl_core_flowplus {
     * Dropped SEPARATELY -- same reasoning as the FLOWALT block above:

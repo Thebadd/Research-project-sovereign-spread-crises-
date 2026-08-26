@@ -108,9 +108,9 @@ foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def
 * CONTROL SET. flow_ctrl_variant: 0 = the ADOPTED flow-tier baseline,
 * $ctrl_core_flowbase (18_transforms.do's "ADOPTED FLOW-TIER CORE CONTROL
 * SET": l_banking_crisis, l_lninfl, exchange2 in place of l_banking_duration,
-* l_ca/tot_chg, l_hyperinfl). 1 = the adopted core PLUS one further
-* candidate, l_imf (18_transforms.do's "ALTERNATE FLOW CONTROL SET").
-* Default 0.
+* l_ca/tot_chg, l_hyperinfl). 1 = the adopted core PLUS two further
+* candidates, tot_chg (the term exchange2 replaced) and l_imf
+* (18_transforms.do's "ALTERNATE FLOW CONTROL SET"). Default 0.
 local flow_ctrl_variant 0
 if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
     di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (exchange2"

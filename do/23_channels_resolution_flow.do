@@ -102,7 +102,7 @@ sort cid year
 * (l_banking_duration -> the l_banking_crisis DUMMY, l_ca -> tot_chg -> exchange2,
 * l_hyperinfl -> l_lninfl -- see that file's "ADOPTED FLOW-TIER CORE CONTROL
 * SET"). 1 = the adopted core PLUS the reference paper's own additional
-* predictors, l_imf, since exchange2 is now already inside the adopted core (18_transforms.do's "ALTERNATE FLOW
+* predictors, tot_chg (the term exchange2 replaced) and l_imf (18_transforms.do's "ALTERNATE FLOW
 * CONTROL SET"). Default 0. No identity check in this file depends on
 * $ctrl_flow specifically (unlike 22), so the toggle can drive this local
 * directly rather than needing a separate "_use" duplicate, and no code
