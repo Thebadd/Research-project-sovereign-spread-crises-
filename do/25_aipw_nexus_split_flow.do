@@ -190,10 +190,10 @@ local epc_lc epc_l_credit_bank
 
 * CONTROL SET. flow_ctrl_variant: 0 = the ADOPTED flow-tier baseline,
 * $ctrl_flow, built in 18_transforms.do from $ctrl_core_flowbase
-* (l_banking_duration -> the l_banking_crisis DUMMY, l_ca -> tot_chg,
+* (l_banking_duration -> the l_banking_crisis DUMMY, l_ca -> tot_chg -> exchange2,
 * l_hyperinfl -> l_lninfl -- see that file's "ADOPTED FLOW-TIER CORE CONTROL
 * SET"). 1 = the adopted core PLUS the reference paper's own additional
-* predictors, exchange2 and l_imf (18_transforms.do's "ALTERNATE FLOW
+* predictors, l_imf, since exchange2 is now already inside the adopted core (18_transforms.do's "ALTERNATE FLOW
 * CONTROL SET"). Default 0, matching 20/22/23/24's toggle of the same name.
 local flow_ctrl_variant 0
 if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {

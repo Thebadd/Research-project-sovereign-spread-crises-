@@ -215,11 +215,10 @@ if "$ctrl_flow" == "" {
 * CONTROL SET. flow_ctrl_variant: 0 = the ADOPTED flow-tier baseline,
 * $ctrl_flow, built in 18_transforms.do from $ctrl_core_flowbase
 * (l_banking_duration swapped for the l_banking_crisis DUMMY, l_ca swapped
-* for tot_chg -- see that file's "ADOPTED FLOW-TIER CORE CONTROL SET").
-* 1 = the adopted core PLUS the reference paper's own additional predictors
-* (the continuous exchange-rate change exchange2, an IMF-program
-* dummy l_imf -- 18_transforms.do's "ALTERNATE FLOW CONTROL SET"). Default
-* 0. Because the ADOPTED set is no longer term-for-term identical to
+* for tot_chg, tot_chg swapped for exchange2 -- see that file's "ADOPTED
+* FLOW-TIER CORE CONTROL SET"). 1 = the adopted core PLUS one further
+* candidate, an IMF-program dummy l_imf (18_transforms.do's "ALTERNATE FLOW
+* CONTROL SET"). Default 0. Because the ADOPTED set is no longer term-for-term identical to
 * $ctrl_core, the identity check below (section 2) no longer reproduces
 * 02_lp_all.do's published onset-coded coefficient under the default -- it
 * is a pure self-consistency check (flow collapses to onset coding under
@@ -538,37 +537,26 @@ forvalues h = 0/4 {
 *     in 2024-2025. This matters MORE under flow coding than for onsets, because
 *     long episodes run into the projection window at every horizon.
 *
-* (f) EXCHANGE-RATE SWAP. tot_chg (terms-of-trade log-change) replaced by
-*     exchange2 (log FX change), OUTCOME EQUATION ONLY -- $ctrl_core_flowbase
-*     and $ctrl_flow are NOT changed by this row. Motivated by
-*     21b_first_stage_table_flow.do's flow_ctrl_variant 1 run, where
-*     exchange2 was strongly significant in the PROPENSITY probit (nd
-*     z=-3.64, def z=+3.37) while tot_chg has never been individually
-*     significant there or anywhere else it has been tested. But that is a
-*     different equation from this one: the core set's PRIMARY job is as an
-*     OUTCOME-equation control (feeding $ctrl_flow across 20/22/23/24/25),
-*     where a control's own significance is not the relevant bar -- it is
-*     included on omitted-variable-bias grounds. This row tests exchange2
-*     directly in that role, before any decision about a permanent swap.
-*     Reported: both in_crisis's coefficient under the swap AND
-*     epc_exchange2's own coefficient/significance, since the latter is what
-*     actually answers the question -- printed to console, not just posted
-*     to the CSV, because esttab's `keep(in_crisis)' export never shows a
-*     covariate's own coefficient.
+* (f) EXCHANGE-RATE SWAP — SETTLED, DIAGNOSTIC CODE REMOVED. tot_chg
+*     (terms-of-trade log-change) has been REPLACED by exchange2 (log FX
+*     change) inside $ctrl_core_flowbase itself (18_transforms.do, "THE
+*     FOURTH SWAP") -- no longer a robustness row here, because it is now
+*     the baseline every row in this section already runs under. The
+*     decision was made on LITERATURE grounds (the reference paper's own
+*     $convar carries exchange-rate depreciation as a baseline control;
+*     terms-of-trade was never in their $convar -- METHODOLOGY.md section 4),
+*     not on the empirical test this section used to run: that test found
+*     epc_exchange2 individually significant at only 1 of 5 horizons (h=5,
+*     p=.037, with year FE) where epc_tot_chg had been significant at 4 of 5
+*     (p<.05 at h=2,3,4,5), and found dropping tot_chg shifted in_crisis
+*     systematically more negative at every horizon -- evidence AGAINST the
+*     swap on pure outcome-equation grounds, overridden here by the
+*     literature-fidelity argument. Both sides of that tradeoff are recorded
+*     in 18_transforms.do's header, not just the side that was acted on. See
+*     git history if the diagnostic code itself is ever needed again.
 * ══════════════════════════════════════════════════════════════════════════
 local dropgdpg l1_gdpg
 local cflow : list ctrl_row - dropgdpg
-
-capture confirm variable epc_exchange2
-local have_exchswap = !_rc
-if `have_exchswap' {
-    local droptot epc_tot_chg
-    local cflow_exchswap : list controls - droptot
-    local cflow_exchswap `cflow_exchswap' epc_exchange2
-}
-else di as error "  ** epc_exchange2 not available (\$ctrl_core_flowplus/exchange2 not built) --" ///
-    " skipping the (f) tot_chg->exchange2 swap diagnostic. Re-run 18_transforms.do with" ///
-    " data/raw/officialexchangerate.xlsx present."
 
 di as result _n "════════════════════════════════════════════════════════════"
 di as result "4. ROBUSTNESS (all horizons written to the CSV)"
@@ -644,23 +632,6 @@ forvalues h = 0/4 {
             (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
     }
 
-    * (f) exchange-rate swap -- OUTCOME equation only, diagnostic (see header)
-    if `have_exchswap' {
-        capture quietly xtscc dy_`h' in_crisis `cflow_exchswap' `yearfe' if sample_flow==1, fe lag(`=max(2,`h'+3)')
-        if _rc == 0 {
-            local bx  = _b[in_crisis]
-            local sx  = _se[in_crisis]
-            local bex = _b[epc_exchange2]
-            local sex = _se[epc_exchange2]
-            local pex = 2*(1-normal(abs(`bex'/`sex')))
-            di as result "      (f) h=" %1.0f `hd' "  in_crisis b=" %7.3f `bx' " (se=" %5.3f `sx' ")" ///
-                "   epc_exchange2 b=" %8.3f `bex' " (se=" %6.3f `sex' ", p=" %5.3f `pex' ")"
-            post `F' ("r_exchswap") ("in_crisis") (`hd') (`bx') (`sx') ///
-                (2*(1-normal(abs(`bx'/`sx')))) (.) (.) (.) (e(N))
-            post `F' ("r_exchswap") ("epc_exchange2") (`hd') (`bex') (`sex') (`pex') (.) (.) (.) (e(N))
-        }
-        else di as error "      (f) h=`hd': exchange-rate swap regression failed (rc=" _rc ")."
-    }
 }
 di as result "  (variants estimated; see $tabs/flow_lp.csv)"
 

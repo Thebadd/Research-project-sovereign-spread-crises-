@@ -107,10 +107,10 @@ foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def
 
 * CONTROL SET. flow_ctrl_variant: 0 = the ADOPTED flow-tier baseline,
 * $ctrl_core_flowbase (18_transforms.do's "ADOPTED FLOW-TIER CORE CONTROL
-* SET": l_banking_crisis, tot_chg, l_lninfl in place of l_banking_duration,
-* l_ca, l_hyperinfl). 1 = the adopted core PLUS the reference paper's own
-* additional predictors, exchange2 and l_imf (18_transforms.do's
-* "ALTERNATE FLOW CONTROL SET"). Default 0.
+* SET": l_banking_crisis, l_lninfl, exchange2 in place of l_banking_duration,
+* l_ca/tot_chg, l_hyperinfl). 1 = the adopted core PLUS one further
+* candidate, l_imf (18_transforms.do's "ALTERNATE FLOW CONTROL SET").
+* Default 0.
 local flow_ctrl_variant 0
 if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
     di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (exchange2"
@@ -216,7 +216,7 @@ capture esttab ffs_nd ffs_def using "$tabs/table_first_stage_flow.rtf", replace 
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
     mtitles("Non-default" "Default-linked") ///
     order(l_fedfunds l_contagion_dist years_since_def_onset ///
-          l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl tot_chg) ///
+          l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2) ///
     coeflabel(l_fedfunds "US fed funds rate (t-1)" ///
               l_contagion_dist "Distance-weighted contagion (t-1)" ///
               years_since_def_onset "Years since last default onset" ///
@@ -227,7 +227,7 @@ capture esttab ffs_nd ffs_def using "$tabs/table_first_stage_flow.rtf", replace 
               l_open "Trade openness (t-1)" ///
               l_credit_bank "Private credit by banks / GDP (t-1)" ///
               l_lninfl "Log gross inflation (t-1)" ///
-              tot_chg "Terms-of-trade log-change (t-1)") ///
+              exchange2 "Log exchange-rate change (t-1)") ///
     refcat(l_fedfunds "Predictors" l1_gdpg "Baseline controls", nolabel) ///
     stats(chi2p pp aurocctrl auroc N, ///
           labels("Chi-squared (predictors)" "  p-value" "AUROC, controls only" "AUROC, with predictors" "Observations") ///

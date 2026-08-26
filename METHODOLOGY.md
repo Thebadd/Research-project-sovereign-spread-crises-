@@ -275,13 +275,29 @@ threshold, and public debt and the external position are precisely what
 that spread is priced off. Omitting them would leave the most direct
 determinants of the treatment out of the conditioning set.
 
-**We lack their `ex_dum1`–`ex_dum5`; they have five.** Their bins are
+**We lack their `ex_dum1`–`ex_dum5` here; they have five.** Their bins are
 quintiles of `ln(1+L.exchange) − ln(1+L2.exchange)`, cut at the p5/p25/p50/
 p75/p95 of the restructuring sample. This is a nominal-depreciation
 control, and depreciation is bundled with default in ways that matter. This
-is the one **genuine gap** in the control set, and it is a data limitation
-rather than a design choice: the panel carries no nominal exchange-rate
-series. It should be stated as such rather than passed over.
+was originally described as a genuine gap due to a data limitation — the
+panel carried no nominal exchange-rate series. That limitation no longer
+holds: `data/raw/officialexchangerate.xlsx` was added, and `exchange2`
+(`ln(1+L.exch) − ln(1+L2.exch)`, the continuous precursor to their own
+bins) is built in `18_transforms.do`. It has been **adopted into the
+FLOW tier's core control set** (`$ctrl_core_flowbase`, replacing `tot_chg`)
+on literature-fidelity grounds — their own `$convar` carries exchange-rate
+depreciation as a baseline control, terms-of-trade is not in their
+`$convar` at all — even though this project's own outcome-equation test
+found `exchange2` individually significant at only one of five horizons,
+against `tot_chg`'s four of five (see that file's header, "THE FOURTH
+SWAP," for both sides of that tradeoff stated explicitly). Their literal
+`ex_dum1`–`ex_dum5` bins were tried first and rejected: on this project's
+much smaller panel they separate (zero outcome variation in the extreme
+bins), the same failure mode documented for `past_def_onsets` and country
+fixed effects elsewhere in this file. `$ctrl_core` itself — the ONSET
+tier's control set, used in `02`/`03`/`08b`/`11`/`12`/`13c`/`13d` — is
+UNCHANGED and still has no exchange-rate term; this adoption is flow-tier
+only, and the gap noted here remains real for the onset tier specifically.
 
 **The own-outcome pre-trend plays the same role in both.** Their `g'v'_0`
 is rebuilt per outcome as `L.var'v' - L2.var'v'`; our per-channel

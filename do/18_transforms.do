@@ -355,10 +355,11 @@ label var nd_ep "Resolution type of the episode, filled to all its years (1=non-
 * ══════════════════════════════════════════════════════════════════════════
 * ADOPTED FLOW-TIER CORE CONTROL SET — $ctrl_core_flowbase / $ctrl_flow
 *
-* Three swaps relative to $ctrl_core:
+* Four swaps relative to $ctrl_core:
 *   l_banking_duration (years-so-far)   -> l_banking_crisis (0/1 dummy)
 *   l_ca (current account)              -> tot_chg (terms-of-trade log-change)
 *   l_hyperinfl (L.infl>50 dummy)       -> l_lninfl (continuous log inflation)
+*   tot_chg (terms-of-trade log-change) -> exchange2 (log FX change)
 * The third swap was added after 21_aipw_flow.do's diagnostic history (its
 * def-arm probit coefficient tables, Sections 1d/1e) repeatedly showed
 * l_hyperinfl driving quasi-complete separation on its own -- a binary flag
@@ -369,6 +370,38 @@ label var nd_ep "Resolution type of the episode, filled to all its years (1=non-
 * underlying inflation information as a continuous variable, which cannot
 * by itself perfectly separate treated from control the way a threshold
 * dummy can.
+*
+* THE FOURTH SWAP, tot_chg -> exchange2, IS ON LITERATURE GROUNDS, NOT
+* EMPIRICAL PERFORMANCE -- state both sides plainly. The reference paper's
+* own $convar carries exchange-rate depreciation (their ex_dum1-ex_dum5
+* percentile bins) as a BASELINE control; terms-of-trade is not in their
+* $convar at all -- tot_chg was this project's own addition
+* (METHODOLOGY.md section 4 documents $convar verbatim; this file's own
+* "ROBUSTNESS-tier controls" comment above already flagged tot_chg as
+* "Asonuma additional... NOT in the core"). exchange2 (the continuous log FX
+* change) is used here rather than their literal ex_dum1-ex_dum5 bins:
+* 21b_first_stage_table_flow.do's flow_ctrl_variant testing found the bins
+* separate on this project's much smaller panel exactly the way country FE
+* and past_def_onsets did (ex_dum1, and in the def arm ex_dum2 as well, have
+* zero outcome variation and Stata drops the dummy and every row in the bin
+* automatically), so the continuous level is the workable proxy, not a
+* literal reproduction of their construction.
+* THE EMPIRICAL CAVEAT, STATED RATHER THAN HIDDEN: 20_lp_flow.do's own
+* outcome-equation test of this swap (before it was adopted) found
+* epc_exchange2 NOT individually significant at any horizon under
+* drop_year_fe=1 (p=.33-.93) and significant at only one of five horizons
+* under the project's actual year-FE baseline (h=5, p=.037), while tot_chg
+* in the same role was significant at 4 of 5 horizons (p<.05 at h=2,3,4,5).
+* Dropping tot_chg also shifted the in_crisis coefficient itself
+* systematically more negative at every horizon (roughly -0.5 to -2 pp),
+* consistent with tot_chg absorbing real confounding that now loads onto
+* the treatment estimate instead. This swap is adopted despite that
+* evidence, on the explicit basis that matching the reference paper's own
+* baseline control choice takes priority over this project's own outcome-
+* equation significance test for this specific term -- a literature-fidelity
+* decision, not an empirical one, and the write-up should say so exactly
+* this plainly rather than presenting exchange2 as empirically superior.
+*
 * l1_gdpg, l_debt, l_govexp, l_open and l_credit_bank are unchanged. This is
 * the FLOW TIER'S ACTUAL DEFAULT -- not exploratory -- so $ctrl_flow below is
 * built from this set, not from $ctrl_core. $ctrl_core itself is UNCHANGED
@@ -378,7 +411,14 @@ label var nd_ep "Resolution type of the episode, filled to all its years (1=non-
 * $ctrl_core remains available as the row-dated robustness column in the
 * flow files that report one (20_lp_flow.do's r_rowdated).
 * ══════════════════════════════════════════════════════════════════════════
-global ctrl_core_flowbase "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl tot_chg"
+capture confirm variable exchange2
+if _rc {
+    di as error "  ** exchange2 not built (exch missing) -- \$ctrl_core_flowbase needs it as an"
+    di as error "     ADOPTED term now, not an optional one. Add data/raw/officialexchangerate.xlsx"
+    di as error "     and re-run 01_build_panel.do/12_wdi.do before this file."
+    exit 111
+}
+global ctrl_core_flowbase "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 
 global ctrl_flow ""
 foreach X of global ctrl_core_flowbase {
@@ -431,25 +471,13 @@ di as result "           frozen diagnostics only, not part of \$ctrl_flow/\$ctrl
 * The bigger, unrelated exploratory alternate that used to live here (drops
 * l_debt/l_ca, swaps banking-crisis DURATION for the DUMMY, adds the
 * exchange rate level-change and terms of trade) has been REMOVED at the
-* user's request -- it is no longer a toggle option anywhere. Only one
-* alternate to the adopted core remains, and it is this one.
+* user's request -- it is no longer a toggle option anywhere.
 *
-* The ADOPTED core ($ctrl_core_flowbase) PLUS two additional predictors:
-*   - exchange2: the CONTINUOUS log FX change (built above from
-*     officialexchangerate.xlsx, "ROBUSTNESS-tier controls" block; already
-*     predetermined, ln(1+L.exch)-ln(1+L2.exch)). NOT the reference paper's
-*     own ex_dum1-ex_dum5 percentile-bin dummies -- those were tried first
-*     and REJECTED: on this project's much smaller panel, ex_dum1 (and, in
-*     the def arm, ex_dum2 as well) has ZERO outcome variation, so Stata
-*     drops the dummy AND every row in that bin automatically ("predicts
-*     failure perfectly") -- 27 rows (nd) / 173 rows (def, both bins
-*     combined) lost. That mechanically shrank and reshaped the estimation
-*     sample (696->494 obs, def arm) in a way that inflated the AUROC
-*     comparison without any of ex_dum2-ex_dum5 being individually
-*     significant in either arm -- a sample-composition artifact, not real
-*     signal, the same separation pathology already documented for country
-*     FE and past_def_onsets on this panel. The continuous level has no
-*     empty-cell separation risk the way a 5-way categorical split does.
+* exchange2 (continuous log FX change) used to be this alternate's own
+* addition; it has since been ADOPTED into $ctrl_core_flowbase itself (see
+* that block's header, "THE FOURTH SWAP"), so it is no longer a
+* differentiator here. This set is now just the adopted core PLUS one
+* remaining candidate:
 *   - l_imf: an IMF-supported-program dummy, lagged (predetermined). `imf' is
 *     already in panel_build.dta (01_build_panel.do); this is the first place
 *     it is lagged and entry-dated for use as a CONTROL rather than as the
@@ -474,30 +502,21 @@ capture drop l_imf
 gen byte l_imf = L.imf
 label var l_imf "L1 IMF-supported program dummy (predetermined)"
 
-capture confirm variable exchange2
-if !_rc {
-    global ctrl_core_flowplus "$ctrl_core_flowbase exchange2 l_imf"
-    global ctrl_flow_flowplus ""
-    foreach X of global ctrl_core_flowplus {
-        * Dropped SEPARATELY -- same reasoning as the FLOWALT block above:
-        * the 8 $ctrl_core_flowbase terms already have epc_ built from the
-        * $ctrl_flow loop, so only _ent_`X' is guaranteed absent for those.
-        capture drop epc_`X'
-        capture drop _ent_`X'
-        quietly bysort cid ep_seq: egen double _ent_`X' = max(cond(onset_all==1, `X', .))
-        quietly gen double epc_`X' = cond(in_crisis==1, _ent_`X', `X')
-        label var epc_`X' "`X' at episode entry (tranquil rows keep own t-1) -- flowplus"
-        quietly drop _ent_`X'
-        global ctrl_flow_flowplus "$ctrl_flow_flowplus epc_`X'"
-    }
-    di as result "  FLOWPLUS (exploratory): episode-dated control set built -> $ctrl_flow_flowplus"
+global ctrl_core_flowplus "$ctrl_core_flowbase l_imf"
+global ctrl_flow_flowplus ""
+foreach X of global ctrl_core_flowplus {
+    * Dropped SEPARATELY -- same reasoning as the FLOWALT block above:
+    * the 8 $ctrl_core_flowbase terms already have epc_ built from the
+    * $ctrl_flow loop, so only _ent_`X' is guaranteed absent for those.
+    capture drop epc_`X'
+    capture drop _ent_`X'
+    quietly bysort cid ep_seq: egen double _ent_`X' = max(cond(onset_all==1, `X', .))
+    quietly gen double epc_`X' = cond(in_crisis==1, _ent_`X', `X')
+    label var epc_`X' "`X' at episode entry (tranquil rows keep own t-1) -- flowplus"
+    quietly drop _ent_`X'
+    global ctrl_flow_flowplus "$ctrl_flow_flowplus epc_`X'"
 }
-else {
-    global ctrl_core_flowplus ""
-    global ctrl_flow_flowplus ""
-    di as error "  ** exchange2 not built (exch missing) -- \$ctrl_core_flowplus/\$ctrl_flow_flowplus left empty."
-    di as error "     add data/raw/officialexchangerate.xlsx and re-run 01_build_panel.do/12_wdi.do first."
-}
+di as result "  FLOWPLUS (exploratory): episode-dated control set built -> $ctrl_flow_flowplus"
 
 gen byte in_crisis_nd  = (in_crisis==1 & nd_ep==1)
 gen byte in_crisis_def = (in_crisis==1 & nd_ep==0)
@@ -612,8 +631,8 @@ if r(N) == 0 di as result "  carry-in rows: `ncar' present, 0 in sample (correct
 else         di as error  "  ** `r(N)' CARRY-IN ROWS LEAKED INTO sample==1 — investigate"
 di as result _n "Coverage at onsets (non-missing) for the key analysis variables:"
 foreach v in dy_0 l1_gdpg debt ca infl l_hyperinfl l_lninfl imf credit fdi claims_govt inv govexp pb ///
-             banking_crisis l_banking_crisis reer_chg l_reer_chg tot_chg revenue_gdp open claimsgov_assets ///
-             claimpriv_assets vix fedfunds ust10y {
+             banking_crisis l_banking_crisis reer_chg l_reer_chg tot_chg exchange2 revenue_gdp open ///
+             claimsgov_assets claimpriv_assets vix fedfunds ust10y {
     capture confirm variable `v'
     if !_rc {
         quietly count if onset_all==1 & !missing(`v')

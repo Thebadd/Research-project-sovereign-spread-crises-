@@ -220,7 +220,7 @@ if "$ctrl_flow" == "" {
 
 * EXPLORATORY: flow_ctrl_variant -- 0 = adopted flow-tier baseline (default);
 * 1 = adopted core PLUS the reference paper's own additional predictors,
-* exchange2 and l_imf (18_transforms.do's "ALTERNATE FLOW CONTROL SET").
+* l_imf, since exchange2 is now already inside the adopted core (18_transforms.do's "ALTERNATE FLOW CONTROL SET").
 local flow_ctrl_variant 0
 if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
     di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (exchange2"
@@ -229,8 +229,9 @@ if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
     exit 111
 }
 * `cx_active' is the row-dated propensity control set: the flow tier's
-* adopted core control set (l_banking_crisis, tot_chg in place of
-* l_banking_duration, l_ca), or the alternate if toggled.
+* adopted core control set (l_banking_crisis, l_lninfl, exchange2 in place
+* of l_banking_duration, l_hyperinfl, l_ca/tot_chg), or the alternate (core
+* + l_imf) if toggled.
 local cx_active = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowplus", "$ctrl_core_flowbase")  // Eq. (2) baseline: row-dated, ADOPTED set
 local com    = cond(`flow_ctrl_variant'==1, "$ctrl_flow_flowplus", "$ctrl_flow")    // Eq. (1) controls: episode-dated (already the adopted set via 18_transforms.do)
 * cz_recency: the adopted predictor set -- l_contagion_dist in place of
