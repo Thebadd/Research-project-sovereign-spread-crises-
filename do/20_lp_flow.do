@@ -537,9 +537,38 @@ forvalues h = 0/4 {
 * (e) FORECAST DATA. The panel runs to 2026 while realised national accounts end
 *     in 2024-2025. This matters MORE under flow coding than for onsets, because
 *     long episodes run into the projection window at every horizon.
+*
+* (f) EXCHANGE-RATE SWAP. tot_chg (terms-of-trade log-change) replaced by
+*     exchange2 (log FX change), OUTCOME EQUATION ONLY -- $ctrl_core_flowbase
+*     and $ctrl_flow are NOT changed by this row. Motivated by
+*     21b_first_stage_table_flow.do's flow_ctrl_variant 1 run, where
+*     exchange2 was strongly significant in the PROPENSITY probit (nd
+*     z=-3.64, def z=+3.37) while tot_chg has never been individually
+*     significant there or anywhere else it has been tested. But that is a
+*     different equation from this one: the core set's PRIMARY job is as an
+*     OUTCOME-equation control (feeding $ctrl_flow across 20/22/23/24/25),
+*     where a control's own significance is not the relevant bar -- it is
+*     included on omitted-variable-bias grounds. This row tests exchange2
+*     directly in that role, before any decision about a permanent swap.
+*     Reported: both in_crisis's coefficient under the swap AND
+*     epc_exchange2's own coefficient/significance, since the latter is what
+*     actually answers the question -- printed to console, not just posted
+*     to the CSV, because esttab's `keep(in_crisis)' export never shows a
+*     covariate's own coefficient.
 * ══════════════════════════════════════════════════════════════════════════
 local dropgdpg l1_gdpg
 local cflow : list ctrl_row - dropgdpg
+
+capture confirm variable epc_exchange2
+local have_exchswap = !_rc
+if `have_exchswap' {
+    local droptot epc_tot_chg
+    local cflow_exchswap : list controls - droptot
+    local cflow_exchswap `cflow_exchswap' epc_exchange2
+}
+else di as error "  ** epc_exchange2 not available (\$ctrl_core_flowplus/exchange2 not built) --" ///
+    " skipping the (f) tot_chg->exchange2 swap diagnostic. Re-run 18_transforms.do with" ///
+    " data/raw/officialexchangerate.xlsx present."
 
 di as result _n "════════════════════════════════════════════════════════════"
 di as result "4. ROBUSTNESS (all horizons written to the CSV)"
@@ -613,6 +642,24 @@ forvalues h = 0/4 {
             if sample_flow==1 & (year + `h') <= gdp_last_actual, fe lag(`=max(2,`h'+3)')
         if _rc == 0 post `F' ("r_outturn") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
             (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
+    }
+
+    * (f) exchange-rate swap -- OUTCOME equation only, diagnostic (see header)
+    if `have_exchswap' {
+        capture quietly xtscc dy_`h' in_crisis `cflow_exchswap' `yearfe' if sample_flow==1, fe lag(`=max(2,`h'+3)')
+        if _rc == 0 {
+            local bx  = _b[in_crisis]
+            local sx  = _se[in_crisis]
+            local bex = _b[epc_exchange2]
+            local sex = _se[epc_exchange2]
+            local pex = 2*(1-normal(abs(`bex'/`sex')))
+            di as result "      (f) h=" %1.0f `hd' "  in_crisis b=" %7.3f `bx' " (se=" %5.3f `sx' ")" ///
+                "   epc_exchange2 b=" %8.3f `bex' " (se=" %6.3f `sex' ", p=" %5.3f `pex' ")"
+            post `F' ("r_exchswap") ("in_crisis") (`hd') (`bx') (`sx') ///
+                (2*(1-normal(abs(`bx'/`sx')))) (.) (.) (.) (e(N))
+            post `F' ("r_exchswap") ("epc_exchange2") (`hd') (`bex') (`sex') (`pex') (.) (.) (.) (e(N))
+        }
+        else di as error "      (f) h=`hd': exchange-rate swap regression failed (rc=" _rc ")."
     }
 }
 di as result "  (variants estimated; see $tabs/flow_lp.csv)"
