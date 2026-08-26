@@ -426,41 +426,13 @@ di as result "           (l_ca, l_banking_duration, l_hyperinfl) -- 21_aipw_flow
 di as result "           frozen diagnostics only, not part of \$ctrl_flow/\$ctrl_core_flowbase."
 
 * ══════════════════════════════════════════════════════════════════════════
-* EXPLORATORY ALTERNATE FLOW CONTROL SET — $ctrl_core_flowalt / $ctrl_flow_flowalt
+* ALTERNATE FLOW CONTROL SET — $ctrl_core_flowplus / $ctrl_flow_flowplus
 *
-* NOT used anywhere by default. Drops l_debt/l_ca, swaps the banking-crisis
-* DURATION (l_banking_duration) for the DUMMY (l_banking_crisis), and adds
-* the exchange rate (l_reer_chg) and terms of trade (tot_chg) -- a one-off
-* "what happens if" test of the flow tier's control set, requested to be kept
-* separate from $ctrl_core/$ctrl_flow so every onset-tier file and every
-* flow-file identity check that depends on matching $ctrl_core keeps working
-* unchanged. Each flow file (20-25) reads this only if its own
-* `flow_ctrl_variant' toggle is set to 1; default is 0 (current baseline).
-* Same episode-dating mechanism as $ctrl_flow above, just parameterised on a
-* different base list -- not a new pattern.
-global ctrl_core_flowalt "l1_gdpg l_govexp l_open l_credit_bank l_hyperinfl l_banking_crisis l_reer_chg tot_chg"
-global ctrl_flow_flowalt ""
-foreach X of global ctrl_core_flowalt {
-    * Dropped SEPARATELY, not as `drop epc_`X' _ent_`X''  in one command: five
-    * of these eight variables (l1_gdpg, l_govexp, l_open, l_credit_bank,
-    * l_hyperinfl) are shared with $ctrl_core, so epc_`X' already exists from
-    * the $ctrl_flow loop above while _ent_`X' (a temp-in-spirit var, always
-    * dropped at the end of each iteration) does not. `drop A B' fails as a
-    * whole when EITHER is missing, so a combined capture drop would silently
-    * fail to remove epc_`X', and the `gen' below would then error "already
-    * defined" -- exactly what happened the first time this ran.
-    capture drop epc_`X'
-    capture drop _ent_`X'
-    quietly bysort cid ep_seq: egen double _ent_`X' = max(cond(onset_all==1, `X', .))
-    quietly gen double epc_`X' = cond(in_crisis==1, _ent_`X', `X')
-    label var epc_`X' "`X' at episode entry (tranquil rows keep own t-1) -- flowalt"
-    quietly drop _ent_`X'
-    global ctrl_flow_flowalt "$ctrl_flow_flowalt epc_`X'"
-}
-di as result "  FLOWALT (exploratory): episode-dated control set built -> $ctrl_flow_flowalt"
-
-* ══════════════════════════════════════════════════════════════════════════
-* SECOND ALTERNATE FLOW CONTROL SET — $ctrl_core_flowplus / $ctrl_flow_flowplus
+* The bigger, unrelated exploratory alternate that used to live here (drops
+* l_debt/l_ca, swaps banking-crisis DURATION for the DUMMY, adds the
+* exchange rate level-change and terms of trade) has been REMOVED at the
+* user's request -- it is no longer a toggle option anywhere. Only one
+* alternate to the adopted core remains, and it is this one.
 *
 * The ADOPTED core ($ctrl_core_flowbase) PLUS predictors the reference
 * paper's own $convar carries that this project's core set does not:
@@ -479,9 +451,9 @@ di as result "  FLOWALT (exploratory): episode-dated control set built -> $ctrl_
 * contagion predictor if that data becomes available.
 *
 * NOT used anywhere by default. Selected via each flow file's
-* `flow_ctrl_variant' toggle (0=adopted core, 1=bigger exploratory alt set,
-* 2=this set), default 0. Same episode-dating mechanism as $ctrl_flow/
-* $ctrl_flow_flowalt above, just parameterised on a third base list.
+* `flow_ctrl_variant' toggle (0=adopted core, 1=this set), default 0. Same
+* episode-dating mechanism as $ctrl_flow above, just parameterised on a
+* different base list -- not a new pattern.
 * ══════════════════════════════════════════════════════════════════════════
 capture drop l_imf
 gen byte l_imf = L.imf

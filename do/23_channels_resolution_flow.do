@@ -101,25 +101,22 @@ sort cid year
 * $ctrl_flow, built in 18_transforms.do from $ctrl_core_flowbase
 * (l_banking_duration -> the l_banking_crisis DUMMY, l_ca -> tot_chg,
 * l_hyperinfl -> l_lninfl -- see that file's "ADOPTED FLOW-TIER CORE CONTROL
-* SET"). 1 = the bigger, still-exploratory alternate set (18_transforms.do's
-* "EXPLORATORY ALTERNATE FLOW CONTROL SET"). 2 = the adopted core PLUS the
-* reference paper's own additional predictors, ex_dum1-ex_dum5 and l_imf
-* (18_transforms.do's "SECOND ALTERNATE FLOW CONTROL SET"). Default 0. No
-* identity check in this file depends on $ctrl_flow specifically (unlike
-* 22), so the toggle can drive this local directly rather than needing a
-* separate "_use" duplicate, and no code change was needed here for the
-* core-control adoption -- this file inherits it automatically once
-* $ctrl_flow itself is redefined in 18.
+* SET"). 1 = the adopted core PLUS the reference paper's own additional
+* predictors, ex_dum1-ex_dum5 and l_imf (18_transforms.do's "ALTERNATE FLOW
+* CONTROL SET"). Default 0. No identity check in this file depends on
+* $ctrl_flow specifically (unlike 22), so the toggle can drive this local
+* directly rather than needing a separate "_use" duplicate, and no code
+* change was needed here for the core-control adoption -- this file
+* inherits it automatically once $ctrl_flow itself is redefined in 18.
 local flow_ctrl_variant 0
-if `flow_ctrl_variant'==2 & "$ctrl_core_flowplus"=="" {
-    di as error "  ** flow_ctrl_variant==2 requested but \$ctrl_core_flowplus is empty (ex_dum1-5"
+if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
+    di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (ex_dum1-5"
     di as error "     unavailable, exch missing) -- re-run 01_build_panel.do/12_wdi.do/18_transforms.do"
-    di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0/1."
+    di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0."
     exit 111
 }
-if `flow_ctrl_variant'==1      local ctrl_flow_base $ctrl_flow_flowalt
-else if `flow_ctrl_variant'==2 local ctrl_flow_base $ctrl_flow_flowplus
-else                            local ctrl_flow_base $ctrl_flow
+if `flow_ctrl_variant'==1 local ctrl_flow_base $ctrl_flow_flowplus
+else                       local ctrl_flow_base $ctrl_flow
 
 * EXPLORATORY: set to 1 to drop year FE and match the reference paper's
 * single-stage rule (country FE only), matching 20/22's toggle of the same

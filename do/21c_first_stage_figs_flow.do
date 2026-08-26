@@ -85,16 +85,15 @@ foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def
 
 * Same toggle and control sets as 21b_first_stage_table_flow.do — kept in
 * sync manually, since this file does not source that one. 0=adopted core,
-* 1=bigger exploratory alt, 2=adopted core + ex_dum1-5/l_imf.
+* 1=adopted core + ex_dum1-5/l_imf.
 local flow_ctrl_variant 0
-if `flow_ctrl_variant'==2 & "$ctrl_core_flowplus"=="" {
-    di as error "  ** flow_ctrl_variant==2 requested but \$ctrl_core_flowplus is empty (ex_dum1-5"
+if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
+    di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (ex_dum1-5"
     di as error "     unavailable, exch missing) -- re-run 01_build_panel.do/12_wdi.do/18_transforms.do"
-    di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0/1."
+    di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0."
     exit 111
 }
-local X = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowalt", ///
-           cond(`flow_ctrl_variant'==2, "$ctrl_core_flowplus", "$ctrl_core_flowbase"))
+local X = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowplus", "$ctrl_core_flowbase")
 local Z l_fedfunds l_contagion_dist years_since_def_onset
 
 local c_nd   "0 84 166"

@@ -166,21 +166,19 @@ local epc_lg epc_l_govexp
 * $ctrl_flow, built in 18_transforms.do from $ctrl_core_flowbase
 * (l_banking_duration -> the l_banking_crisis DUMMY, l_ca -> tot_chg,
 * l_hyperinfl -> l_lninfl -- see that file's "ADOPTED FLOW-TIER CORE CONTROL
-* SET"). 1 = the bigger, still-exploratory alternate set. 2 = the adopted
-* core PLUS the reference paper's own additional predictors, ex_dum1-ex_dum5
-* and l_imf (18_transforms.do's "SECOND ALTERNATE FLOW CONTROL SET").
-* Default 0. This drives the channel outcome-model controls (`ctrl_<ch>')
-* below.
+* SET"). 1 = the adopted core PLUS the reference paper's own additional
+* predictors, ex_dum1-ex_dum5 and l_imf (18_transforms.do's "ALTERNATE FLOW
+* CONTROL SET"). Default 0. This drives the channel outcome-model controls
+* (`ctrl_<ch>') below.
 local flow_ctrl_variant 0
-if `flow_ctrl_variant'==2 & "$ctrl_core_flowplus"=="" {
-    di as error "  ** flow_ctrl_variant==2 requested but \$ctrl_core_flowplus is empty (ex_dum1-5"
+if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
+    di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (ex_dum1-5"
     di as error "     unavailable, exch missing) -- re-run 01_build_panel.do/12_wdi.do/18_transforms.do"
-    di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0/1."
+    di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0."
     exit 111
 }
-if `flow_ctrl_variant'==1      local ctrl_flow_base $ctrl_flow_flowalt
-else if `flow_ctrl_variant'==2 local ctrl_flow_base $ctrl_flow_flowplus
-else                            local ctrl_flow_base $ctrl_flow
+if `flow_ctrl_variant'==1 local ctrl_flow_base $ctrl_flow_flowplus
+else                       local ctrl_flow_base $ctrl_flow
 
 local ctrl_credit      : list ctrl_flow_base - epc_lc
 local ctrl_credit      `ctrl_credit' epc_pre_credit
@@ -193,10 +191,9 @@ local ctrl_fdi         `ctrl_flow_base' epc_pre_fdi
 
 * ── Propensity model — SAME as 21_aipw_flow.do ──────────────────────────────
 * `cx_active' is the row-dated propensity control set: the flow tier's
-* adopted core control set (or the bigger alternate, if toggled). Same
+* adopted core control set (or the alternate, if toggled). Same
 * construction as 21_aipw_flow.do's.
-local cx_active = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowalt", ///
-                   cond(`flow_ctrl_variant'==2, "$ctrl_core_flowplus", "$ctrl_core_flowbase"))  // Eq. (2): row-dated, ADOPTED set
+local cx_active = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowplus", "$ctrl_core_flowbase")  // Eq. (2): row-dated, ADOPTED set
 * cz_recency: the adopted predictor set -- l_contagion_dist (distance-weighted,
 * CEPII great-circle) in place of l_reg_crisis_share, years_since_def_onset in
 * place of past_def_onsets. See 21_aipw_flow.do's header for the full note.

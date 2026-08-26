@@ -192,20 +192,18 @@ local epc_lc epc_l_credit_bank
 * $ctrl_flow, built in 18_transforms.do from $ctrl_core_flowbase
 * (l_banking_duration -> the l_banking_crisis DUMMY, l_ca -> tot_chg,
 * l_hyperinfl -> l_lninfl -- see that file's "ADOPTED FLOW-TIER CORE CONTROL
-* SET"). 1 = the bigger, still-exploratory alternate set. 2 = the adopted
-* core PLUS the reference paper's own additional predictors, ex_dum1-ex_dum5
-* and l_imf (18_transforms.do's "SECOND ALTERNATE FLOW CONTROL SET").
-* Default 0, matching 20/22/23/24's toggle of the same name.
+* SET"). 1 = the adopted core PLUS the reference paper's own additional
+* predictors, ex_dum1-ex_dum5 and l_imf (18_transforms.do's "ALTERNATE FLOW
+* CONTROL SET"). Default 0, matching 20/22/23/24's toggle of the same name.
 local flow_ctrl_variant 0
-if `flow_ctrl_variant'==2 & "$ctrl_core_flowplus"=="" {
-    di as error "  ** flow_ctrl_variant==2 requested but \$ctrl_core_flowplus is empty (ex_dum1-5"
+if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
+    di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (ex_dum1-5"
     di as error "     unavailable, exch missing) -- re-run 01_build_panel.do/12_wdi.do/18_transforms.do"
-    di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0/1."
+    di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0."
     exit 111
 }
-if `flow_ctrl_variant'==1      local ctrl_flow_base $ctrl_flow_flowalt
-else if `flow_ctrl_variant'==2 local ctrl_flow_base $ctrl_flow_flowplus
-else                            local ctrl_flow_base $ctrl_flow
+if `flow_ctrl_variant'==1 local ctrl_flow_base $ctrl_flow_flowplus
+else                       local ctrl_flow_base $ctrl_flow
 
 local ctrl_credit           : list ctrl_flow_base - epc_lc
 local ctrl_credit           `ctrl_credit' epc_pre_credit
@@ -215,8 +213,7 @@ local ctrl_claimpriv_assets  `ctrl_flow_base' epc_pre_claimpriv_assets
 local ctrl_gdp                `ctrl_flow_base'
 
 * ── Propensity model — SAME as 21/24's ACTIVE (`cx_active') baseline ───────
-local cx = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowalt", ///
-            cond(`flow_ctrl_variant'==2, "$ctrl_core_flowplus", "$ctrl_core_flowbase"))
+local cx = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowplus", "$ctrl_core_flowbase")
 * l_contagion_dist (distance-weighted, CEPII great-circle) in place of
 * l_reg_crisis_share -- matches 21_aipw_flow.do's cz_recency, "SECOND
 * PREDICTOR CHANGE".

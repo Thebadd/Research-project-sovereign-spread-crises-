@@ -108,20 +108,17 @@ foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def
 * CONTROL SET. flow_ctrl_variant: 0 = the ADOPTED flow-tier baseline,
 * $ctrl_core_flowbase (18_transforms.do's "ADOPTED FLOW-TIER CORE CONTROL
 * SET": l_banking_crisis, tot_chg, l_lninfl in place of l_banking_duration,
-* l_ca, l_hyperinfl). 1 = the bigger, still-exploratory alternate set
-* (18_transforms.do's "EXPLORATORY ALTERNATE FLOW CONTROL SET"). 2 = the
-* adopted core PLUS the reference paper's own additional predictors,
-* ex_dum1-ex_dum5 and l_imf (18_transforms.do's "SECOND ALTERNATE FLOW
-* CONTROL SET"). Default 0.
+* l_ca, l_hyperinfl). 1 = the adopted core PLUS the reference paper's own
+* additional predictors, ex_dum1-ex_dum5 and l_imf (18_transforms.do's
+* "ALTERNATE FLOW CONTROL SET"). Default 0.
 local flow_ctrl_variant 0
-if `flow_ctrl_variant'==2 & "$ctrl_core_flowplus"=="" {
-    di as error "  ** flow_ctrl_variant==2 requested but \$ctrl_core_flowplus is empty (ex_dum1-5"
+if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
+    di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (ex_dum1-5"
     di as error "     unavailable, exch missing) -- re-run 01_build_panel.do/12_wdi.do/18_transforms.do"
-    di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0/1."
+    di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0."
     exit 111
 }
-local X = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowalt", ///
-           cond(`flow_ctrl_variant'==2, "$ctrl_core_flowplus", "$ctrl_core_flowbase"))
+local X = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowplus", "$ctrl_core_flowbase")
 * l_contagion_dist (distance-weighted, CEPII great-circle) in place of
 * l_reg_crisis_share (flat regional share) -- matches 21_aipw_flow.do's
 * cz_recency, "SECOND PREDICTOR CHANGE".
