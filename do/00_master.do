@@ -61,6 +61,7 @@ do "$do/02a_descriptive_facts.do"   // stylised facts: raw output paths, no cont
 do "$do/02_lp_all.do"
 do "$do/03_lp_resolution.do"
 do "$do/20_lp_flow.do"               // FLOW treatment: in-crisis = every year of an episode (not just onset)
+do "$do/20b_exposure_heterogeneity_flow.do"  // FLOW counterpart of 13b: pre-crisis exposure x flow-treatment interactions
 do "$do/21_aipw_flow.do"             // Asonuma Eqs. (1)-(3) on the FLOW treatment (self-contained)
 do "$do/21b_first_stage_table_flow.do"  // Table-1-style probit for 21's Eq. (2): predicting the START of a spread crisis
 do "$do/21c_first_stage_figs_flow.do"   // kdensity overlap + nested ROC figures, the visual counterpart of 21b
