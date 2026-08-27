@@ -101,31 +101,35 @@
   because it is the more defensible statistic on this project's thinner
   cells.
 
-  SECTION 3b, PORTED FROM 21_AIPW_FLOW.DO: the same def-nd difference is
-  re-estimated resampling whole COUNTRIES instead of rows (`_aipwpairflow's
-  boot(cluster) mode, already copied into this file's program block), per
-  channel per horizon, and compared against the row-bootstrap CI computed in
-  Section 2. Point estimates are identical by construction (a bootstrap does
-  not touch them); only the interval differs, and where the two verdicts
-  disagree the write-up reports both, exactly as 21's header instructs.
-  `aipw_channels_flow_diff.csv` carries the country-cluster CI (clu_lo/
-  clu_hi/sig95_clu) alongside the row-bootstrap CI, matching 21's
-  `aipw_flow_diff.csv` schema.
+  SECTION 2b, PORTED FROM 21_AIPW_FLOW.DO'S SECTION 3b -- OFF BY DEFAULT: the
+  same def-nd difference can be re-estimated resampling whole COUNTRIES
+  instead of rows (`_aipwpairflow's boot(cluster) mode, already copied into
+  this file's program block), per channel per horizon, and compared against
+  the row-bootstrap CI computed in Section 2. Point estimates are identical
+  by construction (a bootstrap does not touch them); only the interval
+  differs, and where the two verdicts disagree the write-up should report
+  both, exactly as 21's header instructs. Set `run_cluster_boot' to 1 in
+  Section 2b to run it -- it is a second full bootstrap pass (roughly
+  doubling this file's runtime), so it is left off by default rather than
+  run every time. `aipw_channels_flow_diff.csv` always carries the
+  clu_lo/clu_hi/sig95_clu columns (matching 21's `aipw_flow_diff.csv`
+  schema); they are simply all missing/0 when the toggle is off.
 
   Outputs
   -------
     "$tabs/aipw_channels_flow.csv"       channel x series(nd/def) x horizon
-    "$tabs/aipw_channels_flow_diff.csv"  channel x horizon def-nd gap, row
-                                          AND country-cluster bootstrap CIs
+    "$tabs/aipw_channels_flow_diff.csv"  channel x horizon def-nd gap (row
+                                          bootstrap; country-cluster columns
+                                          populated only if run_cluster_boot=1)
     "$figs/fig_aipw_ch_flow_act2.pdf/.png"  2x3 grid, nd/def overlay
 
   RUNTIME: 6 channels x 5 horizons x (2 levels + 1 paired-bootstrap diff,
-  ROW mode, Section 2) x nboot draws, THEN the same again in CLUSTER mode
-  (Section 3b). This doubles the cost of adding 3b on top of Section 2 alone.
-  At nboot=300 this is already substantially heavier than 21 alone (1
-  outcome vs 6 channels); this file deliberately runs a lower nboot than
-  21's 1000 for that reason, not as an oversight — raise to 500+ only for a
-  final run. Self-contained: reads only $clean/panel_lp.dta.
+  ROW mode, Section 2) x nboot draws. Section 2b (OFF by default) repeats
+  the whole thing again in CLUSTER mode when turned on, roughly doubling
+  runtime. At nboot=300 Section 2 alone is already substantially heavier
+  than 21 alone (1 outcome vs 6 channels); this file deliberately runs a
+  lower nboot than 21's 1000 for that reason, not as an oversight — raise to
+  500+ only for a final run. Self-contained: reads only $clean/panel_lp.dta.
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -498,7 +502,8 @@ postclose `R'
 postclose `Rd'
 
 * ══════════════════════════════════════════════════════════════════════════
-* 2b. THE SAME DIFFERENCE, COUNTRY-CLUSTER BOOTSTRAP — COMPARISON ONLY
+* 2b. THE SAME DIFFERENCE, COUNTRY-CLUSTER BOOTSTRAP — COMPARISON ONLY,
+*     OFF BY DEFAULT (set run_cluster_boot to 1 to run it)
 *
 * Ported from 21_aipw_flow.do's Section 3b, per channel. Section 2 resamples
 * ROWS within treatment-type strata (the reference paper's scheme); under
@@ -508,61 +513,82 @@ postclose `Rd'
 * COUNTRIES instead, so the cost of the row-resampling choice is a number
 * here too, not just for GDP. Point estimates are identical by construction
 * (a bootstrap does not touch them) -- only the interval differs.
+*
+* OFF BY DEFAULT: this is a second full bootstrap pass (6 channels x 5
+* horizons x nboot draws again), roughly doubling the file's runtime. Set
+* `run_cluster_boot' to 1 below to run it. The export block always merges
+* against `clusterf' -- when this is skipped that file is an empty shell
+* (right variables, zero rows), so clu_lo/clu_hi/clu_nd/sig95_clu still
+* appear in the CSV but are all missing/0, rather than the export needing
+* its own separate on/off branch.
 * ══════════════════════════════════════════════════════════════════════════
+local run_cluster_boot 0
+
 tempname Rc
 tempfile clusterf
 postfile `Rc' str24 channel byte horizon double clu_lo double clu_hi long clu_nd ///
     using "`clusterf'", replace
+postclose `Rc'   // empty shell so Section 3's merge has something to read when the block below is skipped
 
-di as result _n "════════════════════════════════════════════════════════════"
-di as result "2b. ROW vs COUNTRY-CLUSTER BOOTSTRAP, PER CHANNEL (same point estimates)"
-di as result "════════════════════════════════════════════════════════════"
+if `run_cluster_boot' {
+    tempname Rc2
+    postfile `Rc2' str24 channel byte horizon double clu_lo double clu_hi long clu_nd ///
+        using "`clusterf'", replace
 
-foreach ch of local channels {
-    di as result _n "--- CHANNEL: `ch' ---"
-    post `Rc' ("`ch'") (0) (.) (.) (0)
+    di as result _n "════════════════════════════════════════════════════════════"
+    di as result "2b. ROW vs COUNTRY-CLUSTER BOOTSTRAP, PER CHANNEL (same point estimates)"
+    di as result "════════════════════════════════════════════════════════════"
 
-    forvalues h = 0/4 {
-        local hd = `h' + 1
+    foreach ch of local channels {
+        di as result _n "--- CHANNEL: `ch' ---"
+        post `Rc2' ("`ch'") (0) (.) (.) (0)
 
-        _aipwpairflow, y(ch_`ch'_`h') ///
-            d1(in_crisis_def) if1(sample_flow==1 & in_crisis_nd==0) ///
-            d2(in_crisis_nd)  if2(sample_flow==1 & in_crisis_def==0) ///
-            omod(`ctrl_`ch'') pz(`cx_active' `cz_recency') reps(`nboot') boot(cluster)
+        forvalues h = 0/4 {
+            local hd = `h' + 1
 
-        if !r(ok) {
-            di as error "  h=`hd': cluster-bootstrap comparison failed for `ch'."
-            continue
+            _aipwpairflow, y(ch_`ch'_`h') ///
+                d1(in_crisis_def) if1(sample_flow==1 & in_crisis_nd==0) ///
+                d2(in_crisis_nd)  if2(sample_flow==1 & in_crisis_def==0) ///
+                omod(`ctrl_`ch'') pz(`cx_active' `cz_recency') reps(`nboot') boot(cluster)
+
+            if !r(ok) {
+                di as error "  h=`hd': cluster-bootstrap comparison failed for `ch'."
+                continue
+            }
+            local CD = r(dh)
+            local CL = r(lo)
+            local CH = r(hi)
+            local CN = r(nd)
+
+            * Point estimates MUST match Section 2 -- the check that resampling has
+            * not leaked into the estimate itself (same check as 21's Section 3b).
+            local rowlo = Ddlo_`ch'[`hd',1]
+            local rowhi = Ddhi_`ch'[`hd',1]
+            local wrow = `rowhi' - `rowlo'
+            local wclu = `CH' - `CL'
+            local wrat = cond(`wclu' > 0, `wrow'/`wclu', .)
+            local sigr = cond(!missing(`rowlo') & (`rowlo'>0 | `rowhi'<0), "*", " ")
+            local sigc = cond(!missing(`CL') & (`CL'>0 | `CH'<0), "*", " ")
+
+            di as result "  h=" %1.0f `hd' "  def-nd=" %8.3f `CD' ///
+                 "  [row: " %7.3f `rowlo' ", " %7.3f `rowhi' "]`sigr'" ///
+                 "  [cluster: " %7.3f `CL' ", " %7.3f `CH' "]`sigc'" ///
+                 "  width ratio=" %5.2f `wrat' "  " %4.0f `CN' "/`nboot'"
+
+            post `Rc2' ("`ch'") (`hd') (`CL') (`CH') (`CN')
         }
-        local CD = r(dh)
-        local CL = r(lo)
-        local CH = r(hi)
-        local CN = r(nd)
-
-        * Point estimates MUST match Section 2 -- the check that resampling has
-        * not leaked into the estimate itself (same check as 21's Section 3b).
-        local rowlo = Ddlo_`ch'[`hd',1]
-        local rowhi = Ddhi_`ch'[`hd',1]
-        local wrow = `rowhi' - `rowlo'
-        local wclu = `CH' - `CL'
-        local wrat = cond(`wclu' > 0, `wrow'/`wclu', .)
-        local sigr = cond(!missing(`rowlo') & (`rowlo'>0 | `rowhi'<0), "*", " ")
-        local sigc = cond(!missing(`CL') & (`CL'>0 | `CH'<0), "*", " ")
-
-        di as result "  h=" %1.0f `hd' "  def-nd=" %8.3f `CD' ///
-             "  [row: " %7.3f `rowlo' ", " %7.3f `rowhi' "]`sigr'" ///
-             "  [cluster: " %7.3f `CL' ", " %7.3f `CH' "]`sigc'" ///
-             "  width ratio=" %5.2f `wrat' "  " %4.0f `CN' "/`nboot'"
-
-        post `Rc' ("`ch'") (`hd') (`CL') (`CH') (`CN')
     }
-}
-postclose `Rc'
+    postclose `Rc2'
 
-di as result _n "  A width ratio well below 1 means the row bootstrap is treating"
-di as result "  repeated crisis-years of the same country as independent draws."
-di as result "  Where the two verdicts (*) differ, the write-up reports both and"
-di as result "  says which resampling unit produced which."
+    di as result _n "  A width ratio well below 1 means the row bootstrap is treating"
+    di as result "  repeated crisis-years of the same country as independent draws."
+    di as result "  Where the two verdicts (*) differ, the write-up reports both and"
+    di as result "  says which resampling unit produced which."
+}
+else {
+    di as result _n "  2b. Country-cluster bootstrap comparison SKIPPED (run_cluster_boot=0)."
+    di as result "      Set run_cluster_boot to 1 above to run it -- see file header."
+}
 
 * ══════════════════════════════════════════════════════════════════════════
 * 3. EXPORTS
