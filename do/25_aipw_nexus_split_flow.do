@@ -72,24 +72,48 @@
   boundary rather than reopening it: 4 cells only (nd-high, nd-low, def-high,
   def-low), plus the high-low difference within nd and within def.
 
-  INFERENCE, MATCHING 24's CONVENTION EXACTLY
+  INFERENCE, MATCHING 21/24's CONVENTION EXACTLY
   ---------------------------------------------
   LEVELS (each of the 4 cells vs tranquil): analytic influence-function SE
-  from _aipw, band theta +/- 1.96*se. DIFFERENCE (high-low, within nd or def):
-  paired row bootstrap via _aipwpairflow, percentile CI, reported only when
-  >=50 valid draws (13d's own threshold, carried forward) — below that the
-  point estimate stands with a printed caveat, not a fabricated interval.
+  from _aipw, band theta +/- 1.96*se, PLUS a conventional t-test vs zero
+  (b/se_a, normal-based, no df available from an influence-function SE),
+  printed with stars next to HIGH/LOW exactly as 21's Section 3 and (now)
+  24's Section 2 do.
+
+  DIFFERENCE (high-low, within nd or def): paired row bootstrap via
+  _aipwpairflow, percentile CI — the GOVERNING test, reported only when >=50
+  valid draws (13d's own threshold, carried forward) — below that the point
+  estimate stands with a printed caveat, not a fabricated interval. Also
+  carries a Clogg et al. (1995) z as a companion statistic (`cloggz'/`cloggp'
+  columns), matching 21's Section 3 and 24's Section 2 exactly. The Clogg z
+  is the PERMISSIVE number: it assumes the two cells (high-nexus treated,
+  low-nexus treated) are independent, which they are not here (they share
+  the same tranquil control pool), so the bootstrap CI governs where the two
+  disagree.
+
+  SECTION 4b, PORTED FROM 21/24 -- OFF BY DEFAULT: the same high-low
+  difference can be re-estimated resampling whole COUNTRIES instead of rows,
+  per outcome/type/horizon, and compared against the row-bootstrap CI. Set
+  `run_cluster_boot' to 1 in Section 4b to run it -- it is a second full
+  bootstrap pass (roughly doubling this file's already-heavier runtime), so
+  it is left off by default. `aipw_nexus_split_flow_diff.csv' always carries
+  the clu_lo/clu_hi/sig95_clu columns; they are all missing/0 when the
+  toggle is off.
 
   Outputs
   -------
     "$tabs/aipw_nexus_split_flow.csv"       outcome x cell(nd_high/nd_low/def_high/def_low) x horizon
-    "$tabs/aipw_nexus_split_flow_diff.csv"  outcome x type(nd/def) x horizon, high-low gap + CI
+    "$tabs/aipw_nexus_split_flow_diff.csv"  outcome x type(nd/def) x horizon, high-low gap + CI,
+                                             Clogg z, and (if run_cluster_boot=1) country-cluster CI
     "$figs/fig_aipw_nexus_split_flow.pdf"   GDP, nd/def panels, high vs low overlay
     "$figs/fig_nexus_flow_<channel>.pdf"    one per channel (credit, inv, claims_govt, claimpriv_assets)
 
   RUNTIME: 5 outcomes x 2 types x 5 horizons x nboot draws for the difference
-  alone, on top of the 4 point estimates per outcome/horizon. Heavier than 24;
-  raise nboot only for a final run.
+  alone, on top of the 4 point estimates per outcome/horizon. Heavier than 24
+  (5 outcomes here vs 6 channels there, but each outcome carries 2 types x 2
+  bank-exposure cells vs 24's 2 resolution cells). Section 4b (OFF by
+  default) repeats it all again in CLUSTER mode when turned on. Raise nboot
+  only for a final run.
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -395,7 +419,7 @@ postfile `R' str24 outcome str8 cell byte horizon double b double se double lo d
 tempname Rd
 tempfile diffresf
 postfile `Rd' str24 outcome str4 restype byte horizon double dhl double bhigh double blow ///
-    double se double lo double hi long nd using "`diffresf'", replace
+    double se double lo double hi long nd double cloggz double cloggp using "`diffresf'", replace
 
 local outcomes gdp credit inv claims_govt claimpriv_assets
 
@@ -412,12 +436,18 @@ foreach oc in `outcomes' {
             matrix lo_`oc'_`g'_`h2'[2,1] = 0
             matrix hi_`oc'_`g'_`h2'[2,1] = 0
         }
+        * Row-bootstrap diff CI, saved per outcome/type/horizon so Section 4b
+        * (country-cluster comparison) can print the width ratio against it.
+        matrix Ddlo_`oc'_`g' = J(5,1,.)
+        matrix Ddhi_`oc'_`g' = J(5,1,.)
     }
 }
 
 di as result _n "════════════════════════════════════════════════════════════"
 di as result "FLOW AIPW NEXUS SPLIT (Year 1 = the crisis year)"
 di as result "Levels: analytic influence-function SE. High-low diff: paired bootstrap."
+di as result "HIGH/LOW stars are the conventional t-test vs zero (b/se_a): * p<.10 ** p<.05 *** p<.01."
+di as result "hi-lo's own * marks the bootstrap CI excluding 0 -- the conservative, governing test."
 di as result "════════════════════════════════════════════════════════════"
 
 foreach oc in `outcomes' {
@@ -471,13 +501,38 @@ foreach oc in `outcomes' {
             post `R' ("`oc'") ("`g'_high") (`hd') (`BH') (`AH') (`BH'-1.96*`AH') (`BH'+1.96*`AH')
             post `R' ("`oc'") ("`g'_low")  (`hd') (`BL') (`AL') (`BL'-1.96*`AL') (`BL'+1.96*`AL')
 
-            local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
-            di as result "  h=" %1.0f `hd' " `g'  HIGH=" %8.3f `BH' " (" %5.3f `AH' ")" ///
-                 "  LOW=" %8.3f `BL' " (" %5.3f `AL' ")" ///
-                 "  hi-lo=" %8.3f `DH' " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
-                 "  " %4.0f `ND' "/`nboot'"
+            * Clogg et al. (1995) z, built from the same analytic influence-
+            * function SEs used for the level bands -- identical construction to
+            * 21_aipw_flow.do's Section 3 and 24's Section 2. PERMISSIVE: treats
+            * the two cells as independent, which they are not (shared tranquil
+            * pool), so the bootstrap CI governs where the two disagree.
+            local zz = .
+            local pz = .
+            if !missing(`AH') & !missing(`AL') & (`AH'^2 + `AL'^2) > 0 {
+                local zz = `DH' / sqrt(`AH'^2 + `AL'^2)
+                local pz = 2*(1 - normal(abs(`zz')))
+            }
 
-            post `Rd' ("`oc'") ("`g'") (`hd') (`DH') (`BH') (`BL') (`SE') (`LO') (`HI') (`ND')
+            * Conventional t-test for each level vs zero, identical construction
+            * to 21/24's Section 3/2 (b/se_a, normal-based -- an influence-
+            * function SE carries no regression df to build a t distribution from).
+            local thi  = cond(`AH'>0, `BH'/`AH', .)
+            local phi  = cond(!missing(`thi'), 2*(1-normal(abs(`thi'))), .)
+            local sghi = cond(missing(`phi'), "", cond(`phi'<.01,"***",cond(`phi'<.05,"**",cond(`phi'<.10,"*",""))))
+            local tlo  = cond(`AL'>0, `BL'/`AL', .)
+            local plo  = cond(!missing(`tlo'), 2*(1-normal(abs(`tlo'))), .)
+            local sglo = cond(missing(`plo'), "", cond(`plo'<.01,"***",cond(`plo'<.05,"**",cond(`plo'<.10,"*",""))))
+
+            local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
+            di as result "  h=" %1.0f `hd' " `g'  HIGH=" %8.3f `BH' "`sghi'" " (" %5.3f `AH' ")" ///
+                 "  LOW=" %8.3f `BL' "`sglo'" " (" %5.3f `AL' ")" ///
+                 "  hi-lo=" %8.3f `DH' " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
+                 "  " %4.0f `ND' "/`nboot'" ///
+                 "  Clogg z=" %7.3f `zz' " p=" %5.3f `pz'
+
+            post `Rd' ("`oc'") ("`g'") (`hd') (`DH') (`BH') (`BL') (`SE') (`LO') (`HI') (`ND') (`zz') (`pz')
+            matrix Ddlo_`oc'_`g'[`hd',1] = `LO'
+            matrix Ddhi_`oc'_`g'[`hd',1] = `HI'
         }
         capture drop _dhigh_`oc'_`g' _dlow_`oc'_`g'
         sort cid year
@@ -487,20 +542,129 @@ postclose `R'
 postclose `Rd'
 
 * ══════════════════════════════════════════════════════════════════════════
+* 4b. THE SAME HIGH-LOW DIFFERENCE, COUNTRY-CLUSTER BOOTSTRAP — COMPARISON
+*     ONLY, OFF BY DEFAULT (set run_cluster_boot to 1 to run it)
+*
+* Ported from 21_aipw_flow.do's Section 3b / 24_aipw_channels_flow.do's
+* Section 2b, per outcome/type. Section 4 resamples ROWS within treatment-
+* type strata; under flow coding a treated row is a crisis-YEAR, not an
+* independent episode, and a handful of countries contribute many rows to
+* one bank-exposure cell. This block re-runs the identical estimator
+* resampling whole COUNTRIES instead. Point estimates are identical by
+* construction (a bootstrap does not touch them) -- only the interval
+* differs.
+*
+* OFF BY DEFAULT: this is a second full bootstrap pass (5 outcomes x 2 types
+* x 5 horizons x nboot draws again), roughly doubling this file's already
+* heavier runtime. The export block always merges against `clusterf' -- when
+* this is skipped that file is an empty shell, so clu_lo/clu_hi/clu_nd/
+* sig95_clu still appear in the CSV but are all missing/0.
+* ══════════════════════════════════════════════════════════════════════════
+local run_cluster_boot 0
+
+tempname Rc
+tempfile clusterf
+postfile `Rc' str24 outcome str4 restype byte horizon double clu_lo double clu_hi long clu_nd ///
+    using "`clusterf'", replace
+postclose `Rc'   // empty shell so Section 5's merge has something to read when the block below is skipped
+
+if `run_cluster_boot' {
+    tempname Rc2
+    postfile `Rc2' str24 outcome str4 restype byte horizon double clu_lo double clu_hi long clu_nd ///
+        using "`clusterf'", replace
+
+    di as result _n "════════════════════════════════════════════════════════════"
+    di as result "4b. ROW vs COUNTRY-CLUSTER BOOTSTRAP, PER OUTCOME/TYPE (same point estimates)"
+    di as result "════════════════════════════════════════════════════════════"
+
+    foreach oc in `outcomes' {
+        local ystem = cond("`oc'"=="gdp", "dy", "ch_`oc'")
+        local om `ctrl_`oc''
+        di as result _n "############### OUTCOME: `oc' ###############"
+
+        foreach g in nd def {
+            local Dv   in_crisis_`g'
+            local rivg = cond("`g'"=="nd", "def", "nd")
+            local riv  in_crisis_`rivg'
+
+            capture drop _dhigh_`oc'_`g' _dlow_`oc'_`g'
+            quietly gen byte _dhigh_`oc'_`g' = (`Dv'==1 & highbank_flow==1)
+            quietly gen byte _dlow_`oc'_`g'  = (`Dv'==1 & highbank_flow==0)
+            local ifc "sample_flow==1 & `riv'==0"
+
+            post `Rc2' ("`oc'") ("`g'") (0) (.) (.) (0)
+
+            forvalues h = 0/4 {
+                local hd = `h' + 1
+
+                _aipwpairflow, y(`ystem'_`h') ///
+                    d1(_dhigh_`oc'_`g') if1(`ifc') ///
+                    d2(_dlow_`oc'_`g')  if2(`ifc') ///
+                    omod(`om') pz(`cx' `cz_recency') reps(`nboot') boot(cluster)
+
+                if !r(ok) {
+                    di as error "  h=`hd' `g': cluster-bootstrap comparison failed for `oc'."
+                    continue
+                }
+                local CD = r(dh)
+                local CL = r(lo)
+                local CH = r(hi)
+                local CN = r(nd)
+
+                local rowlo = Ddlo_`oc'_`g'[`hd',1]
+                local rowhi = Ddhi_`oc'_`g'[`hd',1]
+                local wrow = `rowhi' - `rowlo'
+                local wclu = `CH' - `CL'
+                local wrat = cond(`wclu' > 0, `wrow'/`wclu', .)
+                local sigr = cond(!missing(`rowlo') & (`rowlo'>0 | `rowhi'<0), "*", " ")
+                local sigc = cond(!missing(`CL') & (`CL'>0 | `CH'<0), "*", " ")
+
+                di as result "  h=" %1.0f `hd' " `g'  hi-lo=" %8.3f `CD' ///
+                     "  [row: " %7.3f `rowlo' ", " %7.3f `rowhi' "]`sigr'" ///
+                     "  [cluster: " %7.3f `CL' ", " %7.3f `CH' "]`sigc'" ///
+                     "  width ratio=" %5.2f `wrat' "  " %4.0f `CN' "/`nboot'"
+
+                post `Rc2' ("`oc'") ("`g'") (`hd') (`CL') (`CH') (`CN')
+            }
+            capture drop _dhigh_`oc'_`g' _dlow_`oc'_`g'
+            sort cid year
+        }
+    }
+    postclose `Rc2'
+
+    di as result _n "  A width ratio well below 1 means the row bootstrap is treating"
+    di as result "  repeated crisis-years of the same country as independent draws."
+    di as result "  Where the two verdicts (*) differ, the write-up reports both and"
+    di as result "  says which resampling unit produced which."
+}
+else {
+    di as result _n "  4b. Country-cluster bootstrap comparison SKIPPED (run_cluster_boot=0)."
+    di as result "      Set run_cluster_boot to 1 above to run it -- see file header."
+}
+
+* ══════════════════════════════════════════════════════════════════════════
 * 5. EXPORTS
 * ══════════════════════════════════════════════════════════════════════════
 preserve
     use "`diffresf'", clear
+    quietly merge 1:1 outcome restype horizon using "`clusterf'", nogenerate
     label var dhl    "AIPW flow high - low nexus gap (pp)"
     label var bhigh  "High-nexus ATE (analytic SE band)"
     label var blow   "Low-nexus ATE (analytic SE band)"
     label var se     "Bootstrap SD of the difference"
-    label var lo     "95% percentile CI lower (bootstrap)"
-    label var hi     "95% percentile CI upper (bootstrap)"
-    label var nd     "Valid bootstrap draws"
+    label var lo     "95% percentile CI lower (row bootstrap, baseline)"
+    label var hi     "95% percentile CI upper (row bootstrap, baseline)"
+    label var nd     "Valid row-bootstrap draws"
     gen byte sig95 = (nd>=50 & (lo>0 | hi<0))
-    label var sig95 "Gap CI excludes 0"
-    order outcome restype horizon dhl bhigh blow se lo hi nd sig95
+    label var sig95 "Row bootstrap CI excludes 0 (baseline, the paper's scheme)"
+    label var clu_lo "95% CI lower, COUNTRY-CLUSTER bootstrap (comparison)"
+    label var clu_hi "95% CI upper, COUNTRY-CLUSTER bootstrap (comparison)"
+    label var clu_nd "Valid country-cluster bootstrap draws"
+    gen byte sig95_clu = (!missing(clu_lo) & (clu_lo>0 | clu_hi<0))
+    label var sig95_clu "Country-cluster CI excludes 0 (comparison)"
+    label var cloggz "Clogg et al. (1995) z (permissive; assumes independence)"
+    label var cloggp "p-value of the Clogg z"
+    order outcome restype horizon dhl bhigh blow se lo hi nd sig95 clu_lo clu_hi clu_nd sig95_clu cloggz cloggp
     export delimited "$tabs/aipw_nexus_split_flow_diff.csv", replace
     di as result _n "AIPW flow nexus high-low difference CSV saved: $tabs/aipw_nexus_split_flow_diff.csv"
 restore
