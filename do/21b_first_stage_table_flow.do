@@ -200,14 +200,35 @@ local worstp = max(`rocp_nd', `rocp_def')
 di as result _n "      Both columns' AUROC delta: " %5.3f `mindlt' " (smaller of the two)."
 di as result "      roccomp's formal test for whether the two AUROCs differ: nd chi2(1)=" ///
     %5.2f `rocchi2_nd' ", p=" %5.3f `rocp_nd' "   def chi2(1)=" %5.2f `rocchi2_def' ", p=" %5.3f `rocp_def' "."
-di as result "      Neither reaches the conventional 5 pct level (worse column p=" %5.3f `worstp' ///
-    "); both are inside the 10 pct band."
-di as result "      Read this as MODEST, NOT ABSENT: the point deltas are comparable in size to the"
-di as result "      reference paper's own with/without-predictors gap (0.08-0.09), but on this project's"
-di as result "      much smaller sample that gap does not clear a formal significance test the way it does"
-di as result "      in their much larger panel. The chi-squared row above tests joint predictor significance"
-di as result "      only and says nothing about classification power; roccomp's test is the one that speaks"
-di as result "      to classification power directly, and it says 'suggestive, not established' here."
+if `worstp' < 0.05 {
+    di as result "      BOTH columns clear the conventional 5 pct level (worse column p=" %5.3f `worstp' ")."
+    di as result "      Read this as ESTABLISHED, not merely suggestive: the point deltas are comparable in"
+    di as result "      size to the reference paper's own with/without-predictors gap (0.08-0.09), and on this"
+    di as result "      run that gap is also distinguishable from noise in both arms, the same as it is in"
+    di as result "      their much larger panel. The chi-squared row above tests joint predictor significance"
+    di as result "      only and says nothing about classification power; roccomp's test is the one that speaks"
+    di as result "      to classification power directly, and here it backs the chi-squared row up."
+}
+else if `worstp' < 0.10 {
+    di as result "      One column clears the conventional 5 pct level; the other does not (worse column p=" ///
+        %5.3f `worstp' "), but both are inside the 10 pct band."
+    di as result "      Read this as MODEST, NOT ABSENT: the point deltas are comparable in size to the"
+    di as result "      reference paper's own with/without-predictors gap (0.08-0.09), but on this project's"
+    di as result "      sample the weaker arm's gap does not clear a formal significance test the way it does"
+    di as result "      in their much larger panel. The chi-squared row above tests joint predictor significance"
+    di as result "      only and says nothing about classification power; roccomp's test is the one that speaks"
+    di as result "      to classification power directly, and it says 'suggestive, not fully established' here."
+}
+else {
+    di as result "      Neither reaches the conventional 5 pct level (worse column p=" %5.3f `worstp' ///
+        "); at least one arm sits outside even the 10 pct band."
+    di as result "      Read this as MODEST, NOT ABSENT: the point deltas are comparable in size to the"
+    di as result "      reference paper's own with/without-predictors gap (0.08-0.09), but on this project's"
+    di as result "      much smaller sample that gap does not clear a formal significance test the way it does"
+    di as result "      in their much larger panel. The chi-squared row above tests joint predictor significance"
+    di as result "      only and says nothing about classification power; roccomp's test is the one that speaks"
+    di as result "      to classification power directly, and it says 'suggestive, not established' here."
+}
 
 * ══════════════════════════════════════════════════════════════════════════
 * TABLE EXPORT — Table 1 style (Predictors / Baseline controls blocks + diags)

@@ -56,12 +56,16 @@
   -----------------------------------------------------------------------
   The AUROC delta shown in the legend is a point difference, not a
   significance test. roccomp's chi2 test for equal correlated ROC areas is
-  printed as a note under each panel (H0: equal areas). On this project's
-  sample neither arm clears the conventional 5 pct level (nd p=.084, def
-  p=.055 as of the run that motivated adding this) -- the point gap is
-  comparable in size to the reference paper's own with/without-predictors
-  demonstration, but is not as sharply established here. Matches 21b's
-  console output, which reports the same test.
+  printed as a note under each panel (H0: equal areas), and the combined
+  figure's subtitle is set from the actual computed p-values at run time
+  (not a fixed claim) -- whether it reads "established" or "modest, not
+  absent" depends on whether both arms clear the conventional 5 pct level
+  on that run. Under the tot_chg-based core this never happened (nd p=.084,
+  def p=.055 as of the run that motivated adding this); under the adopted
+  exchange2-based core, on a larger fitting sample (exchange2's fuller
+  onset coverage recovers rows tot_chg's missingness was dropping), both
+  arms have since cleared 5 pct in at least one run (nd p=.028, def
+  p=.033). Matches 21b's console output, which reports the same test.
 
   Outputs
   -------
@@ -163,6 +167,7 @@ foreach nm of local gnames_a {
 * does not exist in this project's flow probit.
 * ══════════════════════════════════════════════════════════════════════════
 local gnames_b
+local worstp_b = 0
 foreach s in nd def {
     local ttl = cond("`s'"=="nd", "Non-default", "Default-linked")
 
@@ -173,6 +178,8 @@ foreach s in nd def {
     * then reused as a literal string in the panel note below.
     quietly roccomp in_crisis_`s' _p1_`s' _p2_`s' if !missing(_p1_`s',_p2_`s')
     local rocnote = "H0: equal areas -- chi2(1)=" + string(r(chi2), "%4.2f") + ", p=" + string(r(p), "%5.3f")
+    local rocp_`s' = r(p)
+    if r(p) > `worstp_b' local worstp_b = r(p)
 
     roccomp in_crisis_`s' _p1_`s' _p2_`s' if !missing(_p1_`s',_p2_`s'), ///
         graph summary name(gr_`s', replace) graphregion(color(white)) nodraw ///
@@ -184,11 +191,16 @@ foreach s in nd def {
             order(1 "Controls: `auc1_`s''" 2 "Controls+Predictors: `auc2_`s''"))
     local gnames_b `gnames_b' gr_`s'
 }
+local subtxt = cond(`worstp_b' < 0.05, ///
+    "ROC area under the curve; 0.50 = no classification power, 1.00 = perfect. No country-FE curve —" + ///
+        " see header. Both panels' gaps clear the conventional 5 pct level (roccomp chi2 test, see notes below" + ///
+        " each panel) -- an established, not merely suggestive, classification gain on this project's sample.", ///
+    "ROC area under the curve; 0.50 = no classification power, 1.00 = perfect. No country-FE curve —" + ///
+        " see header. At least one panel's gap does not clear the conventional 5 pct level (roccomp chi2 test," + ///
+        " see notes below each panel) -- modest, not absent, on this project's sample size.")
 graph combine `gnames_b', graphregion(color(white)) ///
     title("First-Stage Classification: Controls vs Controls + Predictors", size(medsmall) color(navy)) ///
-    subtitle("ROC area under the curve; 0.50 = no classification power, 1.00 = perfect. No country-FE curve —" ///
-        " see header. Neither panel's gap clears the conventional 5 pct level (roccomp chi2 test, see notes below" ///
-        " each panel) -- modest, not absent, on this project's sample size.", size(small)) ///
+    subtitle("`subtxt'", size(small)) ///
     xsize(6) ysize(3.2)
 capture graph export "$figs/fig_roc_flow.pdf", replace
 if _rc di as error "  ** fig_roc_flow.pdf export failed (rc=" _rc ") — is it open?"
