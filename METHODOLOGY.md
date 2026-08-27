@@ -221,6 +221,39 @@ strata. Ours resamples whole countries (`bsample, cluster(cid) strata(...)
 idcluster(_bid)`), which is the stricter choice given that observations
 within a country are plainly not independent.
 
+**The minimum-valid-draws threshold (≥50) before a bootstrap CI is
+reported is the reference paper's own criterion, not a project
+convention.** Their Table 2 note states it directly: "Out of the 5,000
+iterations, we drop estimates applying a criterion of less than 50
+observations. As a result, the confidence intervals are based on 1,379,
+929, and 1,109 sets of coefficients for GDP, investment, and bank credit,
+respectively" (Asonuma, Chamon, Erce & Sasahara 2024, Table 2 note). Two
+things follow from reading that sentence carefully rather than only
+copying the number:
+
+- The 50-draw floor and the practice of reporting the achieved count next
+  to the CI (rather than presenting every requested draw as if it
+  succeeded) are both adopted directly from this note — `_aipwpairflow`
+  across `21_aipw_flow.do`, `24_aipw_channels_flow.do`, and
+  `25_aipw_nexus_split_flow.do` only computes a percentile CI `if nd >=
+  50`, and the achieved count (`nd`) is printed at every horizon and
+  exported as its own CSV column, not discarded once the CI is built.
+- Their reported survival rate (18–28% of 5,000 draws, even on a panel of
+  194 restructurings across 76 countries) is a useful calibration point,
+  but this project's own achieved-draw ratios (typically ≥295/300 in the
+  logged runs) should **not** be read as a discrepancy needing
+  explanation. The two designs fail for different mechanical reasons.
+  Their filter appears to drop a draw when its resampled composition
+  happens to fall under 50 observations of the relevant type — a
+  quantity that can vary draw to draw. This project's `bsample,
+  strata(_pool)` resamples *within* each stratum at exactly the source
+  stratum's size, so a resampled stratum can never be smaller than the
+  original by construction; the near-universal survival here reflects
+  that structural guarantee, not a laxer filter. What *does* cause a
+  draw to fail here is `_aipw`'s estimation step not converging on a
+  given resample (propensity-model separation, etc.) — a distinct
+  failure mode from theirs, not a weaker version of the same one.
+
 **Flow specification (`20_lp_flow.do`).** Driscoll-Kraay again, but at
 `lag(max(2, h+3))` rather than `max(1, h+1)`. The onset rule covers the $h+1$
 overlap of successive outcome windows. Flow coding introduces a second source
