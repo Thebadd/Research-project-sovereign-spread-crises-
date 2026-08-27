@@ -79,8 +79,13 @@
   INFERENCE, MATCHING 21_AIPW_FLOW.DO'S CONVENTION EXACTLY
   ----------------------------------------------------------
   LEVELS (nd/def vs tranquil): analytic influence-function SE from `_aipw',
-  bands theta +/- 1.96*se — NOT their own bootstrap. DIFFERENCE (def-nd):
-  1000... here nboot draws, percentile CI. This is 21's "faithful" route
+  bands theta +/- 1.96*se — NOT their own bootstrap. Each level also carries
+  a CONVENTIONAL t-test vs zero (b/se_a, normal-based, no df available from
+  an influence-function SE), printed with stars next to ND/DEF exactly as
+  21's Section 3 does — "conventional" there is explicitly contrasted
+  against the bootstrap/Clogg methods used for the DIFFERENCE, not applied
+  to it. DIFFERENCE (def-nd): paired bootstrap (nboot draws, row-level,
+  percentile CI) — the GOVERNING test. This is 21's "faithful" route
   (08b_aipw.do's own file takes the other, "conservative" route — bootstrap
   for levels too — see 21's header for why the two files differ on this).
 
@@ -96,19 +101,31 @@
   because it is the more defensible statistic on this project's thinner
   cells.
 
-  NOT BUILT: the country-cluster bootstrap comparison (21's Section 3b). Can
-  be added as a follow-up per channel if wanted; out of scope for this file.
+  SECTION 3b, PORTED FROM 21_AIPW_FLOW.DO: the same def-nd difference is
+  re-estimated resampling whole COUNTRIES instead of rows (`_aipwpairflow's
+  boot(cluster) mode, already copied into this file's program block), per
+  channel per horizon, and compared against the row-bootstrap CI computed in
+  Section 2. Point estimates are identical by construction (a bootstrap does
+  not touch them); only the interval differs, and where the two verdicts
+  disagree the write-up reports both, exactly as 21's header instructs.
+  `aipw_channels_flow_diff.csv` carries the country-cluster CI (clu_lo/
+  clu_hi/sig95_clu) alongside the row-bootstrap CI, matching 21's
+  `aipw_flow_diff.csv` schema.
 
   Outputs
   -------
     "$tabs/aipw_channels_flow.csv"       channel x series(nd/def) x horizon
-    "$tabs/aipw_channels_flow_diff.csv"  channel x horizon def-nd gap
+    "$tabs/aipw_channels_flow_diff.csv"  channel x horizon def-nd gap, row
+                                          AND country-cluster bootstrap CIs
     "$figs/fig_aipw_ch_flow_act2.pdf/.png"  2x3 grid, nd/def overlay
 
-  RUNTIME: 6 channels x 5 horizons x (2 levels + 1 paired-bootstrap diff) x
-  nboot draws. At nboot=300 this is substantially heavier than 21 alone;
-  raise to 500+ only for a final run. Self-contained: reads only
-  $clean/panel_lp.dta.
+  RUNTIME: 6 channels x 5 horizons x (2 levels + 1 paired-bootstrap diff,
+  ROW mode, Section 2) x nboot draws, THEN the same again in CLUSTER mode
+  (Section 3b). This doubles the cost of adding 3b on top of Section 2 alone.
+  At nboot=300 this is already substantially heavier than 21 alone (1
+  outcome vs 6 channels); this file deliberately runs a lower nboot than
+  21's 1000 for that reason, not as an oversight — raise to 500+ only for a
+  final run. Self-contained: reads only $clean/panel_lp.dta.
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -388,11 +405,18 @@ foreach ch of local channels {
             matrix `m'_`ch'_`g'[2,1] = 0
         }
     }
+    * Row-bootstrap diff CI, saved per channel/horizon so Section 3b (country-
+    * cluster comparison) can print the width ratio against it without
+    * re-running Section 2 or re-reading the postfile mid-stream.
+    matrix Ddlo_`ch' = J(5,1,.)
+    matrix Ddhi_`ch' = J(5,1,.)
 }
 
 di as result _n "════════════════════════════════════════════════════════════"
 di as result "FLOW AIPW CHANNELS BY RESOLUTION TYPE (Year 1 = the crisis year)"
 di as result "Levels: analytic influence-function SE. Difference: paired bootstrap."
+di as result "ND/DEF stars are the conventional t-test vs zero (b/se_a): * p<.10 ** p<.05 *** p<.01."
+di as result "def-nd's own * marks the bootstrap CI excluding 0 -- the conservative, governing test."
 di as result "════════════════════════════════════════════════════════════"
 
 foreach ch of local channels {
@@ -448,36 +472,121 @@ foreach ch of local channels {
             local pz = 2*(1 - normal(abs(`zz')))
         }
 
+        * Conventional t-test for each level vs zero, identical construction to
+        * 21_aipw_flow.do's Section 3 (b/se_a, normal-based -- an influence-
+        * function SE carries no regression df to build a t distribution from).
+        local tnd  = cond(`A2'>0, `B2'/`A2', .)
+        local pnd  = cond(!missing(`tnd'), 2*(1-normal(abs(`tnd'))), .)
+        local sgnd = cond(missing(`pnd'), "", cond(`pnd'<.01,"***",cond(`pnd'<.05,"**",cond(`pnd'<.10,"*",""))))
+        local tdef  = cond(`A1'>0, `B1'/`A1', .)
+        local pdef  = cond(!missing(`tdef'), 2*(1-normal(abs(`tdef'))), .)
+        local sgdef = cond(missing(`pdef'), "", cond(`pdef'<.01,"***",cond(`pdef'<.05,"**",cond(`pdef'<.10,"*",""))))
+
         local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
-        di as result "  h=" %1.0f `hd' "  ND=" %8.3f `B2' " (" %5.3f `A2' ")" ///
-             "  DEF=" %8.3f `B1' " (" %5.3f `A1' ")" ///
+        di as result "  h=" %1.0f `hd' "  ND=" %8.3f `B2' "`sgnd'" " (" %5.3f `A2' ")" ///
+             "  DEF=" %8.3f `B1' "`sgdef'" " (" %5.3f `A1' ")" ///
              "  diff=" %8.3f `DH' " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
              "  " %4.0f `ND' "/`nboot'" ///
              "  Clogg z=" %7.3f `zz' " p=" %5.3f `pz'
 
         post `Rd' ("`ch'") (`hd') (`DH') (`B1') (`B2') (`SE') (`LO') (`HI') (`ND') (`zz') (`pz')
+        matrix Ddlo_`ch'[`hd',1] = `LO'
+        matrix Ddhi_`ch'[`hd',1] = `HI'
     }
 }
 postclose `R'
 postclose `Rd'
 
 * ══════════════════════════════════════════════════════════════════════════
+* 2b. THE SAME DIFFERENCE, COUNTRY-CLUSTER BOOTSTRAP — COMPARISON ONLY
+*
+* Ported from 21_aipw_flow.do's Section 3b, per channel. Section 2 resamples
+* ROWS within treatment-type strata (the reference paper's scheme); under
+* flow coding a treated row is a crisis-YEAR, not an independent episode, and
+* a handful of countries (Venezuela chief among them) contribute many rows to
+* one arm. This block re-runs the identical estimator resampling whole
+* COUNTRIES instead, so the cost of the row-resampling choice is a number
+* here too, not just for GDP. Point estimates are identical by construction
+* (a bootstrap does not touch them) -- only the interval differs.
+* ══════════════════════════════════════════════════════════════════════════
+tempname Rc
+tempfile clusterf
+postfile `Rc' str24 channel byte horizon double clu_lo double clu_hi long clu_nd ///
+    using "`clusterf'", replace
+
+di as result _n "════════════════════════════════════════════════════════════"
+di as result "2b. ROW vs COUNTRY-CLUSTER BOOTSTRAP, PER CHANNEL (same point estimates)"
+di as result "════════════════════════════════════════════════════════════"
+
+foreach ch of local channels {
+    di as result _n "--- CHANNEL: `ch' ---"
+    post `Rc' ("`ch'") (0) (.) (.) (0)
+
+    forvalues h = 0/4 {
+        local hd = `h' + 1
+
+        _aipwpairflow, y(ch_`ch'_`h') ///
+            d1(in_crisis_def) if1(sample_flow==1 & in_crisis_nd==0) ///
+            d2(in_crisis_nd)  if2(sample_flow==1 & in_crisis_def==0) ///
+            omod(`ctrl_`ch'') pz(`cx_active' `cz_recency') reps(`nboot') boot(cluster)
+
+        if !r(ok) {
+            di as error "  h=`hd': cluster-bootstrap comparison failed for `ch'."
+            continue
+        }
+        local CD = r(dh)
+        local CL = r(lo)
+        local CH = r(hi)
+        local CN = r(nd)
+
+        * Point estimates MUST match Section 2 -- the check that resampling has
+        * not leaked into the estimate itself (same check as 21's Section 3b).
+        local rowlo = Ddlo_`ch'[`hd',1]
+        local rowhi = Ddhi_`ch'[`hd',1]
+        local wrow = `rowhi' - `rowlo'
+        local wclu = `CH' - `CL'
+        local wrat = cond(`wclu' > 0, `wrow'/`wclu', .)
+        local sigr = cond(!missing(`rowlo') & (`rowlo'>0 | `rowhi'<0), "*", " ")
+        local sigc = cond(!missing(`CL') & (`CL'>0 | `CH'<0), "*", " ")
+
+        di as result "  h=" %1.0f `hd' "  def-nd=" %8.3f `CD' ///
+             "  [row: " %7.3f `rowlo' ", " %7.3f `rowhi' "]`sigr'" ///
+             "  [cluster: " %7.3f `CL' ", " %7.3f `CH' "]`sigc'" ///
+             "  width ratio=" %5.2f `wrat' "  " %4.0f `CN' "/`nboot'"
+
+        post `Rc' ("`ch'") (`hd') (`CL') (`CH') (`CN')
+    }
+}
+postclose `Rc'
+
+di as result _n "  A width ratio well below 1 means the row bootstrap is treating"
+di as result "  repeated crisis-years of the same country as independent draws."
+di as result "  Where the two verdicts (*) differ, the write-up reports both and"
+di as result "  says which resampling unit produced which."
+
+* ══════════════════════════════════════════════════════════════════════════
 * 3. EXPORTS
 * ══════════════════════════════════════════════════════════════════════════
 preserve
     use "`diffresf'", clear
+    quietly merge 1:1 channel horizon using "`clusterf'", nogenerate
     label var dhl  "AIPW flow def - nd channel gap (pp)"
     label var bdef "Default-linked ATE (analytic SE band)"
     label var bnd  "Non-default ATE (analytic SE band)"
     label var se   "Bootstrap SD of the difference"
-    label var lo   "95% percentile CI lower (bootstrap)"
-    label var hi   "95% percentile CI upper (bootstrap)"
-    label var nd   "Valid bootstrap draws"
+    label var lo   "95% percentile CI lower (row bootstrap, baseline)"
+    label var hi   "95% percentile CI upper (row bootstrap, baseline)"
+    label var nd   "Valid row-bootstrap draws"
     gen byte sig95 = (nd>=50 & (lo>0 | hi<0))
-    label var sig95 "Gap CI excludes 0"
+    label var sig95 "Row bootstrap CI excludes 0 (baseline, the paper's scheme)"
+    label var clu_lo "95% CI lower, COUNTRY-CLUSTER bootstrap (comparison)"
+    label var clu_hi "95% CI upper, COUNTRY-CLUSTER bootstrap (comparison)"
+    label var clu_nd "Valid country-cluster bootstrap draws"
+    gen byte sig95_clu = (!missing(clu_lo) & (clu_lo>0 | clu_hi<0))
+    label var sig95_clu "Country-cluster CI excludes 0 (comparison)"
     label var cloggz "Clogg et al. (1995) z (permissive; assumes independence)"
     label var cloggp "p-value of the Clogg z"
-    order channel horizon dhl bdef bnd se lo hi nd sig95 cloggz cloggp
+    order channel horizon dhl bdef bnd se lo hi nd sig95 clu_lo clu_hi clu_nd sig95_clu cloggz cloggp
     export delimited "$tabs/aipw_channels_flow_diff.csv", replace
     di as result _n "AIPW flow channel def-nd difference CSV saved: $tabs/aipw_channels_flow_diff.csv"
 restore
