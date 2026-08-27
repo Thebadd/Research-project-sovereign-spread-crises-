@@ -465,7 +465,7 @@ foreach oc in `outcomes' {
         quietly gen byte _dlow_`oc'_`g'  = (`Dv'==1 & highbank_flow==0)
         local ifc "sample_flow==1 & `riv'==0"
 
-        post `Rd' ("`oc'") ("`g'") (0) (0) (0) (0) (0) (0) (0) (0)
+        post `Rd' ("`oc'") ("`g'") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)
 
         forvalues h = 0/4 {
             local hd  = `h' + 1
