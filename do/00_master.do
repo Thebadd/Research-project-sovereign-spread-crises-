@@ -52,6 +52,7 @@ do "$do/14_ids.do"           // World Bank IDS: stdebt_share, reserves, intpay, 
 do "$do/15_rates.do"         // FRED: ust10y, fedfunds, vix (global push predictors)
 do "$do/16_banking.do"       // Laeven-Valencia banking-crisis dummy
 do "$do/17_predictors.do"    // derived Z: contagion + proneness; numeric cid + xtset
+do "$do/17b_merge_at_full.do" // full Asonuma-Trebesch (2016) database -> AT-side default columns, independent of spread dating
 do "$do/18_transforms.do"    // gdpg, lags, dy_h, pre-trends, sample -> panel_lp.dta
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -69,6 +70,7 @@ do "$do/22_channels_flow.do"         // flow analogue of 11_channels.do: transmi
 do "$do/23_channels_resolution_flow.do"  // flow analogue of 12's Spec A: channels by resolution type
 do "$do/24_aipw_channels_flow.do"    // flow analogue of 13c's Act 2: doubly-robust AIPW for the channels, nd vs def
 do "$do/25_aipw_nexus_split_flow.do" // flow analogue of 13d: sovereign-bank nexus heterogeneity split, nd/def x high/low
+do "$do/26_lp_debtcrisis_flow.do"    // broadened debt-crisis taxonomy (17b): nd vs preemptive default vs post-default
 do "$do/04_graphs.do"
 * 05_balance_table.do — RETIRED, superseded by 02a_descriptive_facts.do.
 * It compared the two resolution groups on the legacy control list
