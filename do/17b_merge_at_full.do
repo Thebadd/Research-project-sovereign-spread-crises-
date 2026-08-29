@@ -114,12 +114,14 @@ preserve
     keep if !missing(iso3)
 
     gen int start_year = year(start_date) if !missing(start_date)
-    gen int end_year_raw = year(end_date) if !missing(end_date)
-    * Alternative/follow-up end date, when later, extends the episode window
-    * (a case with a documented follow-up restructuring is still "in" that
-    * crisis through the follow-up, not just the first exchange).
-    gen int alt_end_year = year(alt_end_date) if !missing(alt_end_date)
-    gen int end_year = max(end_year_raw, alt_end_year)
+    gen int end_year = year(end_date) if !missing(end_date)
+    * `alt_end_date' ("Alternative end date / follow-up restructurings") is
+    * FREE-TEXT in the source (e.g. "Two-follow up deals: Sept. 2010 ...
+    * April 2016"), not a clean date -- it imports as a string, and
+    * attempting year() on it throws a type mismatch (confirmed the hard
+    * way). Not used for end_year; the collapse step's own 24-month grouping
+    * window already absorbs a documented follow-up as a separate nearby
+    * case rather than needing this field parsed.
     replace end_year = start_year if missing(end_year)
     drop if missing(start_year)
 
