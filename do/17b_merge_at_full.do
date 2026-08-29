@@ -139,12 +139,12 @@ preserve
 
     * Severity ranking for the collapsed type: post-default > weakly
     * preemptive > strictly preemptive — stated in the header, not implicit.
-    by grp: egen byte g_post    = max(post_default)
-    by grp: egen byte g_weakly  = max(weakly_preempt)
-    by grp: egen byte g_strict  = max(strictly_preempt)
-    by grp: egen int  g_onset   = min(start_year)
-    by grp: egen int  g_end     = max(end_year)
-    by grp: egen byte g_ncases  = count(start_year)
+    bysort grp: egen byte g_post    = max(post_default)
+    bysort grp: egen byte g_weakly  = max(weakly_preempt)
+    bysort grp: egen byte g_strict  = max(strictly_preempt)
+    bysort grp: egen int  g_onset   = min(start_year)
+    bysort grp: egen int  g_end     = max(end_year)
+    bysort grp: egen byte g_ncases  = count(start_year)
 
     gen str20 at_type = ""
     replace at_type = "Post-default"        if g_post==1
