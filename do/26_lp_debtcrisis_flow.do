@@ -454,6 +454,17 @@ forvalues h = 0/4 {
         continue
     }
 
+    * Total regression sample -- shared across all three arms, since this is
+    * ONE joint regression (tranquil + nd + preempt + post together), not one
+    * model per arm. This is the number analogous to a standard regression
+    * table's "Observations"/"Countries" row -- confirmed against the
+    * reference paper's own OLS table (Table I1), which reports exactly this
+    * structure: ONE shared Observations/Countries/R-squared block for the
+    * whole table, with each arm showing only its own Episodes count.
+    local totn_`hd'  = e(N)
+    local totng_`hd' = e(N_g)
+    local totr2_`hd' = e(r2)
+
     local bnd = _b[dc_in_crisis_nd]
     local snd = _se[dc_in_crisis_nd]
     local bpr = _b[dc_in_crisis_preempt]
@@ -562,15 +573,20 @@ if _rc == 608 di as error "  ** table_debtcrisis_flow.rtf is OPEN IN WORD — cl
 else if _rc   di as error "  ** esttab failed (rc=" _rc ")"
 else          di as result "Table saved: $tabs/table_debtcrisis_flow.rtf"
 
-* ── 4b. LAYOUT MATCHING THE REFERENCE PAPER'S TABLE 2 ───────────────────────
-* Coefficient (with stars) row, SE row, and an Observations/Countries/
-* Episodes row directly beneath each arm's own SE row, columns = h=1..h=5 --
-* esttab's stats() rows sit once at the BOTTOM of the whole table, indexed
-* by MODEL (column) not by COEFFICIENT (row), so they cannot produce a
-* different Obs/Countries/Episodes line per arm interleaved under that
-* arm's own block. Written directly via file write. Tab-stopped RTF text
-* (not a full \trowd grid table): simpler to generate correctly without a
-* live Stata session to verify cell-width arithmetic against.
+* ── 4b. LAYOUT MATCHING THE REFERENCE PAPER'S OLS TABLE (Table I1) ──────────
+* Their OLS table (unlike their AIPW Table 2, which fits one model per arm
+* against the full control pool) is the SAME design as this file's: one
+* joint regression, all arms plus tranquil together. Its layout is:
+* coefficient(stars)/SE/EPISODES stacked under each arm (a single per-arm
+* count, not Observations+Countries+Episodes together), then ONE shared
+* Observations/Countries/R-squared block at the very bottom, common to the
+* whole regression -- not per arm. That structure is followed here exactly,
+* correcting the first version of this table (which put Observations and
+* Countries under each arm too, confusing "rows where this specific dummy
+* equals 1" with "the regression's total fitted sample" -- two different
+* quantities, conflated). Written directly via file write since esttab's
+* stats() rows are indexed by column (model/horizon), not usable for a
+* row that must appear once per arm block plus once more at the bottom.
 capture program drop _starstr
 program define _starstr, rclass
     args pval
@@ -593,12 +609,8 @@ preserve
             local se_`a'_`h' = r(mean)
             quietly summarize p if arm=="`a'" & hdisp==`h'
             local p_`a'_`h' = r(mean)
-            quietly summarize nrow if arm=="`a'" & hdisp==`h'
-            local nrow_`a'_`h' = r(mean)
             quietly summarize nep if arm=="`a'" & hdisp==`h'
             local nep_`a'_`h' = r(mean)
-            quietly summarize ncid if arm=="`a'" & hdisp==`h'
-            local ncid_`a'_`h' = r(mean)
         }
     }
 restore
@@ -606,9 +618,11 @@ restore
 capture file close dctab
 file open dctab using "$tabs/table_debtcrisis_flow_layout.rtf", write replace
 file write dctab "{\rtf1\ansi\deff0" _n
-file write dctab "{\b Broadened debt-crisis LP (flow): output cost by type\par}" _n
-file write dctab "{\i Observations/Countries/Episodes reported beneath each arm's standard error, matching the reference" _n
-file write dctab " paper's Table 2 layout.\par}" _n
+file write dctab "{\b Broadened debt-crisis LP (flow, OLS): output cost by type\par}" _n
+file write dctab "{\i Episodes reported beneath each arm's standard error. Observations, Countries and R-squared are" _n
+file write dctab " for the whole joint regression (shared across all three arms), reported once at the bottom --" _n
+file write dctab " matching the reference paper's own OLS table layout (Table I1), not its separate-model-per-arm" _n
+file write dctab " AIPW table (Table 2).\par}" _n
 file write dctab "\par" _n
 file write dctab "\tab h = 1\tab h = 2\tab h = 3\tab h = 4\tab h = 5\par" _n
 file write dctab "\par" _n
@@ -619,28 +633,46 @@ foreach spec in "nd Non-default" "preempt Preemptive default" "post Post-default
 
     local coefline ""
     local seline ""
-    local cntline ""
+    local epline ""
     forvalues h = 1/5 {
         _starstr `p_`key'_`h''
         local st = r(stars)
         local bstr : display %5.2f `b_`key'_`h''
         local sestr : display %5.2f `se_`key'_`h''
-        local nn : display %4.0f `nrow_`key'_`h''
-        local cc : display %3.0f `ncid_`key'_`h''
-        local ee : display %3.0f `nep_`key'_`h''
+        local ee : display %4.0f `nep_`key'_`h''
         local coefline "`coefline'\tab `bstr'`st'"
         local seline   "`seline'\tab (`sestr')"
-        local cntline  "`cntline'\tab `nn'/`cc'/`ee'"
+        local epline   "`epline'\tab `ee'"
     }
     file write dctab "`coefline'\par" _n
     file write dctab "`seline'\par" _n
-    file write dctab "Observations/Countries/Episodes`cntline'\par" _n
+    file write dctab "Episodes`epline'\par" _n
     file write dctab "\par" _n
 }
-file write dctab "{\i * p<0.10, ** p<0.05, *** p<0.01. Countries and episodes are counted per arm at each horizon" _n
-file write dctab " -- a country/episode contributes to an arm's count only if it has at least one treated" _n
-file write dctab " observation of that type surviving listwise deletion at that horizon, so these totals can" _n
-file write dctab " shrink slightly across h=1 to h=5 as later-horizon outcomes go missing.\par}" _n
+
+* ── Shared block: total regression sample, once, not per arm ───────────────
+local obsline ""
+local cntline ""
+local r2line  ""
+forvalues h = 1/5 {
+    local nn : display %5.0f `totn_`h''
+    local cc : display %3.0f `totng_`h''
+    local rr : display %4.2f `totr2_`h''
+    local obsline "`obsline'\tab `nn'"
+    local cntline "`cntline'\tab `cc'"
+    local r2line  "`r2line'\tab `rr'"
+}
+file write dctab "Observations`obsline'\par" _n
+file write dctab "Countries`cntline'\par" _n
+file write dctab "R-squared (within)`r2line'\par" _n
+file write dctab "\par" _n
+file write dctab "{\i * p<0.10, ** p<0.05, *** p<0.01. Episodes are counted per arm at each horizon -- an episode" _n
+file write dctab " contributes to an arm's count only if it has at least one treated observation of that type" _n
+file write dctab " surviving listwise deletion at that horizon, so counts can shrink slightly across h=1 to h=5" _n
+file write dctab " as later-horizon outcomes go missing. Observations/Countries/R-squared describe the FULL fitted" _n
+file write dctab " regression (tranquil years plus all three arms together), not any one arm alone -- see" _n
+file write dctab " debtcrisis_flow.csv's nrow/ncid columns for each arm's own treated-row and treated-country" _n
+file write dctab " counts specifically.\par}" _n
 file write dctab "}" _n
 file close dctab
 di as result "Layout-matched table saved: $tabs/table_debtcrisis_flow_layout.rtf"
