@@ -532,24 +532,41 @@ category is a positive finding under the spread test, not an absence of
 evidence of default, and it exists only where the spread test was actually
 run.
 
-**Consequence for country coverage.** Because default status and
-non-default status are established by two different tests, a country can
-legitimately contribute a default-linked debt-crisis observation without
-ever having been tested by the spread criterion at all. The reason
-`17b`/`26` do not currently extend to the ~39 AT-covered countries outside
-this project's 52-country spread panel is **not** that their AT-recorded
-defaults would be illegitimate — under the Pescatori-Sy definition they
-would not be. It is a separate, statistical-power problem: under this
-project's country-and-year fixed-effects design, a country observed only
-during a single, constant-type default episode (no tranquil years, since
-no spread data exists to establish any) is fully absorbed by its own fixed
-effect and contributes nothing to any coefficient. Of the 39 candidate
-countries, only 3 (Algeria, Grenada, Malawi) have more than one
-AT-recorded episode that differs in type across time, which is the
-minimum needed for a country with no tranquil years to contribute any
-identifying variation at all under this design. Extending coverage to
-them remains an open, deliberately deferred question — a design choice
-about statistical power, not a boundary the definition itself imposes.
+**Consequence for country coverage, and how it is implemented.** Because
+default status and non-default status are established by two different
+tests, a country can legitimately contribute a default-linked debt-crisis
+observation without ever having been tested by the spread criterion at
+all. `10b_skeleton_atonly.do` (between `10_skeleton.do` and `11_weo.do`)
+extends the panel to every AT-covered country outside this project's
+52-country spread panel (~39 countries) on that basis. Their macro data is
+sourced automatically: every downstream macro source (WEO, WDI, IMF MFS,
+Laeven-Valencia, IDS) is a global export, not pre-filtered to the 52, so
+`11_weo.do` through `17_predictors.do`'s existing generic merges populate
+these countries without any changes to that logic.
+
+The statistical-power problem raised when this was first scoped — a
+country observed only during a single, constant-type default episode with
+no tranquil years is fully absorbed by its own fixed effect and identifies
+nothing — is addressed by construction rather than by restricting coverage
+to the handful of countries that would pass it on their crisis years
+alone. `10b_skeleton_atonly.do` gives every new country a real surrounding
+window (3 years before its earliest AT episode onset through this panel's
+own final year), not just its crisis years, so even a single-episode
+country now has genuine untreated country-years to contrast against
+within its own fixed effect — the pre-print scoping check ("only 3 of 39
+countries have multiple, differently-typed episodes") measured identifying
+power under a design that gave these countries no surrounding window at
+all, and does not describe the design actually implemented.
+
+**This expansion is scoped to `26_lp_debtcrisis_flow.do` only, by
+construction, not by convention.** Every AT-only country-year is flagged
+`atonly_country==1`; `18_transforms.do`'s `sample`/`sample_flow` — read by
+every other file, `02` through `25` — explicitly exclude it, so no
+existing file's published sample changes. `26` alone builds its own
+broadened flag, `sample_flow_bc`, without that exclusion. `dc_in_crisis_nd`
+remains structurally 0 for every AT-only-country row (no spread data
+exists to establish a non-default finding for them); only
+`dc_in_crisis_preempt`/`dc_in_crisis_post` can ever be 1.
 
 **What `17b_merge_at_full.do` adds inside the existing 52-country panel.**
 For a country the spread criterion *did* test, the two tests can disagree

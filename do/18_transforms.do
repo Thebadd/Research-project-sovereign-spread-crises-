@@ -541,15 +541,24 @@ label var in_crisis_def "In a DEFAULT-LINKED spread crisis"
 * carryin==0 excludes the pre-EMBIG scaffolding rows added in 10_skeleton: they exist
 * only so the L. operators above have a previous row to point at, and carry no spread
 * data, so they must never enter an estimation.
+* atonly_country==0 excludes 10b_skeleton_atonly.do's AT-only countries (outside
+* this project's 52-country spread panel): they were never tested against the
+* spread criterion, so including them here would silently add untested-for-
+* spread control observations to EVERY existing onset/flow file's (02-25) sample
+* -- exactly what METHODOLOGY.md §5.3 says does not happen. Only
+* 26_lp_debtcrisis_flow.do builds its own broadened sample flag that includes
+* them. capture confirm keeps this file runnable standalone if 10b never ran.
+capture confirm variable atonly_country
+if _rc gen byte atonly_country = 0
 capture drop sample
-gen byte sample = (continuation==0) & !missing(ln_gdp_base) & carryin==0
-label var sample "Estimation sample (onset + tranquil, excl. continuation & carry-in, GDP base present)"
+gen byte sample = (continuation==0) & !missing(ln_gdp_base) & carryin==0 & atonly_country==0
+label var sample "Estimation sample (onset + tranquil, excl. continuation, carry-in & AT-only countries, GDP base present)"
 
 * Flow estimation sample: identical to `sample' EXCEPT that continuation years
 * are kept. Required because every existing regression is `if sample==1', which
 * by construction contains zero treated rows beyond each episode's onset year.
 * sample is nested inside sample_flow (asserted below).
-gen byte sample_flow = !missing(ln_gdp_base) & carryin==0
+gen byte sample_flow = !missing(ln_gdp_base) & carryin==0 & atonly_country==0
 label var sample_flow "Flow estimation sample (all episode years + tranquil, excl. carry-in)"
 
 * ── Assertions on the flow objects ──────────────────────────────────────────

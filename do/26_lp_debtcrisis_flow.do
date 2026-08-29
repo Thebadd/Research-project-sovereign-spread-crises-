@@ -109,12 +109,49 @@
   SELF-CONTAINED: reads only $clean/panel_lp.dta (which already carries
   17b's at_* columns, merged before 18_transforms.do ran and therefore
   carried through unchanged into panel_lp.dta).
+
+  COUNTRY COVERAGE — THE ONE FILE WHERE IT DIFFERS FROM THE REST OF THE
+  PROJECT
+  ---------------------------------------------------------------------------
+  10b_skeleton_atonly.do (between 10_skeleton.do and 11_weo.do) extends the
+  panel with country-year rows for every AT-covered country outside this
+  project's 52-country spread panel, flagged `atonly_country==1`. Per
+  Pescatori & Sy (2007) and METHODOLOGY.md §5.3, AT's own default record is
+  a primary authority that does not need spread confirmation to count, so
+  these countries' default-linked years are legitimate additions here --
+  but they can NEVER populate dc_in_crisis_nd (no spread data exists to
+  establish a non-default finding for them). Every other file in the
+  project (02-25) reads $clean/panel_lp.dta's `sample'/`sample_flow' flags,
+  which EXCLUDE atonly_country==1 rows (18_transforms.do), so their
+  published samples are completely unaffected by this expansion. THIS file
+  alone builds its own broadened flag, `sample_flow_bc' (Section 0 below),
+  that includes them -- deliberately, since giving these countries a real
+  surrounding window of untreated years (not just their crisis years) is
+  what lets them contribute genuine within-country identifying variation
+  under the country+year FE design, rather than being fully absorbed by
+  their own fixed effect.
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
 if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
 sort cid year
 xtset cid year
+
+* BROADENED sample flag: unlike every other flow file, this one deliberately
+* INCLUDES 10b_skeleton_atonly.do's AT-only countries (outside the 52-country
+* spread panel) -- they can only ever appear in dc_in_crisis_preempt/_post
+* (dc_in_crisis_nd is structurally 0 for them; see METHODOLOGY.md §5.3), but
+* their surrounding untreated years are real, needed control observations for
+* this file's own country+year FE regression. sample_flow itself (built in
+* 18_transforms.do) EXCLUDES them, matching every other onset/flow file's
+* existing sample -- this file reads panel_lp.dta's own atonly_country flag
+* directly rather than sample_flow, so this is the ONLY file in the project
+* where the broadened taxonomy's country coverage actually differs from the
+* base panel's.
+capture confirm variable atonly_country
+if _rc gen byte atonly_country = 0
+gen byte sample_flow_bc = !missing(ln_gdp_base) & carryin==0
+label var sample_flow_bc "Broadened flow sample: sample_flow's own rule, WITHOUT the atonly_country exclusion"
 
 foreach v in in_crisis in_crisis_nd in_crisis_def onset_all continuation ///
              ep_seq sample_flow at_default_year at_type {
@@ -205,6 +242,23 @@ if r(N) > 0 {
     quietly count if _dc_atonly_ep==1
     di as result "  ... spanning `r(N)' distinct AT-only episodes."
     capture drop _dc_atonly_ep
+    * Split by country origin: the 52-country spread panel vs. the
+    * 10b_skeleton_atonly.do expansion. Only the latter can ever appear here
+    * with dc_in_crisis_nd structurally 0 for the whole country (no spread
+    * data exists for it) -- see METHODOLOGY.md §5.3.
+    quietly count if _dc_atonly==1 & atonly_country==0
+    local n_at52 = r(N)
+    quietly count if _dc_atonly==1 & atonly_country==1
+    local n_atnew = r(N)
+    di as result "      of which `n_at52' from the original 52-country panel," ///
+        " `n_atnew' from the AT-only country expansion (10b)."
+    if `n_atnew' > 0 {
+        quietly egen byte _dc_newctry_ep = tag(cid at_episode_onset) ///
+            if _dc_atonly==1 & atonly_country==1
+        quietly count if _dc_newctry_ep==1
+        di as result "      expansion countries contributing: `r(N)' episodes."
+        capture drop _dc_newctry_ep
+    }
 }
 
 capture drop dc_default_year dc_in_crisis dc_in_crisis_nd
@@ -349,7 +403,7 @@ forvalues h = 0/4 {
     local lag = max(2, `h'+3)
 
     capture noisily xtscc dy_`h' dc_in_crisis_nd dc_in_crisis_preempt dc_in_crisis_post ///
-        `controls' `yearfe' if sample_flow==1, fe lag(`lag')
+        `controls' `yearfe' if sample_flow_bc==1, fe lag(`lag')
     if _rc {
         di as error "  ** h=`hd' failed (rc=" _rc ")"
         continue
@@ -382,11 +436,11 @@ forvalues h = 0/4 {
     estadd scalar pdpn = `pd_postnd'
     estadd scalar pdrn = `pd_prend'
 
-    _nflowcount dc_in_crisis_nd,      outcome(dy_`h') controls(`controls') samp(sample_flow)
+    _nflowcount dc_in_crisis_nd,      outcome(dy_`h') controls(`controls') samp(sample_flow_bc)
     local nend = r(nep)
-    _nflowcount dc_in_crisis_preempt, outcome(dy_`h') controls(`controls') samp(sample_flow)
+    _nflowcount dc_in_crisis_preempt, outcome(dy_`h') controls(`controls') samp(sample_flow_bc)
     local nepr = r(nep)
-    _nflowcount dc_in_crisis_post,    outcome(dy_`h') controls(`controls') samp(sample_flow)
+    _nflowcount dc_in_crisis_post,    outcome(dy_`h') controls(`controls') samp(sample_flow_bc)
     local nepo = r(nep)
 
     matrix b_dc_nd[`row',1]      = `bnd'

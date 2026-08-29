@@ -45,6 +45,7 @@ global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credi
 * Provenance documented in DATA_SOURCES.md.
 * ══════════════════════════════════════════════════════════════════════════
 do "$do/10_skeleton.do"      // crisis DB -> skeleton (iso3, onsets, spreads, class., imf legacy)
+do "$do/10b_skeleton_atonly.do" // extend skeleton to AT-only countries outside the 52-country spread panel
 do "$do/11_weo.do"           // IMF WEO: GDP/cap, GDP, pop, infl, ca, debt, govexp, revenue, inv, pb
 do "$do/12_wdi.do"           // World Bank WDI: credit(by banks), fdi, claims_govt, trade openness, REER
 do "$do/13_ifs_nexus.do"     // IMF MFS: sovereign-bank nexus (claims on govt/private / assets)

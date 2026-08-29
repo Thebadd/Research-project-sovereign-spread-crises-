@@ -129,6 +129,13 @@ preserve
     * directly rather than fuzzy-matching `Country case' text.
     rename iso3_raw iso3
     replace iso3 = trim(iso3)
+    * AT codes Romania "ROM"; this project's panel (and every other source
+    * merged onto it) uses ISO3 "ROU". Without this remap, Romania -- an
+    * existing panel country -- silently gets ZERO AT matches, since the
+    * range-merge below joins on exact iso3. Found while scoping the
+    * AT-only-country expansion (10b_skeleton_atonly.do also applies this
+    * same remap, so a country never appears under both codes).
+    replace iso3 = "ROU" if iso3 == "ROM"
     keep if !missing(iso3)
 
     gen int start_year = year(start_date) if !missing(start_date)
