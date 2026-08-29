@@ -494,7 +494,116 @@ endpoints are crisis years, so regressing it on `in_crisis` would reject by
 construction. The valid restriction is the onset sample, whose placebo `02`
 and `03` already report.
 
-### 5.3 What each design can and cannot say about duration
+### 5.3 The broadened debt-crisis taxonomy (`17b_merge_at_full.do`, `26_lp_debtcrisis_flow.do`)
+
+Sections 5.1–5.3 treat the spread crisis, identified by the EMBIG-spread
+criterion alone, as the object of study. `26_lp_debtcrisis_flow.do`
+broadens that object to a sovereign **debt crisis**, defined as the union
+of two independent tests rather than the spread test alone:
+
+> "We define debt crises as events occurring when either a country
+> defaults or its bond spreads are above a critical threshold."
+> — Pescatori & Sy (2007)
+
+That definition is a plain **OR**, and the reason given for the union
+matters as much as the union itself: defaults were too sparse in the
+1990s, and too poorly explained by observables in that period, for a
+default-only definition to capture the evolution of debt markets across
+the panel's full span. The spread criterion exists precisely to fill the
+gap a default-only definition leaves in the earlier, thinner-default part
+of the sample — the same problem this project's own panel has (`10_skeleton.do`
+already applies exactly this criterion, Pescatori-Sy's 1000bp threshold and
+the HRT21 quarter-over-quarter rule, to identify the 61 spread-crisis
+episodes `02`–`13f` and `20`–`25` are built on).
+
+**The two tests are independent authorities; neither gates the other.**
+This is the point most worth stating precisely, because it is easy to get
+backwards. A country's spread crossing the threshold does not need a
+default to count as a debt crisis, and — the direction that matters for
+this section — **a restructuring recorded by Asonuma & Trebesch (2016)
+does not need spread confirmation to count as a debt crisis either.** AT
+is its own primary source for whether a default happened; it does not
+require this project's EMBIG-based detection to have also fired on that
+country-year. The only thing the spread criterion uniquely contributes is
+the category AT structurally cannot provide at all — **non-default debt
+crisis**, elevated borrowing cost with no accompanying default — because
+AT has no concept of "spreads were high but nothing happened." That
+category is a positive finding under the spread test, not an absence of
+evidence of default, and it exists only where the spread test was actually
+run.
+
+**Consequence for country coverage.** Because default status and
+non-default status are established by two different tests, a country can
+legitimately contribute a default-linked debt-crisis observation without
+ever having been tested by the spread criterion at all. The reason
+`17b`/`26` do not currently extend to the ~39 AT-covered countries outside
+this project's 52-country spread panel is **not** that their AT-recorded
+defaults would be illegitimate — under the Pescatori-Sy definition they
+would not be. It is a separate, statistical-power problem: under this
+project's country-and-year fixed-effects design, a country observed only
+during a single, constant-type default episode (no tranquil years, since
+no spread data exists to establish any) is fully absorbed by its own fixed
+effect and contributes nothing to any coefficient. Of the 39 candidate
+countries, only 3 (Algeria, Grenada, Malawi) have more than one
+AT-recorded episode that differs in type across time, which is the
+minimum needed for a country with no tranquil years to contribute any
+identifying variation at all under this design. Extending coverage to
+them remains an open, deliberately deferred question — a design choice
+about statistical power, not a boundary the definition itself imposes.
+
+**What `17b_merge_at_full.do` adds inside the existing 52-country panel.**
+For a country the spread criterion *did* test, the two tests can disagree
+in either direction, and both are used:
+
+- A spread-crisis episode with no AT-recorded restructuring anywhere in
+  its window stays non-default (`in_crisis_nd`), unchanged from §5.2.
+- A country-year the spread criterion left tranquil, but which AT records
+  as inside a default/restructuring window, is added as a genuinely new
+  treated year (`_dc_atonly` — 46 country-years across 18 episodes in this
+  panel, as of the current AT vintage plus the user-verified post-2020
+  supplement).
+- A country-year the spread criterion classified non-default, but which AT
+  independently places inside a default window, is reclassified
+  default-linked and the reclassification is printed, never silently
+  applied (`_dc_conflict`).
+
+**Sub-classifying the default side.** AT's own taxonomy —
+strictly preemptive, weakly preemptive, post-default — is carried onto
+every default-linked country-year via `at_type`, giving `26` a three-arm
+treatment (`dc_in_crisis_nd`, `dc_in_crisis_preempt`, `dc_in_crisis_post`)
+where `20`/`21`'s onset/flow tiers have only the binary non-default/
+default-linked split. Two data-quality corrections were necessary to make
+this split usable:
+
+- **Severity ranking, corrected.** Collapsing AT's raw case rows into one
+  episode per 24-month window requires a rule for which classification
+  wins when several sub-cases (creditor tracks) differ. The rule ranks
+  strictly preemptive first, then weakly preemptive, then post-default —
+  not the reverse — because in this AT vintage every raw row flagged
+  strictly preemptive is *also* flagged weakly preemptive on the identical
+  row (confirmed directly against the source data): strictly preemptive is
+  coded as a stricter sub-condition of weakly preemptive, not a mutually
+  exclusive category. Checking weakly-before-strictly, as an earlier
+  version of `17b_merge_at_full.do` did, made "strictly preemptive"
+  structurally unreachable at the episode level for any panel built from
+  this file — not rare, impossible.
+- **The 2-year restructuring-gap rule.** A spread-crisis episode's onset
+  and the actual start of its AT-recorded restructuring can be years
+  apart (Zambia: spread onset 2015, default November 2020). Under the
+  original onset-level `nondefault` classification, the entire gap is
+  marked default-linked, which asserts a default was already underway
+  years before it began. `26` corrects this specifically for episodes with
+  at least one AT-overlapping row: if the AT restructuring starts more
+  than two years after the spread episode's own onset, the years before
+  the restructuring are reclassified non-default and only the years from
+  the restructuring onward keep default-linked status and type. This
+  correction is scoped to `26` only — the original `in_crisis_def`/
+  `nondefault` classification used by `02`–`13f` and `20`–`25` is
+  untouched, so their published numbers are unaffected.
+
+---
+
+### 5.4 What each design can and cannot say about duration
 
 Onset coding identifies the coefficient equally from a five-year crisis and a
 one-year one, so on its own it cannot speak to whether protracted crises are
