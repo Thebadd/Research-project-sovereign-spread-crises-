@@ -295,7 +295,25 @@ restore
 * iso3/year. Every original panel row survives regardless of whether it
 * matches; only the AT columns are added where a match exists.
 * ══════════════════════════════════════════════════════════════════════════
-capture drop at_default_year at_episode_onset at_type at_overlap_flag
+capture drop at_default_year at_episode_onset at_episode_end at_type at_overlap_flag
+
+* Belt-and-suspenders: if this file is ever run standalone against an
+* on-disk panel_build.dta left over from a prior run (rather than through
+* the full 10-18 chain), the capture-drop above must have actually cleared
+* every AT-side column before the merge below -- otherwise a stale column
+* collides with this run's freshly-built at_matches and silently corrupts
+* the range-merge (confirmed the hard way: a standalone re-run after the
+* at_supplement fill-in produced 980/1421 matched rows and a 1645-row
+* overlap-flag block spanning countries the supplement never touched).
+foreach v in at_default_year at_episode_onset at_episode_end at_type at_overlap_flag {
+    capture confirm variable `v'
+    if !_rc {
+        di as error "  ** AT full database: `v' already exists on the master panel before the merge"
+        di as error "     -- a prior run's AT columns were not fully cleared. This should be"
+        di as error "     impossible after the capture-drop above; investigate before trusting the merge."
+        exit 498
+    }
+}
 
 tempfile panel_pre_at
 save `panel_pre_at'
