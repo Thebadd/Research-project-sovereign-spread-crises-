@@ -85,20 +85,26 @@ preserve
     import excel "$raw/Asonuma_Trebesch_full_database.xlsx", ///
         sheet("DATASET Defaults & Restruct.") cellrange(B7) clear
 
-    rename A case_nr
-    rename B new_case
-    rename C case_cruces
-    rename D country_case
-    rename E iso3_raw
-    rename F start_date
-    rename G end_date
-    rename H alt_end_date
-    rename I strictly_preempt
-    rename J weakly_preempt
-    rename K post_default
-    rename L default_date
-    rename M announcement_date
-    rename N no_exact_start
+    * import excel WITHOUT firstrow names variables after their ACTUAL
+    * spreadsheet column letters, not a fresh A-onward sequence starting at
+    * the cellrange's first column. Data starts at column B, so the first
+    * variable is named B, not A. The sheet's used range also extends one
+    * column further than the data (a blank trailing column P), dropped below.
+    rename B case_nr
+    rename C new_case
+    rename D case_cruces
+    rename E country_case
+    rename F iso3_raw
+    rename G start_date
+    rename H end_date
+    rename I alt_end_date
+    rename J strictly_preempt
+    rename K weakly_preempt
+    rename L post_default
+    rename M default_date
+    rename N announcement_date
+    rename O no_exact_start
+    capture drop P
 
     keep if !missing(country_case)
     * WDI code is already ISO3 — the whole point of using this column
