@@ -103,8 +103,28 @@
   Outputs
   -------
     "$tabs/table_debtcrisis_flow.rtf"   three columns: nd / preemptive / post
-    "$tabs/debtcrisis_flow.csv"         raw coefficients + pairwise diffs
+    "$tabs/debtcrisis_flow.csv"         raw coefficients + pairwise diffs +
+                                         PER-ARM observations/episodes/countries
+                                         at every horizon (nrow/nep/ncid columns)
     "$figs/fig_debtcrisis_flow.pdf"     three-line IRF, nd/preempt/post overlay
+
+  PER-ARM N/EPISODES/COUNTRIES, AND A BUG FIXED ALONG THE WAY
+  ---------------------------------------------------------------------------
+  esttab's own N/N_g stats (in the RTF) are for the POOLED regression (all
+  three arms + tranquil controls), not broken out by arm -- not useful for
+  judging how much any one arm's coefficient rests on. _nflowcount computes
+  the per-arm observation count, episode count and (now) country count
+  directly from e(sample), and the estimation loop posts all three to
+  debtcrisis_flow.csv and prints them to console after Section 3's table.
+  Fixed while adding this: the preempt/post arms were being episode-tagged
+  on `ep_seq` (the original spread-episode counter), under which every
+  AT-only country's default rows share ep_seq==0 (onset_all is structurally
+  0 for them, so ep_seq never increments) -- collapsing every one of that
+  country's AT-only episodes into a single tagged row and silently
+  undercounting. `_nflowcount` now takes an `epvar()` argument; the nd call
+  passes ep_seq (correct for it, since non-default is always spread-based),
+  the preempt/post calls pass dc_ep_seq (this file's own combined counter,
+  which increments correctly for both spread-based and AT-only episodes).
 
   SELF-CONTAINED: reads only $clean/panel_lp.dta (which already carries
   17b's at_* columns, merged before 18_transforms.do ran and therefore
@@ -195,8 +215,17 @@ end
 
 capture program drop _nflowcount
 program define _nflowcount, rclass
-    syntax varname(numeric) , Outcome(varname) Controls(varlist) Samp(varname)
-    tempvar esmp tagep
+    syntax varname(numeric) , Outcome(varname) Controls(varlist) Samp(varname) [Epvar(varname)]
+    * Epvar defaults to ep_seq (the original spread-episode counter), correct
+    * for dc_in_crisis_nd since non-default rows are always spread-based. For
+    * dc_in_crisis_preempt/_post the caller MUST pass epvar(dc_ep_seq) instead:
+    * an AT-only country's default rows all carry ep_seq==0 (onset_all is
+    * structurally 0 for them), so tag(cid ep_seq) would silently collapse
+    * every one of that country's AT-only episodes into a single tagged row --
+    * confirmed the hard way (this bug undercounted preempt/post episode
+    * counts before dc_ep_seq, the file's own combined counter, was wired in
+    * here as the fix).
+    tempvar esmp tagep tagcid
     quietly gen byte `esmp' = e(sample)
     quietly count if `esmp' == 1
     if r(N) == 0 {
@@ -205,9 +234,13 @@ program define _nflowcount, rclass
     }
     quietly count if `varlist' == 1 & `esmp' == 1
     return scalar nrow = r(N)
-    quietly egen byte `tagep' = tag(cid ep_seq) if `varlist'==1 & `esmp'==1
+    local epv = cond("`epvar'"=="", "ep_seq", "`epvar'")
+    quietly egen byte `tagep' = tag(cid `epv') if `varlist'==1 & `esmp'==1
     quietly count if `tagep'==1
     return scalar nep = r(N)
+    quietly egen byte `tagcid' = tag(cid) if `varlist'==1 & `esmp'==1
+    quietly count if `tagcid'==1
+    return scalar ncid = r(N)
 end
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -389,7 +422,7 @@ foreach g in nd preempt post {
 
 tempname F
 tempfile dcf
-postfile `F' str16 arm int hdisp double b double se double p long nep using "`dcf'", replace
+postfile `F' str16 arm int hdisp double b double se double p long nrow long nep long ncid using "`dcf'", replace
 
 eststo clear
 di as result _n "════════════════════════════════════════════════════════════"
@@ -436,12 +469,18 @@ forvalues h = 0/4 {
     estadd scalar pdpn = `pd_postnd'
     estadd scalar pdrn = `pd_prend'
 
-    _nflowcount dc_in_crisis_nd,      outcome(dy_`h') controls(`controls') samp(sample_flow_bc)
-    local nend = r(nep)
-    _nflowcount dc_in_crisis_preempt, outcome(dy_`h') controls(`controls') samp(sample_flow_bc)
-    local nepr = r(nep)
-    _nflowcount dc_in_crisis_post,    outcome(dy_`h') controls(`controls') samp(sample_flow_bc)
-    local nepo = r(nep)
+    _nflowcount dc_in_crisis_nd,      outcome(dy_`h') controls(`controls') samp(sample_flow_bc) epvar(ep_seq)
+    local nend  = r(nep)
+    local nendn = r(nrow)
+    local nendc = r(ncid)
+    _nflowcount dc_in_crisis_preempt, outcome(dy_`h') controls(`controls') samp(sample_flow_bc) epvar(dc_ep_seq)
+    local nepr  = r(nep)
+    local neprn = r(nrow)
+    local neprc = r(ncid)
+    _nflowcount dc_in_crisis_post,    outcome(dy_`h') controls(`controls') samp(sample_flow_bc) epvar(dc_ep_seq)
+    local nepo  = r(nep)
+    local nepon = r(nrow)
+    local nepoc = r(ncid)
 
     matrix b_dc_nd[`row',1]      = `bnd'
     matrix se_dc_nd[`row',1]     = `snd'
@@ -460,15 +499,32 @@ forvalues h = 0/4 {
         %7.3f `bpr' " " %6.3f `spr' "  " %7.3f `bpo' " " %6.3f `spo' "   " ///
         %5.3f `pd_postpre' "        " %5.3f `pd_postnd' "     " %5.3f `pd_prend'
 
-    post `F' ("nd")      (`hd') (`bnd') (`snd') (`pnd') (`nend')
-    post `F' ("preempt") (`hd') (`bpr') (`spr') (`ppr') (`nepr')
-    post `F' ("post")    (`hd') (`bpo') (`spo') (`ppo') (`nepo')
+    post `F' ("nd")      (`hd') (`bnd') (`snd') (`pnd') (`nendn') (`nend') (`nendc')
+    post `F' ("preempt") (`hd') (`bpr') (`spr') (`ppr') (`neprn') (`nepr') (`neprc')
+    post `F' ("post")    (`hd') (`bpo') (`spo') (`ppo') (`nepon') (`nepo') (`nepoc')
 }
 postclose `F'
 
 di as result _n "  p(post=preempt)/p(post=nd)/p(preempt=nd) are covariance-correct lincom"
 di as result "  tests within the same joint regression -- no bootstrap/Clogg-z machinery"
 di as result "  needed here (plain OLS, no propensity model, matching 20/23's own design)."
+
+di as result _n "  Per-arm N / episodes / countries, by horizon (from debtcrisis_flow.csv):"
+di as result "  h    arm       N   episodes  countries"
+preserve
+    use "`dcf'", clear
+    forvalues h = 1/5 {
+        foreach a in nd preempt post {
+            quietly summarize nrow if arm=="`a'" & hdisp==`h'
+            local nn = r(mean)
+            quietly summarize nep if arm=="`a'" & hdisp==`h'
+            local ne = r(mean)
+            quietly summarize ncid if arm=="`a'" & hdisp==`h'
+            local nc = r(mean)
+            di as result "  " %1.0f `h' "    " %-8s "`a'" %5.0f `nn' "     " %5.0f `ne' "      " %5.0f `nc'
+        }
+    }
+restore
 
 * ══════════════════════════════════════════════════════════════════════════
 * 4. EXPORTS
@@ -498,7 +554,9 @@ preserve
     use "`dcf'", clear
     label var arm  "nd / preempt / post"
     label var hdisp "Horizon (1 = crisis year)"
+    label var nrow "Observations (country-years) in this arm at this horizon"
     label var nep  "Distinct episodes"
+    label var ncid "Distinct countries"
     export delimited "$tabs/debtcrisis_flow.csv", replace
     di as result "Raw coefficients saved: $tabs/debtcrisis_flow.csv"
 restore
