@@ -188,7 +188,7 @@ preserve
     gen byte onset_def = 0
     gen byte nondefault = .
     gen byte continuation = 0
-    gen ep_id = .
+    gen str1 ep_id = ""
     gen str1 ep_status = ""
     gen str1 classification = ""
     gen str1 region = ""          // deliberately missing -- see header
