@@ -161,7 +161,11 @@ preserve
 
     local n_episodes = _N
     quietly levelsof iso3, local(atc)
-    local n_countries = r(N)
+    * levelsof does not reliably set r(N) to the distinct-value count (it can
+    * carry over r(N) from whatever command ran before it) -- count the
+    * words in the returned local instead. Confirmed the hard way: this
+    * printed "127 countries" (the EPISODE count) before the fix.
+    local n_countries : word count `atc'
     di as result "  AT full database: collapsed to `n_episodes' default episodes " ///
         "across `n_countries' countries."
 
@@ -211,49 +215,84 @@ preserve
 restore
 
 * ══════════════════════════════════════════════════════════════════════════
-* 3. RANGE-MERGE ONTO THE PANEL — joinby + inrange, no native range-join
+* 3. RANGE-MERGE ONTO THE PANEL — joinby (matches only) + merge back, not
+*    joinby's own unmatched(master)
+*
+* CRITICAL FIX: `joinby iso3 using ..., unmatched(master)' explodes every row
+* of a MATCHED country into one copy per that country's AT episodes, and
+* `unmatched(master)' only rescues countries with ZERO AT episodes at all --
+* it does NOTHING for a matched country's non-window years, since every one
+* of that year's episode-copies fails the window test and gets dropped
+* together. The result: any year of any country that ever appears in AT, but
+* that isn't inside one of ITS OWN episode windows, was deleted from the
+* panel entirely instead of being kept as an untreated (at_default_year=0)
+* row -- confirmed the hard way (in_crisis collapsed from 234 to 81, onsets
+* from 61 to 21, xtset reported "with gaps": actual row loss, not reordering).
+*
+* THE FIX: build the country-year x AT-episode MATCH SET on its own (joinby,
+* THEN filter to window matches, THEN reduce to one row per country-year),
+* and MERGE that small match-only file back onto the FULL original panel
+* (`panel_pre_at', saved before any joinby) via a plain 1:1 merge on
+* iso3/year. Every original panel row survives regardless of whether it
+* matches; only the AT columns are added where a match exists.
 * ══════════════════════════════════════════════════════════════════════════
 capture drop at_default_year at_episode_onset at_type at_overlap_flag
 
 tempfile panel_pre_at
 save `panel_pre_at'
 
-joinby iso3 using `at_episodes', unmatched(master)
-* _merge-equivalent from joinby: rows with no AT episode for that country
-* keep grp/at_type as missing already; only keep true window matches below,
-* but a country with NO AT episode at all must still be RETAINED (unmatched
-* master rows), so filter on the window condition OR "never had any AT row".
-gen byte _in_window = inrange(year, at_episode_onset, at_episode_end)
-quietly count if !missing(at_episode_onset) & _in_window==0
-local ndrop = r(N)
-drop if !missing(at_episode_onset) & _in_window==0
-drop _in_window
-di as result "  Range-merge: dropped `ndrop' joinby rows outside their AT episode's year window."
+preserve
+    * Country-year x AT-episode candidate matches ONLY -- countries with no
+    * AT episode at all simply do not appear here, which is correct: they
+    * will get at_default_year=0 for every row once merged back below.
+    joinby iso3 using `at_episodes'
+    gen byte _in_window = inrange(year, at_episode_onset, at_episode_end)
+    quietly count if _in_window==0
+    local ndrop = r(N)
+    keep if _in_window==1
+    drop _in_window
+    di as result "  Range-merge: `ndrop' joinby candidate rows fell outside their AT episode's year window (dropped)."
 
-* Overlap check: two AT episodes for the same country-year (rare — flag,
-* do not silently resolve).
-duplicates tag iso3 year, gen(_dup)
-gen byte at_overlap_flag = (_dup > 0) & !missing(at_episode_onset)
-quietly count if at_overlap_flag==1
-if r(N) > 0 {
-    di as error "  ** AT full database: " r(N) " country-year rows have OVERLAPPING AT episodes — listed below, not silently resolved:"
-    list iso3 year at_episode_onset at_episode_end at_type if at_overlap_flag==1, noobs sepby(iso3)
-}
-drop _dup
+    * Overlap check: two AT episodes covering the same country-year (rare --
+    * flag, do not silently resolve). Flagged BEFORE reducing to one row per
+    * country-year, so the flag itself survives the reduction below.
+    duplicates tag iso3 year, gen(_dup)
+    gen byte at_overlap_flag = (_dup > 0)
+    quietly count if at_overlap_flag==1
+    if r(N) > 0 {
+        di as error "  ** AT full database: " r(N) " country-year rows have OVERLAPPING AT episodes — listed below, not silently resolved:"
+        list iso3 year at_episode_onset at_episode_end at_type if at_overlap_flag==1, noobs sepby(iso3)
+    }
+    drop _dup
+
+    * Reduce to exactly one row per country-year for the merge (an overlap's
+    * second/third episode is not lost -- it is already flagged above; the
+    * merge only needs one row to attach at_episode_onset/at_type to).
+    bysort iso3 year: gen byte _first = (_n==1)
+    keep if _first==1
+    drop _first
+
+    keep iso3 year at_episode_onset at_episode_end at_type at_overlap_flag
+    tempfile at_matches
+    save `at_matches'
+restore
+
+use `panel_pre_at', clear
+local n_before = _N
+merge 1:1 iso3 year using `at_matches', keep(master match) nogen
 
 gen byte at_default_year = !missing(at_episode_onset)
+replace at_overlap_flag = 0 if missing(at_overlap_flag)
 label var at_default_year "1 if this country-year falls inside an AT-recorded default/restructuring episode window"
 label var at_episode_onset "Onset year of the containing AT episode (collapsed)"
 label var at_type "AT classification of the containing episode: Strictly/Weakly preemptive or Post-default"
 label var at_overlap_flag "1 if two AT episodes overlap for this country-year (flagged, not resolved)"
 
-* Rows can duplicate if joinby matched multiple episodes before the window
-* filter (should not happen after the overlap flag/window filter above, but
-* guard rather than assume).
-duplicates tag cid year, gen(_dt)
-quietly count if _dt > 0
-if r(N) > 0 di as error "  ** AT full database: " r(N) " duplicated cid-year rows survived the range-merge — investigate before saving."
-drop _dt
+* Every row of the original panel must survive this file untouched in count.
+local n_after = _N
+if `n_after' != `n_before' di as error "  ** AT full database: panel row count changed from `n_before' to `n_after'" ///
+    " -- the range-merge lost or duplicated rows, investigate before saving."
+else di as result "  Range-merge preserved all `n_after' original panel rows (correct)."
 
 sort cid year
 xtset cid year
