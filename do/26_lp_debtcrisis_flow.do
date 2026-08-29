@@ -102,11 +102,23 @@
 
   Outputs
   -------
-    "$tabs/table_debtcrisis_flow.rtf"   three columns: nd / preemptive / post
-    "$tabs/debtcrisis_flow.csv"         raw coefficients + pairwise diffs +
-                                         PER-ARM observations/episodes/countries
-                                         at every horizon (nrow/nep/ncid columns)
-    "$figs/fig_debtcrisis_flow.pdf"     three-line IRF, nd/preempt/post overlay
+    "$tabs/table_debtcrisis_flow.rtf"        three columns: nd / preemptive /
+                                              post, esttab's standard layout
+    "$tabs/table_debtcrisis_flow_layout.rtf" SAME regression, laid out to match
+                                              the reference paper's Table 2:
+                                              coefficient(stars)/SE/Observations-
+                                              Countries-Episodes stacked under
+                                              each arm, columns h=1..h=5. Hand-
+                                              built (file write) since esttab's
+                                              stats() rows can't interleave a
+                                              different text row under each
+                                              coefficient -- only one shared row
+                                              per column at the table's bottom.
+    "$tabs/debtcrisis_flow.csv"              raw coefficients + pairwise diffs +
+                                              PER-ARM observations/episodes/
+                                              countries at every horizon
+                                              (nrow/nep/ncid columns)
+    "$figs/fig_debtcrisis_flow.pdf"          three-line IRF, nd/preempt/post overlay
 
   PER-ARM N/EPISODES/COUNTRIES, AND A BUG FIXED ALONG THE WAY
   ---------------------------------------------------------------------------
@@ -549,6 +561,89 @@ capture esttab dc_h0 dc_h1 dc_h2 dc_h3 dc_h4 using "$tabs/table_debtcrisis_flow.
 if _rc == 608 di as error "  ** table_debtcrisis_flow.rtf is OPEN IN WORD — close it and re-run."
 else if _rc   di as error "  ** esttab failed (rc=" _rc ")"
 else          di as result "Table saved: $tabs/table_debtcrisis_flow.rtf"
+
+* ── 4b. LAYOUT MATCHING THE REFERENCE PAPER'S TABLE 2 ───────────────────────
+* Coefficient (with stars) row, SE row, and an Observations/Countries/
+* Episodes row directly beneath each arm's own SE row, columns = h=1..h=5 --
+* esttab's stats() rows sit once at the BOTTOM of the whole table, indexed
+* by MODEL (column) not by COEFFICIENT (row), so they cannot produce a
+* different Obs/Countries/Episodes line per arm interleaved under that
+* arm's own block. Written directly via file write. Tab-stopped RTF text
+* (not a full \trowd grid table): simpler to generate correctly without a
+* live Stata session to verify cell-width arithmetic against.
+capture program drop _starstr
+program define _starstr, rclass
+    args pval
+    local s ""
+    if !missing(`pval') {
+        if `pval' < .01       local s "***"
+        else if `pval' < .05  local s "**"
+        else if `pval' < .10  local s "*"
+    }
+    return local stars "`s'"
+end
+
+preserve
+    use "`dcf'", clear
+    forvalues h = 1/5 {
+        foreach a in nd preempt post {
+            quietly summarize b if arm=="`a'" & hdisp==`h'
+            local b_`a'_`h' = r(mean)
+            quietly summarize se if arm=="`a'" & hdisp==`h'
+            local se_`a'_`h' = r(mean)
+            quietly summarize p if arm=="`a'" & hdisp==`h'
+            local p_`a'_`h' = r(mean)
+            quietly summarize nrow if arm=="`a'" & hdisp==`h'
+            local nrow_`a'_`h' = r(mean)
+            quietly summarize nep if arm=="`a'" & hdisp==`h'
+            local nep_`a'_`h' = r(mean)
+            quietly summarize ncid if arm=="`a'" & hdisp==`h'
+            local ncid_`a'_`h' = r(mean)
+        }
+    }
+restore
+
+capture file close dctab
+file open dctab using "$tabs/table_debtcrisis_flow_layout.rtf", write replace
+file write dctab "{\rtf1\ansi\deff0" _n
+file write dctab "{\b Broadened debt-crisis LP (flow): output cost by type\par}" _n
+file write dctab "{\i Observations/Countries/Episodes reported beneath each arm's standard error, matching the reference" _n
+file write dctab " paper's Table 2 layout.\par}" _n
+file write dctab "\par" _n
+file write dctab "\tab h = 1\tab h = 2\tab h = 3\tab h = 4\tab h = 5\par" _n
+file write dctab "\par" _n
+
+foreach spec in "nd Non-default" "preempt Preemptive default" "post Post-default" {
+    gettoken key lbl : spec
+    file write dctab "{\b `lbl'}\par" _n
+
+    local coefline ""
+    local seline ""
+    local cntline ""
+    forvalues h = 1/5 {
+        _starstr `p_`key'_`h''
+        local st = r(stars)
+        local bstr : display %5.2f `b_`key'_`h''
+        local sestr : display %5.2f `se_`key'_`h''
+        local nn : display %4.0f `nrow_`key'_`h''
+        local cc : display %3.0f `ncid_`key'_`h''
+        local ee : display %3.0f `nep_`key'_`h''
+        local coefline "`coefline'\tab `bstr'`st'"
+        local seline   "`seline'\tab (`sestr')"
+        local cntline  "`cntline'\tab `nn'/`cc'/`ee'"
+    }
+    file write dctab "`coefline'\par" _n
+    file write dctab "`seline'\par" _n
+    file write dctab "Observations/Countries/Episodes`cntline'\par" _n
+    file write dctab "\par" _n
+}
+file write dctab "{\i * p<0.10, ** p<0.05, *** p<0.01. Countries and episodes are counted per arm at each horizon" _n
+file write dctab " -- a country/episode contributes to an arm's count only if it has at least one treated" _n
+file write dctab " observation of that type surviving listwise deletion at that horizon, so these totals can" _n
+file write dctab " shrink slightly across h=1 to h=5 as later-horizon outcomes go missing.\par}" _n
+file write dctab "}" _n
+file close dctab
+di as result "Layout-matched table saved: $tabs/table_debtcrisis_flow_layout.rtf"
 
 preserve
     use "`dcf'", clear
