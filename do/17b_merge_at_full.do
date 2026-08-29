@@ -37,11 +37,25 @@
      OVDPs non-resid.). Rows for the same country whose start years are
      within 24 months of each other are collapsed into ONE default episode:
      onset = the EARLIEST start year among the group; end = the LATEST end
-     year among the group; type = the MOST SEVERE classification present
-     (post-default > weakly preemptive > strictly preemptive) — a country
-     that restructures one creditor track post-default and another
-     preemptively in the same crisis window is a post-default crisis at the
-     sovereign level, not a preemptive one.
+     year among the group; type = the most informative classification
+     present, checked STRICTLY PREEMPTIVE first, then weakly preemptive,
+     then post-default (if a country restructures one creditor track
+     post-default in the same window, the episode is a post-default crisis
+     at the sovereign level regardless of any other track in it).
+     THIS ORDER MATTERS AND WAS INITIALLY WRONG: an earlier version of this
+     file checked weakly preemptive before strictly preemptive, on the
+     reasonable-looking but false assumption that the three flags are
+     mutually exclusive severity tiers. A diagnostic (listing every raw row
+     with strictly_preempt==1) showed every one of those 27 rows ALSO has
+     weakly_preempt==1 set on the identical row — strictly preemptive is
+     coded as a stricter SUB-condition of weakly preemptive in this AT
+     vintage, not a separate category. Checking weakly first meant
+     "Strictly preemptive" could never be assigned to any episode, for any
+     panel built from this file — not rare, structurally unreachable. Since
+     strictly preemptive is the economically LEAST disruptive outcome (no
+     missed payment at all, not even brief technical arrears), it is
+     checked first now, so a genuinely strictly-preemptive episode is no
+     longer masked by its own co-occurring weakly-preemptive flag.
   2. VINTAGE CUTOFF. The source file's latest case starts Dec 2019 (plus a
      handful "ongoing as of Sept 2020"). Nothing after ~2020 is in it —
      confirmed absent: Zambia 2020-23, Sri Lanka 2022, Ghana 2022, Ethiopia
@@ -147,9 +161,9 @@ preserve
     bysort grp: egen byte g_ncases  = count(start_year)
 
     gen str20 at_type = ""
-    replace at_type = "Post-default"        if g_post==1
+    replace at_type = "Strictly preemptive" if g_strict==1
     replace at_type = "Weakly preemptive"   if at_type=="" & g_weakly==1
-    replace at_type = "Strictly preemptive" if at_type=="" & g_strict==1
+    replace at_type = "Post-default"        if at_type=="" & g_post==1
     quietly count if at_type==""
     if r(N) > 0 di as error "  ** AT full database: " r(N) " collapsed episodes have no preemptive/post-default flag set — check source rows."
 
