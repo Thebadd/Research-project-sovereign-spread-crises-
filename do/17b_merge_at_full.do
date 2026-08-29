@@ -57,11 +57,15 @@
      checked first now, so a genuinely strictly-preemptive episode is no
      longer masked by its own co-occurring weakly-preemptive flag.
   2. VINTAGE CUTOFF. The source file's latest case starts Dec 2019 (plus a
-     handful "ongoing as of Sept 2020"). Nothing after ~2020 is in it —
-     confirmed absent: Zambia 2020-23, Sri Lanka 2022, Ghana 2022, Ethiopia
-     2021, Suriname 2020, Belarus 2022. A USER-MAINTAINED supplement block
-     below lets these be added by hand, with their own source/date verified
-     by the user rather than guessed by this file.
+     handful "ongoing as of Sept 2020"). Nothing after ~2020 is in it, so a
+     USER-MAINTAINED supplement block below lets post-vintage events be
+     added by hand, with their own source/date verified by the user rather
+     than guessed by this file. Currently filled in: Zambia 2020, Ghana
+     2022, Sri Lanka 2022, Lebanon 2020 (all Post-default), and Ukraine 2022
+     (Weakly preemptive — a bondholder-consented payment freeze agreed
+     before any missed payment). Still absent from this vintage and the
+     supplement: Ethiopia 2021, Suriname 2020, Belarus 2022 — add if/when
+     verified.
 
   RANGE-MERGE MECHANICS: Stata has no native range-join, so this uses the
   standard `joinby' (many-to-many on iso3) + `keep if inrange(year,...)'
@@ -209,14 +213,55 @@ preserve
     gen int at_episode_end = .
     gen str20 at_type = ""
     gen byte g_ncases = .
-    * ── ADD ROWS HERE, e.g.: ──────────────────────────────────────────
-    *   set obs `=_N'+1
-    *   replace iso3 = "ZMB" in L
-    *   replace at_episode_onset = 2020 in L
-    *   replace at_episode_end   = 2023 in L
-    *   replace at_type = "Post-default" in L
-    *   replace g_ncases = 1 in L
-    * ────────────────────────────────────────────────────────────────
+
+    * 5 post-2020 events, verified by the user against public reporting
+    * (dates: default/deal date -> restructuring-concluded date; Lebanon and
+    * Ukraine's restructurings are still unresolved, so end_year follows this
+    * project's established right-censoring convention -- extended to the
+    * panel's last year, the same pattern 16_banking.do uses for L-V's own
+    * "ongoing" crises, rather than left missing).
+    *   Zambia: missed Eurobond coupon Nov 2020, bondholder deal concluded 2024.
+    *   Ghana: suspended external debt service Dec 2022, restructuring concluded 2024.
+    *   Sri Lanka: formal default Apr 2022, restructuring concluded 2024-2025.
+    *   Lebanon: first-ever sovereign default Mar 2020, still unresolved.
+    *   Ukraine: bondholder-consented 2-year payment freeze agreed Aug 2022,
+    *     BEFORE any missed payment -- preemptive, not post-default (confirmed
+    *     with the user). Coded Weakly (not Strictly) preemptive: a payment
+    *     freeze is a real interruption to debt service, unlike a strictly-
+    *     preemptive deal completed with no missed/delayed payment at all --
+    *     matching this project's own finding (17b's severity-ranking fix)
+    *     that AT's "strictly preemptive" flag is its narrowest, cleanest
+    *     sub-case of "weakly preemptive," not a separate category.
+    set obs 5
+    replace iso3 = "ZMB" in 1
+    replace at_episode_onset = 2020 in 1
+    replace at_episode_end   = 2024 in 1
+    replace at_type = "Post-default" in 1
+    replace g_ncases = 1 in 1
+
+    replace iso3 = "GHA" in 2
+    replace at_episode_onset = 2022 in 2
+    replace at_episode_end   = 2024 in 2
+    replace at_type = "Post-default" in 2
+    replace g_ncases = 1 in 2
+
+    replace iso3 = "LKA" in 3
+    replace at_episode_onset = 2022 in 3
+    replace at_episode_end   = 2024 in 3
+    replace at_type = "Post-default" in 3
+    replace g_ncases = 1 in 3
+
+    replace iso3 = "LBN" in 4
+    replace at_episode_onset = 2020 in 4
+    replace at_episode_end   = 2026 in 4
+    replace at_type = "Post-default" in 4
+    replace g_ncases = 1 in 4
+
+    replace iso3 = "UKR" in 5
+    replace at_episode_onset = 2022 in 5
+    replace at_episode_end   = 2026 in 5
+    replace at_type = "Weakly preemptive" in 5
+    replace g_ncases = 1 in 5
     save `at_supplement'
 restore
 
