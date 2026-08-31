@@ -5,25 +5,42 @@
   Specification B (HEADLINE): JOINT regression, both type dummies entered
     simultaneously on the FULL sample with tranquil as the omitted category.
     This is the reference paper's OLS baseline exactly — Asonuma et al. run
-    `reg g_h dum1 dum2 dum3 g_0 $convar, noconstant` with their sample_for*
-    restriction defined but NOT applied to it. Feeds the IRF datasets and figures.
-    Difference tested THREE ways: Wald equality, the Clogg et al. (1995) z, and
-    a country-cluster bootstrap percentile CI (companion check, not a
-    replacement -- see the "upgrade D" note this completes, at the headline
-    loop below). Per-arm episode AND country counts reported throughout
-    (`_nepcount', extended this session to also return `ncty'), matching the
-    flow tier's own per-arm diagnostics. Table 2 is now exported in TWO forms:
-    the original plain esttab (`table2_output_resolution.rtf') and a
-    reference-paper-style stacked layout (`table2_output_resolution_layout.rtf',
-    coefficient/SE/Episodes/Countries per arm, ONE shared Observations/
-    Countries/R-squared block at the bottom, matching Table I1's own OLS
-    convention and 26_lp_debtcrisis_flow.do's table-layout precedent).
+    `reg g_h dum1 dum2 dum3 g_0 $convar, noconstant' with their sample_for*
+    restriction defined but NOT applied to it, and with COUNTRY dummies only
+    (`c1-c74', no year dummies). This file matches both: `xtscc ... onset_nd
+    onset_def $ctrl_core, fe' with NO `i.year' term (country FE only — see
+    "COUNTRY FE ONLY, MATCHING TABLE I1" at the headline loop below for why
+    year FE, previously this project's own deliberate addition, is dropped
+    here). Feeds the IRF datasets and figures.
+
+    Difference tested via an F-STATISTIC (Wald test of `onset_nd = onset_def'),
+    NOT a Clogg et al. (1995) z or a bootstrap: since both coefficients come
+    from the SAME joint regression, their covariance is directly estimable
+    and `test' uses it exactly — Table I1's own "Differences between the
+    estimated coefficients" section reports exactly this, an F-statistic
+    (p-value), confirming the match. A Clogg z (which assumes independence,
+    false for two coefficients from one regression) and a bootstrap (which
+    would just add resampling noise to what `test' already gets in closed
+    form) were both tried in an earlier version of this file's headline block
+    and removed for this reason — see the headline loop's own comment for
+    the full argument. Per-arm episode counts reported throughout
+    (`_nepcount'). Table 2 is exported in TWO forms: the original plain
+    esttab (`table2_output_resolution.rtf') and a reference-paper-style
+    stacked layout (`table2_output_resolution_layout.rtf', coefficient/SE/
+    Episodes per arm, ONE shared Observations/Countries/R-squared block at
+    the bottom, plus the F-statistic difference row — matching Table I1's
+    own OLS layout exactly).
 
   Specification A (ROBUSTNESS): one LP per resolution type, each vs TRANQUIL with
     the RIVAL type DROPPED. This is the sample the paper's two-stage estimator
     uses (their probit + weighted regression are both `if sample_for_s == 1`), so
     it is the right OLS partner for the IPW/AIPW lines in 08/11b/12 — but it is
-    NOT their OLS baseline, and it is reported here as robustness only.
+    NOT their OLS baseline, and it is reported here as robustness only. Its own
+    difference test (below, "HEADLINE DIFFERENCE") genuinely IS a Clogg z, and
+    correctly so: onset_nd and onset_def here come from two SEPARATE
+    regressions (rival type dropped from each), so there is no joint
+    covariance to exploit and Clogg's independence assumption is the right
+    tool, unlike the headline's joint spec above.
 
   Treatment dummies:
     onset_nd  = 1 → 40 non-default episodes
@@ -39,7 +56,9 @@ use "$clean/panel_lp.dta", clear
 * safety: define the common core if this file is run standalone (master/18 also set it)
 if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 
-* VIX and ust10y are pure time-series variables, fully absorbed by i.year.
+* No year FE (see "COUNTRY FE ONLY" below) and no VIX/ust10y: matching the
+* reference paper's own Table I1 design exactly (country dummies + g_0 own-
+* lag + $convar, no year dummies, no global-push controls at all).
 local controls $ctrl_core
 
 * Pre-trend controls = the core MINUS l1_gdpg. The single placebo outcome, dy_m2,
@@ -50,13 +69,6 @@ local controls $ctrl_core
 local cc         $ctrl_core
 local dropgdpg   l1_gdpg
 local controls_pre : list cc - dropgdpg
-
-* Bootstrap reps for the headline def-nd difference's percentile CI (see
-* "upgrade D" note at the headline loop) -- matches 13c_aipw_channels.do's
-* choice; 08b_aipw.do's own top-level estimate uses 500, but this file's
-* bootstrap re-runs a full xtscc panel regression per draw per horizon
-* (rather than 08b's lighter _aipw), so 300 keeps runtime reasonable.
-local nboot = 300
 
 * ══════════════════════════════════════════════════════════════════════════
 * HELPERS (identical to 02_lp_all.do — see the commentary there)
@@ -121,85 +133,6 @@ program define _nepcount, rclass
 end
 
 * ══════════════════════════════════════════════════════════════════════════
-* PROGRAM — bootstrap stratum (identical construction to 08b_aipw.do's
-* _mkstrat): does this COUNTRY ever carry treatment `d1'/`d2'? Used to
-* stratify `bsample' so a resample preserves the count of ever-treated
-* countries for BOTH arms at once, rather than letting the treated count
-* wander freely draw to draw (which would routinely starve the def arm's 21
-* episodes / handful of countries).
-* ══════════════════════════════════════════════════════════════════════════
-capture program drop _mkstrat
-program define _mkstrat
-    syntax varlist(min=1 max=2) [if], GENerate(name)
-    marksample touse
-    capture drop `generate'
-    tempvar t1 t2
-    local d1 : word 1 of `varlist'
-    local d2 : word 2 of `varlist'
-    quietly gen byte `t1' = `d1' if `touse'
-    bysort cid: egen byte `generate' = max(`t1')
-    quietly replace `generate' = 0 if missing(`generate')
-    if "`d2'" != "" {
-        quietly gen byte `t2' = `d2' if `touse'
-        tempvar s2
-        bysort cid: egen byte `s2' = max(`t2')
-        quietly replace `s2' = 0 if missing(`s2')
-        quietly replace `generate' = `generate' + 2*`s2'
-    }
-end
-
-* ══════════════════════════════════════════════════════════════════════════
-* PROGRAM — paired bootstrap of the JOINT SPEC's def-nd DIFFERENCE
-*   (matches 08b_aipw.do's "upgrade D" note: analytic Clogg z stays as the
-*   default inference -- it is exact for this joint OLS regression, unlike
-*   AIPW's finite-sample concerns -- but a bootstrap percentile CI is added
-*   as a companion check, same convention as 08b/13c/13d's own bootstrap.)
-*   Re-runs the SAME joint xtscc spec on a country-cluster-stratified
-*   resample each draw (not two separate cells, since this is one joint
-*   regression, unlike 08b's cell1-vs-cell2 AIPW design) and stores
-*   b[onset_def]-b[onset_nd] each time.
-* ══════════════════════════════════════════════════════════════════════════
-capture program drop _olsjointdiffboot
-program define _olsjointdiffboot, rclass
-    syntax , Yvar(string) Controls(string) LAG(integer) REPS(integer)
-    _mkstrat onset_nd onset_def, generate(_strat)
-    tempname pf
-    tempfile bf
-    quietly postfile `pf' double diff using "`bf'", replace
-    forvalues b = 1/`reps' {
-        preserve
-            capture drop _bid
-            bsample, cluster(cid) strata(_strat) idcluster(_bid)
-            capture xtscc `yvar' onset_nd onset_def `controls' i.year ///
-                if sample==1, fe lag(`lag')
-            if _rc==0 quietly post `pf' (_b[onset_def] - _b[onset_nd])
-        restore
-    }
-    quietly postclose `pf'
-    capture drop _strat
-    local se = .
-    local lo = .
-    local hi = .
-    local nd = 0
-    preserve
-        quietly use "`bf'", clear
-        quietly count if !missing(diff)
-        local nd = r(N)
-        if `nd' >= 50 {
-            quietly summarize diff
-            local se = r(sd)
-            _pctile diff, p(2.5 97.5)
-            local lo = r(r1)
-            local hi = r(r2)
-        }
-    restore
-    return scalar se = `se'
-    return scalar lo = `lo'
-    return scalar hi = `hi'
-    return scalar nd = `nd'
-end
-
-* ══════════════════════════════════════════════════════════════════════════
 * SPEC A-1 (ROBUSTNESS): NON-DEFAULT vs TRANQUIL, DEFAULT DROPPED
 * ══════════════════════════════════════════════════════════════════════════
 
@@ -212,7 +145,7 @@ foreach m in b se lo90 hi90 lo95 hi95 {
 * Pre-trend (displayed h=-1)
 foreach h_neg in 2 {
     local row = 3 - `h_neg'
-    xtscc dy_m`h_neg' onset_nd `controls_pre' i.year if sample==1 & onset_def==0, fe lag(1)
+    xtscc dy_m`h_neg' onset_nd `controls_pre' if sample==1 & onset_def==0, fe lag(1)
     local bb = _b[onset_nd]
     local ss = _se[onset_nd]
     _critvals
@@ -239,7 +172,7 @@ forvalues h = 0/4 {
     local hd  = `h' + 1
     local row = `h' + 3
     local lag = max(1, `h'+1)
-    xtscc dy_`h' onset_nd `controls' i.year if sample==1 & onset_def==0, fe lag(`lag')
+    xtscc dy_`h' onset_nd `controls' if sample==1 & onset_def==0, fe lag(`lag')
     local bb = _b[onset_nd]
     local ss = _se[onset_nd]
     local nn = e(N)
@@ -273,7 +206,7 @@ foreach m in b se lo90 hi90 lo95 hi95 {
 * Pre-trend (displayed h=-1)
 foreach h_neg in 2 {
     local row = 3 - `h_neg'
-    xtscc dy_m`h_neg' onset_def `controls_pre' i.year if sample==1 & onset_nd==0, fe lag(1)
+    xtscc dy_m`h_neg' onset_def `controls_pre' if sample==1 & onset_nd==0, fe lag(1)
     local bb = _b[onset_def]
     local ss = _se[onset_def]
     _critvals
@@ -300,7 +233,7 @@ forvalues h = 0/4 {
     local hd  = `h' + 1
     local row = `h' + 3
     local lag = max(1, `h'+1)
-    xtscc dy_`h' onset_def `controls' i.year if sample==1 & onset_nd==0, fe lag(`lag')
+    xtscc dy_`h' onset_def `controls' if sample==1 & onset_nd==0, fe lag(`lag')
     local bb = _b[onset_def]
     local ss = _se[onset_def]
     local nn = e(N)
@@ -380,6 +313,15 @@ forvalues row = 1/7 {
 * above (per-type vs tranquil, rival dropped) is the robustness: it is the right
 * partner for the IPW/AIPW lines, which are estimated on those same restricted
 * samples, but it is not the paper's OLS baseline.
+*
+* COUNTRY FE ONLY, MATCHING TABLE I1 — no `i.year' below. This project
+* previously ran every single-stage LP with year FE as a DELIBERATE
+* improvement over the reference paper (METHODOLOGY.md section 2 — absorbing
+* the global cycle directly rather than relying on a proxy). That choice is
+* reversed HERE specifically: `c1-c74' in their $convar means country dummies
+* ONLY, no year dummies at all, and this file is meant to reproduce their
+* Table I1 exactly, not to improve on it. `xtscc ... fe' below therefore
+* carries country FE alone.
 * ══════════════════════════════════════════════════════════════════════════
 
 di as result _n "=== HEADLINE: JOINT REGRESSION (both dummies, full sample) ==="
@@ -396,7 +338,7 @@ foreach m in b se lo90 hi90 lo95 hi95 {
 * outcome), displayed as h=-1.
 foreach h_neg in 2 {
     local row = 3 - `h_neg'
-    xtscc dy_m`h_neg' onset_nd onset_def `controls_pre' i.year if sample==1, fe lag(1)
+    xtscc dy_m`h_neg' onset_nd onset_def `controls_pre' if sample==1, fe lag(1)
     _critvals
     local c90 = r(c90)
     local c95 = r(c95)
@@ -428,7 +370,7 @@ forvalues h = 0/4 {
     local hd  = `h' + 1
     local lag = max(1, `h'+1)
     local row = `h' + 3
-    xtscc dy_`h' onset_nd onset_def `controls' i.year if sample==1, fe lag(`lag')
+    xtscc dy_`h' onset_nd onset_def `controls' if sample==1, fe lag(`lag')
 
     * Total regression sample/countries/R-squared -- shared across both arms
     * (this is ONE joint regression), matching the reference paper's own
@@ -479,45 +421,37 @@ forvalues h = 0/4 {
     local nepdef = r(n)
     local nctydef = r(ncty)
 
-    * Clogg et al. (1995) difference: default-linked minus non-default
-    * (negative => default-linked loss is deeper). z uses the pooled SE of the
-    * two independent-within-regression coefficients, referred to the estimator's
-    * residual df for consistency with the CIs.
+    * Difference statistic: the Wald F-test (`pd', already computed above)
+    * IS the covariance-correct test here, and matches the reference paper's
+    * own convention exactly -- Table I1's "Differences between the estimated
+    * coefficients" section reports an F-statistic (p-value), not a Clogg z.
+    * A Clogg z was used here in an earlier version of this file; that was a
+    * mistake for THIS block specifically (though not for Spec A above, where
+    * onset_nd/onset_def come from two SEPARATE regressions with no joint
+    * covariance to exploit, so Clogg's independence assumption is actually
+    * the right tool there). Here onset_nd/onset_def are estimated JOINTLY in
+    * one regression, so their covariance is directly estimable -- `test'
+    * uses it exactly; Clogg z's sqrt(se_nd^2+se_def^2) formula assumes
+    * independence, which is false for two coefficients from the same
+    * regression, and is therefore a strictly worse approximation of exactly
+    * the quantity `test' already computes exactly. A bootstrap of the same
+    * difference would only add resampling noise to what `test' already gets
+    * in closed form -- removed for the same reason.
     local bdiff = `bdef' - `bnd'
-    local zdiff = `bdiff' / sqrt(`snd'^2 + `sdef'^2)
-    _pval `bdiff' `=sqrt(`snd'^2 + `sdef'^2)'
-    local pz = r(p)
-
-    * Bootstrap percentile CI for the same difference -- companion check to
-    * the analytic Clogg z, matching 08b/13c/13d's own bootstrap convention
-    * (see "upgrade D" note this replaces). country-cluster, strata-preserved
-    * resample of the joint spec itself, not an independent re-derivation.
-    _olsjointdiffboot, yvar(dy_`h') controls(`controls') lag(`lag') reps(`nboot')
-    local bootse = r(se)
-    local bootlo = r(lo)
-    local boothi = r(hi)
-    local bootnd = r(nd)
 
     * Capture estimates + difference block for the publication table (Table 2)
     eststo t2_h`h'
     estadd scalar bdiff   = `bdiff'
-    estadd scalar zdiff   = `zdiff'
-    estadd scalar pzdiff  = `pz'
     estadd scalar pdiff   = `pd'
     estadd scalar nepnd   = `nepnd'
     estadd scalar nepdef  = `nepdef'
     estadd scalar nctynd  = `nctynd'
     estadd scalar nctydef = `nctydef'
-    estadd scalar bootlo  = `bootlo'
-    estadd scalar boothi  = `boothi'
-    estadd scalar bootnd  = `bootnd'
 
     di "h=" `hd' ":  beta_nd=" %6.3f `bnd' ///
                "  beta_def=" %6.3f `bdef' ///
                "  diff(def-nd)=" %6.3f `bdiff' ///
-               "  Clogg z=" %5.2f `zdiff' ///
-               "  p(Wald)="  %5.3f `pd' ///
-               "  boot95%=[" %6.3f `bootlo' ", " %6.3f `boothi' "] (" `bootnd' "/`nboot')"
+               "  F-stat p="  %5.3f `pd'
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -558,7 +492,7 @@ forvalues h = 0/4 {
     local hd  = `h' + 1
     local lag = max(1, `h'+1)
 
-    capture xtscc dy_`h' onset_nd onset_def `controls' l2_gdpg i.year ///
+    capture xtscc dy_`h' onset_nd onset_def `controls' l2_gdpg ///
         if sample == 1, fe lag(`lag')
 
     if _rc {
@@ -626,13 +560,13 @@ if _rc {
 }
 else {
     di as result _n "=== ROBUSTNESS: OUTTURNS ONLY (joint spec) ==="
-    di as result "h   beta_nd   beta_def   diff(def-nd)   Clogg z   p(Clogg)   N   nd/def episodes"
+    di as result "h   beta_nd   beta_def   diff(def-nd)   F-stat p   N   nd/def episodes"
 
     forvalues h = 0/4 {
         local hd  = `h' + 1
         local lag = max(1, `h'+1)
 
-        capture xtscc dy_`h' onset_nd onset_def `controls' i.year ///
+        capture xtscc dy_`h' onset_nd onset_def `controls' ///
             if sample==1 & (year + `h') <= gdp_last_actual, fe lag(`lag')
 
         if _rc {
@@ -642,14 +576,13 @@ else {
 
         local bnd  = _b[onset_nd]
         local bdef = _b[onset_def]
-        local snd  = _se[onset_nd]
-        local sdef = _se[onset_def]
         local nn   = e(N)
-
         local bdiff = `bdef' - `bnd'
-        local sdiff = sqrt(`snd'^2 + `sdef'^2)
-        local zdiff = `bdiff' / `sdiff'
-        _pval `bdiff' `sdiff'
+
+        * Wald F-test, not Clogg z: onset_nd/onset_def are estimated jointly
+        * here, so their covariance is directly estimable and `test' uses it
+        * exactly, matching Table I1's own "F-statistic (p-value)" convention.
+        test onset_nd = onset_def
         local pz = r(p)
 
         _nepcount onset_nd,  outcome(dy_`h') controls(`controls')
@@ -659,13 +592,12 @@ else {
 
         eststo t2r_h`h'
         estadd scalar bdiff  = `bdiff'
-        estadd scalar zdiff  = `zdiff'
-        estadd scalar pzdiff = `pz'
+        estadd scalar pdiff  = `pz'
         estadd scalar nepnd  = `rnepnd'
         estadd scalar nepdef = `rnepdef'
 
         di "h=" `hd' "  " %7.3f `bnd' "  " %8.3f `bdef' "  " %10.3f `bdiff' ///
-           "  " %8.2f `zdiff' "  " %8.3f `pz' "  " %5.0f `nn' ///
+           "  " %8.3f `pz' "  " %5.0f `nn' ///
            "   " %3.0f `rnepnd' "/" %3.0f `rnepdef'
     }
 
@@ -675,11 +607,11 @@ else {
         keep(onset_nd onset_def) order(onset_nd onset_def) ///
         coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
         mtitles("h=1" "h=2" "h=3" "h=4" "h=5") nonumber ///
-        stats(bdiff zdiff pzdiff nepnd nepdef N N_g, ///
-              labels("Difference (default - non-default)" "  Clogg et al. (1995) z" ///
-                     "  p (Clogg z)" "Episodes (non-default)" "Episodes (default)" ///
+        stats(bdiff pdiff nepnd nepdef N N_g, ///
+              labels("Difference (default - non-default)" "  F-statistic p-value (nd = def)" ///
+                     "Episodes (non-default)" "Episodes (default)" ///
                      "Observations" "Countries") ///
-              fmt(3 3 3 0 0 0 0)) ///
+              fmt(3 3 0 0 0 0)) ///
         title("Table 2R. Output cost by resolution — outturns only (robustness)") ///
         addnotes("As Table 2, but each horizon drops observations whose outcome year t+h falls after the last WEO actual observation for that country." ///
                  "This removes IMF projections from the dependent variable, at the cost of sample size at longer horizons." ///
@@ -714,7 +646,7 @@ if _rc {
 }
 else {
     di as result _n "=== ROBUSTNESS: CONTINUATION YEARS KEPT AS CONTROLS (Asonuma et al.'s own sample) ==="
-    di as result "h   beta_nd   beta_def   diff(def-nd)   Clogg z   p(Clogg)   N   nd/def episodes"
+    di as result "h   beta_nd   beta_def   diff(def-nd)   F-stat p   N   nd/def episodes"
 
     * Same 7-row layout as b_nd/b_def above, so this variant can be graphed
     * the same way in 04_graphs.do.
@@ -732,7 +664,7 @@ else {
         local row = `h' + 3
         local lag = max(1, `h'+1)
 
-        capture xtscc dy_`h' onset_nd onset_def `controls' i.year ///
+        capture xtscc dy_`h' onset_nd onset_def `controls' ///
             if sample_flow==1, fe lag(`lag')
 
         if _rc {
@@ -745,11 +677,11 @@ else {
         local snd  = _se[onset_nd]
         local sdef = _se[onset_def]
         local nn   = e(N)
-
         local bdiff = `bdef' - `bnd'
-        local sdiff = sqrt(`snd'^2 + `sdef'^2)
-        local zdiff = `bdiff' / `sdiff'
-        _pval `bdiff' `sdiff'
+
+        * Wald F-test, not Clogg z -- same reasoning as the headline block:
+        * onset_nd/onset_def are jointly estimated, so `test' is exact.
+        test onset_nd = onset_def
         local pz = r(p)
 
         _nepcount onset_nd,  outcome(dy_`h') controls(`controls')
@@ -759,8 +691,7 @@ else {
 
         eststo t2a_h`h'
         estadd scalar bdiff  = `bdiff'
-        estadd scalar zdiff  = `zdiff'
-        estadd scalar pzdiff = `pz'
+        estadd scalar pdiff  = `pz'
         estadd scalar nepnd  = `anepnd'
         estadd scalar nepdef = `anepdef'
 
@@ -776,7 +707,7 @@ else {
         matrix hi90_def_asn[`row',1] = `bdef' + `c90'*`sdef'
 
         di "h=" `hd' "  " %7.3f `bnd' "  " %8.3f `bdef' "  " %10.3f `bdiff' ///
-           "  " %8.2f `zdiff' "  " %8.3f `pz' "  " %5.0f `nn' ///
+           "  " %8.3f `pz' "  " %5.0f `nn' ///
            "   " %3.0f `anepnd' "/" %3.0f `anepdef'
     }
 
@@ -816,11 +747,11 @@ else {
         keep(onset_nd onset_def) order(onset_nd onset_def) ///
         coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
         mtitles("h=1" "h=2" "h=3" "h=4" "h=5") nonumber ///
-        stats(bdiff zdiff pzdiff nepnd nepdef N N_g, ///
-              labels("Difference (default - non-default)" "  Clogg et al. (1995) z" ///
-                     "  p (Clogg z)" "Episodes (non-default)" "Episodes (default)" ///
+        stats(bdiff pdiff nepnd nepdef N N_g, ///
+              labels("Difference (default - non-default)" "  F-statistic p-value (nd = def)" ///
+                     "Episodes (non-default)" "Episodes (default)" ///
                      "Observations" "Countries") ///
-              fmt(3 3 3 0 0 0 0)) ///
+              fmt(3 3 0 0 0 0)) ///
         title("Table 2A. Output cost by resolution — continuation years kept as controls (robustness)") ///
         addnotes("As Table 2 (joint spec), but the sample restriction is sample_flow==1 rather than sample==1: continuation years of" ///
                  "an ongoing episode are kept in the regression as controls rather than dropped, matching Asonuma et al.'s own onset" ///
@@ -844,22 +775,20 @@ capture esttab t2_h0 t2_h1 t2_h2 t2_h3 t2_h4 using "$tabs/table2_output_resoluti
     keep(onset_nd onset_def) order(onset_nd onset_def) ///
     coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
     mtitles("h=1" "h=2" "h=3" "h=4" "h=5") nonumber ///
-    stats(bdiff zdiff pzdiff pdiff bootlo boothi bootnd nepnd nepdef nctynd nctydef N N_g, ///
-          labels("Difference (default - non-default)" "  Clogg et al. (1995) z" ///
-                 "  p (Clogg z)" "  p (Wald, nd = def)" ///
-                 "  Bootstrap 95% CI lower" "  Bootstrap 95% CI upper" "  Bootstrap draws used" ///
+    stats(bdiff pdiff nepnd nepdef nctynd nctydef N N_g, ///
+          labels("Difference (default - non-default)" "  F-statistic p-value (nd = def)" ///
                  "Episodes (non-default, in estimation sample)" "Episodes (default, in estimation sample)" ///
                  "Countries (non-default arm)" "Countries (default arm)" ///
                  "Observations" "Countries (whole regression)") ///
-          fmt(3 3 3 3 3 3 0 0 0 0 0 0 0)) ///
+          fmt(3 3 0 0 0 0 0 0)) ///
     title("Table 2. Output cost by crisis resolution: non-default vs. default-linked") ///
     addnotes("Dependent variable: cumulative change in log real GDP (pp) from t-1 to t+h." ///
-             "Both onset dummies enter jointly. Jorda (2005) local projections; country and year fixed effects; continuation years excluded." ///
+             "Both onset dummies enter jointly. Jorda (2005) local projections; COUNTRY fixed effects only (no year FE," ///
+             " matching the reference paper's own Table I1 design exactly); continuation years excluded." ///
              "Driscoll-Kraay standard errors in parentheses." ///
-             "Difference = beta(default) - beta(non-default); negative means the default-linked loss is deeper." ///
-             "Clogg z = difference / sqrt(SE_nd^2 + SE_def^2); p(Wald) is the joint equality test. Bootstrap 95% CI is a" ///
-             "country-cluster, strata-preserved percentile CI (300 reps) for the same difference, re-running the joint spec" ///
-             "on each resample -- a companion check to the analytic Clogg z, not a replacement." ///
+             "Difference = beta(default) - beta(non-default); negative means the default-linked loss is deeper. The" ///
+             "F-statistic p-value is a Wald test of equality (test onset_nd = onset_def), covariance-correct since both" ///
+             "coefficients come from the same joint regression -- matching Table I1's own difference-testing convention." ///
              "Episode/country counts are onsets/countries surviving listwise deletion on the control set, i.e. those actually" ///
              "identifying each arm's coefficient; the final N/Countries pair describes the whole fitted regression." ///
              "p-values and confidence intervals use t critical values on the estimator's residual degrees of freedom." ///
@@ -870,15 +799,20 @@ else if _rc di as error "  ** Table 2: esttab failed (rc=" _rc ")"
 else di as result "Table 2 saved: $tabs/table2_output_resolution.rtf"
 
 * ══════════════════════════════════════════════════════════════════════════
-* TABLE 2, REFERENCE-PAPER LAYOUT — coefficient(stars)/SE/Episodes stacked
-* per arm, ONE shared Observations/Countries/R-squared block at the bottom,
-* plus a Difference block with the Clogg z and bootstrap CI. Matches the
-* reference paper's own Table I1 "Estimation Results, OLS" convention and
-* 26_lp_debtcrisis_flow.do's table_debtcrisis_flow_layout.rtf, which
-* established this pattern for a joint-regression multi-arm LP (esttab's
-* stats() rows are indexed by column/model, not usable for a row that must
-* appear once per arm block plus once more at the bottom, hence hand-built
-* via file write rather than esttab).
+* TABLE 2, REFERENCE-PAPER LAYOUT — matches Table I1 "Estimation Results,
+* OLS" exactly: coefficient(stars)/SE/Episodes stacked per arm, ONE shared
+* Observations/Countries/R-squared block at the bottom, and a "Differences
+* between the estimated coefficients" section reporting an F-STATISTIC
+* (p-value) -- NOT a Clogg z -- for the nd-vs-def contrast, exactly as
+* Table I1's own difference rows do. (Country counts per arm, and a Clogg
+* z/bootstrap for the difference, were tried in an earlier version of this
+* block and removed: Table I1 shows Episodes only per arm, and its own
+* difference rows are F-statistics, which `test' already computes exactly
+* here since both coefficients come from the same joint regression -- see
+* the headline loop's comment for the full argument against Clogg z/
+* bootstrap in this specific case.) esttab's stats() rows are indexed by
+* column/model, not usable for a row that must appear once per arm block
+* plus once more at the bottom, hence hand-built via file write.
 * ══════════════════════════════════════════════════════════════════════════
 capture program drop _starstr2
 program define _starstr2, rclass
@@ -896,11 +830,11 @@ capture file close t2tab
 file open t2tab using "$tabs/table2_output_resolution_layout.rtf", write replace
 file write t2tab "{\rtf1\ansi\deff0" _n
 file write t2tab "{\b Table 2, reference-paper layout: output cost by crisis resolution\par}" _n
-file write t2tab "{\i Episodes and countries reported beneath each arm's standard error (both counted inside the" _n
-file write t2tab " estimation sample after listwise deletion). Observations, Countries and R-squared are for the" _n
-file write t2tab " WHOLE joint regression (shared across both arms), reported once at the bottom -- matching the" _n
-file write t2tab " reference paper's own OLS table layout (Table I1). Difference block reports the Clogg et al." _n
-file write t2tab " (1995) z alongside a bootstrap percentile CI (companion check, not a replacement).\par}" _n
+file write t2tab "{\i Episodes reported beneath each arm's standard error (counted inside the estimation sample" _n
+file write t2tab " after listwise deletion). Observations, Countries and R-squared are for the WHOLE joint" _n
+file write t2tab " regression (shared across both arms), reported once at the bottom. Differences between the" _n
+file write t2tab " estimated coefficients are tested with an F-statistic (Wald test of equality within the joint" _n
+file write t2tab " regression) -- matching the reference paper's own Table I1 convention exactly.\par}" _n
 file write t2tab "\par" _n
 file write t2tab "\tab h = 1\tab h = 2\tab h = 3\tab h = 4\tab h = 5\par" _n
 file write t2tab "\par" _n
@@ -920,7 +854,6 @@ foreach key in nd def {
     local coefline ""
     local seline ""
     local epline ""
-    local ctyline ""
     forvalues h = 1/5 {
         local pv = cond("`key'"=="nd", `pnd_`h'', `pdef_`h'')
         _starstr2 `pv'
@@ -930,41 +863,15 @@ foreach key in nd def {
         local sestr : display %5.2f se_`key'[`rr',1]
         estimates restore t2_h`=`h'-1'
         local ee : display %4.0f cond("`key'"=="nd", e(nepnd), e(nepdef))
-        local cc : display %3.0f cond("`key'"=="nd", e(nctynd), e(nctydef))
         local coefline "`coefline'\tab `bstr'`st'"
         local seline   "`seline'\tab (`sestr')"
         local epline   "`epline'\tab `ee'"
-        local ctyline  "`ctyline'\tab `cc'"
     }
     file write t2tab "`coefline'\par" _n
     file write t2tab "`seline'\par" _n
     file write t2tab "Episodes`epline'\par" _n
-    file write t2tab "Countries`ctyline'\par" _n
     file write t2tab "\par" _n
 }
-
-* ── Difference block: Clogg z + bootstrap CI, one row set ───────────────────
-file write t2tab "{\b Difference (default - non-default)}\par" _n
-local diffline ""
-local zline ""
-local bootline ""
-forvalues h = 1/5 {
-    estimates restore t2_h`=`h'-1'
-    local dstr : display %5.2f e(bdiff)
-    local zstr : display %5.2f e(zdiff)
-    local pz = e(pzdiff)
-    _starstr2 `pz'
-    local st = r(stars)
-    local lostr : display %5.2f e(bootlo)
-    local histr : display %5.2f e(boothi)
-    local diffline "`diffline'\tab `dstr'`st'"
-    local zline    "`zline'\tab (z=`zstr')"
-    local bootline "`bootline'\tab [`lostr', `histr']"
-}
-file write t2tab "`diffline'\par" _n
-file write t2tab "`zline'\par" _n
-file write t2tab "Bootstrap 95% CI`bootline'\par" _n
-file write t2tab "\par" _n
 
 * ── Shared block: total regression sample, once, not per arm ───────────────
 local obsline ""
@@ -980,10 +887,22 @@ forvalues h = 1/5 {
 }
 file write t2tab "Observations`obsline'\par" _n
 file write t2tab "Countries`cntline'\par" _n
-file write t2tab "R-squared (within)`r2line'\par" _n
+file write t2tab "R-squared`r2line'\par" _n
 file write t2tab "\par" _n
-file write t2tab "{\i * p<0.10, ** p<0.05, *** p<0.01. Bootstrap CI: country-cluster, strata-preserved percentile CI" _n
-file write t2tab " (300 reps) for the difference, re-running the joint spec on each resample.\par}" _n
+
+* ── Differences between the estimated coefficients (F-statistic, p-value) ──
+file write t2tab "Differences between the estimated coefficients\par" _n
+local fline ""
+forvalues h = 1/5 {
+    estimates restore t2_h`=`h'-1'
+    local fstr : display %5.2f e(pdiff)
+    _starstr2 `=e(pdiff)'
+    local st = r(stars)
+    local fline "`fline'\tab (`fstr')`st'"
+}
+file write t2tab "F-statistic for nd = def`fline'\par" _n
+file write t2tab "\par" _n
+file write t2tab "{\i * p<0.10, ** p<0.05, *** p<0.01.\par}" _n
 file write t2tab "}" _n
 file close t2tab
 di as result "Table 2, reference-paper layout saved: $tabs/table2_output_resolution_layout.rtf"
