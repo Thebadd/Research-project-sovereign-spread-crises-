@@ -11,9 +11,12 @@
   crisis. claimsgov_assets is the headline doom-loop channel.
 
   Estimation mirrors 11_channels.do / 12_channels_resolution.do:
-    - Act 1 (pooled, all 61 onsets):  xtscc fe, DK SE, lag = max(1,h+1)
+    - Act 1 (pooled, all 61 onsets):  xtreg fe, robust SE, country FE only
     - Act 2 (resolution split):       joint onset_nd + onset_def
-                                      OLS (xtscc, DK) and IPW (areg, cluster)
+                                      OLS (xtreg fe, robust SE) and IPW (areg, cluster)
+  Country FE only, plain robust SE, no year FE for every single-stage OLS
+  line here -- same switch as 02/03/11 (see 02_lp_all.do's header). IPW
+  lines were already country-FE-only, cluster-SE and are unaffected.
   Coverage is thin for this channel (IMF data start 2001; 6 panel
   countries absent), so the resolution cells are small — interpret with care.
 
@@ -70,15 +73,14 @@ foreach ch of local channels {
 }
 
 di as result _n "========================================================"
-di as result "ACT 1 — POOLED NEXUS CHANNELS (xtscc fe, DK SE)"
+di as result "ACT 1 — POOLED NEXUS CHANNELS (xtreg fe, robust SE)"
 di as result "========================================================"
 
 foreach ch of local channels {
     local ctrl `ctrl_`ch''
     di as result _n "--- CHANNEL: `ch' ---"
     forvalues h = 0/4 {
-        local lag = max(1, `h'+1)
-        capture xtscc ch_`ch'_`h' onset_all `ctrl' i.year if sample==1, fe lag(`lag')
+        capture xtreg ch_`ch'_`h' onset_all `ctrl' if sample==1, fe vce(robust)
         if _rc == 0 {
             matrix b_`ch'[`h'+2,1]    = _b[onset_all]
             matrix lo90_`ch'[`h'+2,1] = _b[onset_all] - 1.645*_se[onset_all]
@@ -88,7 +90,7 @@ foreach ch of local channels {
             di "h=" `h'+1 ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
                "  p=" %5.3f (2*(1-normal(abs(_b[onset_all]/_se[onset_all])))) "  N=" e(N)
         }
-        else di as error "h=" `h'+1 ": xtscc failed for `ch' (rc=" _rc ")"
+        else di as error "h=" `h'+1 ": xtreg failed for `ch' (rc=" _rc ")"
     }
 }
 
@@ -129,7 +131,7 @@ foreach ch of local channels {
 }
 graph combine nx_1 nx_2, cols(2) ///
     title("Sovereign-Bank Nexus Channels (pooled)", size(medlarge) color(navy)) ///
-    note("90%/95% CI. DK SE. Country & year FE. IMF MFS, 2001-2024.", size(vsmall)) ///
+    note("90%/95% CI. Robust SE. Country FE only (no year FE). IMF MFS, 2001-2024.", size(vsmall)) ///
     graphregion(color(white)) xsize(10) ysize(4)
 graph export "$figs/fig11b_nexus_pooled.pdf", replace
 forvalues i = 1/2 {
@@ -204,15 +206,17 @@ foreach ch of local channels {
     di "h   b_nd_OLS  b_def_OLS  p_OLS   b_nd_IPW  b_def_IPW  p_IPW"
 
     forvalues h = 0/4 {
-        local lag = max(1, `h'+1)
         local row = `h' + 2
 
         * OLS: JOINT LP, both type dummies, FULL sample, tranquil omitted — the
-        * reference paper's baseline (reg g_h dum1 dum2 dum3 g_0 $convar). The
-        * rival-drop belongs to their two-stage design and is applied to the IPW
-        * lines below, not to this one.
-        capture xtscc ch_`ch'_`h' onset_nd onset_def `ctrl' i.year ///
-            if sample == 1, fe lag(`lag')
+        * reference paper's baseline (reg g_h dum1 dum2 dum3 g_0 $convar, country
+        * dummies, vce(robust), no year FE). The rival-drop belongs to the IPW
+        * design and is applied to the IPW lines below, not to this one. The
+        * difference test (test onset_nd = onset_def) already uses the exact,
+        * covariance-correct joint-regression F-statistic -- the paper's own
+        * difference-test convention (Table I1) -- not Clogg z/bootstrap.
+        capture xtreg ch_`ch'_`h' onset_nd onset_def `ctrl' ///
+            if sample == 1, fe vce(robust)
         if _rc == 0 {
             matrix b_nd_ols_`ch'[`row',1]    = _b[onset_nd]
             matrix lo90_nd_ols_`ch'[`row',1] = _b[onset_nd]  - 1.645*_se[onset_nd]
@@ -363,11 +367,11 @@ foreach spec in ols ipw {
             name(nxr_`spec'_`i', replace)
         local ++i
     }
-    if "`spec'" == "ols" local stitle "OLS (DK SE)"
+    if "`spec'" == "ols" local stitle "OLS (robust SE)"
     else                 local stitle "IPW (cluster SE)"
     graph combine nxr_`spec'_1 nxr_`spec'_2, cols(2) ///
         title("Nexus Channels by Resolution — `stitle'", size(medlarge) color(navy)) ///
-        note("90% CI. Country & year FE. Non-default vs. default-linked. IMF MFS 2001-2024.", ///
+        note("90% CI. Country FE only (no year FE). Non-default vs. default-linked. IMF MFS 2001-2024.", ///
              size(vsmall)) ///
         graphregion(color(white)) xsize(10) ysize(4)
     graph export "$figs/fig11b_nexus_resolution_`spec'.pdf", replace
