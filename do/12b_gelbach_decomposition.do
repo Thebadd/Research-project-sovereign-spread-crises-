@@ -5,11 +5,13 @@
 
   For each channel and horizon h=0..4, compare two NESTED regressions on the
   SAME sample (same-sample comparison is required for a valid decomposition),
-  each estimated with Table 2's EXACT headline spec -- xtscc, country + year
-  FE, Driscoll-Kraay SE, lag=max(1,h+1) -- since that headline number is what
-  is being decomposed:
-    baseline: xtscc dy_h onset_nd onset_def $ctrl_core i.year, fe lag(...)
-    full:     xtscc dy_h onset_nd onset_def ch_<channel>_h $ctrl_core i.year, fe lag(...)
+  each estimated with Table 2's EXACT headline spec -- xtreg, country FE
+  only (no year FE), plain robust SE -- since that headline number is what
+  is being decomposed (see 02_lp_all.do/03_lp_resolution.do's header for the
+  full argument: this is the Stata-idiomatic equivalent of the reference
+  paper's own reg ..., vce(robust) noconstant with explicit country dummies):
+    baseline: xtreg dy_h onset_nd onset_def $ctrl_core, fe vce(robust)
+    full:     xtreg dy_h onset_nd onset_def ch_<channel>_h $ctrl_core, fe vce(robust)
   explained_nd  = (b_nd_base  - b_nd_full)  / b_nd_base
   explained_def = (b_def_base - b_def_full) / b_def_base
 
@@ -63,8 +65,8 @@ di as result _n "═════════════════════
 di as result "GELBACH DECOMPOSITION: share of onset_nd/onset_def coefficient"
 di as result "'explained' by adding each channel as a control"
 di as result "════════════════════════════════════════════════════════════"
-di as result "  baseline: xtscc dy_h onset_nd onset_def \$ctrl_core i.year, fe lag(max(1,h+1))"
-di as result "  full:     xtscc dy_h onset_nd onset_def ch_<channel>_h \$ctrl_core i.year, fe lag(max(1,h+1))"
+di as result "  baseline: xtreg dy_h onset_nd onset_def \$ctrl_core, fe vce(robust)"
+di as result "  full:     xtreg dy_h onset_nd onset_def ch_<channel>_h \$ctrl_core, fe vce(robust)"
 di as result "  (Table 2's exact headline spec; both estimated on the identical sample, restricted to non-missing channel data)"
 
 tempfile gelbach_out
@@ -81,7 +83,6 @@ foreach ch of local channels {
 
     forvalues h = 0/4 {
         local hd  = `h' + 1
-        local lag = max(1, `h'+1)
 
         quietly count if onset_nd==1  & sample==1 & !missing(ch_`ch'_`h')
         local nepnd  = r(N)
@@ -90,12 +91,12 @@ foreach ch of local channels {
 
         * baseline and full spec estimated on the SAME sample (both restricted
         * to non-missing channel data) -- required for a valid decomposition.
-        * Matches Table 2's headline spec exactly (xtscc, country+year FE,
-        * Driscoll-Kraay SE, lag=max(1,h+1)) -- this is the number being
-        * decomposed, so the baseline here must be identical to it, not the
-        * separate country-FE-only convention used by the IPW/AIPW stages.
-        capture xtscc dy_`h' onset_nd onset_def `controls' i.year ///
-            if sample==1 & !missing(ch_`ch'_`h'), fe lag(`lag')
+        * Matches Table 2's headline spec exactly (xtreg, country FE only,
+        * no year FE, robust SE) -- this is the number being decomposed, so
+        * the baseline here must be identical to it, not the separate
+        * cluster-SE convention used by the IPW/AIPW stages.
+        capture xtreg dy_`h' onset_nd onset_def `controls' ///
+            if sample==1 & !missing(ch_`ch'_`h'), fe vce(robust)
         if _rc {
             di as error "h=`hd': baseline regression failed for `ch' (rc=" _rc ")"
             continue
@@ -104,8 +105,8 @@ foreach ch of local channels {
         local bdef_base   = _b[onset_def]
         local se_def_base = _se[onset_def]
 
-        capture xtscc dy_`h' onset_nd onset_def ch_`ch'_`h' `controls' i.year ///
-            if sample==1 & !missing(ch_`ch'_`h'), fe lag(`lag')
+        capture xtreg dy_`h' onset_nd onset_def ch_`ch'_`h' `controls' ///
+            if sample==1 & !missing(ch_`ch'_`h'), fe vce(robust)
         if _rc {
             di as error "h=`hd': channel-controlled regression failed for `ch' (rc=" _rc ")"
             continue
