@@ -338,8 +338,11 @@ foreach spec in ols ipw {
         use "$clean/irf_nx_nd_`spec'_`ch'.dta", clear
         append using "$clean/irf_nx_def_`spec'_`ch'.dta"
         if `i' == 2 {
+            * Bottom-anchored (no ring(0)/pos()), matching the fix applied
+            * elsewhere in the project for nd/def legends that used to
+            * overlap the plotted lines.
             local legopt legend(order(3 "Non-default" 4 "Default-linked") ///
-                         ring(0) pos(7) cols(1) size(vsmall) region(lcolor(gs12)))
+                         cols(2) size(vsmall))
         }
         else {
             local legopt legend(off)

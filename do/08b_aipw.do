@@ -510,9 +510,14 @@ preserve
         ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
         title("AIPW output cost by resolution", size(medium) color(navy)) ///
         subtitle("Doubly-robust (Asonuma et al. Eq. 3), each vs tranquil.", size(small)) ///
-        legend(order(3 "Non-default" 4 "Default-linked") ring(0) pos(7) size(small)) ///
-        note("Two AIPW level IRFs; shaded = bootstrap 95% percentile CI (cluster by country). Gap = extra cost of default. `gapnote'", size(vsmall)) ///
+        legend(order(3 "Non-default" 4 "Default-linked") size(small)) ///
         graphregion(color(white)) plotregion(color(white))
+    * Note text (kept as source comment, no longer rendered on the figure --
+    * the legend, previously overlapping the plot at ring(0) pos(7), now
+    * takes the bottom position this note used to occupy). `gapnote' is a
+    * runtime local (its rendered value can't be embedded in a static
+    * comment), so the template is shown instead:
+    * "Two AIPW level IRFs; shaded = bootstrap 95% percentile CI (cluster by country). Gap = extra cost of default. <gapnote>"
     graph export "$figs/fig_aipw_act2.pdf", replace
     di as result "Figure saved: fig_aipw_act2.pdf"
 restore

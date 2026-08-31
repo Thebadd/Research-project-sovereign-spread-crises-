@@ -145,13 +145,15 @@ preserve
         ytitle("Cumulative change in log real GDP (pp)", size(small)) ///
         title("Output around a spread crisis, by resolution", size(medium) color(navy)) ///
         subtitle("Country-demeaned means. No controls, no estimator.", size(small)) ///
-        legend(order(1 "Non-default" 2 "Default-linked") ring(0) pos(7) ///
-               cols(1) size(small) region(lcolor(gs12))) ///
-        note("Simple average of the country-demeaned cumulative change in log real GDP over each group's onsets." ///
-             "Demeaning is within country over the estimation sample and removes cross-country differences in trend" ///
-             "growth; nothing else is done to the data. No confidence bands are shown because this is a description," ///
-             "not an estimate — the conditional versions with inference are Figure 2 and Table 2.", size(vsmall)) ///
+        legend(order(1 "Non-default" 2 "Default-linked") size(small)) ///
         graphregion(color(white)) plotregion(color(white))
+    * Note text (kept as source comment, no longer rendered on the figure --
+    * the legend, previously overlapping the plot at ring(0) pos(7), now
+    * takes the bottom position this note used to occupy):
+    * "Simple average of the country-demeaned cumulative change in log real GDP over each group's onsets.
+    *  Demeaning is within country over the estimation sample and removes cross-country differences in trend
+    *  growth; nothing else is done to the data. No confidence bands are shown because this is a description,
+    *  not an estimate — the conditional versions with inference are Figure 2 and Table 2."
     graph export "$figs/fig0_descriptive_paths.pdf", replace
     capture graph export "$figs/fig0_descriptive_paths.png", replace width(1200)
     di as result "Figure saved: fig0_descriptive_paths.pdf"
