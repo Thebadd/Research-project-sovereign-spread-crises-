@@ -32,15 +32,17 @@ into a banking crisis. If those same differences also drive future output,
 the LP coefficient blends the effect of the crisis with the effect of
 having been the kind of country that has one.
 
-Two estimators address this. Plain inverse-probability weighting
-(`08_ipw_lp.do`) models the probability of onset and reweights the control
-group to resemble the treated on observables. The doubly-robust AIPW
-estimator (`08b_aipw.do`, following Jordà & Taylor 2016 and Asonuma et
-al.'s Eq. 3) adds the outcome model back on top of the weighting, so the
-estimate is consistent if *either* the propensity model or the outcome
-model is correctly specified rather than requiring both. AIPW is the
-preferred selection-corrected specification; plain IPW is retained as the
-intermediate step and a robustness row.
+The doubly-robust AIPW estimator (`08b_aipw.do`, following Jordà & Taylor
+2016 and Asonuma et al.'s Eq. 3) models the probability of onset and adds
+an outcome model on top of the weighting, so the estimate is consistent if
+*either* the propensity model or the outcome model is correctly specified
+rather than requiring both. This project used to also report plain
+inverse-probability weighting (`08_ipw_lp.do`, and parallel IPW comparison
+sections in the channel/mechanism files) as an intermediate step and
+robustness row; it was removed project-wide once AIPW was adopted as the
+estimator actually reported, since a weaker-robustness estimator running
+alongside a strictly-dominating one added reading overhead without adding
+information the AIPW comparison did not already cover.
 
 **Question 3 — Through what, and for whom?**
 
@@ -200,11 +202,10 @@ the fewest assumptions still rejects, reporting it as the baseline is a
 strength rather than a risk. Where results do weaken under Driscoll-Kraay —
 the Year 4–5 horizons — that is reported as weakening, not suppressed.
 
-**Cluster-robust** (`vce(cluster cid)`) in the two-stage estimators. This
-is mechanical rather than elective: `xtscc` does not accept probability
-weights, so an inverse-probability-weighted outcome regression cannot be
-estimated with it (see the note at `08_ipw_lp.do:186`). Those stages fall
-back to `areg ... absorb(cid) vce(cluster cid)`, which has the incidental
+**Cluster-robust** (`vce(cluster cid)`) in the two-stage AIPW estimators.
+This is mechanical rather than elective: a weighted outcome regression
+cannot be estimated with `xtscc`/`xtreg ... vce(robust)`, so those stages
+use `areg ... absorb(cid) vce(cluster cid)`, which has the incidental
 benefit of matching the reference paper's inference for the same stage.
 
 **Stratified cluster bootstrap** (`bsample`, in `08b`, `13c`, `13d`) for
@@ -541,9 +542,10 @@ time-varying treatment the strongest predictor of being in crisis at *t* is
 being in crisis at *t−1* — a post-treatment outcome of the same episode — so
 unconfoundedness given X is false whether or not that term enters the first
 stage. Include it and the propensity model becomes a persistence model whose
-scores approach 1 on continuation rows, which the `[0.01, 0.99]` trim in
-`08_ipw_lp.do` then deletes: precisely the rows flow coding exists to add. The
-correct estimator would be a marginal structural model with
+scores approach 1 on continuation rows, which the `[0.01, 0.99]` trim
+(`08b_aipw.do`'s propensity model, same trim rule the retired plain-IPW
+predecessor used) then deletes: precisely the rows flow coding exists to add.
+The correct estimator would be a marginal structural model with
 inverse-probability-of-treatment weights over the treatment *history* (Robins,
 Hernán & Brumback 2000), which is out of scope. Flow results are accordingly
 reported as **magnitude and state conditional on selection into crisis**, not

@@ -10,7 +10,7 @@
         Pr(onset_s = 1 | X_{t-1})       s in {all, nd, def}
 
   against TRANQUIL years, with the rival type dropped from the sample
-  (08_ipw_lp.do, 08b_aipw.do, 13d). That is selection INTO A CRISIS. This
+  (08b_aipw.do, 13d). That is selection INTO A CRISIS. This
   file estimates a different object entirely — selection INTO A RESOLUTION,
 
         Pr(non-default | spread-crisis onset, nexus_{t-1}, X_{t-1})
@@ -451,10 +451,10 @@ else di as error "  ** gdppc_real not in panel — development check skipped"
 *    innocuous when the two crisis types are close substitutes. Where they
 *    disagree, believe Section 1 and say so.
 *
-*    The two separate vs-tranquil probits that follow mirror the design of
-*    08_ipw_lp.do exactly, and are reported for comparability with the paper's
-*    existing first stages. THEY ARE A DIAGNOSTIC AND NOTHING ELSE: the
-*    weighting models in 08/08b/13d are deliberately NOT modified, because
+*    The two separate vs-tranquil probits that follow mirror 08b_aipw.do's
+*    own propensity design, and are reported for comparability with the
+*    paper's existing first stages. THEY ARE A DIAGNOSTIC AND NOTHING ELSE:
+*    the weighting models in 08b/13d are deliberately NOT modified, because
 *    adding a variable to $ctrl_core there would change every IPW and AIPW
 *    estimate in the paper. A Clogg z across those two probits would also be
 *    wrong, since both samples share the same tranquil control years and the
@@ -510,8 +510,8 @@ else {
     }
 }
 
-di as result _n "  Mirror of the 08_ipw_lp.do first stages (DIAGNOSTIC ONLY —"
-di as result "  the weighting models in 08/08b/13d are not modified):"
+di as result _n "  Mirror of 08b_aipw.do's first stages (DIAGNOSTIC ONLY —"
+di as result "  the weighting models in 08b/13d are not modified):"
 local predictors_z2 l_fedfunds l_reg_crisis_share past_def_onsets
 foreach s in nd def {
     if "`s'" == "nd"  local rival onset_def

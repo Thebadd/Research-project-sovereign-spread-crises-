@@ -83,7 +83,10 @@ do "$do/04_graphs.do"
 * do "$do/05_balance_table.do"
 do "$do/06_robustness.do"
 do "$do/07_placebo.do"
-do "$do/08_ipw_lp.do"
+* 08_ipw_lp.do REMOVED: plain IPW-LP, superseded by 08b_aipw.do's doubly-robust
+* AIPW estimator project-wide. See 08b's header and METHODOLOGY.md for the
+* reasoning (AIPW dominates IPW: consistent if EITHER the propensity or the
+* outcome model is correctly specified, not just the propensity model).
 do "$do/08b_aipw.do"                  // IPWRA (the reference paper's headline estimator) + stratified bootstrap CIs
 do "$do/08c_first_stage_table.do"     // Table 1-style probit first stage (predictors/controls + chi2/ROC)
 * do "$do/09_lp_imf.do"   // removed: IMF selection unpredictable from observables

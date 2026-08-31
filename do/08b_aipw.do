@@ -39,7 +39,9 @@
   tranquil) — the doubly-robust analog of the Table 2 nd/def coefficients; their
   vertical gap is the extra cost of default. Mirrors the IPW Act-2 figure (fig8).
 
-  Keep 08_ipw_lp.do (plain IPW) as the robustness row. Run AFTER 01e_predictors.
+  Run AFTER 01e_predictors. (08_ipw_lp.do, the plain-IPW predecessor to this
+  doubly-robust estimator, was removed project-wide once AIPW covered the
+  same question with a weaker robustness requirement -- see METHODOLOGY.md.)
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear

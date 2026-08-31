@@ -41,13 +41,14 @@
 
   WHAT THIS DESIGN DOES NOT IDENTIFY
   ----------------------------------
-  The two-stage tier (08, 08b, 13c, 13d) is NOT extended to flow coding, and
+  The two-stage tier (08b, 13c, 13d) is NOT extended to flow coding, and
   the reason is not computational. For a time-varying treatment the strongest
   predictor of being in crisis at t is being in crisis at t-1 — a post-treatment
   outcome of the same episode — so unconditional unconfoundedness given X is
   false whether or not that term is included. Include it and the first stage
   becomes a persistence model whose scores approach 1 on continuation rows,
-  which the [0.01,0.99] trim in 08_ipw_lp.do then deletes: precisely the rows
+  which the [0.01,0.99] trim (08b_aipw.do's propensity model, same trim rule
+  the retired plain-IPW predecessor used) then deletes: precisely the rows
   this design exists to add. The correct estimator for a time-varying treatment
   is a marginal structural model with inverse-probability-of-treatment weights
   over the treatment HISTORY (Robins, Hernan & Brumback 2000), which is out of

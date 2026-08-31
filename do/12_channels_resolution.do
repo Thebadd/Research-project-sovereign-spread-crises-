@@ -1,45 +1,35 @@
 /*===========================================================================
   12_CHANNELS_RESOLUTION.DO
   Transmission Channels by Resolution Type (Non-Default vs. Default-Linked)
-  with IPW Correction for Selection into Default
 
   Research question: do the transmission channels of spread crises differ
   between episodes resolved without default and those linked to default?
 
   STRATEGY:
   ---------
-  For each of the 6 channels from 11_channels.do, we run:
-
-  Spec A (OLS, reference-paper baseline): JOINT LP with onset_nd and onset_def
-    entered simultaneously on the FULL sample, tranquil the omitted category
+  For each of the 6 channels from 11_channels.do: JOINT LP with onset_nd and
+  onset_def entered simultaneously on the FULL sample, tranquil the omitted
+  category (the reference paper's baseline):
     ch_var(h) = αi + β_nd(h)·onset_nd + β_def(h)·onset_def
                + X_core (common core + pre_<v>)·δ + ε
-    Country FE only, no year FE, plain robust SE -- the Stata-idiomatic
-    equivalent of the reference paper's own reg ..., vce(robust) noconstant
-    with explicit country dummies (see 02_lp_all.do's header). Since both
-    type dummies are estimated in ONE regression, their covariance is
-    exactly estimable and the difference test below uses the Wald
-    F-statistic (test onset_nd = onset_def) directly -- the reference
-    paper's own difference-test convention (Table I1) -- not Clogg z or a
-    bootstrap, which would only approximate what the F-test already gives
-    exactly.
+  Country FE only, no year FE, plain robust SE -- the Stata-idiomatic
+  equivalent of the reference paper's own reg ..., vce(robust) noconstant
+  with explicit country dummies (see 02_lp_all.do's header). Since both
+  type dummies are estimated in ONE regression, their covariance is
+  exactly estimable and the difference test below uses the Wald
+  F-statistic (test onset_nd = onset_def) directly -- the reference
+  paper's own difference-test convention (Table I1) -- not Clogg z or a
+  bootstrap, which would only approximate what the F-test already gives
+  exactly.
 
-  Spec B (IPW): per-type-vs-tranquil (reference-paper structure). Each type is
-    scored vs TRANQUIL years with the rival type dropped — two first stages:
-      probit onset_nd  $ctrl_core + Z2 if sample & onset_def==0   -> ipw_nd
-      probit onset_def $ctrl_core + Z2 if sample & onset_nd==0    -> ipw_def
-    Two SEPARATE weighted LPs: onset_nd vs tranquil [aw=ipw_nd], onset_def vs
-    tranquil [aw=ipw_def]. areg absorb(cid) vce(cluster cid).
-
-  Extra cost of default (IPW) = (default line) - (non-default line), Clogg z
-  per horizon -- valid here because the two IPW lines come from genuinely
-  SEPARATE regressions, so there is no joint covariance to exploit and
-  Clogg's independence assumption is the right tool (unlike Spec A above).
+  IPW REMOVED: this file used to carry a parallel IPW-weighted (Spec B)
+  comparison, dropped project-wide once 08b_aipw.do's doubly-robust AIPW
+  estimator superseded plain IPW as the estimator this project reports --
+  see METHODOLOGY.md and 08b_aipw.do's header.
 
   OUTPUTS:
   --------
-  - fig12a_channels_ols.pdf   : 2×3 grid OLS (nd=navy, def=brick)
-  - fig12b_channels_ipw.pdf   : 2×3 grid IPW (nd=navy, def=brick)
+  - fig12a_channels_ols.pdf   : 2×3 grid (nd=navy, def=brick)
   - channels_resolution.csv   : full coefficient table
 ===========================================================================*/
 
@@ -88,40 +78,7 @@ foreach var in credit claims_govt inv govexp pb fdi {
 }
 
 * ══════════════════════════════════════════════════════════════════════════
-* 3. IPW WEIGHTS — ACT 2 (replicated from 08_ipw_lp.do)
-*    Full first stage: X (l1_gdpg l2_gdpg debt ca infl imf) + Z2 (l_fedfunds l_reg_crisis_share past_def_onsets); lean debt-ca fallback
-* ══════════════════════════════════════════════════════════════════════════
-
-di as result _n "=== FIRST STAGE: Pr(default-linked | crisis onset) ==="
-
-capture drop pscore_nd pscore_def ipw_nd ipw_def
-
-* PER-TYPE-vs-TRANQUIL propensities (reference-paper structure): each resolution
-* type is scored vs TRANQUIL years with the RIVAL type dropped, so the control is
-* clean tranquil country-years (not the other crisis type). Full sample => the full
-* $ctrl_core is safe (no among-onsets separation). Two weight sets: ipw_nd, ipw_def.
-foreach s in nd def {
-    if "`s'" == "nd"  local rival onset_def
-    else              local rival onset_nd
-
-    quietly probit onset_`s' $ctrl_core ///
-        l_fedfunds l_reg_crisis_share past_def_onsets if sample==1 & `rival'==0, vce(cluster cid)
-    quietly lroc, nograph
-    di as result "  First stage `s' vs tranquil: AUROC = " %5.3f r(area) "   (N = " e(N) ")"
-
-    predict pscore_`s' if sample==1 & `rival'==0, pr
-    quietly replace pscore_`s' = . if (pscore_`s'<0.01 | pscore_`s'>0.99) & !missing(pscore_`s')
-
-    quietly summarize onset_`s' if sample==1 & `rival'==0
-    local pmarg = r(mean)
-    gen double ipw_`s' = .
-    quietly replace ipw_`s' = `pmarg'     / pscore_`s'     if onset_`s'==1 & !missing(pscore_`s')
-    quietly replace ipw_`s' = (1-`pmarg') / (1-pscore_`s') if onset_all==0 & !missing(pscore_`s')
-    label var ipw_`s' "Act 2 stabilized IPW weight (`s' vs tranquil)"
-}
-
-* ══════════════════════════════════════════════════════════════════════════
-* 4. LP ESTIMATION BY CHANNEL — OLS AND IPW
+* 3. LP ESTIMATION BY CHANNEL
 * ══════════════════════════════════════════════════════════════════════════
 
 local channels   credit claims_govt inv govexp pb fdi
@@ -142,14 +99,12 @@ local ctrl_fdi         $ctrl_core pre_fdi
 
 * Initialize storage matrices
 foreach ch of local channels {
-    foreach spec in ols ipw {
-        foreach grp in nd def {
-            foreach m in b lo90 hi90 lo95 hi95 {
-                matrix `m'_`grp'_`spec'_`ch' = J(6, 1, 0)
-            }
+    foreach grp in nd def {
+        foreach m in b lo90 hi90 lo95 hi95 {
+            matrix `m'_`grp'_`ch' = J(6, 1, 0)
         }
-        matrix pval_`spec'_`ch' = J(6, 1, .)
     }
+    matrix pval_`ch' = J(6, 1, .)
 }
 
 * ── Loop over channels ───────────────────────────────────────────────────
@@ -163,33 +118,32 @@ foreach ch of local channels {
     di as result _n "========================================"
     di as result "CHANNEL: `ch'"
     di as result "========================================"
-    di "h   b_nd_OLS  b_def_OLS  p_ols  b_nd_IPW  b_def_IPW  p_ipw"
+    di "h   b_nd     b_def    p(nd=def)"
 
     forvalues h = 0/4 {
         local row = `h' + 2
 
-        * ── OLS: JOINT LP, both type dummies, FULL sample ───────────────
-        * The reference paper's baseline is a single joint regression with all type
-        * dummies, country dummies, vce(robust), no year FE, and tranquil as the
+        * JOINT LP, both type dummies, FULL sample. The reference paper's
+        * baseline is a single joint regression with all type dummies,
+        * country dummies, vce(robust), no year FE, and tranquil as the
         * omitted category (reg g_h dum1 dum2 dum3 g_0 $convar, vce(robust),
-        * noconstant). Their rival-drop belongs to the two-stage design (probit +
-        * weighted reg) and is applied to the IPW lines below only.
+        * noconstant).
         capture xtreg ch_`ch'_`h' onset_nd onset_def `ctrl' ///
             if sample == 1, fe vce(robust)
 
         if _rc == 0 {
-            matrix b_nd_ols_`ch'[`row',1]    = _b[onset_nd]
-            matrix lo90_nd_ols_`ch'[`row',1] = _b[onset_nd]  - 1.645*_se[onset_nd]
-            matrix hi90_nd_ols_`ch'[`row',1] = _b[onset_nd]  + 1.645*_se[onset_nd]
-            matrix lo95_nd_ols_`ch'[`row',1] = _b[onset_nd]  - 1.960*_se[onset_nd]
-            matrix hi95_nd_ols_`ch'[`row',1] = _b[onset_nd]  + 1.960*_se[onset_nd]
-            matrix b_def_ols_`ch'[`row',1]   = _b[onset_def]
-            matrix lo90_def_ols_`ch'[`row',1]= _b[onset_def] - 1.645*_se[onset_def]
-            matrix hi90_def_ols_`ch'[`row',1]= _b[onset_def] + 1.645*_se[onset_def]
-            matrix lo95_def_ols_`ch'[`row',1]= _b[onset_def] - 1.960*_se[onset_def]
-            matrix hi95_def_ols_`ch'[`row',1]= _b[onset_def] + 1.960*_se[onset_def]
+            matrix b_nd_`ch'[`row',1]    = _b[onset_nd]
+            matrix lo90_nd_`ch'[`row',1] = _b[onset_nd]  - 1.645*_se[onset_nd]
+            matrix hi90_nd_`ch'[`row',1] = _b[onset_nd]  + 1.645*_se[onset_nd]
+            matrix lo95_nd_`ch'[`row',1] = _b[onset_nd]  - 1.960*_se[onset_nd]
+            matrix hi95_nd_`ch'[`row',1] = _b[onset_nd]  + 1.960*_se[onset_nd]
+            matrix b_def_`ch'[`row',1]   = _b[onset_def]
+            matrix lo90_def_`ch'[`row',1]= _b[onset_def] - 1.645*_se[onset_def]
+            matrix hi90_def_`ch'[`row',1]= _b[onset_def] + 1.645*_se[onset_def]
+            matrix lo95_def_`ch'[`row',1]= _b[onset_def] - 1.960*_se[onset_def]
+            matrix hi95_def_`ch'[`row',1]= _b[onset_def] + 1.960*_se[onset_def]
             test onset_nd = onset_def
-            matrix pval_ols_`ch'[`row',1] = r(p)
+            matrix pval_`ch'[`row',1] = r(p)
             local pd_`ch'_`h' = r(p)   // store before eststo (which can reset r())
             local pf_`ch'_`h' = r(F)   // F-statistic itself, Table I1's own convention
 
@@ -220,63 +174,15 @@ foreach ch of local channels {
             local b_nd_o  = .
             local b_def_o = .
             local p_o     = .
-            di as error "OLS failed for `ch' h=`=`h'+1'"
+            di as error "regression failed for `ch' h=`=`h'+1'"
         }
 
-        * ── IPW: two SEPARATE vs-tranquil weighted LPs (rival dropped) ────
-        * Country FE only, no year FE (paper-aligned two-stage outcome regression).
-        * non-default vs tranquil (drop onset_def), weight ipw_nd
-        capture areg ch_`ch'_`h' onset_nd `ctrl' ///
-            [aw=ipw_nd] if sample==1 & onset_def==0 & !missing(ipw_nd), ///
-            absorb(cid) vce(cluster cid)
-        if _rc == 0 {
-            matrix b_nd_ipw_`ch'[`row',1]    = _b[onset_nd]
-            matrix lo90_nd_ipw_`ch'[`row',1] = _b[onset_nd]  - 1.645*_se[onset_nd]
-            matrix hi90_nd_ipw_`ch'[`row',1] = _b[onset_nd]  + 1.645*_se[onset_nd]
-            matrix lo95_nd_ipw_`ch'[`row',1] = _b[onset_nd]  - 1.960*_se[onset_nd]
-            matrix hi95_nd_ipw_`ch'[`row',1] = _b[onset_nd]  + 1.960*_se[onset_nd]
-            local b_nd_w  = _b[onset_nd]
-            local se_nd_w = _se[onset_nd]
-        }
-        else {
-            local b_nd_w = .
-            local se_nd_w = .
-            di as error "IPW nd-vs-tranquil failed for `ch' h=`=`h'+1'"
-        }
-        * default-linked vs tranquil (drop onset_nd), weight ipw_def
-        capture areg ch_`ch'_`h' onset_def `ctrl' ///
-            [aw=ipw_def] if sample==1 & onset_nd==0 & !missing(ipw_def), ///
-            absorb(cid) vce(cluster cid)
-        if _rc == 0 {
-            matrix b_def_ipw_`ch'[`row',1]   = _b[onset_def]
-            matrix lo90_def_ipw_`ch'[`row',1]= _b[onset_def] - 1.645*_se[onset_def]
-            matrix hi90_def_ipw_`ch'[`row',1]= _b[onset_def] + 1.645*_se[onset_def]
-            matrix lo95_def_ipw_`ch'[`row',1]= _b[onset_def] - 1.960*_se[onset_def]
-            matrix hi95_def_ipw_`ch'[`row',1]= _b[onset_def] + 1.960*_se[onset_def]
-            local b_def_w  = _b[onset_def]
-            local se_def_w = _se[onset_def]
-        }
-        else {
-            local b_def_w = .
-            local se_def_w = .
-            di as error "IPW def-vs-tranquil failed for `ch' h=`=`h'+1'"
-        }
-        * extra cost of default (IPW) = def - nd, Clogg z on the two vs-tranquil lines
-        local p_w = .
-        if !missing(`b_nd_w') & !missing(`b_def_w') {
-            local zdiff = (`b_def_w' - `b_nd_w') / sqrt(`se_nd_w'^2 + `se_def_w'^2)
-            local p_w   = 2*(1 - normal(abs(`zdiff')))
-        }
-        matrix pval_ipw_`ch'[`row',1] = `p_w'
-
-        di "h=" `h'+1 ///
-           "  " %7.3f `b_nd_o'  "  " %7.3f `b_def_o' "  " %5.3f `p_o' ///
-           "  " %7.3f `b_nd_w'  "  " %7.3f `b_def_w' "  " %5.3f `p_w'
+        di "h=" `h'+1 "  " %7.3f `b_nd_o'  "  " %7.3f `b_def_o' "  " %5.3f `p_o'
     }
 }
 
 * ══════════════════════════════════════════════════════════════════════════
-* TABLE EXPORT — TABLE 4: Transmission channels by resolution type
+* 4. TABLE EXPORT — TABLE 4: Transmission channels by resolution type
 *   Word/RTF, multi-panel: one panel per channel, columns = horizons h=0..4.
 *   Each panel reports non-default and default-linked onset coefficients from the
 *   JOINT regression (the reference paper's baseline), robust SE in parentheses,
@@ -351,22 +257,19 @@ else di as error "Table 4 written with warnings (see messages above)."
 * ══════════════════════════════════════════════════════════════════════════
 
 foreach ch of local channels {
-    foreach spec in ols ipw {
-        foreach grp in nd def {
-            preserve
-                clear
-                set obs 6
-                gen horizon = _n - 1     // 0 (baseline), 1..5
-                foreach m in b lo90 hi90 lo95 hi95 {
-                    svmat `m'_`grp'_`spec'_`ch', names(`m')
-                    rename `m'1 `m'
-                }
-                gen channel  = "`ch'"
-                gen spec_tag = "`spec'"
-                gen group    = "`grp'"
-                save "$clean/irf_`grp'_`spec'_`ch'.dta", replace
-            restore
-        }
+    foreach grp in nd def {
+        preserve
+            clear
+            set obs 6
+            gen horizon = _n - 1     // 0 (baseline), 1..5
+            foreach m in b lo90 hi90 lo95 hi95 {
+                svmat `m'_`grp'_`ch', names(`m')
+                rename `m'1 `m'
+            }
+            gen channel = "`ch'"
+            gen group   = "`grp'"
+            save "$clean/irf_`grp'_`ch'.dta", replace
+        restore
     }
 }
 
@@ -380,32 +283,29 @@ preserve
     set obs `nrows'
     gen channel  = ""
     gen horizon  = .
-    foreach v in b_nd_ols b_def_ols p_ols b_nd_ipw b_def_ipw p_ipw {
+    foreach v in b_nd b_def p {
         gen `v' = .
     }
 
     local row = 1
     foreach ch of local channels {
         forvalues h = 0/4 {
-            replace channel  = "`ch'"                         in `row'
-            replace horizon  = `h'                            in `row'
-            replace b_nd_ols  = b_nd_ols_`ch'[`h'+2,1]       in `row'
-            replace b_def_ols = b_def_ols_`ch'[`h'+2,1]      in `row'
-            replace p_ols     = pval_ols_`ch'[`h'+2,1]       in `row'
-            replace b_nd_ipw  = b_nd_ipw_`ch'[`h'+2,1]       in `row'
-            replace b_def_ipw = b_def_ipw_`ch'[`h'+2,1]      in `row'
-            replace p_ipw     = pval_ipw_`ch'[`h'+2,1]       in `row'
+            replace channel = "`ch'"              in `row'
+            replace horizon = `h'                 in `row'
+            replace b_nd    = b_nd_`ch'[`h'+2,1]  in `row'
+            replace b_def   = b_def_`ch'[`h'+2,1] in `row'
+            replace p       = pval_`ch'[`h'+2,1]  in `row'
             local ++row
         }
     }
 
-    order channel horizon b_nd_ols b_def_ols p_ols b_nd_ipw b_def_ipw p_ipw
+    order channel horizon b_nd b_def p
     export delimited "$tabs/channels_resolution.csv", replace
     di as result "Table saved: $tabs/channels_resolution.csv"
 restore
 
 * ══════════════════════════════════════════════════════════════════════════
-* 7. FIGURES — 2×3 MULTI-PANEL, OLS THEN IPW
+* 7. FIGURE — 2×3 MULTI-PANEL
 * ══════════════════════════════════════════════════════════════════════════
 
 local c_nd  "23 55 94"    // navy   — non-default
@@ -413,14 +313,12 @@ local c_def "180 60 40"   // brick  — default-linked
 
 local titlelabels `" "Private Credit/GDP" "Bank Claims on Govt/GDP" "Investment/GDP" "Govt Expenditure/GDP" "Primary Balance/GDP" "FDI/GDP" "'
 
-* ── Figure A: OLS ────────────────────────────────────────────────────────
-
 local i = 1
 foreach ch of local channels {
     local tlab : word `i' of `titlelabels'
 
-    use "$clean/irf_nd_ols_`ch'.dta",  clear
-    append using "$clean/irf_def_ols_`ch'.dta"
+    use "$clean/irf_nd_`ch'.dta",  clear
+    append using "$clean/irf_def_`ch'.dta"
 
     * Show legend only in last panel (bottom-right), bottom-anchored (no
     * ring(0)/pos()) rather than overlapping the plotted lines.
@@ -459,7 +357,7 @@ foreach ch of local channels {
 
 graph combine ols_1 ols_2 ols_3 ols_4 ols_5 ols_6, ///
     cols(3) rows(2) ///
-    title("Transmission Channels by Resolution Type — OLS", ///
+    title("Transmission Channels by Resolution Type", ///
           size(medlarge) color(navy)) ///
     note("90% CI. Robust (heteroskedasticity-only) SE. Country FE only (no year FE). Non-default: N=40. Default-linked: N=21." ///
          "Units differ by channel: private credit, bank claims on govt, investment and govt expenditure are LOG REAL LEVELS, so their scale is cumulative percent change (comparable to the GDP result). Primary balance and FDI change sign, so no log is possible and they remain ratios to GDP, in percentage points.", ///
@@ -470,64 +368,6 @@ graph export "$figs/fig12a_channels_ols.pdf", replace
 di as result "Figure saved: fig12a_channels_ols.pdf"
 forvalues i = 1/6 {
     capture graph drop ols_`i'
-}
-
-* ── Figure B: IPW ────────────────────────────────────────────────────────
-
-local i = 1
-foreach ch of local channels {
-    local tlab : word `i' of `titlelabels'
-
-    use "$clean/irf_nd_ipw_`ch'.dta",  clear
-    append using "$clean/irf_def_ipw_`ch'.dta"
-
-    * Show legend only in last panel (bottom-right), bottom-anchored (no
-    * ring(0)/pos()) rather than overlapping the plotted lines.
-    if `i' == 6 {
-        local legopt legend(order(3 "Non-default (IPW)" 4 "Default-linked (IPW)") ///
-                     cols(2) size(vsmall))
-    }
-    else {
-        local legopt legend(off)
-    }
-
-    twoway ///
-        (rarea lo90 hi90 horizon if group=="nd", ///
-            color("`c_nd'%20") lwidth(none)) ///
-        (rarea lo90 hi90 horizon if group=="def", ///
-            color("`c_def'%20") lwidth(none)) ///
-        (connected b horizon if group=="nd", ///
-            lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) ///
-            lwidth(medthick) msize(small)) ///
-        (connected b horizon if group=="def", ///
-            lcolor("`c_def'") mcolor("`c_def'") msymbol(square) ///
-            lwidth(medthick) msize(small) lpattern(dash)) ///
-        , ///
-        yline(0, lcolor(gs10) lpattern(dash) lwidth(thin)) ///
-        xlabel(0(1)5, labsize(small)) ///
-        ylabel(, format(%5.1f) labsize(small)) ///
-        xtitle("Years after onset", size(vsmall)) ///
-        ytitle("Cumulative change (% or pp — see note)", size(vsmall)) ///
-        title(`tlab', size(small) color(navy)) ///
-        `legopt' ///
-        graphregion(color(white)) plotregion(color(white)) ///
-        name(ipw_`i', replace)
-
-    local ++i
-}
-
-graph combine ipw_1 ipw_2 ipw_3 ipw_4 ipw_5 ipw_6, ///
-    cols(3) rows(2) ///
-    title("Transmission Channels by Resolution Type — IPW", ///
-          size(medlarge) color(navy)) ///
-    note("90% CI. Clustered SE. Country FE only (no year FE). IPW: probit(def | crisis) on macro controls + fedfunds, contagion, past default onsets.", ///
-         size(vsmall)) ///
-    graphregion(color(white)) xsize(10) ysize(7)
-
-graph export "$figs/fig12b_channels_ipw.pdf", replace
-di as result "Figure saved: fig12b_channels_ipw.pdf"
-forvalues i = 1/6 {
-    capture graph drop ipw_`i'
 }
 
 di as result _n "12_channels_resolution.do complete."
