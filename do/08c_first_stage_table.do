@@ -3,18 +3,23 @@
   First-stage probit table, styled on Asonuma et al. (2024) Table 1
   ("Predicting the start of debt restructurings, probit").
 
-  Columns = type of onset, each predicted vs TRANQUIL (the rival onset type is
-  dropped so the control group is clean non-crisis years — exactly as in the
-  paper, and exactly the first stages that feed the AIPW two-line Act 2 in 08b):
-    (1) All onsets    : onset_all vs tranquil        (sample==1)
-    (2) Non-default   : onset_nd  vs tranquil        (sample==1 & onset_def==0)
-    (3) Default-linked: onset_def vs tranquil        (sample==1 & onset_nd==0)
+  Columns = onset type BY RESOLUTION, each predicted vs TRANQUIL (the rival
+  onset type is dropped so the control group is clean non-crisis years —
+  exactly as in the paper, and exactly the first stages that feed the AIPW
+  two-line Act 2 in 08b):
+    (1) Non-default   : onset_nd  vs tranquil        (sample==1 & onset_def==0)
+    (2) Default-linked: onset_def vs tranquil        (sample==1 & onset_nd==0)
+  The pooled "All onsets vs tranquil" column is deliberately not reported
+  here: every onset is either non-default or default-linked, so the pooled
+  column carries no propensity-modeling information beyond the union of
+  these two, and this table's whole purpose is to report the first stages
+  the by-resolution-type AIPW design actually consumes.
 
   Rows are grouped, as in their Table 1, into:
     PREDICTORS (excluded from the LP/AIPW outcome eq.):
-        Fed funds rate (global push) + regional contagion + past onsets.
-        Col 1 (all onsets) uses past_onsets; the resolution columns use
-        past_def_onsets (count of past DEFAULT-linked onsets).
+        Fed funds rate (global push) + regional contagion + past
+        DEFAULT-linked onsets (past_def_onsets, a default-proneness
+        predictor, not a generic crisis-proneness one).
     BASELINE CONTROLS (the SAME $ctrl_core used in the LP/AIPW outcome eq. —
         strict parity with the reference paper's $convar-in-both design):
         l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2
@@ -32,12 +37,11 @@
 
 use "$clean/panel_lp.dta", clear
 
-* Baseline controls X (all columns) and predictors: Z1 for Act 1 (all onsets),
-* Z2 for the resolution columns (proneness = past DEFAULT-linked onsets).
+* Baseline controls X (both columns) and predictors Z (proneness = past
+* DEFAULT-linked onsets, shared by both resolution-type columns).
 * Baseline = outcome baseline ($ctrl_core): the Table-1 probit shares its controls
 * with the LP/AIPW outcome equation (their $convar in both stages).
 local X    $ctrl_core
-local Z1   l_fedfunds l_reg_crisis_share past_onsets
 local Z2   l_fedfunds l_reg_crisis_share past_def_onsets
 
 eststo clear
@@ -57,14 +61,13 @@ program define _fscol
     estadd scalar auroc = r(area)
 end
 
-_fscol fs_all "onset_all" "sample==1"                    "`X'" "`Z1'"
 _fscol fs_nd  "onset_nd"  "sample==1 & onset_def==0"      "`X'" "`Z2'"
 _fscol fs_def "onset_def" "sample==1 & onset_nd==0"       "`X'" "`Z2'"
 
 * ── Console echo of the diagnostics ──────────────────────────────────────────
 di as result _n "=== FIRST-STAGE PROBIT DIAGNOSTICS (predictors jointly) ==="
 di as result "col            chi2(pred)   p        AUROC"
-foreach c in fs_all fs_nd fs_def {
+foreach c in fs_nd fs_def {
     quietly estimates restore `c'
     di as result %-14s "`c'" "  " %8.2f e(chi2p) "  " %6.3f e(pp) "  " %6.3f e(auroc)
 }
@@ -72,14 +75,13 @@ foreach c in fs_all fs_nd fs_def {
 * ══════════════════════════════════════════════════════════════════════════
 * TABLE EXPORT — Table 1 style (Predictors / Baseline controls blocks + diags)
 * ══════════════════════════════════════════════════════════════════════════
-capture esttab fs_all fs_nd fs_def using "$tabs/table_first_stage.rtf", replace ///
+capture esttab fs_nd fs_def using "$tabs/table_first_stage.rtf", replace ///
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
-    mtitles("All onsets" "Non-default" "Default-linked") ///
-    order(l_fedfunds l_reg_crisis_share past_onsets past_def_onsets ///
+    mtitles("Non-default" "Default-linked") ///
+    order(l_fedfunds l_reg_crisis_share past_def_onsets ///
           l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2) ///
     coeflabel(l_fedfunds "US fed funds rate (t-1)" ///
               l_reg_crisis_share "Regional contagion (t-1)" ///
-              past_onsets "Past onsets (any type)" ///
               past_def_onsets "Past default-linked onsets" ///
               l1_gdpg "GDP growth (t-1)" ///
               l_debt "Public debt / GDP (t-1)" ///
@@ -97,7 +99,7 @@ capture esttab fs_all fs_nd fs_def using "$tabs/table_first_stage.rtf", replace 
     addnotes("Dependent variable: dummy = 1 in the onset year of the indicated crisis type; each type predicted vs tranquil years (the rival onset type is dropped)." ///
              "Pooled probit, no country fixed effects (country FE separate on the thin event count; they enter the outcome equation only). Robust standard errors clustered by country in parentheses." ///
              "Predictors are excluded from the LP/AIPW outcome equation (they are omitted from the second stage, which carries country FE only, no year FE)." ///
-             "Chi-squared (predictors) is the joint Wald test that all four predictors are zero. Area under ROC is for the full model." ///
+             "Chi-squared (predictors) is the joint Wald test that all three predictors are zero. Area under ROC is for the full model." ///
              "* p<0.10, ** p<0.05, *** p<0.01.")
 
 if _rc == 608 di as error "  ** table_first_stage.rtf is OPEN IN WORD — close it and re-run to refresh."
