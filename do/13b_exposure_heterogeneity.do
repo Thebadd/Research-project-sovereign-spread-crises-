@@ -67,32 +67,31 @@
       claimsgov_assets  share of the BANK BALANCE SHEET committed to the
                      sovereign. A portfolio share, not a size/depth measure, so
                      it does not scale with development the way GDP ratios do.
-                     Its own confound check (below) tests this directly against
-                     pre-crisis GROWTH MOMENTUM (l1_gdpg, the variable actually
-                     in $ctrl_core -- not GDP per capita level, which appears
-                     nowhere in the reference paper's own design); re-run to
-                     confirm whether the growth-based check flags it the way an
-                     earlier, income-level version of this check once did.
-                     Null pooled; the result is in Part B (see below).
+                     CONFIRMED CLEAN on its own confound check (below), tested
+                     against pre-crisis GROWTH MOMENTUM (l1_gdpg, the variable
+                     actually in $ctrl_core): high vs low exposure bins differ
+                     by only -0.70pp of L1 GDP growth, well under the +/-2pp
+                     flag threshold. An earlier, income-level version of this
+                     check (GDP per capita, a construct absent from the
+                     reference paper's own design) had flagged this exposure
+                     at a ~4x GDPpc ratio; that flag does not carry over to the
+                     growth dimension the regression itself actually controls
+                     for. Null pooled; the result is in Part B (see below).
 
   PART B adds the resolution split. On the current $ctrl_core, two exposures
   show a default-specific pattern and one does not:
       claimsgov_assets  d_def = -6.08 (h3, p(diff)=.004), -6.99 (h4, p(diff)=.004),
                         d_nd ~ 0 -- the sovereign-bank nexus amplifies the
                         output cost specifically in default-linked episodes.
-                        The confound check below now tests this against
-                        pre-crisis GDP GROWTH (l1_gdpg), not GDP per capita
-                        level -- level has no analog in the reference paper's
-                        own design, while growth is exactly their gdpg2/our
-                        l1_gdpg control, the dimension the regression itself
-                        already conditions on. Re-run to confirm whether this
-                        exposure sorts onsets by growth momentum; read the
-                        result with that caveat pending confirmation, not as
-                        cleanly isolated from confounds.
+                        Confound-check CLEAN on pre-crisis GDP GROWTH (l1_gdpg,
+                        the dimension the regression itself conditions on):
+                        high/low exposure bins differ by only -0.70pp,
+                        well under the flag threshold. This is a real,
+                        confound-checked default-specific pattern.
       claims_govt/GDP   d_def = -12.76 (h1, p(diff)=.005), -7.97 (h3, p(diff)=.030),
-                        -10.19 (h4, p(diff)=.032), d_nd ~ 0. A real
-                        default-specific pattern; check against the growth-
-                        based confound check below on the next run.
+                        -10.19 (h4, p(diff)=.032), d_nd ~ 0. Confound-check
+                        clean (-1.86pp growth difference between exposure
+                        bins) -- a real default-specific pattern.
       stdebt_share      NOT significant by resolution type on the current
                         control set (best p(diff)=.187 at h3): the pooled
                         Part A result above holds equally in both crisis
@@ -105,11 +104,14 @@
   MULTIPLE TESTING. 9 exposures x 5 horizons x 2 panels = 90 tests; at 5% about
   4-5 significant results are expected by chance and roughly that many appear.
   With 11-20 treated episodes per default cell no single panel here can carry a
-  headline claim. Use this file for stdebt_share's pooled (Part A) result and
-  claims_govt's by-type (Part B) result as the cleanest findings, and read the
-  nexus (claimsgov_assets) result -- confound-flagged, as noted above -- as one
-  leg of a three-design pattern (13d median split, 13b continuous interaction,
-  13c AIPW channel gap) rather than as standalone proof.
+  headline claim. Use this file for stdebt_share's pooled (Part A) result,
+  claims_govt's by-type (Part B) result, and the nexus (claimsgov_assets)
+  by-type result as the cleanest findings -- all three are confound-check
+  clean on the growth dimension the regression itself conditions on -- and
+  still read the nexus result as one leg of a three-design pattern (13d
+  median split, 13b continuous interaction, 13c AIPW channel gap) rather than
+  as standalone proof, since confound-clean does not mean the identification
+  problem inherent to interaction terms in observational data disappears.
 
   EXPOSURE MEASURES (one per channel mechanism)
   ---------------------------------------------
@@ -117,11 +119,11 @@
     claims_govt      Bank claims on govt / GDP       AMBIGUOUS (GDP-scaled)
     claimsgov_assets Bank claims on govt / assets    UNAMBIGUOUS by construction
                                                      (portfolio share of the bank
-                                                     balance sheet); confound
-                                                     check now tests against
-                                                     pre-crisis GDP GROWTH
-                                                     (l1_gdpg), not income
-                                                     level -- see Part B caveat
+                                                     balance sheet); CONFIRMED
+                                                     confound-clean on pre-crisis
+                                                     GDP GROWTH (l1_gdpg,
+                                                     -0.70pp high/low diff) --
+                                                     see Part B
     inv              Investment / GDP                AMBIGUOUS (depth confound)
     fdi              FDI / GDP                       AMBIGUOUS (depth confound)
 
