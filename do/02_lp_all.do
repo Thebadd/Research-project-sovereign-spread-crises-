@@ -301,8 +301,19 @@ else {
     di as result _n "=== ROBUSTNESS: CONTINUATION YEARS KEPT AS CONTROLS (Asonuma et al.'s own sample) ==="
     di as result "h   beta     SE      N     episodes   p"
 
+    * Same 7-row layout as b_all/se_all/lo90_all/hi90_all above (row 1 = h-1,
+    * row 2 = h0 baseline hardcoded 0, rows 3-7 = h1..h5), so this variant can
+    * be graphed the same way in 04_graphs.do.
+    foreach m in b se lo90 hi90 {
+        matrix `m'_all_asn = J(7, 1, .)
+    }
+    foreach m in b se lo90 hi90 {
+        matrix `m'_all_asn[2, 1] = 0
+    }
+
     forvalues h = 0/4 {
         local hd  = `h' + 1
+        local row = `h' + 3
         local lag = max(1, `h' + 1)
 
         capture xtscc dy_`h' onset_all `controls' i.year ///
@@ -318,15 +329,44 @@ else {
         local nn = e(N)
         _nepcount onset_all, outcome(dy_`h') controls(`controls')
         local nep = r(n)
+        _critvals
+        local c90 = r(c90)
         _pval `bb' `ss'
         local pp = r(p)
 
         eststo t1a_h`h'
         estadd scalar nep = `nep'
 
+        matrix b_all_asn[`row',1]    = `bb'
+        matrix se_all_asn[`row',1]   = `ss'
+        matrix lo90_all_asn[`row',1] = `bb' - `c90'*`ss'
+        matrix hi90_all_asn[`row',1] = `bb' + `c90'*`ss'
+
         di "h=" `hd' "  " %7.3f `bb' "  " %6.3f `ss' "  " %5.0f `nn' ///
            "     " %3.0f `nep' "     " %5.3f `pp'
     }
+
+    preserve
+        clear
+        set obs 7
+        gen horizon = _n - 2
+        svmat b_all_asn,    names(b)
+        svmat se_all_asn,   names(se)
+        svmat lo90_all_asn, names(lo90)
+        svmat hi90_all_asn, names(hi90)
+        rename b1    b
+        rename se1   se
+        rename lo901 lo90
+        rename hi901 hi90
+        gen series = "all_asonumasample"
+        label var horizon "Horizon (years after onset)"
+        label var b       "Point estimate (pp)"
+        label var se      "Driscoll-Kraay standard error"
+        label var lo90    "90% CI lower"
+        label var hi90    "90% CI upper"
+        save "$clean/irf_all_asonumasample.dta", replace
+        di as result "IRF data saved: $clean/irf_all_asonumasample.dta"
+    restore
 
     di as result _n "  Compare against the baseline (sample==1) row printed under"
     di as result "  '=== MAIN LP RESULTS (ALL CRISES) ===' above -- same horizons, same"

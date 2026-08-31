@@ -583,8 +583,20 @@ else {
     di as result _n "=== ROBUSTNESS: CONTINUATION YEARS KEPT AS CONTROLS (Asonuma et al.'s own sample) ==="
     di as result "h   beta_nd   beta_def   diff(def-nd)   Clogg z   p(Clogg)   N   nd/def episodes"
 
+    * Same 7-row layout as b_nd/b_def above, so this variant can be graphed
+    * the same way in 04_graphs.do.
+    foreach g in nd def {
+        foreach m in b se lo90 hi90 {
+            matrix `m'_`g'_asn = J(7, 1, .)
+        }
+        foreach m in b se lo90 hi90 {
+            matrix `m'_`g'_asn[2, 1] = 0
+        }
+    }
+
     forvalues h = 0/4 {
         local hd  = `h' + 1
+        local row = `h' + 3
         local lag = max(1, `h'+1)
 
         capture xtscc dy_`h' onset_nd onset_def `controls' i.year ///
@@ -619,10 +631,47 @@ else {
         estadd scalar nepnd  = `anepnd'
         estadd scalar nepdef = `anepdef'
 
+        _critvals
+        local c90 = r(c90)
+        matrix b_nd_asn[`row',1]    = `bnd'
+        matrix se_nd_asn[`row',1]   = `snd'
+        matrix lo90_nd_asn[`row',1] = `bnd' - `c90'*`snd'
+        matrix hi90_nd_asn[`row',1] = `bnd' + `c90'*`snd'
+        matrix b_def_asn[`row',1]    = `bdef'
+        matrix se_def_asn[`row',1]   = `sdef'
+        matrix lo90_def_asn[`row',1] = `bdef' - `c90'*`sdef'
+        matrix hi90_def_asn[`row',1] = `bdef' + `c90'*`sdef'
+
         di "h=" `hd' "  " %7.3f `bnd' "  " %8.3f `bdef' "  " %10.3f `bdiff' ///
            "  " %8.2f `zdiff' "  " %8.3f `pz' "  " %5.0f `nn' ///
            "   " %3.0f `anepnd' "/" %3.0f `anepdef'
     }
+
+    preserve
+        clear
+        set obs 7
+        gen horizon = _n - 2
+        foreach m in b se lo90 hi90 {
+            svmat `m'_nd_asn, names(`m')
+            rename `m'1 `m'
+        }
+        gen series = "nd_asonumasample"
+        save "$clean/irf_nd_asonumasample.dta", replace
+    restore
+
+    preserve
+        clear
+        set obs 7
+        gen horizon = _n - 2
+        foreach m in b se lo90 hi90 {
+            svmat `m'_def_asn, names(`m')
+            rename `m'1 `m'
+        }
+        gen series = "def_asonumasample"
+        save "$clean/irf_def_asonumasample.dta", replace
+    restore
+
+    di as result "IRF data saved: $clean/irf_nd_asonumasample.dta, irf_def_asonumasample.dta"
 
     di as result _n "  Compare against the headline (sample==1) row printed under"
     di as result "  '=== HEADLINE: JOINT REGRESSION (both dummies, full sample) ===' above --"
