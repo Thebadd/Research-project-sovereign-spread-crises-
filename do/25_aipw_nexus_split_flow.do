@@ -53,6 +53,20 @@
   rows to the estimation sample. Every row of an episode inherits its one
   episode's high/low label from the onset row's a_nexus value.
 
+  NOTE (annual-criterion redefinition, 18_transforms.do): `episode' here still
+  means the `ep_seq'-dated cluster grouped from `onset_all' — that grouping is
+  untouched by the redefinition (it is a CLASSIFICATION grouping now, not a
+  treatment-defining one; see 18's header). What changed is which rows of a
+  cluster are actually `in_crisis==1' and therefore receive the shared label.
+  A genuine multi-year cluster where every year independently clears the
+  annual criterion (e.g. Venezuela) is completely unaffected: same rows, same
+  shared label, before and after. A cluster that used to include a
+  gap-bridged year (a year below the criterion, previously included only via
+  the old episode-membership rule) now has FEWER treated rows carrying that
+  label — the shared high/low label itself does not change, only how many
+  rows it applies to. No code change was needed here; this note exists so the
+  denominator shift is documented, not silently inherited.
+
   THE HIGH-LOW DIFFERENCE BOOTSTRAP reuses _aipwpairflow directly rather than
   writing a new estimator: for a given resolution type (nd or def), two
   0/1 indicator variables are built — "treated AND high-nexus" and "treated

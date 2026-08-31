@@ -431,11 +431,34 @@ carries the paper's identification claim.
 
 ### 5.2 Flow coding — the state, estimated in `20_lp_flow.do`
 
-`in_crisis` is 1 for **every year of an episode**, onset and continuation
-alike: 234 treated country-years rather than 61, with tranquil years as
-controls. Treatment is *episode membership*, not the annual criterion flag
-`crisis_any`, which is 0 on 13 rows the episode-dating rule places inside an
-episode and would push mid-episode years into the control pool.
+`in_crisis` is 1 for **every year that independently clears the annual
+crisis criterion**, `crisis_any` (`crit1|crit2`, i.e. the spread actually
+clears 1000bps or the QoQ HRT rule fires that year), excluding carry-in
+scaffolding rows. This is the project's definition of an episode: a year in
+which we observe a restructuring, or a spread above the threshold we define —
+not a multi-year window bridged across gaps below that threshold.
+
+This is a change from the design this file originally used, and the change
+is worth stating plainly rather than only in the do-file. The original
+design defined treatment as *episode membership* — onset **or**
+continuation, using the crisis database's own dating rule (onset = criterion
+met in $t$ but not $t-1$; continuation = consecutive crisis years or a
+one-year gap bridged by a crisis year on both sides; end = two consecutive
+tranquil years). That rule bridged a handful of below-criterion years (13, as
+of the last count) into the treated set so a single prolonged distress
+episode would not fragment into several dated episodes. Under the current,
+simplified definition those bridged years revert to ordinary tranquil/control
+years — the treated count is correspondingly smaller than the historical 234
+figure (`18_transforms.do` prints the exact current count and the size of the
+reduction on every run). The old episode-membership definition is preserved
+as `in_crisis_episode`, reported as an explicit robustness/historical
+comparison in `20_lp_flow.do`'s Section 4, rather than discarded.
+
+Genuine multi-year clusters — a country whose spread independently stays
+above the threshold for several consecutive years (Venezuela, Argentina
+2019-24) — are unaffected by this change: every one of those years still
+clears `crisis_any` on its own, so they remain multi-row treated groups under
+either definition.
 
 The horizon convention is **the same as §5.1** — Year 0 the baseline, Year 1 the
 crisis year. `dy_h` is differenced against the row's own $t-1$, so $h=-1$ gives
@@ -604,19 +627,23 @@ this split usable:
   version of `17b_merge_at_full.do` did, made "strictly preemptive"
   structurally unreachable at the episode level for any panel built from
   this file — not rare, impossible.
-- **The 2-year restructuring-gap rule.** A spread-crisis episode's onset
-  and the actual start of its AT-recorded restructuring can be years
-  apart (Zambia: spread onset 2015, default November 2020). Under the
-  original onset-level `nondefault` classification, the entire gap is
-  marked default-linked, which asserts a default was already underway
-  years before it began. `26` corrects this specifically for episodes with
-  at least one AT-overlapping row: if the AT restructuring starts more
-  than two years after the spread episode's own onset, the years before
-  the restructuring are reclassified non-default and only the years from
-  the restructuring onward keep default-linked status and type. This
-  correction is scoped to `26` only — the original `in_crisis_def`/
-  `nondefault` classification used by `02`–`13f` and `20`–`25` is
-  untouched, so their published numbers are unaffected.
+- **The 2-year restructuring-gap rule — removed.** `26` previously
+  corrected for cases where a spread-crisis episode's onset and the actual
+  start of its AT-recorded restructuring were years apart (Zambia: spread
+  onset 2015, default November 2020), reclassifying years before the AT
+  restructuring's start back to non-default within episodes that had at
+  least one AT-overlapping row. That correction depended on "the spread
+  episode's own onset" being a stable, multi-year anchor to measure a gap
+  against. Once `in_crisis`/`in_crisis_def` were redefined to the annual
+  criterion (§5.2) — no longer bridging gap years into one contiguous
+  treated window — that anchor stopped being well defined, so the rule was
+  removed rather than reworked around a different, unvalidated definition
+  (comparing a single treated year to the AT onset would answer a different
+  question). Removing it changes classification for Zambia and Belize, the
+  two episodes it previously split: both revert to default-linked for their
+  full previously-classified span. `20`–`25`'s original `in_crisis_def`/
+  `nondefault` classification was never affected by this rule in the first
+  place (it was always scoped to `26` only).
 
 ---
 
@@ -625,12 +652,18 @@ this split usable:
 Onset coding identifies the coefficient equally from a five-year crisis and a
 one-year one, so on its own it cannot speak to whether protracted crises are
 more costly. This matters more than it first appears, because the two
-resolution groups differ systematically in duration — non-default episodes
-average 2.8 years and 113 crisis-years across 40 episodes, default-linked
-episodes 5.8 years and 121 crisis-years across 21. At Years 3–5 most
-non-default episodes have ended while most default-linked ones are still
-running, so part of the measured resolution gap reflects that difference.
-Flow coding weights episodes by their length instead, which is the appropriate
-weighting for a question about the *state* but concentrates the treatment in a
-handful of chronic cases; `20_lp_flow.do` reports the treated share of each
-country's panel years and a leave-Venezuela-out variant for that reason.
+resolution groups differ systematically in duration. The 113/121 crisis-year
+figures previously quoted here were derived under the old episode-membership
+flow definition (§5.2); under the current annual-criterion definition the
+totals are smaller, since the years that used to be bridged across a
+below-criterion gap no longer count as crisis-years — `18_transforms.do`
+prints the current split on every run, and that is the number to cite rather
+than a fixed figure here. The qualitative pattern the duration difference
+produces is unchanged: non-default episodes are shorter on average than
+default-linked ones, so at Years 3–5 most non-default episodes have ended
+while most default-linked ones are still running, and part of the measured
+resolution gap reflects that difference. Flow coding weights episodes by
+their length instead, which is the appropriate weighting for a question about
+the *state* but concentrates the treatment in a handful of chronic cases;
+`20_lp_flow.do` reports the treated share of each country's panel years and a
+leave-Venezuela-out variant for that reason.

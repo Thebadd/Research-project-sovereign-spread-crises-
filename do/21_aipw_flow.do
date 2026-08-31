@@ -86,6 +86,15 @@
   Putting it on the RHS of the probit would separate. Section 1 below counts
   the rows where they differ, so the argument is demonstrated in the log rather
   than asserted here.
+  NOTE (annual-criterion redefinition, 18_transforms.do): `in_crisis' is now the
+  annual criterion, not episode membership, so the population of "continuation
+  rows" this argument refers to is smaller than before — the ~13 rows that used
+  to be bridged across a below-criterion gap are no longer `in_crisis==1' at
+  all, so they no longer contribute a continuation row here either way. Genuine
+  multi-year clusters (every year independently clearing the criterion) are
+  unaffected and still produce real continuation rows, so this argument and the
+  mechanism it describes remain substantively unchanged, just over a somewhat
+  smaller set of rows.
 
   $ctrl_core is the only conditioning set defined identically in both arms, so
   it is the one the probit can use. It is not clean either, and that must be
