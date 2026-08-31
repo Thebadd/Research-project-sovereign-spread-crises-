@@ -7,7 +7,23 @@
   Horizons:  h = -1 (pre-trend placebo), 0 (baseline, hardcoded 0), 1, 2, 3, 4, 5
              Year numbering matches Asonuma et al.: Year 1 is the crisis year
              itself, Year 0 is the explicit pre-crisis baseline (always 0).
-  SE:        Driscoll-Kraay with lag = max(1, h+1)  [xtscc, fe]
+  SE:        PLAIN ROBUST (heteroskedasticity-only), matching the reference
+             paper's actual construction exactly: `reg g_h dum1 g_0 $convar,
+             vce(robust) noconstant' with country dummies (c1-c74) entered as
+             explicit regressors -- NOT Driscoll-Kraay. This project
+             previously used xtscc (Driscoll-Kraay, serial-correlation-
+             robust) here as a deliberate improvement; that choice is
+             reversed for this file specifically, to match Table I1 exactly
+             rather than to improve on it (same reasoning as the year-FE
+             reversal below). Implemented as `xtreg ... fe vce(robust)'
+             rather than literal c1-c74 dummy columns -- numerically
+             identical point estimates (one-way within-transformation and
+             explicit dummies are algebraically equivalent), and xtreg
+             reports N_g directly, matching the convenience their own script
+             gets from a companion `xtreg ... fe cluster(wdicode)' call run
+             solely to pull N/N_g (their point estimates/SEs still come from
+             the vce(robust) run, not that companion call -- cluster(country)
+             SEs are never actually reported in their table).
   FE:        COUNTRY ONLY, no year FE -- reversing this project's earlier
              deliberate addition of year FE for single-stage LPs
              (METHODOLOGY.md section 2). This file is meant to reproduce the
@@ -41,7 +57,7 @@ local controls $ctrl_core
 * HELPERS — small-sample inference and honest episode counts
 *
 * _critvals: the CIs below were built with the normal 1.645/1.960. With ~50
-*   clusters that understates the interval. Both xtscc and areg post e(df_r),
+*   clusters that understates the interval. xtreg (fe) posts e(df_r),
 *   so use invttail() on it and our hand-built CIs/p-values then agree with the
 *   command's own printed table. Falls back to the normal if no df is posted.
 *
@@ -131,8 +147,8 @@ di as result "    (l1_gdpg excluded — it IS -1 times the dy_m2 outcome; the tr
 foreach h_neg in 2 {
     local row = (3 - `h_neg')   // dy_m2 -> displayed h=-1 -> row 1
 
-    xtscc dy_m`h_neg' onset_all `controls_pre' ///
-        if sample == 1, fe lag(1)
+    xtreg dy_m`h_neg' onset_all `controls_pre' ///
+        if sample == 1, fe vce(robust)
 
     local bb = _b[onset_all]
     local ss = _se[onset_all]
@@ -173,15 +189,14 @@ eststo clear   // clear any stored estimates before capturing for Table 1
 forvalues h = 0/4 {
     local hd  = `h' + 1   // displayed horizon (Asonuma: crisis year = 1)
     local row = `h' + 3   // dy_0 → row 3, ..., dy_4 → row 7
-    local lag = max(1, `h' + 1)
 
-    xtscc dy_`h' onset_all `controls' ///
-        if sample == 1, fe lag(`lag')
+    xtreg dy_`h' onset_all `controls' ///
+        if sample == 1, fe vce(robust)
 
     * Captured for the reference-paper-style table export below.
     local totn_`hd'  = e(N)
     local totng_`hd' = e(N_g)
-    local totr2_`hd' = e(r2)
+    local totr2_`hd' = e(r2_w)
 
     local bb = _b[onset_all]
     local ss = _se[onset_all]
@@ -245,10 +260,9 @@ else {
     * the Table 1 export below. The robustness set is stored under t1r_* instead.
     forvalues h = 0/4 {
         local hd  = `h' + 1
-        local lag = max(1, `h' + 1)
 
-        capture xtscc dy_`h' onset_all `controls' ///
-            if sample == 1 & (year + `h') <= gdp_last_actual, fe lag(`lag')
+        capture xtreg dy_`h' onset_all `controls' ///
+            if sample == 1 & (year + `h') <= gdp_last_actual, fe vce(robust)
 
         if _rc {
             di as error "  outturn-only regression failed at h=`hd' (rc=" _rc ")"
@@ -279,7 +293,7 @@ else {
         title("Table 1R. Output cost of sovereign spread crises — outturns only (robustness)") ///
         addnotes("As Table 1, but each horizon drops observations whose outcome year t+h falls after the last WEO actual observation for that country (LATEST_ACTUAL_ANNUAL_DATA)." ///
                  "This removes IMF projections from the dependent variable; the sample therefore shrinks at longer horizons." ///
-                 "Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
+                 "Robust (heteroskedasticity-only) standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
 
     if _rc == 608 di as error "  ** table1r_output_all_outturns.rtf is OPEN IN WORD — close it and re-run."
     else if _rc di as error "  ** Table 1R: esttab failed (rc=" _rc ")"
@@ -333,10 +347,9 @@ else {
     forvalues h = 0/4 {
         local hd  = `h' + 1
         local row = `h' + 3
-        local lag = max(1, `h' + 1)
 
-        capture xtscc dy_`h' onset_all `controls' ///
-            if sample_flow == 1, fe lag(`lag')
+        capture xtreg dy_`h' onset_all `controls' ///
+            if sample_flow == 1, fe vce(robust)
 
         if _rc {
             di as error "  Asonuma-sample regression failed at h=`hd' (rc=" _rc ")"
@@ -380,7 +393,7 @@ else {
         gen series = "all_asonumasample"
         label var horizon "Horizon (years after onset)"
         label var b       "Point estimate (pp)"
-        label var se      "Driscoll-Kraay standard error"
+        label var se      "Robust standard error"
         label var lo90    "90% CI lower"
         label var hi90    "90% CI upper"
         save "$clean/irf_all_asonumasample.dta", replace
@@ -389,7 +402,7 @@ else {
 
     di as result _n "  Compare against the baseline (sample==1) row printed under"
     di as result "  '=== MAIN LP RESULTS (ALL CRISES) ===' above -- same horizons, same"
-    di as result "  controls/FE/DK lag, only the sample restriction differs."
+    di as result "  controls/FE, only the sample restriction differs."
 
     capture esttab t1a_h0 t1a_h1 t1a_h2 t1a_h3 t1a_h4 ///
         using "$tabs/table1a_output_all_asonumasample.rtf", replace ///
@@ -400,7 +413,7 @@ else {
         title("Table 1A. Output cost of sovereign spread crises — continuation years kept as controls (robustness)") ///
         addnotes("As Table 1, but the sample restriction is sample_flow==1 rather than sample==1: continuation years of an ongoing" ///
                  "episode are kept in the regression as controls rather than dropped, matching Asonuma et al.'s own onset design" ///
-                 "(their dum1/dum2/dum3 are 0, not excluded, on those rows). Driscoll-Kraay standard errors in parentheses." ///
+                 "(their dum1/dum2/dum3 are 0, not excluded, on those rows). Robust standard errors in parentheses." ///
                  "* p<0.10, ** p<0.05, *** p<0.01.")
 
     if _rc == 608 di as error "  ** table1a_output_all_asonumasample.rtf is OPEN IN WORD — close it and re-run."
@@ -411,7 +424,7 @@ else {
 * ══════════════════════════════════════════════════════════════════════════
 * TABLE EXPORT — TABLE 1: Output cost of spread crises (all episodes)
 *   Word/RTF. Columns = horizons h=0..4; row = onset coefficient.
-*   Coefficient with Driscoll-Kraay SE in parentheses below; stars from e(V).
+*   Coefficient with robust SE in parentheses below; stars from e(V).
 *   Requires: ssc install estout
 * ══════════════════════════════════════════════════════════════════════════
 
@@ -424,7 +437,7 @@ capture esttab t1_h0 t1_h1 t1_h2 t1_h3 t1_h4 using "$tabs/table1_output_all.rtf"
     addnotes("Dependent variable: cumulative change in log real GDP (pp) from t-1 to t+h." ///
              "Jorda (2005) local projections. Country fixed effects only (no year FE, matching the reference paper's own" ///
              " Table I1 design); continuation years excluded." ///
-             "Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01." ///
+             "Robust (heteroskedasticity-only) standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01." ///
              "Episodes counts onsets surviving listwise deletion on the control set, i.e. those actually identifying the coefficient." ///
              "Confidence intervals in the figures use t critical values on the estimator's residual degrees of freedom, not the normal approximation.")
 
@@ -529,7 +542,7 @@ rename hi951 hi95
 gen series = "all"
 label var horizon "Horizon (years after onset)"
 label var b       "Point estimate (pp)"
-label var se      "Driscoll-Kraay standard error"
+label var se      "Robust standard error"
 label var lo90    "90% CI lower"
 label var hi90    "90% CI upper"
 label var lo95    "95% CI lower"
