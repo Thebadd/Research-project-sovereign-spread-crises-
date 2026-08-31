@@ -42,9 +42,10 @@ twoway ///
     ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
     title("Output Cost of Sovereign Spread Crises", size(medium)) ///
     subtitle("All episodes (N = 61), 52 EM economies, 1994-2025", size(small)) ///
-    note("Local projections (Jorda 2005). Driscoll-Kraay SE." ///
-         "Country and year FE. Controls: lagged GDP growth, CA/GDP," ///
-         "debt/GDP, inflation, IMF program, VIX, US 10yr yield.", ///
+    note("Local projections (Jorda 2005). Robust (heteroskedasticity-only) SE." ///
+         "Country FE only (no year FE), matching the reference paper's own" ///
+         "Table I1 design. Controls: lagged GDP growth, banking-crisis dummy," ///
+         "govt expenditure, openness, bank credit, log inflation, FX change.", ///
          size(vsmall)) ///
     legend(order(3 "Point estimate" 2 "90% CI" 1 "95% CI") ///
            ring(0) pos(1) size(small)) ///
@@ -91,7 +92,7 @@ else {
                  " (matches Asonuma et al.'s own sample)", size(small)) ///
         legend(order(2 "Baseline (sample==1)" 4 "Asonuma sample (sample_flow==1)") ///
                ring(0) pos(1) size(small)) ///
-        note("90% CI shown. Driscoll-Kraay SE. Country and year FE, same controls/lag as Figure 1.", ///
+        note("90% CI shown. Robust SE. Country FE only, same controls as Figure 1.", ///
              size(vsmall)) ///
         graphregion(color(white)) plotregion(color(white))
 
@@ -128,7 +129,7 @@ twoway ///
     subtitle("52 EM economies, 1994-2025", size(small)) ///
     legend(order(2 "Non-default (N=40)" 4 "Default-linked (N=21)") ///
            ring(0) pos(3) size(small)) ///
-    note("Driscoll-Kraay SE, lag = h+1. Country + year FE.", size(vsmall)) ///
+    note("Robust (heteroskedasticity-only) SE. Country FE only (no year FE).", size(vsmall)) ///
     graphregion(color(white)) plotregion(color(white))
 
 graph export "$figs/fig2_irf_resolution.pdf", replace
@@ -172,7 +173,7 @@ else {
         legend(order(2 "Non-default" 4 "Default-linked") ///
                ring(0) pos(3) size(small)) ///
         note("Compare against Figure 2 (baseline, continuation years excluded)." ///
-             " 90% CI shown. Driscoll-Kraay SE. Country + year FE.", size(vsmall)) ///
+             " 90% CI shown. Robust SE. Country FE only (no year FE).", size(vsmall)) ///
         graphregion(color(white)) plotregion(color(white))
 
     graph export "$figs/fig2a_irf_resolution_asonumasample.pdf", replace
