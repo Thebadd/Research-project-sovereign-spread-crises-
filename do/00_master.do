@@ -102,6 +102,7 @@ do "$do/07_placebo.do"
 * outcome model is correctly specified, not just the propensity model).
 do "$do/08b_aipw.do"                  // IPWRA (the reference paper's headline estimator) + stratified bootstrap CIs
 do "$do/08c_first_stage_table.do"     // Table 1-style probit first stage (predictors/controls + chi2/ROC)
+do "$do/08d_first_stage_figs.do"      // first-stage figures: kdensity overlap + nested ROC (mirrors 21c)
 * do "$do/09_lp_imf.do"   // removed: IMF selection unpredictable from observables
 * do "$do/10_heterogeneity.do"  // removed: frontier variable poorly coded, duration data incomplete
 do "$do/11_channels.do"
