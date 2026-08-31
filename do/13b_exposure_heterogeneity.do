@@ -104,8 +104,11 @@
   * Exposure is STANDARDIZED (mean 0, SD 1) over the estimation sample, so d
     is "effect per 1 SD of exposure" and b is the onset effect at AVERAGE
     exposure (directly comparable to the Table 1 / Table 2 baselines).
-  * Same controls, country + year FE, Driscoll-Kraay SE, continuation years
-    excluded -- identical to the main LP, so only the interaction is new.
+  * Same controls, country FE only (no year FE), plain robust SE, continuation
+    years excluded -- identical to the main LP's own switch (see 02_lp_all.do's
+    header), so only the interaction is new. Part B's nd/def difference test
+    uses the Wald F-test (test Dnd = Ddef), the covariance-correct answer for
+    two amplification terms estimated in one joint regression.
   * NOTE ON COVERAGE: claimsgov_assets (nexus) is IMF-based, 2001-2024 and
     missing 6 countries, so its onset sample is smaller; the by-type split is
     especially thin there. Coverage is printed below and low-N panels are
@@ -264,11 +267,10 @@ foreach e of local expvars {
     local elistA_`e'
 
     forvalues h = 0/4 {
-        local lag = max(1, `h'+1)
         local row = `h' + 2
 
-        capture xtscc dy_`h' onset_all z_`e' Dz_`e' `controls' i.year ///
-            if sample == 1, fe lag(`lag')
+        capture xtreg dy_`h' onset_all z_`e' Dz_`e' `controls' ///
+            if sample == 1, fe vce(robust)
 
         if _rc == 0 {
             eststo a_`e'_`h', title("h=`=`h'+1'")
@@ -283,7 +285,7 @@ foreach e of local expvars {
                "   " %7.3f _b[Dz_`e'] "  " %6.3f _se[Dz_`e'] ///
                "   " %5.3f `pd'
         }
-        else di as error "h=" `h'+1 ": xtscc failed for exposure `e' (rc=" _rc ")"
+        else di as error "h=" `h'+1 ": xtreg failed for exposure `e' (rc=" _rc ")"
     }
 }
 
@@ -297,7 +299,7 @@ di as result "  evidence the channel protects, and NOT evidence against the chan
 di as result "  stdebt_share is the clean case (no development reading): d<0 = rollover risk."
 
 * ── TABLE 5: pooled exposure interactions (Word/RTF) ─────────────────────
-local t5note "Dependent variable: cumulative change in log real GDP (pp) from t-1 to t+h (same as Table 1). Each column adds one channel's standardized pre-crisis exposure and its interaction with crisis onset. 'Onset x exposure' is the effect per 1 SD of pre-crisis exposure; a negative value means the output loss is deeper where exposure was higher. Exposure measured at t-1. Country and year fixed effects; continuation years excluded. Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01. A negative coefficient is evidence of channel transmission ONLY for an exposure with a single economically sensible sign. credit, investment, FDI, bank claims on government and debt service are GDP ratios that proxy financial development as much as vulnerability, so their positive coefficients indicate the development reading dominates and are uninformative about transmission. The interpretable measures are short-term debt share (pure rollover risk, no development reading) and bank claims on government / bank assets (a portfolio share rather than a size measure). This file runs 9 exposures x 5 horizons x 2 panels = 90 tests; at the 5% level roughly 4-5 significant cells are expected by chance. No single panel should be read as decisive. "
+local t5note "Dependent variable: cumulative change in log real GDP (pp) from t-1 to t+h (same as Table 1). Each column adds one channel's standardized pre-crisis exposure and its interaction with crisis onset. 'Onset x exposure' is the effect per 1 SD of pre-crisis exposure; a negative value means the output loss is deeper where exposure was higher. Exposure measured at t-1. Country fixed effects only (no year FE); continuation years excluded. Robust (heteroskedasticity-only) standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01. A negative coefficient is evidence of channel transmission ONLY for an exposure with a single economically sensible sign. credit, investment, FDI, bank claims on government and debt service are GDP ratios that proxy financial development as much as vulnerability, so their positive coefficients indicate the development reading dominates and are uninformative about transmission. The interpretable measures are short-term debt share (pure rollover risk, no development reading) and bank claims on government / bank assets (a portfolio share rather than a size measure). This file runs 9 exposures x 5 horizons x 2 panels = 90 tests; at the 5% level roughly 4-5 significant cells are expected by chance. No single panel should be read as decisive. "
 
 local panel A
 local writemode replace
@@ -367,11 +369,10 @@ foreach e of local expvars {
     local elistB_`e'
 
     forvalues h = 0/4 {
-        local lag = max(1, `h'+1)
         local row = `h' + 2
 
-        capture xtscc dy_`h' onset_nd onset_def z_`e' Dnd_`e' Ddef_`e' ///
-            `controls' i.year if sample == 1, fe lag(`lag')
+        capture xtreg dy_`h' onset_nd onset_def z_`e' Dnd_`e' Ddef_`e' ///
+            `controls' if sample == 1, fe vce(robust)
 
         if _rc == 0 {
             * Equality test on the two amplification terms
@@ -395,7 +396,7 @@ foreach e of local expvars {
                "   " %7.3f _b[Ddef_`e'] "  " %6.3f _se[Ddef_`e'] ///
                "   " %5.3f `pd'
         }
-        else di as error "h=" `h'+1 ": xtscc failed for `e' by type (rc=" _rc ")"
+        else di as error "h=" `h'+1 ": xtreg failed for `e' by type (rc=" _rc ")"
     }
 }
 
@@ -409,7 +410,7 @@ di as result "  d_def<0 at h3-h4). With 90 tests in this file, ~4-5 significant 
 di as result "  expected by chance: treat any single panel as suggestive, not decisive."
 
 * ── TABLE 6: exposure interactions by resolution type (Word/RTF) ─────────
-local t6note "Dependent variable: cumulative change in log real GDP (pp) from t-1 to t+h. Both onset dummies and both exposure interactions enter jointly. 'Onset(type) x exposure' is the extra output effect per 1 SD of pre-crisis exposure in that crisis type. p(nd=def) is the p-value of the equality of the two interaction terms. Exposure measured at t-1. Country and year fixed effects; continuation years excluded. Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01. A negative coefficient is evidence of channel transmission ONLY for an exposure with a single economically sensible sign. credit, investment, FDI, bank claims on government and debt service are GDP ratios that proxy financial development as much as vulnerability, so their positive coefficients indicate the development reading dominates and are uninformative about transmission. The interpretable measures are short-term debt share (pure rollover risk, no development reading) and bank claims on government / bank assets (a portfolio share rather than a size measure). This file runs 9 exposures x 5 horizons x 2 panels = 90 tests; at the 5% level roughly 4-5 significant cells are expected by chance. No single panel should be read as decisive. "
+local t6note "Dependent variable: cumulative change in log real GDP (pp) from t-1 to t+h. Both onset dummies and both exposure interactions enter jointly. 'Onset(type) x exposure' is the extra output effect per 1 SD of pre-crisis exposure in that crisis type. p(nd=def) is the p-value of the equality of the two interaction terms. Exposure measured at t-1. Country fixed effects only (no year FE); continuation years excluded. Robust (heteroskedasticity-only) standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01. A negative coefficient is evidence of channel transmission ONLY for an exposure with a single economically sensible sign. credit, investment, FDI, bank claims on government and debt service are GDP ratios that proxy financial development as much as vulnerability, so their positive coefficients indicate the development reading dominates and are uninformative about transmission. The interpretable measures are short-term debt share (pure rollover risk, no development reading) and bank claims on government / bank assets (a portfolio share rather than a size measure). This file runs 9 exposures x 5 horizons x 2 panels = 90 tests; at the 5% level roughly 4-5 significant cells are expected by chance. No single panel should be read as decisive. "
 
 local panel A
 local writemode replace
@@ -546,7 +547,7 @@ graph combine `fignamesA', cols(3) ///
     title("Exposure Heterogeneity (Pooled): Output Loss by Pre-Crisis Exposure", ///
           size(medsmall) color(navy)) ///
     note("Interaction d_h (onset x standardized pre-crisis exposure), 90% CI. Below zero => output falls more where exposure was higher." ///
-         "Driscoll-Kraay SE. Country & year FE. Same GDP outcome as the main LP.", size(vsmall)) ///
+         "Robust (heteroskedasticity-only) SE. Country FE only (no year FE). Same GDP outcome as the main LP.", size(vsmall)) ///
     graphregion(color(white)) xsize(11) ysize(7)
 graph export "$figs/fig13f_exposure_interactions.pdf", replace
 di as result "Figure saved: fig13f_exposure_interactions.pdf"
@@ -594,7 +595,7 @@ graph combine `fignamesB', cols(3) ///
     title("Exposure Amplification by Resolution Type", size(medsmall) color(navy)) ///
     subtitle("Green triangles = non-default; red squares = default-linked", size(small)) ///
     note("Interaction d (onset-by-type x standardized pre-crisis exposure), 90% CI. More-negative in a type => stronger amplification there." ///
-         "Driscoll-Kraay SE. Country & year FE. Same GDP outcome as the main LP.", size(vsmall)) ///
+         "Robust (heteroskedasticity-only) SE. Country FE only (no year FE). Same GDP outcome as the main LP.", size(vsmall)) ///
     graphregion(color(white)) xsize(11) ysize(7)
 graph export "$figs/fig13g_exposure_by_resolution.pdf", replace
 di as result "Figure saved: fig13g_exposure_by_resolution.pdf"
