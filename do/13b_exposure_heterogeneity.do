@@ -66,10 +66,13 @@
                      => the one clean dose-response result in the file.
       claimsgov_assets  share of the BANK BALANCE SHEET committed to the
                      sovereign. A portfolio share, not a size/depth measure, so
-                     it does not scale with development the way GDP ratios do
-                     -- though its own confound check (below) shows it DOES
-                     sort onsets by income (~4x GDPpc ratio, high vs low
-                     exposure), so this claim should be read with that caveat.
+                     it does not scale with development the way GDP ratios do.
+                     Its own confound check (below) tests this directly against
+                     pre-crisis GROWTH MOMENTUM (l1_gdpg, the variable actually
+                     in $ctrl_core -- not GDP per capita level, which appears
+                     nowhere in the reference paper's own design); re-run to
+                     confirm whether the growth-based check flags it the way an
+                     earlier, income-level version of this check once did.
                      Null pooled; the result is in Part B (see below).
 
   PART B adds the resolution split. On the current $ctrl_core, two exposures
@@ -77,17 +80,19 @@
       claimsgov_assets  d_def = -6.08 (h3, p(diff)=.004), -6.99 (h4, p(diff)=.004),
                         d_nd ~ 0 -- the sovereign-bank nexus amplifies the
                         output cost specifically in default-linked episodes.
-                        CAVEAT: this exposure's own confound check (below)
-                        flags it -- the high-nexus-exposure half of onsets is
-                        ~4x richer per capita than the low half, the same
-                        pattern that disqualifies the AMBIGUOUS GDP-ratio
-                        exposures from a clean channel reading. Read this
-                        result with that caveat attached, not as cleanly
-                        isolated from income.
+                        The confound check below now tests this against
+                        pre-crisis GDP GROWTH (l1_gdpg), not GDP per capita
+                        level -- level has no analog in the reference paper's
+                        own design, while growth is exactly their gdpg2/our
+                        l1_gdpg control, the dimension the regression itself
+                        already conditions on. Re-run to confirm whether this
+                        exposure sorts onsets by growth momentum; read the
+                        result with that caveat pending confirmation, not as
+                        cleanly isolated from confounds.
       claims_govt/GDP   d_def = -12.76 (h1, p(diff)=.005), -7.97 (h3, p(diff)=.030),
-                        -10.19 (h4, p(diff)=.032), d_nd ~ 0. Confound-check
-                        clean (GDPpc ratio 1.05 between high/low exposure
-                        onsets) -- a real default-specific pattern.
+                        -10.19 (h4, p(diff)=.032), d_nd ~ 0. A real
+                        default-specific pattern; check against the growth-
+                        based confound check below on the next run.
       stdebt_share      NOT significant by resolution type on the current
                         control set (best p(diff)=.187 at h3): the pooled
                         Part A result above holds equally in both crisis
@@ -112,10 +117,11 @@
     claims_govt      Bank claims on govt / GDP       AMBIGUOUS (GDP-scaled)
     claimsgov_assets Bank claims on govt / assets    UNAMBIGUOUS by construction
                                                      (portfolio share of the bank
-                                                     balance sheet) but CONFOUND-
-                                                     FLAGGED in practice -- sorts
-                                                     onsets by income (~4x GDPpc
-                                                     ratio); see Part B caveat
+                                                     balance sheet); confound
+                                                     check now tests against
+                                                     pre-crisis GDP GROWTH
+                                                     (l1_gdpg), not income
+                                                     level -- see Part B caveat
     inv              Investment / GDP                AMBIGUOUS (depth confound)
     fdi              FDI / GDP                       AMBIGUOUS (depth confound)
 
@@ -226,41 +232,47 @@ foreach e of local expvars {
 }
 
 * ══════════════════════════════════════════════════════════════════════════
-* CONFOUND CHECK — is the exposure sorting on DEVELOPMENT rather than on
-* vulnerability to the channel?
+* CONFOUND CHECK — is the exposure sorting on pre-crisis GROWTH MOMENTUM
+* rather than on vulnerability to the channel?
 *
-* This is the diagnostic 13d already runs on its nexus median split and that
-* this file was missing. It is the check that would have caught the positive
-* credit/inv/fdi interactions before they were read as a channel result.
+* Uses l1_gdpg (lagged real GDP growth), NOT GDP per capita. l1_gdpg is the
+* variable actually in $ctrl_core/$convar -- the reference paper's own
+* "economic condition" control (their gdpg2) -- so this checks the same
+* dimension of development the regression itself already conditions on,
+* rather than introducing an income-LEVEL construct that appears nowhere in
+* the reference paper's own design. A ratio is not used (growth rates can be
+* negative or near zero, so high/low is undefined or meaningless there,
+* unlike a GDP-per-capita level); the comparison is a plain difference in
+* percentage points of growth between the two bins.
 *
 * For each exposure: split onsets at the median of Z and report mean pre-crisis
-* real GDP per capita in each bin. If the high-exposure bin is systematically
-* richer, the interaction is picking up income/development, not exposure to the
-* channel, and its sign carries no information about transmission.
+* GDP growth in each bin. If the high-exposure bin's growth is systematically
+* different, the interaction may be picking up growth momentum, not exposure
+* to the channel, and its sign carries no information about transmission.
 * ══════════════════════════════════════════════════════════════════════════
-di as result _n "=== CONFOUND CHECK: does each exposure sort onsets by income? ==="
-di as result "  exposure            mean GDPpc low-Z   high-Z     ratio  n_lo/n_hi"
+di as result _n "=== CONFOUND CHECK: does each exposure sort onsets by pre-crisis growth? ==="
+di as result "  exposure            mean l1_gdpg low-Z   high-Z     diff(pp)  n_lo/n_hi"
 foreach e of local expvars {
     quietly summarize z_`e' if sample==1 & onset_all==1, detail
     local zmed = r(p50)
     capture drop _hiZ
     quietly gen byte _hiZ = (z_`e' >= `zmed') if !missing(z_`e')
-    quietly summarize gdppc_real if sample==1 & onset_all==1 & _hiZ==0
+    quietly summarize l1_gdpg if sample==1 & onset_all==1 & _hiZ==0
     local glo = r(mean)
     local nlo = r(N)
-    quietly summarize gdppc_real if sample==1 & onset_all==1 & _hiZ==1
+    quietly summarize l1_gdpg if sample==1 & onset_all==1 & _hiZ==1
     local ghi = r(mean)
     local nhi = r(N)
-    local rat = .
-    if `glo' > 0 & !missing(`glo') & !missing(`ghi') local rat = `ghi'/`glo'
+    local diff = .
+    if !missing(`glo') & !missing(`ghi') local diff = `ghi' - `glo'
     local flag ""
-    if !missing(`rat') & (`rat' > 1.5 | `rat' < 0.667) local flag "   ** sorts on income"
-    di as result "  " %-18s "`e'" "  " %12.0f `glo' "  " %10.0f `ghi' ///
-       "  " %6.2f `rat' "   " %2.0f `nlo' "/" %2.0f `nhi' "`flag'"
+    if !missing(`diff') & abs(`diff') > 2 local flag "   ** sorts on growth"
+    di as result "  " %-18s "`e'" "  " %10.2f `glo' "  " %8.2f `ghi' ///
+       "  " %8.2f `diff' "   " %2.0f `nlo' "/" %2.0f `nhi' "`flag'"
 }
 capture drop _hiZ
-di as result "  (ratio = mean real GDP per capita, high-Z bin / low-Z bin, over onsets.)"
-di as result "  Flagged rows sort onsets by income: for those the interaction d cannot be"
+di as result "  (diff = mean L1 real GDP growth (pp), high-Z bin minus low-Z bin, over onsets.)"
+di as result "  Flagged rows sort onsets by growth momentum: for those the interaction d cannot be"
 di as result "  read as channel exposure. Compare with 13d, where the nexus split passes"
 di as result "  this check (high bin holds Brazil/Mexico/Turkey AND Ghana/Kenya/Zambia)."
 
