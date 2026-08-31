@@ -4,10 +4,23 @@
   Local Projections (Jordà 2005)
 
   Structure:
-    01_build_panel.do   → import, merge classification, save panel_lp.dta
-    02_lp_all.do        → Act 1: LP for ALL 61 spread crisis episodes
-    03_lp_resolution.do → Act 2: LP split by default-linked vs. non-default
-    04_graphs.do        → publication-quality IRF figures
+    10-18   → DATA BUILD: from-scratch, fully-sourced panel construction,
+              ending in 18_transforms.do, which saves panel_lp.dta (the
+              headline outcome dy_h it builds is TOTAL real GDP, not GDP
+              per capita -- the per-capita version is kept separately as
+              dy_pc_h, an explicit robustness column, never the default).
+              01_build_panel.do (and the 01x chain after it) is RETIRED --
+              still present in do/ for reference, but not run; see the
+              "DATA BUILD (10-18)" comment block below for why it was
+              replaced.
+    02+     → ANALYSIS: every file from here on reads $clean/panel_lp.dta
+              produced by stage 18. 02_lp_all.do (Act 1, all onsets) and
+              03_lp_resolution.do (Act 2, default-linked vs. non-default)
+              are the headline GDP-cost LPs; 04_graphs.do builds the
+              publication figures. See each file's own header for its role
+              (channels, mechanisms, exposure heterogeneity, AIPW, the flow
+              tier, etc.) -- not re-listed here to avoid this block going
+              stale again as files are added or retired.
     (09_lp_imf.do removed: IMF selection model too weak for credible inference)
 
   Required packages (run once):
