@@ -127,10 +127,12 @@ twoway ///
     ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
     title("Output Cost: Non-Default vs. Default-Linked Crises", size(medium)) ///
     subtitle("52 EM economies, 1994-2025", size(small)) ///
-    legend(order(2 "Non-default (N=40)" 4 "Default-linked (N=21)") ///
-           ring(0) pos(3) size(small)) ///
-    note("Robust (heteroskedasticity-only) SE. Country FE only (no year FE).", size(vsmall)) ///
+    legend(order(2 "Non-default (N=40)" 4 "Default-linked (N=21)") size(small)) ///
     graphregion(color(white)) plotregion(color(white))
+    * Note text (kept as source comment, no longer rendered on the figure --
+    * the legend, previously overlapping the plot at ring(0) pos(3), now
+    * takes the bottom position this note used to occupy):
+    * "Robust (heteroskedasticity-only) SE. Country FE only (no year FE)."
 
 graph export "$figs/fig2_irf_resolution.pdf", replace
 graph export "$figs/fig2_irf_resolution.png", replace width(1200)
