@@ -170,11 +170,13 @@ else {
         ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
         title("Output Cost by Resolution: Asonuma-Sample Robustness", size(medium)) ///
         subtitle("Continuation years kept as controls (matches Asonuma et al.'s own sample)", size(small)) ///
-        legend(order(2 "Non-default" 4 "Default-linked") ///
-               ring(0) pos(3) size(small)) ///
-        note("Compare against Figure 2 (baseline, continuation years excluded)." ///
-             " 90% CI shown. Robust SE. Country FE only (no year FE).", size(vsmall)) ///
+        legend(order(2 "Non-default" 4 "Default-linked") size(small)) ///
         graphregion(color(white)) plotregion(color(white))
+        * Note text (kept as source comment, no longer rendered on the figure --
+        * the legend, previously overlapping the plot at ring(0) pos(3), now
+        * takes the bottom position this note used to occupy):
+        * "Compare against Figure 2 (baseline, continuation years excluded).
+        *  90% CI shown. Robust SE. Country FE only (no year FE)."
 
     graph export "$figs/fig2a_irf_resolution_asonumasample.pdf", replace
     graph export "$figs/fig2a_irf_resolution_asonumasample.png", replace width(1200)
