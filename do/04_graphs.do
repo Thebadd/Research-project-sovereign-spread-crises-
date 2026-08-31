@@ -67,7 +67,7 @@ if _rc {
 }
 else {
     use "$clean/irf_all.dta", clear
-    gen series = "baseline"
+    replace series = "baseline"
     append using "$clean/irf_all_asonumasample.dta"
     keep if horizon >= 0
 
