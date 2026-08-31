@@ -23,7 +23,16 @@
 
   All outcomes expressed as cumulative change from t-1 (same anchoring
   as main LP). Controls are pre-determined (lagged relative to t).
-  DK SE with lag = max(1, h+1) throughout.
+
+  ESTIMATOR (matches 02_lp_all.do's own methodology switch): country FE
+  only, plain heteroskedasticity-robust SE, no year FE. xtreg ... fe
+  vce(robust) is the Stata-idiomatic equivalent of the reference paper's
+  reg ..., vce(robust) noconstant with explicit country dummies -- see
+  02_lp_all.do's header for the full argument (Figure 3/Table I1's own
+  construction script, confirmed directly from Asonuma et al.'s
+  replication code). Section 7 below (IPW-weighted) is a separate,
+  already cluster-SE-based robustness comparison and is unaffected by
+  this switch.
 
   CONTROLS (uniform common core, Asonuma-aligned):
   -----------------------------------------------
@@ -125,14 +134,14 @@ foreach ch of local channels {
 * ══════════════════════════════════════════════════════════════════════════
 * 3b. DIAGNOSTIC: FULL REGRESSION TABLE AT h=0 PER CHANNEL
 *     Shows coefficient and significance of each control variable.
-*     Run without capture so the full xtscc table is displayed.
+*     Run without capture so the full xtreg table is displayed.
 *     Purpose: verify that controls have the expected signs and are
 *     relevant — if a control is systematically insignificant across
 *     channels, it may not belong in that specification.
 * ══════════════════════════════════════════════════════════════════════════
 
 di as result _n "========================================================"
-di as result "DIAGNOSTIC: FULL REGRESSION TABLES AT h=0 (lag=1)"
+di as result "DIAGNOSTIC: FULL REGRESSION TABLES AT h=0"
 di as result "========================================================"
 
 foreach ch of local channels {
@@ -141,8 +150,8 @@ foreach ch of local channels {
     di as result "Controls: `ctrl'"
     * Guarded: a channel that fails here must NOT halt the whole file
     * (this block is display-only; estimation happens in the loops below).
-    capture xtscc ch_`ch'_0 onset_all `ctrl' i.year if sample==1, fe lag(1)
-    if _rc != 0 di as error "  diagnostic xtscc failed for `ch' (rc=" _rc ") — skipped"
+    capture xtreg ch_`ch'_0 onset_all `ctrl' if sample==1, fe vce(robust)
+    if _rc != 0 di as error "  diagnostic xtreg failed for `ch' (rc=" _rc ") — skipped"
 }
 
 di as result _n "========================================================"
@@ -155,9 +164,8 @@ di as result _n "=== CHANNEL 1: PRIVATE CREDIT / GDP ==="
 eststo clear   // capture channel estimates for Table 3 (real loops only, not diagnostic)
 
 forvalues h = 0/4 {
-    local lag = max(1, `h'+1)
-    capture xtscc ch_credit_`h' onset_all `ctrl_credit' i.year ///
-        if sample==1, fe lag(`lag')
+    capture xtreg ch_credit_`h' onset_all `ctrl_credit' ///
+        if sample==1, fe vce(robust)
     if _rc == 0 {
         quietly count if onset_all==1 & sample==1 & !missing(ch_credit_`h')
         local nep = r(N)
@@ -172,16 +180,15 @@ forvalues h = 0/4 {
         di "h=" `h'+1 ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
            "  p=" %5.3f (2*(1-normal(abs(_b[onset_all]/_se[onset_all])))) "  N=" e(N)
     }
-    else di as error "h=" `h'+1 ": xtscc failed for credit (rc=" _rc ")"
+    else di as error "h=" `h'+1 ": xtreg failed for credit (rc=" _rc ")"
 }
 
 * ── Channel 2: Sovereign-bank nexus ──────────────────────────────────────
 di as result _n "=== CHANNEL 2: BANK CLAIMS ON GOVT / GDP ==="
 
 forvalues h = 0/4 {
-    local lag = max(1, `h'+1)
-    capture xtscc ch_claims_govt_`h' onset_all `ctrl_claims_govt' i.year ///
-        if sample==1, fe lag(`lag')
+    capture xtreg ch_claims_govt_`h' onset_all `ctrl_claims_govt' ///
+        if sample==1, fe vce(robust)
     if _rc == 0 {
         quietly count if onset_all==1 & sample==1 & !missing(ch_claims_govt_`h')
         local nep = r(N)
@@ -196,16 +203,15 @@ forvalues h = 0/4 {
         di "h=" `h'+1 ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
            "  p=" %5.3f (2*(1-normal(abs(_b[onset_all]/_se[onset_all])))) "  N=" e(N)
     }
-    else di as error "h=" `h'+1 ": xtscc failed for claims_govt (rc=" _rc ")"
+    else di as error "h=" `h'+1 ": xtreg failed for claims_govt (rc=" _rc ")"
 }
 
 * ── Channel 3: Investment ────────────────────────────────────────────────
 di as result _n "=== CHANNEL 3: GROSS INVESTMENT / GDP ==="
 
 forvalues h = 0/4 {
-    local lag = max(1, `h'+1)
-    capture xtscc ch_inv_`h' onset_all `ctrl_inv' i.year ///
-        if sample==1, fe lag(`lag')
+    capture xtreg ch_inv_`h' onset_all `ctrl_inv' ///
+        if sample==1, fe vce(robust)
     if _rc == 0 {
         quietly count if onset_all==1 & sample==1 & !missing(ch_inv_`h')
         local nep = r(N)
@@ -220,16 +226,15 @@ forvalues h = 0/4 {
         di "h=" `h'+1 ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
            "  p=" %5.3f (2*(1-normal(abs(_b[onset_all]/_se[onset_all])))) "  N=" e(N)
     }
-    else di as error "h=" `h'+1 ": xtscc failed for inv (rc=" _rc ")"
+    else di as error "h=" `h'+1 ": xtreg failed for inv (rc=" _rc ")"
 }
 
 * ── Channel 4: Government expenditure ────────────────────────────────────
 di as result _n "=== CHANNEL 4: GOVERNMENT EXPENDITURE / GDP ==="
 
 forvalues h = 0/4 {
-    local lag = max(1, `h'+1)
-    capture xtscc ch_govexp_`h' onset_all `ctrl_govexp' i.year ///
-        if sample==1, fe lag(`lag')
+    capture xtreg ch_govexp_`h' onset_all `ctrl_govexp' ///
+        if sample==1, fe vce(robust)
     if _rc == 0 {
         quietly count if onset_all==1 & sample==1 & !missing(ch_govexp_`h')
         local nep = r(N)
@@ -244,16 +249,15 @@ forvalues h = 0/4 {
         di "h=" `h'+1 ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
            "  p=" %5.3f (2*(1-normal(abs(_b[onset_all]/_se[onset_all])))) "  N=" e(N)
     }
-    else di as error "h=" `h'+1 ": xtscc failed for govexp (rc=" _rc ")"
+    else di as error "h=" `h'+1 ": xtreg failed for govexp (rc=" _rc ")"
 }
 
 * ── Channel 5: Primary balance ───────────────────────────────────────────
 di as result _n "=== CHANNEL 5: PRIMARY BALANCE / GDP ==="
 
 forvalues h = 0/4 {
-    local lag = max(1, `h'+1)
-    capture xtscc ch_pb_`h' onset_all `ctrl_pb' i.year ///
-        if sample==1, fe lag(`lag')
+    capture xtreg ch_pb_`h' onset_all `ctrl_pb' ///
+        if sample==1, fe vce(robust)
     if _rc == 0 {
         quietly count if onset_all==1 & sample==1 & !missing(ch_pb_`h')
         local nep = r(N)
@@ -268,16 +272,15 @@ forvalues h = 0/4 {
         di "h=" `h'+1 ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
            "  p=" %5.3f (2*(1-normal(abs(_b[onset_all]/_se[onset_all])))) "  N=" e(N)
     }
-    else di as error "h=" `h'+1 ": xtscc failed for pb (rc=" _rc ")"
+    else di as error "h=" `h'+1 ": xtreg failed for pb (rc=" _rc ")"
 }
 
 * ── Channel 6: FDI ───────────────────────────────────────────────────────
 di as result _n "=== CHANNEL 6: FDI / GDP ==="
 
 forvalues h = 0/4 {
-    local lag = max(1, `h'+1)
-    capture xtscc ch_fdi_`h' onset_all `ctrl_fdi' i.year ///
-        if sample==1, fe lag(`lag')
+    capture xtreg ch_fdi_`h' onset_all `ctrl_fdi' ///
+        if sample==1, fe vce(robust)
     if _rc == 0 {
         quietly count if onset_all==1 & sample==1 & !missing(ch_fdi_`h')
         local nep = r(N)
@@ -292,19 +295,19 @@ forvalues h = 0/4 {
         di "h=" `h'+1 ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
            "  p=" %5.3f (2*(1-normal(abs(_b[onset_all]/_se[onset_all])))) "  N=" e(N)
     }
-    else di as error "h=" `h'+1 ": xtscc failed for fdi (rc=" _rc ")"
+    else di as error "h=" `h'+1 ": xtreg failed for fdi (rc=" _rc ")"
 }
 
 * ══════════════════════════════════════════════════════════════════════════
 * TABLE EXPORT — TABLE 3: Transmission channels (pooled, all episodes)
 *   Word/RTF, multi-panel: one panel per channel, columns = horizons h=0..4.
-*   Each panel reports the onset coefficient (DK SE in parentheses) on the
+*   Each panel reports the onset coefficient (robust SE in parentheses) on the
 *   cumulative change in the channel variable. First panel uses replace;
 *   remaining panels append to the same file.
 *   Requires: ssc install estout
 * ══════════════════════════════════════════════════════════════════════════
 
-local t3note "Dependent variable: cumulative change in the channel variable (pp) from t-1 to t+h. Jorda (2005) local projections; country and year fixed effects; common-core controls plus the channel's own pre-crisis change; continuation years excluded. Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01."
+local t3note "Dependent variable: cumulative change in the channel variable (pp) from t-1 to t+h. Jorda (2005) local projections; country fixed effects only (no year FE); common-core controls plus the channel's own pre-crisis change; continuation years excluded. Robust (heteroskedasticity-only) standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01."
 
 * Per-channel panel titles (Panel A carries the overall table caption)
 local ptitle_credit      "Table 3. Transmission channels (all episodes) -- Panel A: Private credit/GDP"
@@ -463,7 +466,7 @@ graph combine fig11a fig11b fig11c fig11d fig11e fig11f, ///
     cols(3) rows(2) ///
     title("Transmission Channels of Sovereign Spread Crises", ///
           size(medlarge) color(navy)) ///
-    note("90% and 95% CI. DK SE. Country & year FE. Treatment: all 61 onset episodes." ///
+    note("90% and 95% CI. Robust (heteroskedasticity-only) SE. Country FE only (no year FE). Treatment: all 61 onset episodes." ///
          "Units differ by channel: private credit, bank claims on govt, investment and govt expenditure are LOG REAL LEVELS, so their scale is cumulative percent change (comparable to the GDP result). Primary balance and FDI change sign, so no log is possible and they remain ratios to GDP, in percentage points.", ///
          size(vsmall)) ///
     graphregion(color(white)) xsize(10) ysize(7)
@@ -698,7 +701,7 @@ foreach ch of local channels {
 graph combine fig11a_cmp fig11b_cmp fig11c_cmp fig11d_cmp fig11e_cmp fig11f_cmp, ///
     cols(3) rows(2) ///
     title("Channels: Unweighted vs. IPW-Weighted", size(medlarge) color(navy)) ///
-    note("Blue solid = unweighted (DK SE). Red dashed = IPW-weighted (cluster SE)." ///
+    note("Blue solid = unweighted (cluster SE). Red dashed = IPW-weighted (cluster SE)." ///
          "IPW weights from probit of onset on lagged macro fundamentals." ///
          "Units differ by channel: private credit, bank claims on govt, investment and govt expenditure are LOG REAL LEVELS, so their scale is cumulative percent change (comparable to the GDP result). Primary balance and FDI change sign, so no log is possible and they remain ratios to GDP, in percentage points.", size(vsmall)) ///
     graphregion(color(white)) xsize(10) ysize(7)
