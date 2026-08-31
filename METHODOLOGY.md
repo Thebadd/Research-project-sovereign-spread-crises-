@@ -468,11 +468,35 @@ carries the paper's identification claim.
 
 ### 5.2 Flow coding — the state, estimated in `20_lp_flow.do`
 
-`in_crisis` is 1 for **every year of an episode**, onset and continuation
-alike: 234 treated country-years rather than 61, with tranquil years as
-controls. Treatment is *episode membership*, not the annual criterion flag
-`crisis_any`, which is 0 on 13 rows the episode-dating rule places inside an
-episode and would push mid-episode years into the control pool.
+`in_crisis` is 1 whenever a year independently clears **the annual
+criterion**, `crisis_any` (crit1|crit2, the EMBIG spread actually clearing
+1000bp or the HRT21 QoQ rule) — not episode membership. This is a
+redefinition from an earlier version of this file, which bridged every year
+of a dated episode (onset and continuation alike, 234 treated country-years)
+regardless of whether a given continuation year cleared the criterion on its
+own. Checking the reference paper's own replication script and dataset
+(Figure 3's `dum1`/`dum2`/`dum3` construction) showed their own treatment
+flags are onset-year-only, an observation that prompted revisiting the flow
+tier's bridging choice on its own terms: a year the estimator prices as "in
+crisis" should have crisis evidence of its own, not inherit treated status
+purely from sitting between two crisis years under the episode-dating rule's
+gap clause. The episode-dating rule itself is unchanged and still used for
+*classification* (§ below) — only what counts as *treated* has moved.
+
+The old episode-membership definition is preserved, unchanged in formula, as
+`in_crisis_episode` and reported as a named robustness/historical column in
+`20_lp_flow.do` (`r_episodedef`). Under the new default, the 13 rows a dated
+episode used to bridge but that do not themselves clear `crisis_any` —
+9 rule-consistent one-year gaps, 2 spanning Brazil's 1996-97 two-year gap,
+and 2 trailing Ukraine rows — return to the ordinary tranquil/control pool.
+`ep_seq` (the running episode counter used to forward-fill the resolution
+type onto every treated row) is unaffected: it is still built from
+`onset_all`/`continuation`, since it answers a different question —
+*which* dated crisis a treated row's classification is inherited from, not
+*whether* that row is treated — and the onset row of every episode is, by
+construction, always itself a `crisis_any==1` row, so `ep_seq` still
+correctly identifies the classification group for every row that remains
+treated under the new definition.
 
 The horizon convention is **the same as §5.1** — Year 0 the baseline, Year 1 the
 crisis year. `dy_h` is differenced against the row's own $t-1$, so $h=-1$ gives
@@ -641,19 +665,31 @@ this split usable:
   version of `17b_merge_at_full.do` did, made "strictly preemptive"
   structurally unreachable at the episode level for any panel built from
   this file — not rare, impossible.
-- **The 2-year restructuring-gap rule.** A spread-crisis episode's onset
-  and the actual start of its AT-recorded restructuring can be years
-  apart (Zambia: spread onset 2015, default November 2020). Under the
-  original onset-level `nondefault` classification, the entire gap is
+- **The 2-year restructuring-gap rule — removed.** A spread-crisis
+  episode's onset and the actual start of its AT-recorded restructuring can
+  be years apart (Zambia: spread onset 2015, default November 2020). Under
+  the original onset-level `nondefault` classification, the entire gap is
   marked default-linked, which asserts a default was already underway
-  years before it began. `26` corrects this specifically for episodes with
-  at least one AT-overlapping row: if the AT restructuring starts more
-  than two years after the spread episode's own onset, the years before
-  the restructuring are reclassified non-default and only the years from
-  the restructuring onward keep default-linked status and type. This
-  correction is scoped to `26` only — the original `in_crisis_def`/
-  `nondefault` classification used by `02`–`13f` and `20`–`25` is
-  untouched, so their published numbers are unaffected.
+  years before it began. `26` used to correct this for episodes with at
+  least one AT-overlapping row: if the AT restructuring started more than
+  two years after the spread episode's own onset, the years before the
+  restructuring were reclassified non-default. This rule was removed once
+  §5.2's flow treatment was redefined from episode membership to the
+  single-year annual criterion: the rule compared a *multi-year episode's*
+  own onset year against the AT onset, which no longer has a stable meaning
+  once the treated rows inside an episode need not be contiguous — some of
+  the years the rule tested may no longer independently clear `crisis_any`
+  and are already excluded from treatment for an unrelated reason, so
+  comparing "years before the AT onset within this episode" would mix two
+  different filters rather than answer one clean question. No repair was
+  found that preserved the rule's intent without turning it into a
+  different, unvalidated rule (a year-level restructuring-proximity
+  control). Removing it reclassifies Zambia and Belize — the only two
+  episodes it had split — back to default-linked across their full
+  previously-treated window; this is a real classification change in `26`'s
+  output, not a no-op. The original `in_crisis_def`/`nondefault`
+  classification used by `02`–`13f` and `20`–`25` was never touched by this
+  rule and remains unaffected either way.
 
 ---
 

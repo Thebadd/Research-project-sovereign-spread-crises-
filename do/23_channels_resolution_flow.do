@@ -82,6 +82,9 @@ foreach var of local channels {
     }
     capture drop pre_`var'
     gen pre_`var' = L.`src' - L2.`src'
+    * (Annual-criterion redefinition of in_crisis, 18_transforms.do, does not
+    * change this construction -- same entry-dating mechanism, smaller/
+    * different population of continuation rows.)
     capture drop epc_pre_`var' _ent_pre_`var'
     quietly bysort cid ep_seq: egen double _ent_pre_`var' = ///
         max(cond(onset_all==1, pre_`var', .))

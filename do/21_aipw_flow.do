@@ -87,6 +87,13 @@
   the rows where they differ, so the argument is demonstrated in the log rather
   than asserted here.
 
+  Note (annual-criterion redefinition, 18_transforms.do): in_crisis now means
+  the annual criterion, not episode membership, so "continuation row" here
+  means specifically a row that is itself treated AND belongs to a multi-row
+  ep_seq cluster — a smaller population than before, since the 13 gap rows
+  that no longer clear the criterion are no longer in_crisis==1 at all. The
+  argument above is unchanged in substance for whichever rows remain.
+
   $ctrl_core is the only conditioning set defined identically in both arms, so
   it is the one the probit can use. It is not clean either, and that must be
   said plainly: for a continuation row, last year's debt / current account /

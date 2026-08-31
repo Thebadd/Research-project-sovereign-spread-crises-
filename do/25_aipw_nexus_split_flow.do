@@ -53,6 +53,21 @@
   rows to the estimation sample. Every row of an episode inherits its one
   episode's high/low label from the onset row's a_nexus value.
 
+  NOTE ON THE ANNUAL-CRITERION REDEFINITION (18_transforms.do): in_crisis now
+  means the annual criterion (crisis_any), not episode membership, but ep_seq
+  itself is untouched — it still groups by onset_all, so "episode" above still
+  means the ep_seq-dated cluster of consecutive onset+continuation years, not
+  the (now retired) bridged treatment definition. For a genuine multi-year
+  cluster where every year independently clears crisis_any (e.g. Venezuela's
+  long episodes), the entry-dating and the high/low label are IDENTICAL to
+  what they were before the redefinition — no row in that cluster ever left
+  in_crisis==1. Where an episode had a gap row that no longer clears the
+  criterion, that row simply exits in_crisis==1 (it was never separately
+  labeled high/low to begin with, since the label attaches to the CLUSTER,
+  not the row) and the remaining treated rows of that episode keep the same
+  shared label as before, just over fewer rows. Section 1's diagnostic block
+  below reports how many ep_seq groups' treated-row count changed as a result.
+
   THE HIGH-LOW DIFFERENCE BOOTSTRAP reuses _aipwpairflow directly rather than
   writing a new estimator: for a given resolution type (nd or def), two
   0/1 indicator variables are built — "treated AND high-nexus" and "treated
@@ -201,6 +216,10 @@ foreach t in in_crisis in_crisis_nd in_crisis_def {
     local nm = r(N)
     di as result "  `t' (flow rows): high=" `nh' "  low=" `nl' "  unclassified=" `nm'
 }
+
+quietly count if gap_year_dropped==1
+di as result "  ep_seq rows excluded from in_crisis by the annual-criterion redefinition: " r(N) ///
+    " (these rows carry no highbank_flow-classified treated status either before or after)"
 
 di as result _n "=== NEXUS-BIN COUNTRY COMPOSITION (crisis onsets) ==="
 capture noisily tabulate country highbank_flow if sample==1 & onset_all==1, row nofreq

@@ -277,46 +277,68 @@ if !_rc {
 * This block builds the parallel objects for that second question. It ADDS
 * columns; it changes nothing existing, so every estimate in 02-13 is untouched.
 *
-* TREATMENT = EPISODE MEMBERSHIP, NOT THE ANNUAL CRITERION FLAG.
-* The workbook's episode rule (README sheet, after Detragiache & Spilimbergo
-* 2001) is: onset = criterion met in t but not t-1; continuation = consecutive
-* crisis years OR a one-year gap followed by a crisis year; end = two
-* consecutive tranquil years. The gap clause exists to stop a single prolonged
-* distress fragmenting into several "episodes".
+* TREATMENT = THE ANNUAL CRITERION, NOT EPISODE MEMBERSHIP.
+* Earlier versions of this file (through commit e94309f's revert) treated a
+* whole dated episode as the treated unit: onset_all | continuation, bridging
+* 13 "gap" rows where the annual criterion (crisis_any = crit1|crit2, i.e. the
+* EMBIG spread actually clearing 1000bp or the HRT21 QoQ rule) is not met that
+* specific year. Checking the reference paper's own replication script and
+* dataset (Figure 3's construction, dum1/dum2/dum3) showed their treatment
+* flags are onset-year-only — an ONSET-CODED design, not a design that bridges
+* intervening years the way this project's own flow tier does. That discovery
+* does not by itself settle what the FLOW tier (a genuinely different,
+* broader question this project asks beyond the onset tier — "what is the
+* cost of BEING IN a crisis", not just "what follows its start") should bridge
+* through, but on reflection the annual criterion is the more defensible
+* choice for it: a year is treated if and only if it independently clears the
+* same threshold that defines every other treated year, full stop. Bridging a
+* row that itself does NOT clear the criterion asks the estimator to price a
+* year as "in crisis" using no crisis evidence of its own — the episode-dating
+* rule's gap clause is a useful device for NAMING a sequence of years as one
+* episode (Decision 2 below keeps it for exactly that), but it is a much
+* weaker basis for TREATMENT than for classification.
 *
-* So `crisis_any' (the annual criterion flag) is NOT episode membership: it is 0
-* on 13 rows the dating rule places INSIDE an episode. Using it would contradict
-* the rule that generated the 61 episodes and would push mid-episode years into
-* the tranquil CONTROL pool — worse than either including or dropping them.
-* in_crisis therefore = onset_all | continuation (234 rows vs 221).
+* in_crisis THEREFORE = crisis_any==1 & carryin==0 (annual criterion,
+* previously available only as the unused `in_crisis_sp'), replacing episode
+* membership as the default. The old episode-membership definition is kept,
+* unchanged in formula, under `in_crisis_episode' — an explicit, named
+* robustness/historical comparison, not deleted. See 20_lp_flow.do Section 4
+* for where it is reported.
 *
-* The 13 gap rows are not homogeneous, and the breakdown is printed below rather
-* than left implicit:
+* CONCRETE EFFECT (see the diagnostic block below the assertions for the
+* live-derived counts): the 13 gap rows below the annual criterion drop out
+* of the treated set entirely and rejoin the ordinary tranquil/control pool,
+* rather than being priced as treated with no crisis evidence of their own.
+* They are not homogeneous:
 *   9 rule-consistent one-year gaps (a crisis year on BOTH sides) — Brazil 2000,
 *     Cote d'Ivoire 2009, Ecuador 1997, Nigeria 1997, Nigeria 2021, Pakistan
 *     2010, Venezuela 1997, Venezuela 2000, Zambia 2017.
 *   2 spanning a TWO-year gap — Brazil 1996, 1997 (crisis in 1995 and 1998).
 *   2 TRAILING — Ukraine 2010, 2011 (no crisis follows; 2014 is a fresh onset).
-* The last four are exceptions to the "two consecutive tranquil years ends the
-* episode" rule. They are retained deliberately (the dating is not revised), but
-* note what strict application would imply: Brazil would split into two episodes,
-* creating a 1998 onset that does not currently exist and taking the count to 62.
 * Documented in DATA_SOURCES.md section 1.
 * ══════════════════════════════════════════════════════════════════════════
-capture drop in_crisis ep_seq nd_ep in_crisis_nd in_crisis_def in_crisis_sp sample_flow gap_year
+capture drop in_crisis ep_seq nd_ep in_crisis_nd in_crisis_def in_crisis_sp in_crisis_episode sample_flow gap_year gap_year_dropped
 
-gen byte in_crisis = (onset_all==1 | continuation==1) & carryin==0
-label var in_crisis "In a spread crisis (episode membership: onset or continuation)"
+gen byte in_crisis = (crisis_any==1) & carryin==0
+label var in_crisis "In a spread crisis (annual criterion: crit1|crit2 met that year)"
 
-* Annual-criterion variant, for the robustness column only.
-gen byte in_crisis_sp = (crisis_any==1) & carryin==0
-label var in_crisis_sp "In a spread crisis (annual criterion flag; robustness variant)"
+* Old definition, preserved as a named robustness/historical variant.
+gen byte in_crisis_episode = (onset_all==1 | continuation==1) & carryin==0
+label var in_crisis_episode "In a spread crisis (OLD definition: episode membership, onset or continuation — robustness/historical)"
 
-* The gap rows: inside an episode but below the annual criterion.
-gen byte gap_year = (in_crisis==1 & crisis_any==0)
-label var gap_year "Mid-episode year below the annual crisis criterion"
+* The rows that were treated under the old definition but are not under the
+* new one: inside a dated episode, below the annual criterion.
+gen byte gap_year_dropped = (in_crisis_episode==1 & in_crisis==0)
+label var gap_year_dropped "Excluded from in_crisis under the annual-criterion redefinition (was treated under in_crisis_episode)"
 
-* ── Episode sequence number, needed to forward-fill the resolution type ──────
+* ── Episode sequence number: a CLASSIFICATION grouping (which dated crisis
+* sequence a row's resolution type is inherited from), independent of the
+* redefinition above — it is still built from onset_all/continuation, exactly
+* as before, and still needed to forward-fill the resolution type onto every
+* now-treated row, since the onset row is by construction always itself a
+* crisis_any==1 row (the annual criterion is what defines an onset in
+* 10_skeleton.do's own dating rule) and so is always one of the treated rows
+* under the new definition too. ──
 * nondefault is merged in 10_skeleton on country x ONSET YEAR, so it is present
 * on the 61 onset rows and MISSING on all 173 continuation rows. Splitting the
 * flow treatment by resolution without filling it first would silently drop
@@ -525,9 +547,25 @@ label var sample_flow "Flow estimation sample (all episode years + tranquil, exc
 * These are cheap and they catch the two failure modes that would otherwise be
 * invisible: a treatment that silently lost the continuation rows, and a
 * resolution type that failed to propagate off the onset row.
+* Under the annual-criterion redefinition, in_crisis's row count is no longer
+* a fixed, derivable-in-advance number the way episode membership was (it
+* depends on how many mid-episode years happen to clear crisis_any each
+* year) — report it live rather than asserting a hard-coded expectation.
+quietly count if in_crisis_episode==1
+local n_old_ep = r(N)
+if `n_old_ep' != 234 di as error "  ** FLOW: in_crisis_episode = `r(N)' rows, expected 234 — check onset_all/continuation/carryin"
 quietly count if in_crisis==1
-if r(N) != 234 di as error "  ** FLOW: in_crisis = `r(N)' rows, expected 234 — check onset_all/continuation/carryin"
-else           di as result "  FLOW: in_crisis = 234 rows (61 onset + 173 continuation)"
+local n_new_ann = r(N)
+di as result "  FLOW REDEFINITION: treated rows `n_old_ep' (old, episode membership) -> `n_new_ann' (new, annual criterion)"
+quietly count if in_crisis_episode==1 & in_crisis==0
+local n_dropped_cont = r(N)
+quietly count if onset_all==1 & carryin==0 & in_crisis==0
+local n_dropped_onset = r(N)
+if `n_dropped_onset' != 0 di as error "  ** FLOW: `n_dropped_onset' onset rows do not clear crisis_any — onset dating is inconsistent with the annual criterion"
+di as result "    dropped: `n_dropped_cont' continuation rows below the annual criterion (" %4.1f 100*`n_dropped_cont'/`n_old_ep' " pct of the old total)"
+quietly count if gap_year_dropped==1 & !(in_crisis_episode==1 & in_crisis==0)
+if r(N) != 0 di as error "  ** FLOW: gap_year_dropped disagrees with the direct in_crisis_episode/in_crisis count on `r(N)' rows"
+else         di as result "  FLOW: gap_year_dropped matches the direct count (correct)"
 
 quietly count if in_crisis==1 & missing(nd_ep)
 if r(N) != 0 di as error "  ** FLOW: `r(N)' episode-years have no resolution type — the nd_ep fill FAILED"
@@ -561,16 +599,17 @@ local n_deff = r(N)
 di as result "  FLOW: crisis-years by resolution — non-default `n_ndf', default-linked `n_deff'"
 di as result "        (expect 113 / 121 with the Venezuela-2008 override at 10_skeleton.do:119)"
 
-* Gap-year breakdown — the 13 rows inside an episode but below the annual criterion.
-quietly count if gap_year==1
+* Gap-year breakdown — the rows inside a dated episode but below the annual
+* criterion, now excluded from in_crisis (see the redefinition above).
+quietly count if gap_year_dropped==1
 local ngap = r(N)
-di as result "  FLOW: gap years (in episode, criterion not met): `ngap' of 234 treated rows"
+di as result "  FLOW: gap years dropped (in old episode, criterion not met): `ngap' of `n_old_ep' old-definition treated rows"
 if `ngap' > 0 {
     di as result "        listed below; 9 are one-year gaps, 2 span a two-year gap (Brazil)"
     di as result "        and 2 are trailing (Ukraine) — see the block above."
-    quietly levelsof country if gap_year==1, local(gapc)
+    quietly levelsof country if gap_year_dropped==1, local(gapc)
     foreach c of local gapc {
-        quietly levelsof year if gap_year==1 & country=="`c'", local(gy)
+        quietly levelsof year if gap_year_dropped==1 & country=="`c'", local(gy)
         di as result "          `c': `gy'"
     }
 }

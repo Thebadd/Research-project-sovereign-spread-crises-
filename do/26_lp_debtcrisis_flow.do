@@ -47,27 +47,21 @@
   RECLASSIFIED to default-linked -- but every such row is printed in
   Section 1's diagnostic block, not silently reassigned.
 
-  2-YEAR RESTRUCTURING-GAP RULE (motivated by Zambia: spread crisis onset
-  2015, actual default Nov 2020 -- a 5-year gap during which the ORIGINAL
-  in_crisis_def classification, inherited whole-episode from
-  10_skeleton.do/18_transforms.do's onset-level nondefault flag, marks every
+  2-YEAR RESTRUCTURING-GAP RULE -- REMOVED, HISTORICAL. A rule motivated by
+  Zambia (spread crisis onset 2015, actual default Nov 2020 -- a 5-year gap
+  during which the whole-episode in_crisis_def classification marked every
   year 2015-2024 default-linked even though no default had happened until
-  2020). For any spread-based default episode that DOES have at least one
-  row overlapping an AT window, at_episode_onset (AT's own restructuring-
-  start date) gives an independent check: if it starts more than 2 years
-  after the spread episode's own onset, the years BEFORE the AT onset are
-  reclassified non-default here (the market-stress episode existed, but no
-  default had actually begun), and only the years from the AT onset onward
-  keep default-linked status and AT type. LIMITATION, stated plainly: this
-  only fires where SOME AT overlap exists. Zambia, Ghana, Lebanon, Sri Lanka
-  and Ukraine currently have ZERO AT overlap at all (AT's vintage cutoff is
-  ~2020, before any of their actual defaults were recorded there) -- they
-  are "Unclassified" for that reason, not a long-gap reason, so this rule
-  does NOT split them; that requires their events to be added to
-  17b_merge_at_full.do's at_supplement block first. Scope, confirmed with
-  the user: this rule is applied ONLY here, not to the project's original
-  in_crisis_def/nondefault classification used by every onset/flow file
-  (02-13, 20-25).
+  2020) used to reclassify pre-restructuring years as non-default whenever
+  an AT-overlapping episode's own onset preceded the AT restructuring date
+  by more than 2 years. It was removed once the flow tier's treatment
+  (in_crisis, 18_transforms.do) was redefined from episode membership to the
+  single-year annual criterion: the rule's comparison ("years before the AT
+  onset within a multi-year episode") no longer has a stable meaning once
+  the treated rows within an episode need not be contiguous. See the removed
+  block's own comment (Section 1, where it used to sit) for the full
+  reasoning, and METHODOLOGY.md §5.2. Its removal reclassifies Zambia and
+  Belize back to fully default-linked across their whole previously-treated
+  window.
 
   PREEMPTIVE vs POST-DEFAULT TYPE
   ---------------------------------------------------------------------------
@@ -314,55 +308,26 @@ label var dc_default_year "Broadened default-linked treatment (spread OR AT-sour
 label var dc_in_crisis_nd "Broadened non-default treatment (spread-only, unchanged)"
 label var dc_in_crisis    "Broadened debt-crisis treatment (nd or default-linked)"
 
-* ── 2-YEAR RESTRUCTURING-GAP RULE ───────────────────────────────────────────
-* If a spread-based default episode's earliest overlapping AT restructuring
-* window starts more than 2 years after the spread episode's own onset, the
-* years BEFORE that AT onset are reclassified non-default (the market-stress
-* episode existed, but no default/restructuring had actually begun yet);
-* years from the AT onset onward keep their default-linked status and AT
-* type. Applies only to episodes with at least one AT-overlapping row --
-* episodes with NO AT overlap anywhere (the "Unclassified" cases: Zambia,
-* Ghana, Lebanon, Sri Lanka, Ukraine, as of this AT vintage) have no
-* independent restructuring date to test against and are left as-is (see
-* this file's header for why).
-capture drop _dc_ep_onset_yr _dc_ep_at_yr _dc_gap _dc_predefault_reclass
-bysort cid ep_seq: egen int _dc_ep_onset_yr = min(cond(onset_all==1, year, .)) ///
-    if in_crisis_def==1
-bysort cid ep_seq: egen int _dc_ep_at_yr = min(cond(at_default_year==1, at_episode_onset, .)) ///
-    if in_crisis_def==1
-gen int _dc_gap = _dc_ep_at_yr - _dc_ep_onset_yr if in_crisis_def==1
-gen byte _dc_predefault_reclass = ///
-    in_crisis_def==1 & !missing(_dc_gap) & _dc_gap > 2 & year < _dc_ep_at_yr
-
-quietly egen byte _dc_split_ep_tag = tag(cid ep_seq) ///
-    if in_crisis_def==1 & !missing(_dc_gap) & _dc_gap > 2
-quietly count if _dc_split_ep_tag==1
-if r(N) > 0 {
-    di as result "  " r(N) " default-linked episode(s) split under the 2-year restructuring-gap rule:"
-    list cid country _dc_ep_onset_yr _dc_ep_at_yr _dc_gap if _dc_split_ep_tag==1, noobs
-    quietly count if _dc_predefault_reclass==1
-    di as result "  ... reclassifying " r(N) " country-years from default-linked to non-default."
-}
-capture drop _dc_split_ep_tag
-
-* Rebuild dc_default_year / dc_in_crisis_nd / dc_in_crisis with the
-* reclassification applied -- everything downstream (the dc_ep_seq
-* running-counter below, the dc_type mode-fill, the 3-arm regression) reads
-* these generically, so no other logic needs to change: dc_default_year now
-* correctly toggles off at the pre-restructuring years and back on at the AT
-* onset year, and the EXISTING running-counter (increments whenever
-* dc_default_year turns on after being off) automatically creates two
-* separate episodes out of a split one.
-drop dc_default_year dc_in_crisis_nd dc_in_crisis
-gen byte dc_default_year = ///
-    (in_crisis_def==1 & !_dc_predefault_reclass) | (_dc_atonly==1) | (_dc_conflict==1)
-gen byte dc_in_crisis_nd = ///
-    ((in_crisis_nd==1) | (in_crisis_def==1 & _dc_predefault_reclass==1)) & !_dc_conflict
-gen byte dc_in_crisis = dc_in_crisis_nd | dc_default_year
-label var dc_default_year "Broadened default-linked treatment (spread OR AT-sourced; 2yr-gap rule applied)"
-label var dc_in_crisis_nd "Broadened non-default treatment (spread-only + pre-restructuring reclassified years)"
-label var dc_in_crisis    "Broadened debt-crisis treatment (nd or default-linked)"
-drop _dc_ep_onset_yr _dc_ep_at_yr _dc_gap _dc_predefault_reclass
+* 2-YEAR RESTRUCTURING-GAP RULE REMOVED (annual-criterion flow redefinition,
+* 18_transforms.do). The rule compared a multi-year spread episode's own
+* onset year against the AT restructuring onset, using the gap to reclassify
+* pre-restructuring years as non-default. Under the new, single-year annual-
+* criterion in_crisis, that comparison no longer has a stable meaning: many
+* of the years the rule used to test are no longer part of a contiguous
+* treated run to begin with (they may not independently clear the annual
+* criterion), so "years before the AT onset within this episode" now mixes
+* two different filters (criterion-clearing and restructuring-proximity)
+* the rule's original Zambia motivation never anticipated. There is no clean
+* repair that preserves the rule's intent without becoming a different
+* rule (a year-level restructuring-proximity control, not requested and not
+* validated here) -- see METHODOLOGY.md §5.2 for the full reasoning.
+*
+* REMOVING THIS RULE CHANGES CLASSIFICATION FOR ZAMBIA AND BELIZE, the two
+* episodes it previously split: both now revert to being classified
+* default-linked for their FULL previously-classified window, rather than
+* having a pre-AT-onset segment reclassified non-default. State this
+* plainly in any write-up referencing this file's output -- it is a real
+* classification change, not a no-op.
 
 * ── Episode grouping for the broadened default treatment ───────────────────
 * Existing in_crisis_def rows keep their own ep_seq (already built in

@@ -92,6 +92,9 @@ if "$ctrl_flow" == "" {
 * Lebanon, Vietnam -- see 01c_merge_nexus.do), worse again once L2. (for
 * pre_<var>) and episode-averaging (for epc_pre_<var>) are layered on; the
 * coverage report right after this loop makes that visible per channel.
+* (The annual-criterion redefinition of in_crisis, 18_transforms.do, does not
+* change this construction -- epc_pre_<var> is built the same way regardless
+* of which rows are in_crisis==1, just applied to a smaller/different set.)
 local channels credit claims_govt inv govexp pb fdi claimsgov_assets claimpriv_assets
 
 foreach var of local channels {

@@ -56,7 +56,9 @@
         21_aipw_flow.do's `cx_active' uses for Eq. (2) (NOT $ctrl_flow/epc_*,
         which 21_aipw_flow.do's header explains cannot be used in the probit:
         epc_X differs from X only on continuation rows, so it would
-        mechanically encode treatment).
+        mechanically encode treatment -- a smaller population of rows since
+        the annual-criterion redefinition, 18_transforms.do, but the same
+        mechanism and the same reason to exclude epc_* from the probit).
 
   Diagnostic rows (source Table 1's bottom block):
     Chi2 (predictors)      — joint Wald test that the 3 predictors are all zero
