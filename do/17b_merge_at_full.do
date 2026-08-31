@@ -200,19 +200,21 @@ preserve
     * list every consolidated group (g_ncases>1) and flag whether it mixed
     * row types (the reference paper reports exactly one such case,
     * Dominican Republic 2004, out of 14 consolidated pairs).
+    * NOTE: this file is already inside a `preserve' block opened before the
+    * `import excel' above (restored at the end of Section 1) -- Stata does
+    * not support nested preserve/restore, so this diagnostic drops its own
+    * scratch variables explicitly instead of preserving/restoring again.
     quietly egen byte g_ntypes = rowtotal(g_post g_weakly g_strict)
-    preserve
-        quietly egen byte _tag = tag(grp)
-        quietly count if _tag==1 & g_ncases>1
-        local n_consol_groups = r(N)
-        di as result "  AT full database: `n_consol_groups' consolidated episode(s) (2+ case rows, same country/year):"
-        if `n_consol_groups' > 0 {
-            quietly count if _tag==1 & g_ncases>1 & g_ntypes>1
-            di as result "    of which `r(N)' mixed row types within the same episode (more-severe-wins applied)."
-            list iso3 start_year g_ncases at_type if _tag==1 & g_ncases>1, noobs sepby(iso3)
-        }
-    restore
-    drop g_ntypes
+    quietly egen byte _tag = tag(grp)
+    quietly count if _tag==1 & g_ncases>1
+    local n_consol_groups = r(N)
+    di as result "  AT full database: `n_consol_groups' consolidated episode(s) (2+ case rows, same country/year):"
+    if `n_consol_groups' > 0 {
+        quietly count if _tag==1 & g_ncases>1 & g_ntypes>1
+        di as result "    of which `r(N)' mixed row types within the same episode (more-severe-wins applied)."
+        list iso3 start_year g_ncases at_type if _tag==1 & g_ncases>1, noobs sepby(iso3)
+    }
+    drop g_ntypes _tag
 
     * One row per collapsed episode.
     duplicates drop grp, force
