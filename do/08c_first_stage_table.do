@@ -16,10 +16,13 @@
   the by-resolution-type AIPW design actually consumes.
 
   Rows are grouped, as in their Table 1, into:
-    PREDICTORS (excluded from the LP/AIPW outcome eq.):
-        Fed funds rate (global push) + regional contagion + past
-        DEFAULT-linked onsets (past_def_onsets, a default-proneness
-        predictor, not a generic crisis-proneness one).
+    PREDICTORS (excluded from the LP/AIPW outcome eq.; matches the flow
+        tier's adopted cz_recency -- see 21_aipw_flow.do's "SECOND
+        PREDICTOR CHANGE" section for the diagnostic history):
+        Fed funds rate (global push) + distance-weighted contagion
+        (l_contagion_dist, a country-year-specific spatial lag) + years
+        since the most recent prior DEFAULT-linked onset
+        (years_since_def_onset, a recency clock, censored at 50).
     BASELINE CONTROLS (the SAME $ctrl_core used in the LP/AIPW outcome eq. —
         strict parity with the reference paper's $convar-in-both design):
         l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2
@@ -32,7 +35,7 @@
 
   Pooled probit, no country FE (rare-event propensity: country FE separate/overfit
   with ~20 events; they enter the outcome equation only). No year FE.
-  Output: $tabs/table_first_stage.rtf. Run AFTER 01e_predictors.do.
+  Output: $tabs/table_first_stage.rtf. Run AFTER 17_predictors.do.
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -42,7 +45,7 @@ use "$clean/panel_lp.dta", clear
 * Baseline = outcome baseline ($ctrl_core): the Table-1 probit shares its controls
 * with the LP/AIPW outcome equation (their $convar in both stages).
 local X    $ctrl_core
-local Z2   l_fedfunds l_reg_crisis_share past_def_onsets
+local Z2   l_fedfunds l_contagion_dist years_since_def_onset
 
 eststo clear
 
@@ -78,11 +81,11 @@ foreach c in fs_nd fs_def {
 capture esttab fs_nd fs_def using "$tabs/table_first_stage.rtf", replace ///
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
     mtitles("Non-default" "Default-linked") ///
-    order(l_fedfunds l_reg_crisis_share past_def_onsets ///
+    order(l_fedfunds l_contagion_dist years_since_def_onset ///
           l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2) ///
     coeflabel(l_fedfunds "US fed funds rate (t-1)" ///
-              l_reg_crisis_share "Regional contagion (t-1)" ///
-              past_def_onsets "Past default-linked onsets" ///
+              l_contagion_dist "Distance-weighted contagion (t-1)" ///
+              years_since_def_onset "Years since last default-linked onset" ///
               l1_gdpg "GDP growth (t-1)" ///
               l_debt "Public debt / GDP (t-1)" ///
               l_banking_crisis "Systemic banking-crisis dummy (t-1)" ///

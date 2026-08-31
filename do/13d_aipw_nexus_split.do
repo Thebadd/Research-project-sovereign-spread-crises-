@@ -43,7 +43,8 @@
   Output: $tabs/aipw_nexus_split.csv (outcome x part x bank x horizon, levels) ;
           $tabs/aipw_nexus_diff.csv  (outcome x part x horizon, high-low gap + CI) ;
           $figs/fig_aipw_nexus_split.pdf (GDP) + $figs/fig_nexus_<channel>.pdf.
-  Run AFTER 17_predictors.do (needs fedfunds, past_onsets, past_def_onsets, nexus vars).
+  Run AFTER 17_predictors.do (needs fedfunds, past_onsets, l_contagion_dist,
+  years_since_def_onset, nexus vars).
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -94,7 +95,11 @@ set seed 20260819
 local nboot  = 1000
 local cx     $ctrl_core   // retained for reference; propensity baseline now passes `om' (strict parity)
 local cz     l_fedfunds l_reg_crisis_share past_onsets       // Act 1 predictors
-local cz_def l_fedfunds l_reg_crisis_share past_def_onsets   // resolution predictors
+* Resolution predictors: matches the flow tier's adopted cz_recency -- see
+* 21_aipw_flow.do's "SECOND PREDICTOR CHANGE" section for the diagnostic
+* history. cz (Act 1, pooled) unchanged: no pooled analog of
+* years_since_def_onset exists.
+local cz_def l_fedfunds l_contagion_dist years_since_def_onset
 
 * AIPW outcome-model core = the common core, unchanged. The depth term is
 * l_credit_bank (WDI FD.AST.PRVT.GD.ZS, credit by banks).

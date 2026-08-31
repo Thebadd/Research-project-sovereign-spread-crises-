@@ -50,7 +50,11 @@ set seed 20260819
 local nboot  = 300      // bootstrap reps per (channel, series, horizon)
 local cx     $ctrl_core   // retained for reference; propensity baseline now passes `om' (strict parity)
 local cz     l_fedfunds l_reg_crisis_share past_onsets       // Act 1 predictors Z1
-local cz_def l_fedfunds l_reg_crisis_share past_def_onsets   // Act 2 predictors Z2
+* Act 2 predictors Z2 (resolution-type): matches the flow tier's adopted
+* cz_recency -- see 21_aipw_flow.do's "SECOND PREDICTOR CHANGE" section for
+* the diagnostic history. cz (Act 1, pooled) unchanged: no pooled analog of
+* years_since_def_onset exists.
+local cz_def l_fedfunds l_contagion_dist years_since_def_onset
 
 * AIPW outcome-model core = the common core, unchanged. The depth term is
 * l_credit_bank (WDI FD.AST.PRVT.GD.ZS, credit by banks).
