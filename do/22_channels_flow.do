@@ -65,7 +65,7 @@
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 sort cid year
 xtset cid year
 
@@ -150,7 +150,7 @@ local lc0    l_credit_bank
 local lg0    l_govexp
 
 * CONTROL SET. flow_ctrl_variant: 0 = the ADOPTED flow-tier baseline,
-* $ctrl_flow, built in 18_transforms.do from $ctrl_core_flowbase
+* $ctrl_flow, built in 18_transforms.do from $ctrl_core
 * (l_banking_duration -> the l_banking_crisis DUMMY, l_ca -> tot_chg -> exchange2,
 * l_hyperinfl -> l_lninfl -- see that file's "ADOPTED FLOW-TIER CORE CONTROL
 * SET"). 1 = the adopted core PLUS the reference paper's own additional
@@ -172,7 +172,7 @@ if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
 if `flow_ctrl_variant'==1 local ctrl_flow_base $ctrl_flow_flowplus
 else                       local ctrl_flow_base $ctrl_flow
 if `flow_ctrl_variant'==1 local ctrl_core_base $ctrl_core_flowplus
-else                       local ctrl_core_base $ctrl_core_flowbase
+else                       local ctrl_core_base $ctrl_core
 
 * EXPLORATORY: set to 1 to drop year FE and match the reference paper's
 * single-stage rule (country FE only), matching 20_lp_flow.do's toggle of the

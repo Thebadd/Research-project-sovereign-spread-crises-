@@ -181,8 +181,8 @@ restore
 *    variation the controls are asked to absorb. Tranquil years are included
 *    as the reference column because they are the control group throughout.
 * ══════════════════════════════════════════════════════════════════════════
-local sumvars l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open ///
-              l_credit_bank l_hyperinfl l_spr_mean claimsgov_assets
+local sumvars l1_gdpg l_debt l_banking_crisis l_govexp l_open ///
+              l_credit_bank l_lninfl exchange2 l_spr_mean claimsgov_assets
 
 di as result _n "════════════════════════════════════════════════════════════"
 di as result "PRE-CRISIS CHARACTERISTICS (all at t-1) BY GROUP"

@@ -117,7 +117,7 @@
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 sort cid year
 xtset cid year
 
@@ -213,7 +213,7 @@ di as result "   result is not merely a development proxy — same check as 13d'
 local epc_lc epc_l_credit_bank
 
 * CONTROL SET. flow_ctrl_variant: 0 = the ADOPTED flow-tier baseline,
-* $ctrl_flow, built in 18_transforms.do from $ctrl_core_flowbase
+* $ctrl_flow, built in 18_transforms.do from $ctrl_core
 * (l_banking_duration -> the l_banking_crisis DUMMY, l_ca -> tot_chg -> exchange2,
 * l_hyperinfl -> l_lninfl -- see that file's "ADOPTED FLOW-TIER CORE CONTROL
 * SET"). 1 = the adopted core PLUS the reference paper's own additional
@@ -237,7 +237,7 @@ local ctrl_claimpriv_assets  `ctrl_flow_base' epc_pre_claimpriv_assets
 local ctrl_gdp                `ctrl_flow_base'
 
 * ── Propensity model — SAME as 21/24's ACTIVE (`cx_active') baseline ───────
-local cx = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowplus", "$ctrl_core_flowbase")
+local cx = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowplus", "$ctrl_core")
 * l_contagion_dist (distance-weighted, CEPII great-circle) in place of
 * l_reg_crisis_share -- matches 21_aipw_flow.do's cz_recency, "SECOND
 * PREDICTOR CHANGE".

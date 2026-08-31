@@ -285,52 +285,89 @@ plus `g'v'_0`, the own-outcome pre-trend, added by hand in every regression
 and *not* inside `$convar`. Ours is:
 
 ```stata
-global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp ///
-                  l_open l_credit_bank l_hyperinfl"
+global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp ///
+                  l_open l_credit_bank l_lninfl exchange2"
 ```
 
-Six of the eight terms map one-to-one:
+**This is one control set, used project-wide** — every onset-tier file
+(`02`, `03`, `06`, `07`, `08`, `08b`, `11`, `11b`, `12`, `12b`, `13`, `13b`,
+`13c`, `13d`, `13f`, `19`) reads `$ctrl_core` directly; every flow-tier file
+(`20`–`26`) reads `$ctrl_flow` (the entry-dated version of the same set,
+built in `18_transforms.do`) as its outcome-model controls and `$ctrl_core`
+(row-dated) as its propensity/robustness set. There is no longer a separate
+onset-tier vs. flow-tier control set — a prior version of this project kept
+two (`$ctrl_core` for onset, `$ctrl_core_flowbase` for flow), and the two
+have since been unified into one, on the explicit basis that the flow
+tier's own reasoning for each swap (below) is not actually flow-specific —
+it applies equally to why the term belongs in the control set at all.
+
+Five of the eight terms map one-to-one (or near it) to the reference paper:
 
 | Ours | Theirs | Content |
 |---|---|---|
 | `l1_gdpg` | `gdpg2` | lagged real GDP growth |
 | `l_govexp` | `gov_exp2` | government expenditure / GDP, t−1 |
 | `l_open` | `open2` | trade openness, t−1 |
-| `l_banking_duration` | `banking_duration2` | years a Laeven–Valencia banking crisis has run, t−1 |
 | `l_credit_bank` | `credit_bank2` | bank credit to the private sector / GDP, t−1 |
-| `l_hyperinfl` | `hyperinf_dummy` | hyperinflation flag, t−1 |
+| `exchange2` | `ex_dum1`–`ex_dum5` | nominal exchange-rate depreciation, t−1 (continuous here, quintile bins theirs) |
 
 Three differences, each a choice with a reason:
 
-**We add `l_debt` and `l_ca`; they have neither.** Deliberate. Their
-treatment is a restructuring; ours is a market-priced spread crossing a
-threshold, and public debt and the external position are precisely what
-that spread is priced off. Omitting them would leave the most direct
-determinants of the treatment out of the conditioning set.
+**We add `l_debt`; they have none.** Deliberate. Their treatment is a
+restructuring; ours is a market-priced spread crossing a threshold, and
+public debt is precisely what that spread is priced off. Omitting it would
+leave the most direct determinant of the treatment out of the conditioning
+set.
 
-**We lack their `ex_dum1`–`ex_dum5` here; they have five.** Their bins are
-quintiles of `ln(1+L.exchange) − ln(1+L2.exchange)`, cut at the p5/p25/p50/
-p75/p95 of the restructuring sample. This is a nominal-depreciation
-control, and depreciation is bundled with default in ways that matter. This
-was originally described as a genuine gap due to a data limitation — the
-panel carried no nominal exchange-rate series. That limitation no longer
-holds: `data/raw/officialexchangerate.xlsx` was added, and `exchange2`
-(`ln(1+L.exch) − ln(1+L2.exch)`, the continuous precursor to their own
-bins) is built in `18_transforms.do`. It has been **adopted into the
-FLOW tier's core control set** (`$ctrl_core_flowbase`, replacing `tot_chg`)
-on literature-fidelity grounds — their own `$convar` carries exchange-rate
-depreciation as a baseline control, terms-of-trade is not in their
-`$convar` at all — even though this project's own outcome-equation test
-found `exchange2` individually significant at only one of five horizons,
-against `tot_chg`'s four of five (see that file's header, "THE FOURTH
-SWAP," for both sides of that tradeoff stated explicitly). Their literal
-`ex_dum1`–`ex_dum5` bins were tried first and rejected: on this project's
-much smaller panel they separate (zero outcome variation in the extreme
-bins), the same failure mode documented for `past_def_onsets` and country
-fixed effects elsewhere in this file. `$ctrl_core` itself — the ONSET
-tier's control set, used in `02`/`03`/`08b`/`11`/`12`/`13c`/`13d` — is
-UNCHANGED and still has no exchange-rate term; this adoption is flow-tier
-only, and the gap noted here remains real for the onset tier specifically.
+**`l_banking_crisis` (systemic banking-crisis dummy) in place of
+`banking_duration2`/`l_banking_duration` (years the crisis has run).** The
+duration form was this project's own original choice; the dummy form is
+adopted now because it is closer to what the reference paper's own variable
+actually is (a binary Laeven–Valencia flag, not a running count), and
+because a duration counter creates an unnecessary continuous tail on a
+variable that is conceptually a state indicator.
+
+**`l_lninfl` (continuous log inflation) in place of `hyperinf_dummy`/
+`l_hyperinfl` (threshold dummy).** Not a fidelity choice — a correction.
+`21_aipw_flow.do`'s diagnostic history found `l_hyperinfl` driving
+quasi-complete separation in a propensity model on its own: a binary flag
+that is 1 almost exclusively on default-linked country-years functions
+close to a near-perfect predictor of the def arm by construction, not a
+genuine covariate. `l_lninfl` (`ln(1+L.infl/100)`) keeps the same
+underlying inflation information as a continuous variable, which cannot by
+itself perfectly separate treated from control the way a threshold dummy
+can. Whether this same separation risk also affects the onset-tier AIPW
+files (`08b`/`13c`/`13d`) specifically is a question this swap answers for
+the flow tier by removing the risk; it should be checked directly for the
+onset tier too, not assumed clean by extension.
+
+**`exchange2` in place of `l_ca` (current account).** On LITERATURE
+grounds, not empirical performance — state both sides plainly. The
+reference paper's own `$convar` carries exchange-rate depreciation as a
+baseline control (their `ex_dum1`–`ex_dum5`); the current account is not in
+`$convar` at all. `exchange2` (`ln(1+L.exch) − ln(1+L2.exch)`, built in
+`18_transforms.do` once `data/raw/officialexchangerate.xlsx` was added) is
+used rather than their literal quintile bins because the bins separate on
+this project's much smaller panel (zero outcome variation in the extreme
+bins — the same failure mode documented for `past_def_onsets` and country
+fixed effects elsewhere in this file), so the continuous level is the
+workable proxy, not a literal reproduction of their construction. The
+empirical caveat, stated rather than hidden: this project's own
+outcome-equation test found `exchange2` individually significant at only
+one of five horizons, against `tot_chg` (terms-of-trade log-change, this
+project's own earlier addition, never in the reference paper's `$convar`)
+at four of five — `tot_chg` remains available as a robustness-tier
+alternative (`$ctrl_core_flowplus`) rather than folded into the core, since
+`exchange2` is the term with the literature-fidelity claim, not the
+empirical-performance one.
+
+**Consequence for every published number, stated plainly.** Unifying the
+control set changes Table 1, Table 2, Table 3, the AIPW tables
+(`08b`/`13c`/`13d`), and every channel table (`11`/`12`), not just the flow
+tier's — every one of those numbers moves relative to what this project
+reported under the prior two-control-set design, because the regression's
+own control set changed. That is the intended effect of the unification,
+not a side effect to correct for.
 
 **The own-outcome pre-trend plays the same role in both.** Their `g'v'_0`
 is rebuilt per outcome as `L.var'v' - L2.var'v'`; our per-channel

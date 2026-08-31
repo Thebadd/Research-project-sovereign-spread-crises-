@@ -74,7 +74,7 @@
   WHICH CONTROL SET GOES WHERE — AND WHY THEY DIFFER
   --------------------------------------------------
   Eq. (1) outcome model:  $ctrl_flow          (episode-dated, epc_*)
-  Eq. (2) propensity:     $ctrl_core_flowbase (row-dated) via `cx_active' — see
+  Eq. (2) propensity:     $ctrl_core (row-dated) via `cx_active' — see
                           "ADOPTED FLOW-TIER CORE CONTROL SET" below.
 
   The row-dated/episode-dated split described next is not an oversight. epc_X is built as
@@ -202,7 +202,7 @@
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 sort cid year
 xtset cid year
 
@@ -232,7 +232,7 @@ if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
 * adopted core control set (l_banking_crisis, l_lninfl, exchange2 in place
 * of l_banking_duration, l_hyperinfl, l_ca/tot_chg), or the alternate (core
 * + l_imf) if toggled.
-local cx_active = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowplus", "$ctrl_core_flowbase")  // Eq. (2) baseline: row-dated, ADOPTED set
+local cx_active = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowplus", "$ctrl_core")  // Eq. (2) baseline: row-dated, ADOPTED set
 local com    = cond(`flow_ctrl_variant'==1, "$ctrl_flow_flowplus", "$ctrl_flow")    // Eq. (1) controls: episode-dated (already the adopted set via 18_transforms.do)
 * cz_recency: the adopted predictor set -- l_contagion_dist in place of
 * l_reg_crisis_share, years_since_def_onset in place of past_def_onsets.

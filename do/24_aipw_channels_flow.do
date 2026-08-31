@@ -133,7 +133,7 @@
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 sort cid year
 xtset cid year
 
@@ -184,7 +184,7 @@ local epc_lc epc_l_credit_bank
 local epc_lg epc_l_govexp
 
 * CONTROL SET. flow_ctrl_variant: 0 = the ADOPTED flow-tier baseline,
-* $ctrl_flow, built in 18_transforms.do from $ctrl_core_flowbase
+* $ctrl_flow, built in 18_transforms.do from $ctrl_core
 * (l_banking_duration -> the l_banking_crisis DUMMY, l_ca -> tot_chg -> exchange2,
 * l_hyperinfl -> l_lninfl -- see that file's "ADOPTED FLOW-TIER CORE CONTROL
 * SET"). 1 = the adopted core PLUS the reference paper's own additional
@@ -214,7 +214,7 @@ local ctrl_fdi         `ctrl_flow_base' epc_pre_fdi
 * `cx_active' is the row-dated propensity control set: the flow tier's
 * adopted core control set (or the alternate, if toggled). Same
 * construction as 21_aipw_flow.do's.
-local cx_active = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowplus", "$ctrl_core_flowbase")  // Eq. (2): row-dated, ADOPTED set
+local cx_active = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowplus", "$ctrl_core")  // Eq. (2): row-dated, ADOPTED set
 * cz_recency: the adopted predictor set -- l_contagion_dist (distance-weighted,
 * CEPII great-circle) in place of l_reg_crisis_share, years_since_def_onset in
 * place of past_def_onsets. See 21_aipw_flow.do's header for the full note.

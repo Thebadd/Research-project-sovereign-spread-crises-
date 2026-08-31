@@ -52,7 +52,7 @@
         unchanged) -- adopted for being a better, independently-motivated
         predictor, not as a variance fix. See 21_aipw_flow.do's header,
         "PREDICTOR CHANGE," for the full note.
-    BASELINE CONTROLS: $ctrl_core_flowbase -- the SAME row-dated ADOPTED set
+    BASELINE CONTROLS: $ctrl_core -- the SAME row-dated ADOPTED set
         21_aipw_flow.do's `cx_active' uses for Eq. (2) (NOT $ctrl_flow/epc_*,
         which 21_aipw_flow.do's header explains cannot be used in the probit:
         epc_X differs from X only on continuation rows, so it would
@@ -61,7 +61,7 @@
   Diagnostic rows (source Table 1's bottom block):
     Chi2 (predictors)      — joint Wald test that the 3 predictors are all zero
     p-value                — of that test
-    AUROC, controls only   — lroc on a probit with ONLY $ctrl_core_flowbase, no predictors
+    AUROC, controls only   — lroc on a probit with ONLY $ctrl_core, no predictors
     AUROC, with predictors — lroc on the full model
     Observations
 
@@ -95,7 +95,7 @@
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 
 foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def_onset l_contagion_dist {
     capture confirm variable `v', exact
@@ -106,7 +106,7 @@ foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def
 }
 
 * CONTROL SET. flow_ctrl_variant: 0 = the ADOPTED flow-tier baseline,
-* $ctrl_core_flowbase (18_transforms.do's "ADOPTED FLOW-TIER CORE CONTROL
+* $ctrl_core (18_transforms.do's "ADOPTED FLOW-TIER CORE CONTROL
 * SET": l_banking_crisis, l_lninfl, exchange2 in place of l_banking_duration,
 * l_ca/tot_chg, l_hyperinfl). 1 = the adopted core PLUS two further
 * candidates, tot_chg (the term exchange2 replaced) and l_imf
@@ -118,7 +118,7 @@ if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
     di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0."
     exit 111
 }
-local X = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowplus", "$ctrl_core_flowbase")
+local X = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowplus", "$ctrl_core")
 * l_contagion_dist (distance-weighted, CEPII great-circle) in place of
 * l_reg_crisis_share (flat regional share) -- matches 21_aipw_flow.do's
 * cz_recency, "SECOND PREDICTOR CHANGE".

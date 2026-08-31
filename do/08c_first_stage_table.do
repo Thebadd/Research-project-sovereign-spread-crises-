@@ -17,7 +17,7 @@
         past_def_onsets (count of past DEFAULT-linked onsets).
     BASELINE CONTROLS (the SAME $ctrl_core used in the LP/AIPW outcome eq. —
         strict parity with the reference paper's $convar-in-both design):
-        l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl
+        l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2
 
   Diagnostic rows (their Table 1 bottom block):
     Chi2 (predictors)  — joint Wald test that the 4 predictors are all zero
@@ -76,19 +76,19 @@ capture esttab fs_all fs_nd fs_def using "$tabs/table_first_stage.rtf", replace 
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
     mtitles("All onsets" "Non-default" "Default-linked") ///
     order(l_fedfunds l_reg_crisis_share past_onsets past_def_onsets ///
-          l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl) ///
+          l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2) ///
     coeflabel(l_fedfunds "US fed funds rate (t-1)" ///
               l_reg_crisis_share "Regional contagion (t-1)" ///
               past_onsets "Past onsets (any type)" ///
               past_def_onsets "Past default-linked onsets" ///
               l1_gdpg "GDP growth (t-1)" ///
               l_debt "Public debt / GDP (t-1)" ///
-              l_ca "Current account / GDP (t-1)" ///
-              l_banking_duration "Banking crisis: years so far (t-1)" ///
+              l_banking_crisis "Systemic banking-crisis dummy (t-1)" ///
               l_govexp "Govt expenditure / GDP (t-1)" ///
               l_open "Trade openness (t-1)" ///
               l_credit_bank "Private credit by banks / GDP (t-1)" ///
-              l_hyperinfl "Hyperinflation dummy (t-1)") ///
+              l_lninfl "Log inflation, continuous (t-1)" ///
+              exchange2 "Nominal exchange-rate log-change (t-1)") ///
     refcat(l_fedfunds "Predictors" l1_gdpg "Baseline controls", nolabel) ///
     stats(chi2p pp auroc N, ///
           labels("Chi-squared (predictors)" "  p-value" "Area under ROC curve" "Observations") ///

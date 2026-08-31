@@ -33,7 +33,7 @@
 
 use "$clean/panel_lp.dta", clear
 * safety: define the common core if this file is run standalone (master/18 also set it)
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 sort cid year
 xtset cid year
 
@@ -61,7 +61,7 @@ local cz_def l_fedfunds l_reg_crisis_share past_def_onsets   // Act 2 predictors
 * two correlate 0.950. The swap was costing observations, not saving them, so
 * the core now carries l_credit_bank everywhere and this file needs no exception.
 * Both are plain saved columns, so the bootstrap stays operator-free either way.
-local core_aipw l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl
+local core_aipw l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2
 
 * ── Build channel outcomes ch_v_h = F h.v - L.v (h=0..4) ─────────────────────
 * OUTCOME SCALE. Strictly-positive GDP-ratio channels use the LOG REAL LEVEL
@@ -310,10 +310,13 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
     * channel-specific OUTCOME-model controls (pre-lagged plain columns)
     * AIPW outcome core ($core_aipw = the common core, depth term l_credit_bank) +
     * channel's own pre_<v>; drop the core term equal to the channel's own lagged
-    * level (credit->the depth term, govexp->l_govexp, ca->ca).
-    if      "`ch'" == "credit"            local om l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_hyperinfl pre_credit
-    else if "`ch'" == "govexp"            local om l1_gdpg l_debt l_ca l_banking_duration l_open l_credit_bank l_hyperinfl pre_govexp
-    else if "`ch'" == "ca"                local om l1_gdpg l_debt l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl pre_ca
+    * level (credit->the depth term, govexp->l_govexp). "ca" needed no special
+    * case even before the core control set was unified project-wide (l_ca was
+    * a core term then; it no longer is, replaced by exchange2, which is a
+    * different variable than the current account and carries no tautology
+    * risk for the ca outcome) -- it now falls through to the `else' branch.
+    if      "`ch'" == "credit"            local om l1_gdpg l_debt l_banking_crisis l_govexp l_open l_lninfl exchange2 pre_credit
+    else if "`ch'" == "govexp"            local om l1_gdpg l_debt l_banking_crisis l_open l_credit_bank l_lninfl exchange2 pre_govexp
     else                                  local om `core_aipw' pre_`ch'
 
     di as result _n "=== CHANNEL: `ch' ==="

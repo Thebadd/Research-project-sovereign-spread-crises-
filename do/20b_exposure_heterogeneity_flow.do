@@ -127,7 +127,7 @@
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 sort cid year
 xtset cid year
 
@@ -183,7 +183,7 @@ foreach e of local expvars {
 local expvars `expok'
 
 * CONTROL SET. flow_ctrl_variant: 0 = the ADOPTED flow-tier baseline,
-* $ctrl_flow, built in 18_transforms.do from $ctrl_core_flowbase
+* $ctrl_flow, built in 18_transforms.do from $ctrl_core
 * (l_banking_duration -> the l_banking_crisis DUMMY, l_ca -> tot_chg -> exchange2,
 * l_hyperinfl -> l_lninfl -- see that file's "ADOPTED FLOW-TIER CORE CONTROL
 * SET"). 1 = the adopted core PLUS the reference paper's own additional

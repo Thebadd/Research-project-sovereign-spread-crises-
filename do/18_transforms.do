@@ -170,7 +170,10 @@ label var l_banking_crisis      "L1 systemic banking-crisis dummy (robustness al
 label var l_banking_duration    "L1 years the banking crisis had already lasted (predetermined) - COMMON CORE"
 label var l_banking_duration_total "L1 total banking-crisis length (robustness alt., not in core)"
 
-global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
+* $ctrl_core's real, asserted definition lives further down this file, after
+* exchange2 (one of its terms) is built and confirmed to exist -- see
+* "CORE CONTROL SET" below. Nothing between here and there depends on
+* $ctrl_core being set yet.
 
 * ── ROBUSTNESS-tier controls (Asonuma additional controls; NOT in the core) ──
 *   terms-of-trade change and nominal-FX-change quantile dummies, built the
@@ -337,91 +340,87 @@ label var nd_ep "Resolution type of the episode, filled to all its years (1=non-
 * The reference paper never faces this because every one of its treated rows is
 * an onset, so its L./L2. controls are predetermined by construction. Dating
 * the controls at the EPISODE's entry year reproduces exactly that timing:
-* the flow tier's core set as it stood the year before the episode began,
-* held fixed for all of its years; tranquil rows keep their own t-1, which is
+* the core control set as it stood the year before the episode began, held
+* fixed for all of its years; tranquil rows keep their own t-1, which is
 * predetermined for them trivially. Onset rows are unchanged, since for them
 * t-1 IS the entry year — so the onset and flow specifications share an
 * identical control set at Year 1 and their Year-1 coefficients are directly
-* comparable (see the row-dated $ctrl_core robustness column, however, for
-* the caveat that the flow tier's ADOPTED set is no longer identical to
-* $ctrl_core term-for-term — see "ADOPTED FLOW-TIER CORE CONTROL SET" below).
+* comparable (see the row-dated $ctrl_core robustness column in the flow
+* files for the plain, non-entry-dated version of the same set).
 *
 * Same construction as Callaway & Sant'Anna (2021), who measure covariates in
 * each cohort's pre-treatment period for this reason.
 *
-* $ctrl_flow is the flow BASELINE; $ctrl_core is retained as the row-dated
-* robustness column in 20_lp_flow.do, so the table shows what the choice costs.
+* $ctrl_flow is the flow BASELINE (entry-dated); $ctrl_core (row-dated) is
+* retained as the robustness column in 20_lp_flow.do, so the table shows
+* what the entry-dating choice costs.
 *
 * ══════════════════════════════════════════════════════════════════════════
-* ADOPTED FLOW-TIER CORE CONTROL SET — $ctrl_core_flowbase / $ctrl_flow
+* CORE CONTROL SET — $ctrl_core / $ctrl_flow
 *
-* Four swaps relative to $ctrl_core:
+* Used PROJECT-WIDE: every onset-tier file (02, 03, 06, 07, 08, 08b, 11,
+* 11b, 12, 12b, 13, 13b, 13c, 13d, 13f, 19) reads $ctrl_core directly
+* (row-dated, plain L. lags); every flow-tier file (20-26) reads $ctrl_flow
+* (this set, entry-dated) as its outcome-model controls and $ctrl_core
+* (row-dated) as its propensity/robustness set. One control-set definition,
+* not two parallel ones.
+*
+* Three swaps relative to the set this project used before this adoption
+* (l1_gdpg, l_debt, l_ca, l_banking_duration, l_govexp, l_open,
+* l_credit_bank, l_hyperinfl):
 *   l_banking_duration (years-so-far)   -> l_banking_crisis (0/1 dummy)
-*   l_ca (current account)              -> tot_chg (terms-of-trade log-change)
 *   l_hyperinfl (L.infl>50 dummy)       -> l_lninfl (continuous log inflation)
-*   tot_chg (terms-of-trade log-change) -> exchange2 (log FX change)
-* The third swap was added after 21_aipw_flow.do's diagnostic history (its
-* def-arm probit coefficient tables, Sections 1d/1e) repeatedly showed
-* l_hyperinfl driving quasi-complete separation on its own -- a binary flag
-* that is 1 almost exclusively on default-linked country-years functions
-* close to a near-perfect predictor of the def arm by construction, not a
-* genuine covariate. l_lninfl (= ln(1+L.infl/100), already built above as a
-* robustness alternative, not previously in the core) keeps the same
-* underlying inflation information as a continuous variable, which cannot
-* by itself perfectly separate treated from control the way a threshold
-* dummy can.
+*   l_ca (current account)              -> exchange2 (log FX change)
+* The second swap was made after 21_aipw_flow.do's diagnostic history (its
+* def-arm probit coefficient tables) repeatedly showed l_hyperinfl driving
+* quasi-complete separation on its own -- a binary flag that is 1 almost
+* exclusively on default-linked country-years functions close to a
+* near-perfect predictor of the def arm by construction, not a genuine
+* covariate. l_lninfl (= ln(1+L.infl/100), already built above as a
+* robustness alternative before this adoption) keeps the same underlying
+* inflation information as a continuous variable, which cannot by itself
+* perfectly separate treated from control the way a threshold dummy can.
 *
-* THE FOURTH SWAP, tot_chg -> exchange2, IS ON LITERATURE GROUNDS, NOT
+* THE THIRD SWAP, l_ca -> exchange2, IS ON LITERATURE GROUNDS, NOT PURELY
 * EMPIRICAL PERFORMANCE -- state both sides plainly. The reference paper's
 * own $convar carries exchange-rate depreciation (their ex_dum1-ex_dum5
-* percentile bins) as a BASELINE control; terms-of-trade is not in their
-* $convar at all -- tot_chg was this project's own addition
-* (METHODOLOGY.md section 4 documents $convar verbatim; this file's own
-* "ROBUSTNESS-tier controls" comment above already flagged tot_chg as
-* "Asonuma additional... NOT in the core"). exchange2 (the continuous log FX
-* change) is used here rather than their literal ex_dum1-ex_dum5 bins:
+* percentile bins) as a baseline control; the current account is not in
+* their $convar at all. exchange2 (the continuous log FX change) is used
+* here rather than their literal ex_dum1-ex_dum5 bins:
 * 21b_first_stage_table_flow.do's flow_ctrl_variant testing found the bins
 * separate on this project's much smaller panel exactly the way country FE
 * and past_def_onsets did (ex_dum1, and in the def arm ex_dum2 as well, have
 * zero outcome variation and Stata drops the dummy and every row in the bin
 * automatically), so the continuous level is the workable proxy, not a
-* literal reproduction of their construction.
-* THE EMPIRICAL CAVEAT, STATED RATHER THAN HIDDEN: 20_lp_flow.do's own
-* outcome-equation test of this swap (before it was adopted) found
-* epc_exchange2 NOT individually significant at any horizon under
-* drop_year_fe=1 (p=.33-.93) and significant at only one of five horizons
-* under the project's actual year-FE baseline (h=5, p=.037), while tot_chg
-* in the same role was significant at 4 of 5 horizons (p<.05 at h=2,3,4,5).
-* Dropping tot_chg also shifted the in_crisis coefficient itself
-* systematically more negative at every horizon (roughly -0.5 to -2 pp),
-* consistent with tot_chg absorbing real confounding that now loads onto
-* the treatment estimate instead. This swap is adopted despite that
-* evidence, on the explicit basis that matching the reference paper's own
-* baseline control choice takes priority over this project's own outcome-
-* equation significance test for this specific term -- a literature-fidelity
-* decision, not an empirical one, and the write-up should say so exactly
-* this plainly rather than presenting exchange2 as empirically superior.
+* literal reproduction of their construction. tot_chg (terms-of-trade
+* log-change, this project's own earlier addition, never in the reference
+* paper's $convar) is available as a robustness-tier alternative to
+* exchange2 (see $ctrl_core_flowplus below) rather than folded into the
+* core, since exchange2 is the term with the literature-fidelity claim.
 *
-* l1_gdpg, l_debt, l_govexp, l_open and l_credit_bank are unchanged. This is
-* the FLOW TIER'S ACTUAL DEFAULT -- not exploratory -- so $ctrl_flow below is
-* built from this set, not from $ctrl_core. $ctrl_core itself is UNCHANGED
-* and untouched: every onset-tier file (02, 03, 08b, 11, 12, 13c, 13d) reads
-* it directly and their identity checks depend on it matching their own
-* published numbers exactly, which this adoption has no reason to disturb.
-* $ctrl_core remains available as the row-dated robustness column in the
-* flow files that report one (20_lp_flow.do's r_rowdated).
+* CONSEQUENCE FOR EVERY PUBLISHED NUMBER, STATED PLAINLY: this control set
+* now governs Table 1, Table 2, Table 3, the AIPW tables (08b/13c/13d), and
+* every channel table (11/12), not just the flow tier -- every one of those
+* numbers changes relative to what this project reported before this
+* adoption, because the regression's own control set changed. That is the
+* intended effect of unifying the control set, not a side effect to correct.
+* Whether l_hyperinfl's known separation risk in the FLOW AIPW's propensity
+* model also affects the ONSET-tier AIPW files (08b/13c/13d) is a separate
+* empirical question this adoption does not by itself answer -- it removes
+* a KNOWN risk in one place, and the onset-tier propensity models should be
+* checked directly (not assumed clean) after this change.
 * ══════════════════════════════════════════════════════════════════════════
 capture confirm variable exchange2
 if _rc {
-    di as error "  ** exchange2 not built (exch missing) -- \$ctrl_core_flowbase needs it as an"
-    di as error "     ADOPTED term now, not an optional one. Add data/raw/officialexchangerate.xlsx"
+    di as error "  ** exchange2 not built (exch missing) -- \$ctrl_core needs it as a"
+    di as error "     core term now, not an optional one. Add data/raw/officialexchangerate.xlsx"
     di as error "     and re-run 01_build_panel.do/12_wdi.do before this file."
     exit 111
 }
-global ctrl_core_flowbase "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
+global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 
 global ctrl_flow ""
-foreach X of global ctrl_core_flowbase {
+foreach X of global ctrl_core {
     capture drop epc_`X' _ent_`X'
     quietly bysort cid ep_seq: egen double _ent_`X' = max(cond(onset_all==1, `X', .))
     quietly gen double epc_`X' = cond(in_crisis==1, _ent_`X', `X')
@@ -432,60 +431,21 @@ foreach X of global ctrl_core_flowbase {
 di as result "  FLOW: episode-dated control set built -> $ctrl_flow"
 
 * Onset rows must be untouched by the re-dating: for them t-1 IS the entry year.
-* Loops over $ctrl_core_flowbase, NOT $ctrl_core -- epc_* is only built for
-* the flowbase set's members (l_ca and l_banking_duration no longer have an
-* epc_ counterpart at all, since they are not part of the flow tier's
-* adopted set any more).
 local nbad = 0
-foreach X of global ctrl_core_flowbase {
+foreach X of global ctrl_core {
     quietly count if onset_all==1 & carryin==0 & !missing(`X') & abs(epc_`X' - `X') > 1e-9
     local nbad = `nbad' + r(N)
 }
 if `nbad' != 0 di as error "  ** FLOW: episode-dated controls differ from row-dated on `nbad' ONSET rows — ep_seq is wrong"
 else           di as result "  FLOW: episode-dated controls match row-dated on every onset row (correct)"
 
-* ── ORPHANED $ctrl_core TERMS: entry-dated counterparts kept for HISTORY ────
-* l_ca, l_banking_duration, l_hyperinfl are no longer part of
-* $ctrl_core_flowbase (see "ADOPTED FLOW-TIER CORE CONTROL SET" above), so
-* the main $ctrl_flow loop no longer builds epc_ versions of them. But
-* 21_aipw_flow.do's FROZEN historical diagnostics (`cx' = $ctrl_core,
-* Section 1c's entry-dated `cxe' test specifically) still need entry-dated
-* counterparts of the FULL original $ctrl_core to stay reproducible exactly
-* as documented -- built here, separately, so removing these three terms
-* from the ADOPTED set does not silently break that history.
-local _orphaned_core l_ca l_banking_duration l_hyperinfl
-foreach X of local _orphaned_core {
-    capture drop epc_`X' _ent_`X'
-    quietly bysort cid ep_seq: egen double _ent_`X' = max(cond(onset_all==1, `X', .))
-    quietly gen double epc_`X' = cond(in_crisis==1, _ent_`X', `X')
-    label var epc_`X' "`X' at episode entry (tranquil rows keep own t-1) -- HISTORY ONLY, not in the adopted set"
-    quietly drop _ent_`X'
-}
-di as result "  HISTORY: entry-dated counterparts built for orphaned \$ctrl_core terms"
-di as result "           (l_ca, l_banking_duration, l_hyperinfl) -- 21_aipw_flow.do's"
-di as result "           frozen diagnostics only, not part of \$ctrl_flow/\$ctrl_core_flowbase."
-
 * ══════════════════════════════════════════════════════════════════════════
-* ALTERNATE FLOW CONTROL SET — $ctrl_core_flowplus / $ctrl_flow_flowplus
+* ALTERNATE (BIGGER) CONTROL SET — $ctrl_core_flowplus / $ctrl_flow_flowplus
 *
-* The bigger, unrelated exploratory alternate that used to live here (drops
-* l_debt/l_ca, swaps banking-crisis DURATION for the DUMMY, adds the
-* exchange rate level-change and terms of trade) has been REMOVED at the
-* user's request -- it is no longer a toggle option anywhere.
-*
-* exchange2 (continuous log FX change) used to be this alternate's own
-* addition; it has since been ADOPTED into $ctrl_core_flowbase itself (see
-* that block's header, "THE FOURTH SWAP"), so it is no longer a
-* differentiator here. This set is now the adopted core PLUS two remaining
-* candidates:
-*   - tot_chg: terms-of-trade log-change, the term exchange2 REPLACED in the
-*     adopted core. Kept available here rather than discarded: the fourth
-*     swap was made on literature-fidelity grounds despite tot_chg
-*     outperforming exchange2 empirically as an outcome-equation control
-*     (20_lp_flow.do's retired diagnostic found it significant at 4 of 5
-*     horizons vs exchange2's 1 of 5) -- this lets that empirical strength
-*     be tested back in ALONGSIDE exchange2, rather than forcing a choice
-*     between the two.
+* Core PLUS two candidates not folded into the core itself:
+*   - tot_chg: terms-of-trade log-change, the term exchange2 was preferred
+*     over on literature-fidelity grounds (see "CORE CONTROL SET" above) --
+*     kept available here so that choice can be tested rather than forced.
 *   - l_imf: an IMF-supported-program dummy, lagged (predetermined). `imf' is
 *     already in panel_build.dta (01_build_panel.do); this is the first place
 *     it is lagged and entry-dated for use as a CONTROL rather than as the
@@ -496,15 +456,15 @@ di as result "           frozen diagnostics only, not part of \$ctrl_flow/\$ctrl
 * contagion predictor if that data becomes available.
 *
 * NOT used anywhere by default. Selected via each flow file's
-* `flow_ctrl_variant' toggle (0=adopted core, 1=this set), default 0. Same
+* `flow_ctrl_variant' toggle (0=core, 1=this set), default 0. Same
 * episode-dating mechanism as $ctrl_flow above, just parameterised on a
 * different base list -- not a new pattern.
 * ══════════════════════════════════════════════════════════════════════════
-* The preceding bysort (ORPHANED $ctrl_core TERMS block above) re-sorts the
-* physical dataset by cid ep_seq as a side effect, same as every other
-* bysort/egen loop in this file -- L.imf then needs the data back in
-* cid year order to match what xtset declared, or it errors r(5) "not
-* sorted" (confirmed the hard way; belt-and-suspenders here as elsewhere).
+* The preceding bysort loop re-sorts the physical dataset by cid ep_seq as a
+* side effect, same as every other bysort/egen loop in this file -- L.imf
+* then needs the data back in cid year order to match what xtset declared,
+* or it errors r(5) "not sorted" (confirmed the hard way; belt-and-suspenders
+* here as elsewhere).
 sort cid year
 capture drop l_imf
 gen byte l_imf = L.imf
@@ -514,14 +474,14 @@ capture confirm variable tot_chg
 if _rc {
     di as error "  ** tot_chg not built (tot missing) -- \$ctrl_core_flowplus will exclude it."
     di as error "     add data/raw/termsoftrade.xlsx and re-run 01_build_panel.do first if wanted."
-    global ctrl_core_flowplus "$ctrl_core_flowbase l_imf"
+    global ctrl_core_flowplus "$ctrl_core l_imf"
 }
-else global ctrl_core_flowplus "$ctrl_core_flowbase tot_chg l_imf"
+else global ctrl_core_flowplus "$ctrl_core tot_chg l_imf"
 global ctrl_flow_flowplus ""
 foreach X of global ctrl_core_flowplus {
-    * Dropped SEPARATELY -- same reasoning as the FLOWALT block above:
-    * the 8 $ctrl_core_flowbase terms already have epc_ built from the
-    * $ctrl_flow loop, so only _ent_`X' is guaranteed absent for those.
+    * Dropped SEPARATELY: the 8 $ctrl_core terms already have epc_ built
+    * from the $ctrl_flow loop above, so only _ent_`X' is guaranteed absent
+    * for those (tot_chg/l_imf are new here and need both dropped).
     capture drop epc_`X'
     capture drop _ent_`X'
     quietly bysort cid ep_seq: egen double _ent_`X' = max(cond(onset_all==1, `X', .))
@@ -665,33 +625,32 @@ foreach v in dy_0 l1_gdpg debt ca infl l_hyperinfl l_lninfl imf credit fdi claim
 }
 
 * ── Inflation control: confirm the log transform tamed the tail ─────────────
-* $ctrl_core (onset tier) still carries l_hyperinfl. $ctrl_core_flowbase (the
-* flow tier's ADOPTED set) carries l_lninfl instead -- see 18's "ADOPTED
-* FLOW-TIER CORE CONTROL SET". These lines report how many observations trip
-* the 50% threshold and what the continuous alternative looks like, so the
-* choice stays visible in the run log for both tiers.
+* l_hyperinfl (the retired dummy) is kept built as a robustness alternative,
+* not part of $ctrl_core any more -- l_lninfl (continuous) is the core term
+* project-wide now, see "CORE CONTROL SET" above. These lines report how many
+* observations trip the 50% threshold and what the continuous alternative
+* looks like, so the choice stays visible in the run log.
 capture confirm variable l_lninfl
 if !_rc {
-    di as result _n "Inflation control (onset tier uses l_hyperinfl = L.infl > 50;"
-    di as result "                    flow tier uses l_lninfl, continuous):"
+    di as result _n "Inflation control (l_hyperinfl = L.infl > 50, robustness alt. only;"
+    di as result "                    l_lninfl, continuous, is the CORE term project-wide):"
     quietly count if l_hyperinfl==1 & sample==1
     di as result "    l_hyperinfl==1 in estimation sample: `r(N)'"
-    di as result "       (was 1 pre-rebuild, when the panel was truncated at 2018)"
     quietly summarize l_infl if sample==1, detail
     di as result "    raw  l_infl   median " %8.2f r(p50) "   max " %11.1f r(max)
     quietly summarize l_lninfl if sample==1, detail
     di as result "    log  l_lninfl median " %8.3f r(p50) "   max " %11.3f r(max) ///
-                 "  min " %8.3f r(min) "  (adopted, flow tier core)"
+                 "  min " %8.3f r(min) "  (core term, project-wide)"
 }
 
-* ── Flow-tier ADOPTED core set: distribution sanity check for every term ────
-* Verifies no term in $ctrl_core_flowbase has a tail extreme enough to worry
-* about (the reason l_hyperinfl -> l_lninfl and the raw ln(x/GDP) checks
-* exist above) -- printed rather than assumed, same standard applied to
-* inflation. min/max/skewness flagged if skewness exceeds 3 in absolute
-* value, an informal threshold, not a hard rule.
-di as result _n "Flow-tier ADOPTED core set ($ctrl_core_flowbase) — distribution check:"
-foreach X of global ctrl_core_flowbase {
+* ── Core control set: distribution sanity check for every term ─────────────
+* Verifies no term in $ctrl_core has a tail extreme enough to worry about
+* (the reason l_hyperinfl -> l_lninfl and the raw ln(x/GDP) checks exist
+* above) -- printed rather than assumed, same standard applied to inflation.
+* min/max/skewness flagged if skewness exceeds 3 in absolute value, an
+* informal threshold, not a hard rule.
+di as result _n "Core control set (\$ctrl_core) — distribution check:"
+foreach X of global ctrl_core {
     quietly summarize `X' if sample_flow==1, detail
     if r(N) > 0 {
         local skew = cond(r(sd) > 0, ///

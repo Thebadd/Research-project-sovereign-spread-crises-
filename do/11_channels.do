@@ -27,7 +27,7 @@
 
   CONTROLS (uniform common core, Asonuma-aligned):
   -----------------------------------------------
-  $ctrl_core = l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank
+  $ctrl_core = l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2
                l_hyperinfl      (+ each channel's own pre_<v>)
   The core term equal to a channel's own lagged level is dropped from its own
   regression (credit -> the depth term; govexp -> l_govexp). Global time-series
@@ -41,7 +41,7 @@
 
 use "$clean/panel_lp.dta", clear
 * safety: define the common core if this file is run standalone (master/18 also set it)
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 sort cid year
 xtset cid year
 
@@ -89,7 +89,7 @@ foreach var in credit claims_govt inv govexp pb fdi {
 /*
   CONTROL SET (uniform across all six channels):
   ----------------------------------------------
-  $ctrl_core = l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank
+  $ctrl_core = l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2
                l_hyperinfl   + each channel's own pre_<v> (Asonuma g_0).
   Rationale: pre-crisis GDP momentum, fiscal solvency (debt) and external
   balance (ca), banking distress, government spending, trade openness, private-
@@ -109,10 +109,10 @@ local channels credit claims_govt inv govexp pb fdi
 * outcome series (credit = all financial corps, l_credit_bank = banks only), but the
 * two correlate 0.950, so keeping it would be close to putting the lagged dependent
 * variable on the RHS. It stays dropped.
-local ctrl_credit      l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_hyperinfl pre_credit
+local ctrl_credit      l1_gdpg l_debt l_banking_crisis l_govexp l_open l_lninfl exchange2 pre_credit
 local ctrl_claims_govt $ctrl_core pre_claims_govt
 local ctrl_inv         $ctrl_core pre_inv
-local ctrl_govexp      l1_gdpg l_debt l_ca l_banking_duration l_open l_credit_bank l_hyperinfl pre_govexp
+local ctrl_govexp      l1_gdpg l_debt l_banking_crisis l_open l_credit_bank l_lninfl exchange2 pre_govexp
 local ctrl_pb          $ctrl_core pre_pb
 local ctrl_fdi         $ctrl_core pre_fdi
 
@@ -556,10 +556,10 @@ summarize ipw_ch if sample == 1, detail
 * outcome series (credit = all financial corps, l_credit_bank = banks only), but the
 * two correlate 0.950, so keeping it would be close to putting the lagged dependent
 * variable on the RHS. It stays dropped.
-local ctrl_credit      l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_hyperinfl pre_credit
+local ctrl_credit      l1_gdpg l_debt l_banking_crisis l_govexp l_open l_lninfl exchange2 pre_credit
 local ctrl_claims_govt $ctrl_core pre_claims_govt
 local ctrl_inv         $ctrl_core pre_inv
-local ctrl_govexp      l1_gdpg l_debt l_ca l_banking_duration l_open l_credit_bank l_hyperinfl pre_govexp
+local ctrl_govexp      l1_gdpg l_debt l_banking_crisis l_open l_credit_bank l_lninfl exchange2 pre_govexp
 local ctrl_pb          $ctrl_core pre_pb
 local ctrl_fdi         $ctrl_core pre_fdi
 

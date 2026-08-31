@@ -32,14 +32,14 @@
   file's header, "COUNTRY FE IN THE PROBIT — TESTED AND REJECTED"). There is
   therefore no "country FEs alone" curve available here. This file draws the
   two curves this project actually has and that 21b already reports as
-  numbers: CONTROLS ONLY ($ctrl_core_flowbase) vs CONTROLS + PREDICTORS
+  numbers: CONTROLS ONLY ($ctrl_core) vs CONTROLS + PREDICTORS
   (+ cz_recency) — the same aurocctrl/auroc pair from 21b's table, as a
   picture rather than two cells.
 
   SAMPLE AND MODELS — IDENTICAL TO 21b
   -------------------------------------
   sample_flow==1 & continuation==0, rival type dropped, pooled probit,
-  clustered SEs by country. `X' = $ctrl_core_flowbase (or the alternate, if
+  clustered SEs by country. `X' = $ctrl_core (or the alternate, if
   toggled — same toggle as 21b, kept in sync manually since this file does
   not source 21b). `Z' = cz_recency (l_fedfunds, l_contagion_dist,
   years_since_def_onset). The kernel density figure uses the FULL model's
@@ -77,7 +77,7 @@
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 
 foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def_onset l_contagion_dist {
     capture confirm variable `v', exact
@@ -97,7 +97,7 @@ if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
     di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0."
     exit 111
 }
-local X = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowplus", "$ctrl_core_flowbase")
+local X = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowplus", "$ctrl_core")
 local Z l_fedfunds l_contagion_dist years_since_def_onset
 
 local c_nd   "0 84 166"

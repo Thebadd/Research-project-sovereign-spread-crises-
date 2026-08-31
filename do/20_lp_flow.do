@@ -90,7 +90,7 @@
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_ca l_banking_duration l_govexp l_open l_credit_bank l_hyperinfl"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 sort cid year
 xtset cid year
 
@@ -213,7 +213,7 @@ if "$ctrl_flow" == "" {
 * and the write-up should quote it when setting the figures side by side rather
 * than attributing the whole difference to the estimator.
 * CONTROL SET. flow_ctrl_variant: 0 = the ADOPTED flow-tier baseline,
-* $ctrl_flow, built in 18_transforms.do from $ctrl_core_flowbase
+* $ctrl_flow, built in 18_transforms.do from $ctrl_core
 * (l_banking_duration swapped for the l_banking_crisis DUMMY, l_ca swapped
 * for tot_chg, tot_chg swapped for exchange2 -- see that file's "ADOPTED
 * FLOW-TIER CORE CONTROL SET"). 1 = the adopted core PLUS two further
@@ -236,7 +236,7 @@ if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
     exit 111
 }
 local controls  = cond(`flow_ctrl_variant'==1, "$ctrl_flow_flowplus", "$ctrl_flow")
-local ctrl_row  = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowplus", "$ctrl_core_flowbase")
+local ctrl_row  = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowplus", "$ctrl_core")
 
 * EXPLORATORY: set to 1 to drop year FE and match the reference paper's
 * single-stage rule (country FE only, via c1-c74) instead of this project's
@@ -339,14 +339,13 @@ forvalues h = 0/4 {
 * TWO VERSIONS ARE RUN, both testing the SAME thing: that flow-coded in_crisis
 * on sample==1 (which drops every continuation row) reproduces onset_all's
 * coefficient under the ACTIVE control set (`controls'/`ctrl_row', currently
-* the adopted $ctrl_flow/$ctrl_core_flowbase by default). This is now a pure
-* internal self-consistency check, NOT a literal match to 02_lp_all.do's
-* published Table 1 coefficient: since the flow tier's adopted core control
-* set (18_transforms.do's $ctrl_core_flowbase) swaps l_banking_duration for
-* l_banking_crisis and l_ca for tot_chg, it is no longer term-for-term
-* identical to 02's $ctrl_core. Both variants are still reported so a
-* failure localises to either the treatment/sample construction (variant i)
-* or something FE-specific (variant ii).
+* the adopted $ctrl_flow/$ctrl_core by default). Since $ctrl_core is now the
+* SAME control set project-wide (18_transforms.do's "CORE CONTROL SET" --
+* no longer a flow-specific variant), this IS once again a literal match to
+* 02_lp_all.do's published Table 1 coefficient on this restricted sample,
+* not merely an internal self-consistency check. Both variants are still
+* reported so a failure localises to either the treatment/sample
+* construction (variant i) or something FE-specific (variant ii).
 * ══════════════════════════════════════════════════════════════════════════
 di as result _n "════════════════════════════════════════════════════════════"
 di as result "2. IDENTITY CHECK — flow Year 1 on sample==1 must equal onset Year 1"
@@ -361,7 +360,7 @@ if r(N) != 0 {
 * where the entry year IS t-1. Checking that first isolates a failure to the
 * right place if the coefficient test below fails.
 local nredate = 0
-foreach X of global ctrl_core_flowbase {
+foreach X of global ctrl_core {
     capture confirm variable epc_`X', exact
     if _rc continue
     quietly count if sample==1 & !missing(`X') & abs(epc_`X' - `X') > 1e-9
@@ -538,11 +537,11 @@ forvalues h = 0/4 {
 *     in 2024-2025. This matters MORE under flow coding than for onsets, because
 *     long episodes run into the projection window at every horizon.
 *
-* (f) EXCHANGE-RATE SWAP — SETTLED, DIAGNOSTIC CODE REMOVED. tot_chg
-*     (terms-of-trade log-change) has been REPLACED by exchange2 (log FX
-*     change) inside $ctrl_core_flowbase itself (18_transforms.do, "THE
-*     FOURTH SWAP") -- no longer a robustness row here, because it is now
-*     the baseline every row in this section already runs under. The
+* (f) EXCHANGE-RATE SWAP — SETTLED, DIAGNOSTIC CODE REMOVED. l_ca
+*     (current account) has been REPLACED by exchange2 (log FX
+*     change) inside $ctrl_core itself (18_transforms.do, "CORE CONTROL
+*     SET," THE THIRD SWAP) -- no longer a robustness row here, because it
+*     is now the baseline every row in this section already runs under. The
 *     decision was made on LITERATURE grounds (the reference paper's own
 *     $convar carries exchange-rate depreciation as a baseline control;
 *     terms-of-trade was never in their $convar -- METHODOLOGY.md section 4),
