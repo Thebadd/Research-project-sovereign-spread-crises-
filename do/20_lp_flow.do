@@ -15,13 +15,8 @@
 
       dy_{i,t+h} = a_i + lambda_t + beta_h * Crisis_it + X_{i,t-1}'d + e
 
-  with Crisis_it = 1 for every year that independently clears the annual
-  crisis criterion (in_crisis, built in 18_transforms.do; redefined from
-  episode membership to the annual criterion — see that file's header). More
-  treated rows than the 61 onsets, though fewer than the old episode-
-  membership count, since the years that used to be bridged across a gap
-  below the criterion are now ordinary control years — see 18's own printed
-  redefinition diagnostic for the exact counts.
+  with Crisis_it = 1 for EVERY year of an episode, onset and continuation
+  alike (in_crisis, built in 18_transforms.do). 234 treated rows rather than 61.
 
   HOW TO READ beta_h — AND WHAT IT IS NOT
   ---------------------------------------
@@ -516,17 +511,13 @@ forvalues h = 0/4 {
 *     comparison is not confounded by a simultaneous change of inference.
 *     Also reported: country-clustered SEs, on 52 clusters.
 *
-* (b) TREATMENT DEFINITION. The baseline `in_crisis' is now the ANNUAL
-*     CRITERION (crisis_any==1 that year; redefined in 18_transforms.do). This
-*     row reports in_crisis_episode, the OLD episode-membership definition
-*     (onset_all|continuation), which bridges the 13 mid-episode years that fail
-*     the annual criterion back into the treated set instead of leaving them as
-*     controls. Reported so the choice — and its cost — stays visible; see
-*     18_transforms.do's header for the full redefinition rationale and the
-*     exact row-count delta it prints.
-*     Also: the gap years dropped entirely (neither treated nor control), to
-*     test whether using them as ordinary controls (the new baseline's choice)
-*     matters versus excluding them from the sample outright.
+* (b) TREATMENT DEFINITION. in_crisis_sp uses the annual criterion flag rather
+*     than episode membership, so the 13 mid-episode years below the threshold
+*     become CONTROLS. This is a different definition, not a weaker one: it
+*     contradicts the episode-dating rule and puts mid-episode years into the
+*     tranquil pool. Reported so the choice is visible.
+*     Also: the gap years dropped entirely (neither treated nor control), which
+*     asserts nothing about them and contaminates nothing.
 *
 * (c) CONTROL DATING. The baseline dates $ctrl_core at the episode's entry year.
 *     The row-dated version conditions every continuation row on covariates the
@@ -610,13 +601,12 @@ forvalues h = 0/4 {
     if _rc == 0 post `F' ("r_cluster") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
         (2*ttail(e(df_r), abs(_b[in_crisis]/_se[in_crisis]))) (.) (.) (e(N_clust)) (e(N))
 
-    * (b) treatment definition — OLD episode-membership definition, robustness/
-    *     historical comparison against the new annual-criterion baseline.
-    capture quietly xtscc dy_`h' in_crisis_episode `controls' `yearfe' if sample_flow==1, fe lag(`=max(2,`h'+3)')
-    if _rc == 0 post `F' ("r_episodedef") ("in_crisis_episode") (`hd') (_b[in_crisis_episode]) (_se[in_crisis_episode]) ///
-        (2*(1-normal(abs(_b[in_crisis_episode]/_se[in_crisis_episode])))) (.) (.) (.) (e(N))
+    * (b) treatment definition
+    capture quietly xtscc dy_`h' in_crisis_sp `controls' `yearfe' if sample_flow==1, fe lag(`=max(2,`h'+3)')
+    if _rc == 0 post `F' ("r_critflag") ("in_crisis_sp") (`hd') (_b[in_crisis_sp]) (_se[in_crisis_sp]) ///
+        (2*(1-normal(abs(_b[in_crisis_sp]/_se[in_crisis_sp])))) (.) (.) (.) (e(N))
 
-    capture quietly xtscc dy_`h' in_crisis `controls' `yearfe' if sample_flow==1 & gap_year_dropped==0, fe lag(`=max(2,`h'+3)')
+    capture quietly xtscc dy_`h' in_crisis `controls' `yearfe' if sample_flow==1 & gap_year==0, fe lag(`=max(2,`h'+3)')
     if _rc == 0 post `F' ("r_nogap") ("in_crisis") (`hd') (_b[in_crisis]) (_se[in_crisis]) ///
         (2*(1-normal(abs(_b[in_crisis]/_se[in_crisis])))) (.) (.) (.) (e(N))
 

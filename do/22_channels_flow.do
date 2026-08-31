@@ -108,10 +108,7 @@ foreach var of local channels {
     gen pre_`var' = L.`src' - L2.`src'
 
     * Episode-dated version of the channel's own pre-crisis change, same
-    * construction as $ctrl_flow's epc_* terms in 18_transforms.do. Unaffected
-    * by that file's annual-criterion redefinition of `in_crisis' -- the
-    * mechanism is identical, it just now entry-dates a somewhat smaller set of
-    * rows (the ~13 old gap-bridged rows are no longer in_crisis==1 at all).
+    * construction as $ctrl_flow's epc_* terms in 18_transforms.do.
     capture drop epc_pre_`var' _ent_pre_`var'
     quietly bysort cid ep_seq: egen double _ent_pre_`var' = ///
         max(cond(onset_all==1, pre_`var', .))
