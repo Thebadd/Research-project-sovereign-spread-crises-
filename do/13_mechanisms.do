@@ -100,13 +100,13 @@ foreach m in b_base lo90_base hi90_base b_clms lo90_clms hi90_clms {
 }
 
 forvalues h = 0/4 {
-    local lag = max(1, `h'+1)
     local row = `h' + 2
 
     * Baseline: bespoke credit-mechanism spec (not identical to 11_channels' core credit spec)
-    capture xtscc ch_credit_`h' onset_all ///
+    * Country FE only, no year FE, robust SE -- matches 02/03/11/12's switch.
+    capture xtreg ch_credit_`h' onset_all ///
         l1_gdpg l_debt l_banking_crisis l_govexp l_open l_lninfl exchange2 pre_credit ///
-        i.year if sample==1, fe lag(`lag')
+        if sample==1, fe vce(robust)
 
     if _rc == 0 {
         matrix b_base[`row',1]    = _b[onset_all]
@@ -117,9 +117,9 @@ forvalues h = 0/4 {
     }
 
     * With L.claims_govt added
-    capture xtscc ch_credit_`h' onset_all ///
+    capture xtreg ch_credit_`h' onset_all ///
         l1_gdpg l_debt l_banking_crisis l_govexp l_open l_lninfl exchange2 pre_credit L.claims_govt ///
-        i.year if sample==1, fe lag(`lag')
+        if sample==1, fe vce(robust)
 
     if _rc == 0 {
         matrix b_clms[`row',1]    = _b[onset_all]
@@ -201,7 +201,7 @@ twoway ///
            ring(0) pos(7) cols(1) size(small) region(lcolor(none) fcolor(none))) ///
     note("Blue = baseline credit spec. Red = adding lagged bank sovereign bond holdings." ///
          "If red line closer to zero → supply-side (portfolio substitution) channel." ///
-         "DK SE. Country & year FE.", size(vsmall)) ///
+         "Robust SE. Country FE only (no year FE).", size(vsmall)) ///
     graphregion(color(white)) plotregion(color(white))
 
 graph export "$figs/fig13a_credit_supply_demand.pdf", replace
@@ -275,29 +275,30 @@ di as result "TEST 3: CURRENT ACCOUNT LP (Aguiar-Gopinath mechanism)"
 di as result "  Prediction: CA moves toward surplus after onset (β > 0)"
 di as result "  Controls include L.ca to absorb CA persistence"
 di as result "========================================================"
-di as result "  The nd/def difference is tested with the Clogg et al. (1995) z, as in"
-di as result "  03_lp_resolution.do: the two coefficients come from ONE joint regression,"
-di as result "  so z = (b_def - b_nd)/sqrt(se_nd^2 + se_def^2), referred to the estimator's"
-di as result "  residual df. Without it the nd-vs-def comparison is an eyeballed gap."
-di as result "h    β_all    SE      β_nd     SE      β_def    SE     diff(def-nd)  z      p"
+di as result "  The nd/def difference is tested with the Wald F-statistic (test onset_nd ="
+di as result "  onset_def), matching 03_lp_resolution.do and the reference paper's own"
+di as result "  Table I1 convention: the two coefficients come from ONE joint regression,"
+di as result "  so their covariance is exactly estimable and test/lincom give the exact"
+di as result "  answer -- a Clogg z's independence assumption would only approximate it."
+di as result "h    β_all    SE      β_nd     SE      β_def    SE     diff(def-nd)  F      p"
 
 * Storage matrices
 foreach m in b_all lo90_all hi90_all b_nd lo90_nd hi90_nd b_def lo90_def hi90_def {
     matrix `m' = J(6,1,0)
 }
-* difference block (def - nd) with its Clogg z and p-value
+* difference block (def - nd) with its Wald F-statistic and p-value
 matrix ca_diff = J(6,1,.)
-matrix ca_z    = J(6,1,.)
+matrix ca_f    = J(6,1,.)
 matrix ca_p    = J(6,1,.)
 
 forvalues h = 0/4 {
-    local lag = max(1, `h'+1)
     local row = `h' + 2
 
     * Aggregate — with lagged CA for persistence
-    capture xtscc ch_ca_`h' onset_all ///
+    * Country FE only, no year FE, robust SE -- matches 02/03/11/12's switch.
+    capture xtreg ch_ca_`h' onset_all ///
         l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2 pre_ca ///
-        i.year if sample==1, fe lag(`lag')
+        if sample==1, fe vce(robust)
     if _rc == 0 {
         matrix b_all[`row',1]    = _b[onset_all]
         matrix lo90_all[`row',1] = _b[onset_all] - 1.645*_se[onset_all]
@@ -310,9 +311,9 @@ forvalues h = 0/4 {
     * Split by episode type — JOINT LP on the full sample, tranquil the omitted
     * category. This is the reference paper's OLS baseline; their rival-drop
     * applies to the two-stage design only, i.e. the weighted lines below.
-    capture xtscc ch_ca_`h' onset_nd onset_def ///
+    capture xtreg ch_ca_`h' onset_nd onset_def ///
         l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2 pre_ca ///
-        i.year if sample==1, fe lag(`lag')
+        if sample==1, fe vce(robust)
     if _rc == 0 {
         matrix b_nd[`row',1]    = _b[onset_nd]
         matrix lo90_nd[`row',1] = _b[onset_nd] - 1.645*_se[onset_nd]
@@ -321,42 +322,37 @@ forvalues h = 0/4 {
         matrix lo90_def[`row',1] = _b[onset_def] - 1.645*_se[onset_def]
         matrix hi90_def[`row',1] = _b[onset_def] + 1.645*_se[onset_def]
         local b1   = _b[onset_nd]
-        local se1  = _se[onset_nd]
         local b2   = _b[onset_def]
-        local se2  = _se[onset_def]
         local r2_1 = e(r2_w)
 
-        * Clogg et al. (1995) difference: default-linked minus non-default.
+        * Wald F-test of equality: default-linked minus non-default.
         * Positive => the default-linked current account adjusts MORE toward
-        * surplus. The two coefficients come from the same joint regression,
-        * so the pooled SE is sqrt(se_nd^2 + se_def^2); the p-value uses the
-        * estimator's residual df rather than the normal, matching 03.
+        * surplus. test/lincom use the joint regression's own covariance
+        * directly, exactly (not an independence approximation).
         local cadiff = `b2' - `b1'
-        local casd   = sqrt(`se1'^2 + `se2'^2)
-        local caz    = `cadiff' / `casd'
-        local cap    = .
-        if !missing(e(df_r)) & e(df_r) > 0 local cap = 2*ttail(e(df_r), abs(`caz'))
-        else                               local cap = 2*(1 - normal(abs(`caz')))
+        quietly test onset_nd = onset_def
+        local caf = r(F)
+        local cap = r(p)
         matrix ca_diff[`row',1] = `cadiff'
-        matrix ca_z[`row',1]    = `caz'
+        matrix ca_f[`row',1]    = `caf'
         matrix ca_p[`row',1]    = `cap'
 
         di "h=" `h'+1 "  " %6.3f `b0' "  " %5.3f `se0' ///
-               "  " %6.3f `b1' "  " %5.3f `se1' ///
-               "  " %6.3f `b2' "  " %5.3f `se2' ///
-               "    " %8.3f `cadiff' "  " %5.2f `caz' "  " %5.3f `cap'
+               "  " %6.3f `b1' "  " %5.3f _se[onset_nd] ///
+               "  " %6.3f `b2' "  " %5.3f _se[onset_def] ///
+               "    " %8.3f `cadiff' "  " %5.2f `caf' "  " %5.3f `cap'
     }
 }
 
 di as result _n "Interpretation:"
 di as result "  β > 0 => CA moves toward surplus (forced deleveraging, Aguiar-Gopinath)."
-di as result "  The by-type reading now rests on the Clogg z, not on comparing two"
+di as result "  The by-type reading now rests on the Wald F-test, not on comparing two"
 di as result "  coefficients by eye. p < 0.10 => the adjustment genuinely differs by"
 di as result "  resolution; p large => the two paths cannot be distinguished, which is"
 di as result "  a result in itself and is reported as one. Note the prior stated when"
 di as result "  this test was written (β_def > β_nd, harder adjustment under default) is"
 di as result "  NOT what the estimates show: the non-default coefficient is the larger"
-di as result "  of the two from Year 2 onward. Report what the z says, not the prior."
+di as result "  of the two from Year 2 onward. Report what the test says, not the prior."
 
 * ── Save IRF datasets ────────────────────────────────────────────────────
 
@@ -394,7 +390,7 @@ twoway ///
     subtitle("Forced deleveraging test (Aguiar-Gopinath 2006)", size(small)) ///
     legend(off) ///
     note("All 61 spread crisis episodes. Positive = CA moves toward surplus." ///
-         "Controls: common core (less l_ca) + pre_ca. DK SE. Country & year FE.", size(vsmall)) ///
+         "Controls: common core (less l_ca) + pre_ca. Robust SE. Country FE only (no year FE).", size(vsmall)) ///
     graphregion(color(white)) plotregion(color(white))
 
 graph export "$figs/fig13c_ca_all.pdf", replace
@@ -431,7 +427,7 @@ twoway ///
 * the legend, previously overlapping the plot at ring(0) pos(7), now
 * takes the bottom position this note used to occupy):
 * "Green = non-default. Red = default-linked.
-*  Controls: common core (less l_ca) + pre_ca. DK SE. Country & year FE."
+*  Controls: common core (less l_ca) + pre_ca. Robust SE. Country FE only (no year FE)."
 
 graph export "$figs/fig13d_ca_split.pdf", replace
 di as result "Figure saved: fig13d_ca_split.pdf"
@@ -508,9 +504,11 @@ forvalues h = 0/4 {
 
     * OLS: JOINT, full sample (reference-paper baseline). The rival-drop applies
     * to the weighted lines below, which are the two-stage half of the design.
+    * Country FE only, no year FE, cluster SE -- paired with the IPW lines
+    * below on the same estimator/FE convention for a clean comparison.
     capture areg ch_ca_`h' onset_nd onset_def ///
         l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2 pre_ca ///
-        i.year if sample == 1, absorb(cid) vce(cluster cid)
+        if sample == 1, absorb(cid) vce(cluster cid)
     if _rc == 0 {
         matrix b_nd_ols[`row',1]     = _b[onset_nd]
         matrix lo90_nd_ols[`row',1]  = _b[onset_nd]  - 1.645*_se[onset_nd]
