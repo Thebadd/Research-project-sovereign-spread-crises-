@@ -6,12 +6,14 @@
     simultaneously on the FULL sample with tranquil as the omitted category.
     This is the reference paper's OLS baseline exactly — Asonuma et al. run
     `reg g_h dum1 dum2 dum3 g_0 $convar, noconstant' with their sample_for*
-    restriction defined but NOT applied to it, and with COUNTRY dummies only
-    (`c1-c74', no year dummies). This file matches both: `xtscc ... onset_nd
-    onset_def $ctrl_core, fe' with NO `i.year' term (country FE only — see
-    "COUNTRY FE ONLY, MATCHING TABLE I1" at the headline loop below for why
-    year FE, previously this project's own deliberate addition, is dropped
-    here). Feeds the IRF datasets and figures.
+    restriction defined but NOT applied to it, with COUNTRY dummies only
+    (`c1-c74', no year dummies), and plain heteroskedasticity-robust SEs
+    (`vce(robust)', not Driscoll-Kraay). This file matches all three:
+    `xtreg dy_h onset_nd onset_def $ctrl_core, fe vce(robust)' with NO
+    `i.year' term (country FE only, plain robust SE — see "COUNTRY FE ONLY,
+    MATCHING TABLE I1" at the headline loop below for why year FE and
+    Driscoll-Kraay, both previously this project's own deliberate additions,
+    are dropped here). Feeds the IRF datasets and figures.
 
     Difference tested via an F-STATISTIC (Wald test of `onset_nd = onset_def'),
     NOT a Clogg et al. (1995) z or a bootstrap: since both coefficients come
@@ -145,7 +147,7 @@ foreach m in b se lo90 hi90 lo95 hi95 {
 * Pre-trend (displayed h=-1)
 foreach h_neg in 2 {
     local row = 3 - `h_neg'
-    xtscc dy_m`h_neg' onset_nd `controls_pre' if sample==1 & onset_def==0, fe lag(1)
+    xtreg dy_m`h_neg' onset_nd `controls_pre' if sample==1 & onset_def==0, fe vce(robust)
     local bb = _b[onset_nd]
     local ss = _se[onset_nd]
     _critvals
@@ -171,8 +173,7 @@ foreach m in b se lo90 hi90 lo95 hi95 {
 forvalues h = 0/4 {
     local hd  = `h' + 1
     local row = `h' + 3
-    local lag = max(1, `h'+1)
-    xtscc dy_`h' onset_nd `controls' if sample==1 & onset_def==0, fe lag(`lag')
+    xtreg dy_`h' onset_nd `controls' if sample==1 & onset_def==0, fe vce(robust)
     local bb = _b[onset_nd]
     local ss = _se[onset_nd]
     local nn = e(N)
@@ -206,7 +207,7 @@ foreach m in b se lo90 hi90 lo95 hi95 {
 * Pre-trend (displayed h=-1)
 foreach h_neg in 2 {
     local row = 3 - `h_neg'
-    xtscc dy_m`h_neg' onset_def `controls_pre' if sample==1 & onset_nd==0, fe lag(1)
+    xtreg dy_m`h_neg' onset_def `controls_pre' if sample==1 & onset_nd==0, fe vce(robust)
     local bb = _b[onset_def]
     local ss = _se[onset_def]
     _critvals
@@ -232,8 +233,7 @@ foreach m in b se lo90 hi90 lo95 hi95 {
 forvalues h = 0/4 {
     local hd  = `h' + 1
     local row = `h' + 3
-    local lag = max(1, `h'+1)
-    xtscc dy_`h' onset_def `controls' if sample==1 & onset_nd==0, fe lag(`lag')
+    xtreg dy_`h' onset_def `controls' if sample==1 & onset_nd==0, fe vce(robust)
     local bb = _b[onset_def]
     local ss = _se[onset_def]
     local nn = e(N)
@@ -314,14 +314,18 @@ forvalues row = 1/7 {
 * partner for the IPW/AIPW lines, which are estimated on those same restricted
 * samples, but it is not the paper's OLS baseline.
 *
-* COUNTRY FE ONLY, MATCHING TABLE I1 — no `i.year' below. This project
-* previously ran every single-stage LP with year FE as a DELIBERATE
-* improvement over the reference paper (METHODOLOGY.md section 2 — absorbing
-* the global cycle directly rather than relying on a proxy). That choice is
-* reversed HERE specifically: `c1-c74' in their $convar means country dummies
-* ONLY, no year dummies at all, and this file is meant to reproduce their
-* Table I1 exactly, not to improve on it. `xtscc ... fe' below therefore
-* carries country FE alone.
+* COUNTRY FE ONLY, PLAIN ROBUST SE, MATCHING TABLE I1 — no `i.year' below,
+* and `fe vce(robust)' rather than `fe lag()'. This project previously ran
+* every single-stage LP with year FE AND Driscoll-Kraay SEs as DELIBERATE
+* improvements over the reference paper (METHODOLOGY.md section 2 — year FE
+* absorbing the global cycle directly rather than relying on a proxy; DK
+* correcting for serial correlation Driscoll-Kraay's own literature
+* motivates). Both choices are reversed HERE specifically: `c1-c74' in their
+* $convar means country dummies ONLY, no year dummies at all, and their own
+* `reg ..., vce(robust) noconstant' is plain heteroskedasticity-robust, not
+* serial-correlation-robust. This file is meant to reproduce their Table I1
+* exactly, not to improve on it. `xtreg ... fe vce(robust)' below therefore
+* carries country FE alone with plain robust SEs.
 * ══════════════════════════════════════════════════════════════════════════
 
 di as result _n "=== HEADLINE: JOINT REGRESSION (both dummies, full sample) ==="
@@ -338,7 +342,7 @@ foreach m in b se lo90 hi90 lo95 hi95 {
 * outcome), displayed as h=-1.
 foreach h_neg in 2 {
     local row = 3 - `h_neg'
-    xtscc dy_m`h_neg' onset_nd onset_def `controls_pre' if sample==1, fe lag(1)
+    xtreg dy_m`h_neg' onset_nd onset_def `controls_pre' if sample==1, fe vce(robust)
     _critvals
     local c90 = r(c90)
     local c95 = r(c95)
@@ -368,9 +372,8 @@ eststo clear   // clear any stored estimates before capturing for Table 2
 
 forvalues h = 0/4 {
     local hd  = `h' + 1
-    local lag = max(1, `h'+1)
     local row = `h' + 3
-    xtscc dy_`h' onset_nd onset_def `controls' if sample==1, fe lag(`lag')
+    xtreg dy_`h' onset_nd onset_def `controls' if sample==1, fe vce(robust)
 
     * Total regression sample/countries/R-squared -- shared across both arms
     * (this is ONE joint regression), matching the reference paper's own
@@ -490,10 +493,9 @@ di as result "h   beta_def(headline)  beta_def(+l2_gdpg)  beta_nd(headline)  bet
 
 forvalues h = 0/4 {
     local hd  = `h' + 1
-    local lag = max(1, `h'+1)
 
-    capture xtscc dy_`h' onset_nd onset_def `controls' l2_gdpg ///
-        if sample == 1, fe lag(`lag')
+    capture xtreg dy_`h' onset_nd onset_def `controls' l2_gdpg ///
+        if sample == 1, fe vce(robust)
 
     if _rc {
         di as error "h=" `hd' ": pre-trend-controlled spec failed (rc=" _rc ")"
@@ -537,7 +539,7 @@ capture esttab t2pt_h0 t2pt_h1 t2pt_h2 t2pt_h3 t2pt_h4 ///
     title("Table 2PT. Pre-trend-controlled robustness: output cost by resolution") ///
     addnotes("As Table 2 (joint spec), with l2_gdpg (GDP growth two periods before t) added to the controls." ///
              "Tests whether the default-linked cost is robust to growth momentum beyond the one-period lag (l1_gdpg) already in the common core." ///
-             "Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
+             "Robust (heteroskedasticity-only) standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
 
 if _rc == 608 di as error "  ** table2pt_pretrend_controlled.rtf is OPEN IN WORD — close it and re-run."
 else if _rc   di as error "  ** Table 2PT: esttab failed (rc=" _rc ")"
@@ -564,10 +566,9 @@ else {
 
     forvalues h = 0/4 {
         local hd  = `h' + 1
-        local lag = max(1, `h'+1)
 
-        capture xtscc dy_`h' onset_nd onset_def `controls' ///
-            if sample==1 & (year + `h') <= gdp_last_actual, fe lag(`lag')
+        capture xtreg dy_`h' onset_nd onset_def `controls' ///
+            if sample==1 & (year + `h') <= gdp_last_actual, fe vce(robust)
 
         if _rc {
             di as error "  outturn-only joint regression failed at h=`hd' (rc=" _rc ")"
@@ -615,7 +616,7 @@ else {
         title("Table 2R. Output cost by resolution — outturns only (robustness)") ///
         addnotes("As Table 2, but each horizon drops observations whose outcome year t+h falls after the last WEO actual observation for that country." ///
                  "This removes IMF projections from the dependent variable, at the cost of sample size at longer horizons." ///
-                 "Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
+                 "Robust (heteroskedasticity-only) standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
 
     if _rc == 608 di as error "  ** table2r_output_resolution_outturns.rtf is OPEN IN WORD — close it and re-run."
     else if _rc di as error "  ** Table 2R: esttab failed (rc=" _rc ")"
@@ -662,10 +663,9 @@ else {
     forvalues h = 0/4 {
         local hd  = `h' + 1
         local row = `h' + 3
-        local lag = max(1, `h'+1)
 
-        capture xtscc dy_`h' onset_nd onset_def `controls' ///
-            if sample_flow==1, fe lag(`lag')
+        capture xtreg dy_`h' onset_nd onset_def `controls' ///
+            if sample_flow==1, fe vce(robust)
 
         if _rc {
             di as error "  Asonuma-sample joint regression failed at h=`hd' (rc=" _rc ")"
@@ -755,7 +755,7 @@ else {
         title("Table 2A. Output cost by resolution — continuation years kept as controls (robustness)") ///
         addnotes("As Table 2 (joint spec), but the sample restriction is sample_flow==1 rather than sample==1: continuation years of" ///
                  "an ongoing episode are kept in the regression as controls rather than dropped, matching Asonuma et al.'s own onset" ///
-                 "design (their dum1/dum2/dum3 are 0, not excluded, on those rows). Driscoll-Kraay standard errors in parentheses." ///
+                 "design (their dum1/dum2/dum3 are 0, not excluded, on those rows). Robust standard errors in parentheses." ///
                  "* p<0.10, ** p<0.05, *** p<0.01.")
 
     if _rc == 608 di as error "  ** table2a_output_resolution_asonumasample.rtf is OPEN IN WORD — close it and re-run."
@@ -785,7 +785,7 @@ capture esttab t2_h0 t2_h1 t2_h2 t2_h3 t2_h4 using "$tabs/table2_output_resoluti
     addnotes("Dependent variable: cumulative change in log real GDP (pp) from t-1 to t+h." ///
              "Both onset dummies enter jointly. Jorda (2005) local projections; COUNTRY fixed effects only (no year FE," ///
              " matching the reference paper's own Table I1 design exactly); continuation years excluded." ///
-             "Driscoll-Kraay standard errors in parentheses." ///
+             "Robust (heteroskedasticity-only) standard errors in parentheses." ///
              "Difference = beta(default) - beta(non-default); negative means the default-linked loss is deeper. The" ///
              "F-statistic p-value is a Wald test of equality (test onset_nd = onset_def), covariance-correct since both" ///
              "coefficients come from the same joint regression -- matching Table I1's own difference-testing convention." ///
