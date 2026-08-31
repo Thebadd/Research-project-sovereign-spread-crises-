@@ -45,13 +45,14 @@
       - deeper, more developed financial system  => cushions       (d > 0)
       The literature is genuinely two-sided (financial accelerator vs financial
       development vs "too much finance"), so neither sign refutes anything.
-      ESTIMATES: credit d = +2.33 (h3, p=.001), +3.87 (h5, p=.001);
-      inv +2.06 (h5, p=.033); fdi +1.33 (h3, p=.026) -- all POSITIVE, i.e. the
-      development reading dominates. Corroborated inside our own results:
-      l_credit_bank enters the Act-1 outcome equation NEGATIVELY and growing
-      (-0.026 at h1 to -0.171 at h5, t=-3.98), so high-credit countries grow
-      more slowly on trend AND lose less in a crisis -- the signature of an
-      income/development proxy, not of a credit channel.
+      ESTIMATES (current $ctrl_core): credit d = +3.17 (h5, p=.075);
+      claims_govt +1.29 (h2, p=.045); inv +2.03 (h5, p=.076); fdi +1.44
+      (h1, p=.001) -- all POSITIVE where significant, i.e. the development
+      reading dominates. Corroborated inside our own results: l_credit_bank
+      enters the Act-1 outcome equation NEGATIVELY and growing (-0.026 at h1
+      to -0.171 at h5, t=-3.98), so high-credit countries grow more slowly on
+      trend AND lose less in a crisis -- the signature of an income/development
+      proxy, not of a credit channel.
       => Report these as UNINFORMATIVE about transmission. Do not read the
          positive coefficient as "credit protects"; read it as "this measure
          cannot separate exposure from development."
@@ -60,40 +61,61 @@
       stdebt_share   short-term share of external debt. No development reading:
                      a country is not "more developed" for having more debt
                      maturing next year. Pure rollover vulnerability.
-                     ESTIMATE: d = -4.70 (h2, p=.000), -3.19 (h3, p=.005).
+                     ESTIMATE: d = -3.15 (h1, p=.029), -5.50 (h2, p=.012),
+                     -4.19 (h3, p=.022).
                      => the one clean dose-response result in the file.
       claimsgov_assets  share of the BANK BALANCE SHEET committed to the
                      sovereign. A portfolio share, not a size/depth measure, so
-                     it does not scale with development the way GDP ratios do.
+                     it does not scale with development the way GDP ratios do
+                     -- though its own confound check (below) shows it DOES
+                     sort onsets by income (~4x GDPpc ratio, high vs low
+                     exposure), so this claim should be read with that caveat.
                      Null pooled; the result is in Part B (see below).
 
-  PART B adds the resolution split. Two findings survived the control-set
-  alignment and one did not:
-      claimsgov_assets  d_def = -4.43 (h3, p(diff)=.034), -4.27 (h4, p=.029),
+  PART B adds the resolution split. On the current $ctrl_core, two exposures
+  show a default-specific pattern and one does not:
+      claimsgov_assets  d_def = -6.08 (h3, p(diff)=.004), -6.99 (h4, p(diff)=.004),
                         d_nd ~ 0 -- the sovereign-bank nexus amplifies the
                         output cost specifically in default-linked episodes.
-      stdebt_share      d_def = -6.20 (h3, p(diff)=.053), -5.77 (h4, p=.033).
-      claims_govt/GDP   previously d_def = -7.56 (h1, p(diff)=.006) on the OLD
-                        legacy control set; on $ctrl_core the SE triples
-                        (2.58 -> 7.33) and p goes to .246. That result was an
-                        artifact of an underspecified model and is NOT used.
+                        CAVEAT: this exposure's own confound check (below)
+                        flags it -- the high-nexus-exposure half of onsets is
+                        ~4x richer per capita than the low half, the same
+                        pattern that disqualifies the AMBIGUOUS GDP-ratio
+                        exposures from a clean channel reading. Read this
+                        result with that caveat attached, not as cleanly
+                        isolated from income.
+      claims_govt/GDP   d_def = -12.76 (h1, p(diff)=.005), -7.97 (h3, p(diff)=.030),
+                        -10.19 (h4, p(diff)=.032), d_nd ~ 0. Confound-check
+                        clean (GDPpc ratio 1.05 between high/low exposure
+                        onsets) -- a real default-specific pattern.
+      stdebt_share      NOT significant by resolution type on the current
+                        control set (best p(diff)=.187 at h3): the pooled
+                        Part A result above holds equally in both crisis
+                        types rather than being default-specific. (An
+                        earlier version of this file, under a since-retired
+                        $ctrl_core, reported a significant by-type split
+                        here; it does not survive on the current control
+                        set and is not used.)
 
   MULTIPLE TESTING. 9 exposures x 5 horizons x 2 panels = 90 tests; at 5% about
   4-5 significant results are expected by chance and roughly that many appear.
   With 11-20 treated episodes per default cell no single panel here can carry a
-  headline claim. Use this file for the two unambiguous exposures above, and
-  read the nexus result as one leg of a three-design pattern (13d median split,
-  13b continuous interaction, 13c AIPW channel gap) rather than as standalone
-  proof.
+  headline claim. Use this file for stdebt_share's pooled (Part A) result and
+  claims_govt's by-type (Part B) result as the cleanest findings, and read the
+  nexus (claimsgov_assets) result -- confound-flagged, as noted above -- as one
+  leg of a three-design pattern (13d median split, 13b continuous interaction,
+  13c AIPW channel gap) rather than as standalone proof.
 
   EXPOSURE MEASURES (one per channel mechanism)
   ---------------------------------------------
     credit           Private credit / GDP            AMBIGUOUS (depth confound)
     claims_govt      Bank claims on govt / GDP       AMBIGUOUS (GDP-scaled)
-    claimsgov_assets Bank claims on govt / assets    UNAMBIGUOUS -- the
-                                                     sovereign-bank NEXUS
-                                                     PARAMETER (portfolio share
-                                                     of the bank balance sheet)
+    claimsgov_assets Bank claims on govt / assets    UNAMBIGUOUS by construction
+                                                     (portfolio share of the bank
+                                                     balance sheet) but CONFOUND-
+                                                     FLAGGED in practice -- sorts
+                                                     onsets by income (~4x GDPpc
+                                                     ratio); see Part B caveat
     inv              Investment / GDP                AMBIGUOUS (depth confound)
     fdi              FDI / GDP                       AMBIGUOUS (depth confound)
 
