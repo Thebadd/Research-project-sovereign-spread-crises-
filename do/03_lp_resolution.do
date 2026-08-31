@@ -36,7 +36,8 @@
   Specification A (ROBUSTNESS): one LP per resolution type, each vs TRANQUIL with
     the RIVAL type DROPPED. This is the sample the paper's two-stage estimator
     uses (their probit + weighted regression are both `if sample_for_s == 1`), so
-    it is the right OLS partner for the IPW/AIPW lines in 08/11b/12 — but it is
+    it is the right OLS partner for the AIPW lines in 08b/13c/13d (11b/12's own
+    plain-IPW comparisons were removed once AIPW superseded them) — but it is
     NOT their OLS baseline, and it is reported here as robustness only. Its own
     difference test (below, "HEADLINE DIFFERENCE") genuinely IS a Clogg z, and
     correctly so: onset_nd and onset_def here come from two SEPARATE
@@ -307,11 +308,11 @@ forvalues row = 1/7 {
 *     reg g_h dum1 dum2 dum3 g_0 $convar, noconstant
 * Their sample_for* restriction (drop the rival type) is defined in that file but
 * NEVER applied to this regression — it belongs to the two-stage design, i.e. the
-* probit and the weighted regression, which is where 08/11b/12 apply it.
+* probit and the weighted regression, which is where 08b/13c/13d apply it.
 *
 * So this is the headline and it feeds the IRF datasets and the figures. Spec A
 * above (per-type vs tranquil, rival dropped) is the robustness: it is the right
-* partner for the IPW/AIPW lines, which are estimated on those same restricted
+* partner for the AIPW lines, which are estimated on those same restricted
 * samples, but it is not the paper's OLS baseline.
 *
 * COUNTRY FE ONLY, PLAIN ROBUST SE, MATCHING TABLE I1 — no `i.year' below,
