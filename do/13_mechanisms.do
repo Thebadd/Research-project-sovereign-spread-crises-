@@ -425,11 +425,13 @@ twoway ///
     ytitle("Cumulative change in current account/GDP (pp)", size(small)) ///
     title("Current Account Response — By Resolution Type", size(medium) color(navy)) ///
     subtitle("Forced deleveraging test (Aguiar-Gopinath 2006)", size(small)) ///
-    legend(order(2 "Non-default (40 episodes)" 4 "Default-linked (21 episodes)") ///
-           ring(0) pos(7) cols(1) size(small) region(lcolor(none) fcolor(none))) ///
-    note("Green = non-default. Red = default-linked." ///
-         "Controls: common core (less l_ca) + pre_ca. DK SE. Country & year FE.", size(vsmall)) ///
+    legend(order(2 "Non-default (40 episodes)" 4 "Default-linked (21 episodes)") size(small)) ///
     graphregion(color(white)) plotregion(color(white))
+* Note text (kept as source comment, no longer rendered on the figure --
+* the legend, previously overlapping the plot at ring(0) pos(7), now
+* takes the bottom position this note used to occupy):
+* "Green = non-default. Red = default-linked.
+*  Controls: common core (less l_ca) + pre_ca. DK SE. Country & year FE."
 
 graph export "$figs/fig13d_ca_split.pdf", replace
 di as result "Figure saved: fig13d_ca_split.pdf"

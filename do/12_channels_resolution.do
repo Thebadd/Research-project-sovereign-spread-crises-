@@ -411,11 +411,11 @@ foreach ch of local channels {
     use "$clean/irf_nd_ols_`ch'.dta",  clear
     append using "$clean/irf_def_ols_`ch'.dta"
 
-    * Show legend only in last panel (bottom-right)
+    * Show legend only in last panel (bottom-right), bottom-anchored (no
+    * ring(0)/pos()) rather than overlapping the plotted lines.
     if `i' == 6 {
         local legopt legend(order(3 "Non-default" 4 "Default-linked") ///
-                     ring(0) pos(7) cols(1) size(vsmall) ///
-                     region(lcolor(gs12)))
+                     cols(2) size(vsmall))
     }
     else {
         local legopt legend(off)
@@ -470,11 +470,11 @@ foreach ch of local channels {
     use "$clean/irf_nd_ipw_`ch'.dta",  clear
     append using "$clean/irf_def_ipw_`ch'.dta"
 
-    * Show legend only in last panel (bottom-right)
+    * Show legend only in last panel (bottom-right), bottom-anchored (no
+    * ring(0)/pos()) rather than overlapping the plotted lines.
     if `i' == 6 {
         local legopt legend(order(3 "Non-default (IPW)" 4 "Default-linked (IPW)") ///
-                     ring(0) pos(7) cols(1) size(vsmall) ///
-                     region(lcolor(gs12)))
+                     cols(2) size(vsmall))
     }
     else {
         local legopt legend(off)
