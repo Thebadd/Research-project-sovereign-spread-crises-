@@ -31,31 +31,40 @@
 
   TWO DESIGN DECISIONS, STATED EXPLICITLY, NOT LEFT IMPLICIT
   -------------------------------------------------------------------------
-  1. SUB-CASE COLLAPSING. 197 raw case rows cover many crises split across
-     several creditor tracks (e.g. Ukraine has 6 separate rows: Eurobonds,
-     Chase loan, Commercial loans, Global Exchange, ING debt/Merrill Lynch,
-     OVDPs non-resid.). Rows for the same country whose start years are
-     within 24 months of each other are collapsed into ONE default episode:
-     onset = the EARLIEST start year among the group; end = the LATEST end
-     year among the group; type = the most informative classification
-     present, checked STRICTLY PREEMPTIVE first, then weakly preemptive,
-     then post-default (if a country restructures one creditor track
-     post-default in the same window, the episode is a post-default crisis
-     at the sovereign level regardless of any other track in it).
-     THIS ORDER MATTERS AND WAS INITIALLY WRONG: an earlier version of this
-     file checked weakly preemptive before strictly preemptive, on the
-     reasonable-looking but false assumption that the three flags are
-     mutually exclusive severity tiers. A diagnostic (listing every raw row
-     with strictly_preempt==1) showed every one of those 27 rows ALSO has
-     weakly_preempt==1 set on the identical row — strictly preemptive is
-     coded as a stricter SUB-condition of weakly preemptive in this AT
-     vintage, not a separate category. Checking weakly first meant
-     "Strictly preemptive" could never be assigned to any episode, for any
-     panel built from this file — not rare, structurally unreachable. Since
-     strictly preemptive is the economically LEAST disruptive outcome (no
-     missed payment at all, not even brief technical arrears), it is
-     checked first now, so a genuinely strictly-preemptive episode is no
-     longer masked by its own co-occurring weakly-preemptive flag.
+  1. SUB-CASE COLLAPSING. Matches the consolidation rule stated in Asonuma,
+     Chamon, Erce & Sasahara (2024), Appendix B ("Table B1: List of
+     Consolidated Episodes") — the reference paper this project's broadened
+     taxonomy is modelled on. Two raw AT case rows for the SAME country
+     STARTING IN THE SAME CALENDAR YEAR are consolidated into one episode;
+     rows starting in different years are never merged, no matter how close
+     (this project's earlier 24-month rolling-window rule is NOT what the
+     reference paper does, and has been replaced by this same-year rule so
+     the two are comparable). Per-episode onset = the earliest start year in
+     the group (trivially the group's single shared year); end = the latest
+     end year in the group.
+
+     Type is assigned in two steps, because the raw data itself is not
+     simply three mutually exclusive flags:
+       (a) EACH RAW ROW'S OWN TYPE is read strictly-preemptive first, then
+           weakly-preemptive, then post-default. This is NOT a severity
+           ranking — it corrects a data quirk found by diagnostic (listing
+           every row with strictly_preempt==1): all 27 such rows ALSO carry
+           weakly_preempt==1 on the identical row, i.e. "strictly preemptive"
+           is coded as a stricter SUB-condition of "weakly preemptive" in
+           this AT vintage, not a separate flag. Reading weakly first would
+           make "strictly preemptive" structurally unreachable at the row
+           level, independent of any grouping rule.
+       (b) WHEN A CONSOLIDATED GROUP MIXES ROW TYPES (the reference paper
+           finds exactly one such case among its 14 consolidated pairs —
+           Dominican Republic 2004, strictly-preemptive + post-default,
+           coded post-default), the GROUP's type is the most severe row type
+           present, ranked post-default > weakly preemptive > strictly
+           preemptive — the reference paper's own stated reasoning: "Post-
+           default restructuring is expected to have more severe effects
+           than strictly preemptive, so the episode's restructuring type is
+           coded as post-default." This is the opposite check order from
+           step (a) on purpose: (a) fixes a row-level data artifact, (b) is
+           a genuine severity ranking applied across rows.
   2. VINTAGE CUTOFF. The source file's latest case starts Dec 2019 (plus a
      handful "ongoing as of Sept 2020"). Nothing after ~2020 is in it, so a
      USER-MAINTAINED supplement block below lets post-vintage events be
@@ -144,42 +153,69 @@ preserve
     * FREE-TEXT in the source (e.g. "Two-follow up deals: Sept. 2010 ...
     * April 2016"), not a clean date -- it imports as a string, and
     * attempting year() on it throws a type mismatch (confirmed the hard
-    * way). Not used for end_year; the collapse step's own 24-month grouping
-    * window already absorbs a documented follow-up as a separate nearby
-    * case rather than needing this field parsed.
+    * way). Not used for end_year; a documented follow-up starting in a
+    * later calendar year forms its own separate same-year group under the
+    * collapse rule below rather than needing this field parsed.
     replace end_year = start_year if missing(end_year)
     drop if missing(start_year)
 
     di as result "  AT full database: `=_N' raw case rows imported, " ///
         "`=_N' after dropping missing-start-year rows"
 
-    * ── Collapse sub-case rows into episodes ────────────────────────────
-    * Group rows for the same country whose start years are within 24
-    * months of each other. Running-counter idiom, same pattern as
-    * 18_transforms.do's ep_seq.
-    sort iso3 start_year
-    by iso3: gen gap = start_year - start_year[_n-1]
-    by iso3: gen byte new_group = (_n==1) | (gap > 2)
-    gen long grp = sum(new_group)
+    * ── Step (a): each RAW ROW's own type — strictly-preemptive checked
+    *    first, correcting the row-level data quirk described in the header
+    *    (NOT a severity ranking; see header point 1a). ──────────────────
+    gen str20 row_type = ""
+    replace row_type = "Strictly preemptive" if strictly_preempt==1
+    replace row_type = "Weakly preemptive"   if row_type=="" & weakly_preempt==1
+    replace row_type = "Post-default"        if row_type=="" & post_default==1
+    quietly count if row_type==""
+    if r(N) > 0 di as error "  ** AT full database: " r(N) " raw case rows have no preemptive/post-default flag set — check source rows."
 
-    * Severity ranking for the collapsed type: post-default > weakly
-    * preemptive > strictly preemptive — stated in the header, not implicit.
-    bysort grp: egen byte g_post    = max(post_default)
-    bysort grp: egen byte g_weakly  = max(weakly_preempt)
-    bysort grp: egen byte g_strict  = max(strictly_preempt)
+    * ── Step (b): collapse rows for the SAME country STARTING IN THE SAME
+    *    CALENDAR YEAR into one episode — the reference paper's own
+    *    consolidation rule (Appendix B, Table B1), replacing this project's
+    *    earlier 24-month rolling-window rule so episode/country counts are
+    *    directly comparable to the reference paper's reported figures.
+    *    Group type = most severe ROW type present, post-default > weakly
+    *    preemptive > strictly preemptive (header point 1b). ───────────────
+    sort iso3 start_year
+    egen long grp = group(iso3 start_year)
+
+    bysort grp: egen byte g_post    = max(row_type=="Post-default")
+    bysort grp: egen byte g_weakly  = max(row_type=="Weakly preemptive")
+    bysort grp: egen byte g_strict  = max(row_type=="Strictly preemptive")
     bysort grp: egen int  g_onset   = min(start_year)
     bysort grp: egen int  g_end     = max(end_year)
     bysort grp: egen byte g_ncases  = count(start_year)
 
     gen str20 at_type = ""
-    replace at_type = "Strictly preemptive" if g_strict==1
+    replace at_type = "Post-default"        if g_post==1
     replace at_type = "Weakly preemptive"   if at_type=="" & g_weakly==1
-    replace at_type = "Post-default"        if at_type=="" & g_post==1
+    replace at_type = "Strictly preemptive" if at_type=="" & g_strict==1
     quietly count if at_type==""
     if r(N) > 0 di as error "  ** AT full database: " r(N) " collapsed episodes have no preemptive/post-default flag set — check source rows."
 
+    * Diagnostic, matching the reference paper's own Table B1 presentation:
+    * list every consolidated group (g_ncases>1) and flag whether it mixed
+    * row types (the reference paper reports exactly one such case,
+    * Dominican Republic 2004, out of 14 consolidated pairs).
+    quietly egen byte g_ntypes = rowtotal(g_post g_weakly g_strict)
+    preserve
+        quietly egen byte _tag = tag(grp)
+        quietly count if _tag==1 & g_ncases>1
+        local n_consol_groups = r(N)
+        di as result "  AT full database: `n_consol_groups' consolidated episode(s) (2+ case rows, same country/year):"
+        if `n_consol_groups' > 0 {
+            quietly count if _tag==1 & g_ncases>1 & g_ntypes>1
+            di as result "    of which `r(N)' mixed row types within the same episode (more-severe-wins applied)."
+            list iso3 start_year g_ncases at_type if _tag==1 & g_ncases>1, noobs sepby(iso3)
+        }
+    restore
+    drop g_ntypes
+
     * One row per collapsed episode.
-    duplicates drop iso3 grp, force
+    duplicates drop grp, force
     keep iso3 grp g_onset g_end at_type g_ncases
     rename g_onset at_episode_onset
     rename g_end   at_episode_end
