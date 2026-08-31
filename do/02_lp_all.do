@@ -8,10 +8,23 @@
              Year numbering matches Asonuma et al.: Year 1 is the crisis year
              itself, Year 0 is the explicit pre-crisis baseline (always 0).
   SE:        Driscoll-Kraay with lag = max(1, h+1)  [xtscc, fe]
+  FE:        COUNTRY ONLY, no year FE -- reversing this project's earlier
+             deliberate addition of year FE for single-stage LPs
+             (METHODOLOGY.md section 2). This file is meant to reproduce the
+             reference paper's Table I1 exactly, whose $convar carries
+             country dummies (c1-c74) and no year dummies at all -- see
+             03_lp_resolution.do's identical correction and header note for
+             the full argument.
 
   Saves:
     - Matrices: b_all, lo90_all, hi90_all, lo95_all, hi95_all (7×1, rows=h)
     - Dataset:  "$clean/irf_all.dta"  (for graphing)
+    - Table 1 exported in TWO forms: the plain esttab
+      ("table1_output_all.rtf") and a reference-paper-style layout
+      ("table1_output_all_layout.rtf", coefficient(stars)/SE/Episodes
+      stacked, with Observations/Countries/R-squared underneath -- matching
+      Table I1's own single-arm block exactly, since this file has only one
+      treatment arm and so needs no "shared vs. per-arm" distinction).
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -19,8 +32,9 @@ use "$clean/panel_lp.dta", clear
 if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 
 * ── Controls (pre-determined at t, all lagged relative to outcome) ────────
-* VIX and ust10y have zero cross-sectional variation and are fully absorbed by
-* year fixed effects (i.year). Including them is redundant; they are omitted.
+* No VIX/ust10y and no year FE: matching the reference paper's own Table I1
+* design exactly (country dummies + g_0 own-lag + $convar, no year dummies,
+* no global-push controls at all).
 local controls $ctrl_core
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -117,7 +131,7 @@ di as result "    (l1_gdpg excluded — it IS -1 times the dy_m2 outcome; the tr
 foreach h_neg in 2 {
     local row = (3 - `h_neg')   // dy_m2 -> displayed h=-1 -> row 1
 
-    xtscc dy_m`h_neg' onset_all `controls_pre' i.year ///
+    xtscc dy_m`h_neg' onset_all `controls_pre' ///
         if sample == 1, fe lag(1)
 
     local bb = _b[onset_all]
@@ -161,8 +175,13 @@ forvalues h = 0/4 {
     local row = `h' + 3   // dy_0 → row 3, ..., dy_4 → row 7
     local lag = max(1, `h' + 1)
 
-    xtscc dy_`h' onset_all `controls' i.year ///
+    xtscc dy_`h' onset_all `controls' ///
         if sample == 1, fe lag(`lag')
+
+    * Captured for the reference-paper-style table export below.
+    local totn_`hd'  = e(N)
+    local totng_`hd' = e(N_g)
+    local totr2_`hd' = e(r2)
 
     local bb = _b[onset_all]
     local ss = _se[onset_all]
@@ -228,7 +247,7 @@ else {
         local hd  = `h' + 1
         local lag = max(1, `h' + 1)
 
-        capture xtscc dy_`h' onset_all `controls' i.year ///
+        capture xtscc dy_`h' onset_all `controls' ///
             if sample == 1 & (year + `h') <= gdp_last_actual, fe lag(`lag')
 
         if _rc {
@@ -316,7 +335,7 @@ else {
         local row = `h' + 3
         local lag = max(1, `h' + 1)
 
-        capture xtscc dy_`h' onset_all `controls' i.year ///
+        capture xtscc dy_`h' onset_all `controls' ///
             if sample_flow == 1, fe lag(`lag')
 
         if _rc {
@@ -403,7 +422,8 @@ capture esttab t1_h0 t1_h1 t1_h2 t1_h3 t1_h4 using "$tabs/table1_output_all.rtf"
     stats(nep N N_g, labels("Episodes (onsets in estimation sample)" "Observations" "Countries") fmt(0 0 0)) ///
     title("Table 1. Output cost of sovereign spread crises (all episodes)") ///
     addnotes("Dependent variable: cumulative change in log real GDP (pp) from t-1 to t+h." ///
-             "Jorda (2005) local projections. Country and year fixed effects; continuation years excluded." ///
+             "Jorda (2005) local projections. Country fixed effects only (no year FE, matching the reference paper's own" ///
+             " Table I1 design); continuation years excluded." ///
              "Driscoll-Kraay standard errors in parentheses. * p<0.10, ** p<0.05, *** p<0.01." ///
              "Episodes counts onsets surviving listwise deletion on the control set, i.e. those actually identifying the coefficient." ///
              "Confidence intervals in the figures use t critical values on the estimator's residual degrees of freedom, not the normal approximation.")
@@ -411,6 +431,76 @@ capture esttab t1_h0 t1_h1 t1_h2 t1_h3 t1_h4 using "$tabs/table1_output_all.rtf"
 if _rc == 608 di as error "  ** table1_output_all.rtf is OPEN IN WORD — close it and re-run to refresh."
 else if _rc di as error "  ** Table 1: esttab failed (rc=" _rc ")"
 else di as result "Table 1 saved: $tabs/table1_output_all.rtf"
+
+* ══════════════════════════════════════════════════════════════════════════
+* TABLE 1, REFERENCE-PAPER LAYOUT — coefficient(stars)/SE/Episodes stacked,
+* Observations/Countries/R-squared underneath. Matches Table I1's own
+* single-arm block exactly (no per-arm-vs-shared distinction needed here,
+* since this file has only one treatment arm). See 03_lp_resolution.do's
+* identical layout for the multi-arm case and the reasoning behind it.
+* ══════════════════════════════════════════════════════════════════════════
+capture program drop _starstr1
+program define _starstr1, rclass
+    args pval
+    local s ""
+    if !missing(`pval') {
+        if `pval' < .01       local s "***"
+        else if `pval' < .05  local s "**"
+        else if `pval' < .10  local s "*"
+    }
+    return local stars "`s'"
+end
+
+capture file close t1tab
+file open t1tab using "$tabs/table1_output_all_layout.rtf", write replace
+file write t1tab "{\rtf1\ansi\deff0" _n
+file write t1tab "{\b Table 1, reference-paper layout: output cost of sovereign spread crises\par}" _n
+file write t1tab "{\i Episodes reported beneath the standard error (counted inside the estimation sample after" _n
+file write t1tab " listwise deletion). Observations, Countries and R-squared for the fitted regression follow." _n
+file write t1tab " Country fixed effects only (no year FE), matching the reference paper's own Table I1.\par}" _n
+file write t1tab "\par" _n
+file write t1tab "\tab h = 1\tab h = 2\tab h = 3\tab h = 4\tab h = 5\par" _n
+file write t1tab "\par" _n
+
+local coefline ""
+local seline ""
+local epline ""
+local obsline ""
+local cntline ""
+local r2line  ""
+forvalues h = 0/4 {
+    local hd  = `h' + 1
+    local row = `h' + 3
+    local pv = 2*(1 - normal(abs(b_all[`row',1]/se_all[`row',1])))
+    _starstr1 `pv'
+    local st = r(stars)
+    local bstr : display %5.2f b_all[`row',1]
+    local sestr : display %5.2f se_all[`row',1]
+    estimates restore t1_h`h'
+    local ee : display %4.0f e(nep)
+    local nn : display %5.0f `totn_`hd''
+    local cc : display %3.0f `totng_`hd''
+    local rr : display %4.2f `totr2_`hd''
+    local coefline "`coefline'\tab `bstr'`st'"
+    local seline   "`seline'\tab (`sestr')"
+    local epline   "`epline'\tab `ee'"
+    local obsline  "`obsline'\tab `nn'"
+    local cntline  "`cntline'\tab `cc'"
+    local r2line   "`r2line'\tab `rr'"
+}
+file write t1tab "{\b Spread-crisis onset}\par" _n
+file write t1tab "`coefline'\par" _n
+file write t1tab "`seline'\par" _n
+file write t1tab "Episodes`epline'\par" _n
+file write t1tab "\par" _n
+file write t1tab "Observations`obsline'\par" _n
+file write t1tab "Countries`cntline'\par" _n
+file write t1tab "R-squared`r2line'\par" _n
+file write t1tab "\par" _n
+file write t1tab "{\i * p<0.10, ** p<0.05, *** p<0.01.\par}" _n
+file write t1tab "}" _n
+file close t1tab
+di as result "Table 1, reference-paper layout saved: $tabs/table1_output_all_layout.rtf"
 
 * ────────────────────────────────────────────────────────────────────────
 * BUILD IRF DATASET FOR GRAPHING
