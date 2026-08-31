@@ -373,7 +373,22 @@ not a side effect to correct for.
 **The own-outcome pre-trend plays the same role in both.** Their `g'v'_0`
 is rebuilt per outcome as `L.var'v' - L2.var'v'`; our per-channel
 `pre_<var>` is the same object. For the GDP equation theirs coincides with
-`gdpg2` and is therefore entered twice; ours enters once via `l1_gdpg`.
+`gdpg2` and is therefore entered twice; ours enters once via `l1_gdpg`. This
+is not incidental — the reference paper states the rule explicitly (their
+footnote 9, referencing their Appendix J): "When the dependent variable is
+not GDP growth rate, the lagged dependent variable is also included as a
+control." Confirmed against their own construction: `var1 = ln(gdp_real)*100`,
+so `g1_0 = L.var1 - L2.var1 = 100 * gdpg2` — a literal scalar multiple of the
+growth control, meaning `reg`'s own collinearity handling silently drops the
+duplicate for the GDP panel, which is exactly what "not entered twice" means
+in practice. Our project already implements this rule correctly by
+construction, not by design choice made in response to reading the footnote:
+`02_lp_all.do`/`03_lp_resolution.do` (outcome = `dy_h`, GDP growth) carry
+only `$ctrl_core` (which already contains `l1_gdpg`) and add no separate
+`pre_dy` term; `11_channels.do`, `12_channels_resolution.do`,
+`13_mechanisms.do`, `13b_exposure_heterogeneity.do` (outcome = a channel, not
+GDP) all add `pre_<channel>` on top of `$ctrl_core` — this is precisely "the
+lagged dependent variable, because the outcome is not GDP growth."
 
 One further detail: their `hyperinf_dummy` is built as
 `replace hyperinf_dummy = 1 if L.inflation > 50` with no missing-value
