@@ -12,8 +12,17 @@
 
   Spec A (OLS, reference-paper baseline): JOINT LP with onset_nd and onset_def
     entered simultaneously on the FULL sample, tranquil the omitted category
-    ch_var(h) = αi + γt + β_nd(h)·onset_nd + β_def(h)·onset_def
-               + X_core (common core + pre_<v>)·δ + ε     [DK SE, lag=max(1,h+1)]
+    ch_var(h) = αi + β_nd(h)·onset_nd + β_def(h)·onset_def
+               + X_core (common core + pre_<v>)·δ + ε
+    Country FE only, no year FE, plain robust SE -- the Stata-idiomatic
+    equivalent of the reference paper's own reg ..., vce(robust) noconstant
+    with explicit country dummies (see 02_lp_all.do's header). Since both
+    type dummies are estimated in ONE regression, their covariance is
+    exactly estimable and the difference test below uses the Wald
+    F-statistic (test onset_nd = onset_def) directly -- the reference
+    paper's own difference-test convention (Table I1) -- not Clogg z or a
+    bootstrap, which would only approximate what the F-test already gives
+    exactly.
 
   Spec B (IPW): per-type-vs-tranquil (reference-paper structure). Each type is
     scored vs TRANQUIL years with the rival type dropped — two first stages:
@@ -22,7 +31,10 @@
     Two SEPARATE weighted LPs: onset_nd vs tranquil [aw=ipw_nd], onset_def vs
     tranquil [aw=ipw_def]. areg absorb(cid) vce(cluster cid).
 
-  Extra cost of default = (default line) - (non-default line), Clogg z per horizon.
+  Extra cost of default (IPW) = (default line) - (non-default line), Clogg z
+  per horizon -- valid here because the two IPW lines come from genuinely
+  SEPARATE regressions, so there is no joint covariance to exploit and
+  Clogg's independence assumption is the right tool (unlike Spec A above).
 
   OUTPUTS:
   --------
@@ -154,17 +166,16 @@ foreach ch of local channels {
     di "h   b_nd_OLS  b_def_OLS  p_ols  b_nd_IPW  b_def_IPW  p_ipw"
 
     forvalues h = 0/4 {
-        local lag = max(1, `h'+1)
         local row = `h' + 2
 
         * ── OLS: JOINT LP, both type dummies, FULL sample ───────────────
         * The reference paper's baseline is a single joint regression with all type
-        * dummies and tranquil as the omitted category:
-        *     reg g_h dum1 dum2 dum3 g_0 $convar, noconstant
-        * with sample_for* NOT applied. Their rival-drop belongs to the two-stage
-        * design (probit + weighted reg) and is applied to the IPW lines below only.
-        capture xtscc ch_`ch'_`h' onset_nd onset_def `ctrl' i.year ///
-            if sample == 1, fe lag(`lag')
+        * dummies, country dummies, vce(robust), no year FE, and tranquil as the
+        * omitted category (reg g_h dum1 dum2 dum3 g_0 $convar, vce(robust),
+        * noconstant). Their rival-drop belongs to the two-stage design (probit +
+        * weighted reg) and is applied to the IPW lines below only.
+        capture xtreg ch_`ch'_`h' onset_nd onset_def `ctrl' ///
+            if sample == 1, fe vce(robust)
 
         if _rc == 0 {
             matrix b_nd_ols_`ch'[`row',1]    = _b[onset_nd]
@@ -180,15 +191,13 @@ foreach ch of local channels {
             test onset_nd = onset_def
             matrix pval_ols_`ch'[`row',1] = r(p)
             local pd_`ch'_`h' = r(p)   // store before eststo (which can reset r())
+            local pf_`ch'_`h' = r(F)   // F-statistic itself, Table I1's own convention
 
-            * Difference block (Clogg et al. 1995) + episode counts
+            * Difference block: point estimate + the exact, covariance-correct
+            * Wald F-test (not Clogg z/bootstrap -- see header) + episode counts.
             local bnd  = _b[onset_nd]
             local bdef = _b[onset_def]
-            local snd  = _se[onset_nd]
-            local sdef = _se[onset_def]
             local bdiff = `bdef' - `bnd'
-            local zdiff = `bdiff' / sqrt(`snd'^2 + `sdef'^2)
-            local pz    = 2*(1 - normal(abs(`zdiff')))
             quietly count if onset_nd  == 1 & sample == 1 & !missing(ch_`ch'_`h')
             local nepnd = r(N)
             quietly count if onset_def == 1 & sample == 1 & !missing(ch_`ch'_`h')
@@ -196,8 +205,7 @@ foreach ch of local channels {
 
             eststo t4_`ch'_`h', title("h=`=`h'+1'")
             estadd scalar bdiff  = `bdiff'
-            estadd scalar zdiff  = `zdiff'
-            estadd scalar pzdiff = `pz'
+            estadd scalar fdiff  = `pf_`ch'_`h''
             estadd scalar pdiff  = `pd_`ch'_`h''
             estadd scalar nepnd  = `nepnd'
             estadd scalar nepdef = `nepdef'
@@ -271,13 +279,16 @@ foreach ch of local channels {
 * TABLE EXPORT — TABLE 4: Transmission channels by resolution type
 *   Word/RTF, multi-panel: one panel per channel, columns = horizons h=0..4.
 *   Each panel reports non-default and default-linked onset coefficients from the
-*   JOINT regression (the reference paper's baseline), DK SE in parentheses, plus
-*   the difference, its Clogg z, and the Wald p-value of their equality.
+*   JOINT regression (the reference paper's baseline), robust SE in parentheses,
+*   plus the difference and the Wald F-test of their equality (test onset_nd =
+*   onset_def) -- the covariance-correct answer for two coefficients estimated
+*   in one regression, and the reference paper's own difference-test convention
+*   (Table I1), not Clogg z or a bootstrap.
 *   OLS spec (matches Tables 1-3). First panel replaces; the rest append.
 *   Requires: ssc install estout
 * ══════════════════════════════════════════════════════════════════════════
 
-local t4note "Dependent variable: cumulative change in the channel variable (pp) from t-1 to t+h. Both onset dummies enter jointly with tranquil years as the omitted category, matching the reference paper's baseline. Jorda (2005) local projections; country and year fixed effects; common-core controls plus the channel's own pre-crisis change; continuation years excluded. Driscoll-Kraay standard errors in parentheses. p(nd=def) is the Wald equality test. * p<0.10, ** p<0.05, *** p<0.01."
+local t4note "Dependent variable: cumulative change in the channel variable (pp) from t-1 to t+h. Both onset dummies enter jointly with tranquil years as the omitted category, matching the reference paper's baseline. Jorda (2005) local projections; country fixed effects only (no year FE); common-core controls plus the channel's own pre-crisis change; continuation years excluded. Robust (heteroskedasticity-only) standard errors in parentheses. F(nd=def) and p(nd=def) are the Wald equality test. * p<0.10, ** p<0.05, *** p<0.01."
 
 * Per-channel panel titles (Panel A carries the overall table caption)
 local ptitle_credit      "Table 4. Channels by resolution (nd vs. def, joint) -- Panel A: Private credit/GDP"
@@ -310,12 +321,12 @@ foreach ch in credit claims_govt inv govexp pb fdi {
         keep(onset_nd onset_def) order(onset_nd onset_def) ///
         coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
         mtitles nonumber ///
-        stats(bdiff zdiff pzdiff pdiff nepnd nepdef N N_g, ///
-              labels("Difference (default - non-default)" "  Clogg et al. (1995) z" ///
-                     "  p (Clogg z)" "  p (Wald, nd = def)" ///
+        stats(bdiff fdiff pdiff nepnd nepdef N N_g, ///
+              labels("Difference (default - non-default)" "  F (Wald, nd = def)" ///
+                     "  p (Wald, nd = def)" ///
                      "Episodes (non-default)" "Episodes (default)" ///
                      "Observations" "Countries") ///
-              fmt(3 3 3 3 0 0 0 0)) ///
+              fmt(3 2 3 0 0 0 0)) ///
         title("`ptitle_`ch''") `t4extra'
 
     if _rc == 608 {
@@ -450,7 +461,7 @@ graph combine ols_1 ols_2 ols_3 ols_4 ols_5 ols_6, ///
     cols(3) rows(2) ///
     title("Transmission Channels by Resolution Type — OLS", ///
           size(medlarge) color(navy)) ///
-    note("90% CI. DK SE. Country & year FE. Non-default: N=40. Default-linked: N=21." ///
+    note("90% CI. Robust (heteroskedasticity-only) SE. Country FE only (no year FE). Non-default: N=40. Default-linked: N=21." ///
          "Units differ by channel: private credit, bank claims on govt, investment and govt expenditure are LOG REAL LEVELS, so their scale is cumulative percent change (comparable to the GDP result). Primary balance and FDI change sign, so no log is possible and they remain ratios to GDP, in percentage points.", ///
          size(vsmall)) ///
     graphregion(color(white)) xsize(10) ysize(7)
@@ -509,7 +520,7 @@ graph combine ipw_1 ipw_2 ipw_3 ipw_4 ipw_5 ipw_6, ///
     cols(3) rows(2) ///
     title("Transmission Channels by Resolution Type — IPW", ///
           size(medlarge) color(navy)) ///
-    note("90% CI. Clustered SE. Country & year FE. IPW: probit(def | crisis) on macro controls + fedfunds, contagion, past default onsets.", ///
+    note("90% CI. Clustered SE. Country FE only (no year FE). IPW: probit(def | crisis) on macro controls + fedfunds, contagion, past default onsets.", ///
          size(vsmall)) ///
     graphregion(color(white)) xsize(10) ysize(7)
 
