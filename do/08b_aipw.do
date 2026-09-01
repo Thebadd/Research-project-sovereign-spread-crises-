@@ -299,7 +299,12 @@ program define _aipwpair, rclass
 
     tempname pf
     tempfile bf
-    quietly postfile `pf' double diff using "`bf'", replace
+    * t1/t2 (each cell's own bootstrap draw) kept, not just their difference --
+    * DIAGNOSTIC-ONLY: lets the caller compute each level's own BOOTSTRAP SE,
+    * to compare against the adopted analytic SE (a1/a2). See _aipw's header
+    * for why the analytic formula can understate uncertainty on a thin
+    * treated group; this is the direct test of that concern.
+    quietly postfile `pf' double t1 double t2 double diff using "`bf'", replace
     forvalues b = 1/`reps' {
         preserve
             quietly keep if !missing(_pool)
@@ -308,7 +313,7 @@ program define _aipwpair, rclass
             local t1 = cond(_rc==0, r(theta), .)
             capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(cid)
             local t2 = cond(_rc==0, r(theta), .)
-            if !missing(`t1') & !missing(`t2') quietly post `pf' (`t1' - `t2')
+            if !missing(`t1') & !missing(`t2') quietly post `pf' (`t1') (`t2') (`t1' - `t2')
         restore
     }
     quietly postclose `pf'
@@ -317,6 +322,8 @@ program define _aipwpair, rclass
     local lo = .
     local hi = .
     local nd = 0
+    local bse1 = .
+    local bse2 = .
     preserve
         quietly use "`bf'", clear
         quietly count if !missing(diff)
@@ -327,6 +334,10 @@ program define _aipwpair, rclass
             _pctile diff, p(2.5 97.5)
             local lo = r(r1)
             local hi = r(r2)
+            quietly summarize t1
+            local bse1 = r(sd)   // DIAGNOSTIC-ONLY: bootstrap SE, cell 1 (default-linked)
+            quietly summarize t2
+            local bse2 = r(sd)   // DIAGNOSTIC-ONLY: bootstrap SE, cell 2 (non-default)
         }
     restore
     return scalar ok = 1
@@ -337,6 +348,8 @@ program define _aipwpair, rclass
     return scalar a2 = `a2'
     return scalar c1 = `c1'
     return scalar c2 = `c2'
+    return scalar bse1 = `bse1'
+    return scalar bse2 = `bse2'
     return scalar se = `se'
     return scalar lo = `lo'
     return scalar hi = `hi'
@@ -458,6 +471,8 @@ forvalues h = 0/4 {
     local A2 = r(a2)   // analytic SE, non-default (unclustered, adopted)
     local C1 = r(c1)   // DIAGNOSTIC-ONLY: country-clustered SE, default-linked
     local C2 = r(c2)   // DIAGNOSTIC-ONLY: country-clustered SE, non-default
+    local BSE1 = r(bse1)   // DIAGNOSTIC-ONLY: row-bootstrap SE, default-linked
+    local BSE2 = r(bse2)   // DIAGNOSTIC-ONLY: row-bootstrap SE, non-default
     local DH = r(dh)
     local SE = r(se)
     local LO = r(lo)
@@ -515,6 +530,15 @@ forvalues h = 0/4 {
     local widdef = cond(`A1'>0, `C1'/`A1', .)
     di "       [clustered SE diag: ND se_clu=" %5.3f `C2' " (x" %4.2f `widnd' ")" ///
        "   DEF se_clu=" %5.3f `C1' " (x" %4.2f `widdef' ")]"
+
+    * DIAGNOSTIC-ONLY: each level's own row-bootstrap SE (same resampling
+    * device as the difference above), vs. the adopted analytic se_a --
+    * tests directly whether the analytic formula understates uncertainty
+    * on this thin a treated group (see _aipw's header).
+    local bwidnd  = cond(`A2'>0, `BSE2'/`A2', .)
+    local bwiddef = cond(`A1'>0, `BSE1'/`A1', .)
+    di "       [level bootstrap SE diag: ND se_boot=" %5.3f `BSE2' " (x" %4.2f `bwidnd' ")" ///
+       "   DEF se_boot=" %5.3f `BSE1' " (x" %4.2f `bwiddef' ")]"
 }
 
 di as result _n "  * = bootstrap 95% percentile CI for the def-nd gap excludes zero."

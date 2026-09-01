@@ -305,7 +305,10 @@ program define _aipwdiff, rclass
 
     tempname pf
     tempfile bf
-    quietly postfile `pf' double diff using "`bf'", replace
+    * th/tl kept, not just their difference -- DIAGNOSTIC-ONLY: lets the
+    * caller compute each level's own bootstrap SE vs. the adopted analytic
+    * SE (ah/al). See 08b_aipw.do's _aipw header for the full rationale.
+    quietly postfile `pf' double th double tl double diff using "`bf'", replace
     forvalues b = 1/`reps' {
         preserve
             quietly keep if !missing(_pool)
@@ -314,7 +317,7 @@ program define _aipwdiff, rclass
             local th = cond(_rc==0, r(theta), .)
             capture _aipw `yv' `Dv' if `ifcl', omodel(`omod') pmodel(`pz') fe(cid)
             local tl = cond(_rc==0, r(theta), .)
-            if !missing(`th') & !missing(`tl') quietly post `pf' (`th' - `tl')
+            if !missing(`th') & !missing(`tl') quietly post `pf' (`th') (`tl') (`th' - `tl')
         restore
     }
     quietly postclose `pf'
@@ -323,6 +326,8 @@ program define _aipwdiff, rclass
     local lo = .
     local hi = .
     local nd = 0
+    local bseh = .
+    local bsel = .
     preserve
         quietly use "`bf'", clear
         quietly count if !missing(diff)
@@ -333,6 +338,10 @@ program define _aipwdiff, rclass
             _pctile diff, p(2.5 97.5)
             local lo = r(r1)
             local hi = r(r2)
+            quietly summarize th
+            local bseh = r(sd)
+            quietly summarize tl
+            local bsel = r(sd)
         }
     restore
     return scalar ok = 1
@@ -343,6 +352,8 @@ program define _aipwdiff, rclass
     return scalar al = `al'
     return scalar ch = `ch'
     return scalar cl = `cl'
+    return scalar bseh = `bseh'
+    return scalar bsel = `bsel'
     return scalar se = `se'
     return scalar lo = `lo'
     return scalar hi = `hi'
@@ -431,6 +442,8 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
                 local AL = r(al)   // analytic SE, low (unclustered, adopted)
                 local CH = r(ch)   // DIAGNOSTIC-ONLY: country-clustered SE, high
                 local CL = r(cl)   // DIAGNOSTIC-ONLY: country-clustered SE, low
+                local BSEH = r(bseh)   // DIAGNOSTIC-ONLY: row-bootstrap SE, high
+                local BSEL = r(bsel)   // DIAGNOSTIC-ONLY: row-bootstrap SE, low
                 local DH = r(dh)
                 local SE = r(se)
                 local LO = r(lo)
@@ -472,6 +485,12 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
                 local widhi = cond(`AH'>0, `CH'/`AH', .)
                 di "         [clustered SE diag: LOW se_clu=" %5.3f `CL' " (x" %4.2f `widlo' ")" ///
                    "   HIGH se_clu=" %5.3f `CH' " (x" %4.2f `widhi' ")]"
+
+                * DIAGNOSTIC-ONLY: each level's own row-bootstrap SE vs. se_a.
+                local bwidlo = cond(`AL'>0, `BSEL'/`AL', .)
+                local bwidhi = cond(`AH'>0, `BSEH'/`AH', .)
+                di "         [level bootstrap SE diag: LOW se_boot=" %5.3f `BSEL' " (x" %4.2f `bwidlo' ")" ///
+                   "   HIGH se_boot=" %5.3f `BSEH' " (x" %4.2f `bwidhi' ")]"
             }
             else di as error "    h=" `h'+1 ": estimate failed (too thin)."
         }
