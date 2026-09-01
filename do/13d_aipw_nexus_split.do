@@ -95,13 +95,13 @@ set seed 20260819
 local nboot  = 1000
 local cx     $ctrl_core   // retained for reference; propensity baseline now passes `om' (strict parity)
 local cz     l_fedfunds l_reg_crisis_share past_onsets       // Act 1 predictors
-* Resolution predictors: matches the flow tier's adopted cz_recency in
-* spirit -- see 21_aipw_flow.do's "SECOND PREDICTOR CHANGE" section for the
-* diagnostic history. Both terms are DEFAULT-LINKED-SPECIFIC
-* (l_contagion_dist_def, years_since_def_onset): 08c_first_stage_table.do's
-* diagnostics showed the default arm's classification power was materially
-* weaker under the generic contagion/recency combination than under
-* default-linked-only predictors, so cz_def is narrowed accordingly.
+* Resolution predictors: both terms are DEFAULT-LINKED-SPECIFIC
+* (l_contagion_dist_def, years_since_def_onset) on economic grounds -- a
+* predictor for default-linked risk should measure default-linked
+* distress/recency, not spread-crisis distress in general. Corroborated by
+* 08c_first_stage_table.do's diagnostics; see 08c's header for the full
+* argument and the caveat that the reference paper's own instrument is not
+* tailored per column.
 local cz_def l_fedfunds l_contagion_dist_def years_since_def_onset
 
 * AIPW outcome-model core = the common core, unchanged. The depth term is

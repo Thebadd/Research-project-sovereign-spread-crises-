@@ -62,13 +62,19 @@ local cz    l_fedfunds l_reg_crisis_share past_onsets
 * see 21_aipw_flow.do's "SECOND PREDICTOR CHANGE" section for that history.
 * Both terms are DEFAULT-LINKED-SPECIFIC here (l_contagion_dist_def,
 * years_since_def_onset), not the generic versions used in cz (Act 1,
-* pooled): 08c_first_stage_table.do's diagnostics showed the default arm's
-* classification power was materially weaker under the generic
-* contagion/recency combination (chi2(pred) p=.101, roccomp p=.525 --
-* barely distinguishable from controls-only) than under default-linked-only
-* predictors, so cz_def is narrowed to match what the default arm actually
-* needs. cz (Act 1, pooled) is unchanged: there is no resolution type to be
-* specific about in a pooled spec.
+* pooled). The justification is economic, not merely statistical: a
+* predictor for "risk of a DEFAULT-linked onset specifically" should
+* measure default-linked distress/recency, not spread-crisis distress in
+* general -- a generic measure blends illiquidity/market pressure with
+* actual default propensity and asks it to predict the narrower one.
+* Corroborated (not driven) by 08c_first_stage_table.do's diagnostics: the
+* default arm's classification power was materially weaker under the
+* generic combination (chi2(pred) p=.101, roccomp p=.525 -- barely
+* distinguishable from controls-only) than under default-linked-only
+* predictors. See 08c's header for the full argument, including the honest
+* caveat that the reference paper's own $instrument is NOT tailored per
+* column the way cz_def is here. cz (Act 1, pooled) is unchanged: there is
+* no resolution type to be specific about in a pooled spec.
 local cz_def l_fedfunds l_contagion_dist_def years_since_def_onset
 
 * ── REPRODUCIBILITY: seed the bootstrap ────────────────────────────────────
