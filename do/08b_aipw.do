@@ -43,9 +43,11 @@
       project's own data showed it understates the default-linked arm's
       true uncertainty by 3.75-5.5x on our ~20-episode default arm (their
       194 restructurings are large enough that the same formula holds up
-      far better for them). The analytic SE (se_a) and a country-clustered
-      variant (se_clu) are still printed on each row as DIAGNOSTIC-ONLY
-      comparisons. The difference (def - nd) is bootstrapped with ROW-LEVEL
+      far better for them). See git history for the diagnostic run that
+      established this (analytic-vs-bootstrap and analytic-vs-clustered SE
+      comparisons); those comparison lines are no longer printed each run,
+      the decision they informed is now the adopted design. The difference
+      (def - nd) is bootstrapped with ROW-LEVEL
       resampling within control/non-default/default-linked pools -- the
       paper's own bootstrap device (split into a control pool and one pool
       per treatment type, `bsample` each, stack) -- a NATURAL fit here (not
@@ -193,22 +195,9 @@ program define _aipw, rclass
     quietly summarize `isq' if `touse', meanonly
     local sean = sqrt(r(mean)/r(N))
 
-    * DIAGNOSTIC-ONLY: country-CLUSTERED version of the same SE. The paper's
-    * own formula (above) treats every observation as independent -- most of
-    * the sample is repeated tranquil country-years, which are serially
-    * correlated, so the unclustered SE is optimistic. `regress summ,
-    * vce(cluster cid)`'s own _se[_cons] is exactly the cluster-robust SE of
-    * a sample mean (CR1 sandwich), the natural clustered counterpart of the
-    * formula above. NOT used for the adopted level bands (those stay
-    * unclustered, matching the paper) -- returned only so callers can report
-    * the comparison.
-    quietly regress `summ' if `touse', vce(cluster cid)
-    local seclu = _se[_cons]
-
     return scalar theta  = `th'
     return scalar N      = `nn'
     return scalar se     = `sean'
-    return scalar se_clu = `seclu'
 end
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -282,7 +271,6 @@ program define _aipwpair, rclass
     }
     local b1 = r(theta)
     local a1 = r(se)
-    local c1 = r(se_clu)   // diagnostic-only country-clustered SE
     capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(cid)
     if _rc {
         return scalar ok = 0
@@ -290,7 +278,6 @@ program define _aipwpair, rclass
     }
     local b2 = r(theta)
     local a2 = r(se)
-    local c2 = r(se_clu)
     local dh = `b1' - `b2'
 
     capture drop _pool
@@ -349,8 +336,6 @@ program define _aipwpair, rclass
     return scalar b2 = `b2'
     return scalar a1 = `a1'
     return scalar a2 = `a2'
-    return scalar c1 = `c1'
-    return scalar c2 = `c2'
     return scalar bse1 = `bse1'
     return scalar bse2 = `bse2'
     return scalar se = `se'
@@ -455,8 +440,6 @@ di as result "    def-nd's own * marks the bootstrap CI excluding 0 -- the conse
 di as result "    Clogg z still uses the analytic SEs (its own literature definition), so it is a permissive"
 di as result "    companion statistic on a different SE basis than the level display -- read it as that, not as"
 di as result "    directly comparable to the level stars."
-di as result "    Each row's second/third line is DIAGNOSTIC ONLY: the paper's own analytic se_a, and the"
-di as result "    country-clustered se_clu, shown for comparison against the adopted se_boot above."
 
 forvalues h = 0/4 {
     local row = `h' + 1
@@ -473,12 +456,10 @@ forvalues h = 0/4 {
 
     local B1 = r(b1)   // default-linked ATE
     local B2 = r(b2)   // non-default ATE
-    local A1 = r(a1)   // analytic SE, default-linked (unclustered, adopted)
-    local A2 = r(a2)   // analytic SE, non-default (unclustered, adopted)
-    local C1 = r(c1)   // DIAGNOSTIC-ONLY: country-clustered SE, default-linked
-    local C2 = r(c2)   // DIAGNOSTIC-ONLY: country-clustered SE, non-default
-    local BSE1 = r(bse1)   // DIAGNOSTIC-ONLY: row-bootstrap SE, default-linked
-    local BSE2 = r(bse2)   // DIAGNOSTIC-ONLY: row-bootstrap SE, non-default
+    local A1 = r(a1)   // analytic SE, default-linked (used only for Clogg z below)
+    local A2 = r(a2)   // analytic SE, non-default (used only for Clogg z below)
+    local BSE1 = r(bse1)   // row-bootstrap SE, default-linked (ADOPTED)
+    local BSE2 = r(bse2)   // row-bootstrap SE, non-default (ADOPTED)
     local DH = r(dh)
     local SE = r(se)
     local LO = r(lo)
@@ -535,21 +516,6 @@ forvalues h = 0/4 {
        %8.3f `B1' "`sgdef'" " (" %5.3f `BSE1' ")  " %8.3f `DH' ///
        " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
        " " %7.3f `zz' " " %5.3f `pz' " " %4.0f `ND'
-
-    * DIAGNOSTIC ONLY (kept for reference): the paper's own analytic SE,
-    * and how much narrower it is than the adopted bootstrap SE above.
-    local narrownd  = cond(`BSE2'>0, `A2'/`BSE2', .)
-    local narrowdef = cond(`BSE1'>0, `A1'/`BSE1', .)
-    di "       [analytic SE diag (paper's own, NOT adopted): ND se_a=" %5.3f `A2' " (x" %4.2f `narrownd' ")" ///
-       "   DEF se_a=" %5.3f `A1' " (x" %4.2f `narrowdef' ")]"
-
-    * DIAGNOSTIC-ONLY: how much would the level bands widen if clustered by
-    * country instead of the paper's own unclustered construction? Not
-    * adopted -- printed for comparison only, see _aipw's header for why.
-    local widnd  = cond(`A2'>0, `C2'/`A2', .)
-    local widdef = cond(`A1'>0, `C1'/`A1', .)
-    di "       [clustered SE diag: ND se_clu=" %5.3f `C2' " (x" %4.2f `widnd' ")" ///
-       "   DEF se_clu=" %5.3f `C1' " (x" %4.2f `widdef' ")]"
 }
 
 di as result _n "  * = bootstrap 95% percentile CI for the def-nd gap excludes zero."

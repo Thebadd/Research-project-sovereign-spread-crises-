@@ -49,9 +49,9 @@
   DEPARTURE FROM THE PAPER'S OWN ANALYTIC-SE CONSTRUCTION -- a direct
   diagnostic (see 08b_aipw.do's header) showed that formula understated
   the default-linked arm's true uncertainty by 3.75-5.5x on ~20-episode
-  default arms. se_a (the paper's own formula) and se_clu
-  (country-clustered) are still printed per row as diagnostic-only
-  comparisons. The HIGH-LOW nexus difference within each part is
+  default arms (the analytic-vs-bootstrap/clustered comparison lines that
+  established this are no longer printed each run). The HIGH-LOW nexus
+  difference within each part is
   bootstrapped directly with ROW-LEVEL resampling within control/high/low
   pools -- the paper's own bootstrap device, a natural fit since an onset
   row already is one episode. Clogg et al. (1995)'s z keeps the analytic
@@ -254,16 +254,9 @@ program define _aipw, rclass
     quietly summarize `isq' if `touse', meanonly
     local sean = sqrt(r(mean)/r(N))
 
-    * DIAGNOSTIC-ONLY: country-clustered version of the same SE -- see
-    * 08b_aipw.do's _aipw for the full rationale. Not used for the adopted
-    * level bands, returned only for comparison.
-    quietly regress `summ' if `touse', vce(cluster cid)
-    local seclu = _se[_cons]
-
     return scalar theta  = `th'
     return scalar N      = `nn'
     return scalar se     = `sean'
-    return scalar se_clu = `seclu'
 end
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -289,7 +282,6 @@ program define _aipwdiff, rclass
     }
     local bh = r(theta)
     local ah = r(se)
-    local ch = r(se_clu)   // diagnostic-only country-clustered SE
     capture _aipw `yv' `Dv' if `ifcl', omodel(`omod') pmodel(`pz') fe(cid)
     if _rc {
         return scalar ok = 0
@@ -297,7 +289,6 @@ program define _aipwdiff, rclass
     }
     local bl = r(theta)
     local al = r(se)
-    local cl = r(se_clu)
     local dh = `bh' - `bl'
 
     * Row-level pools: 0 = control (either cell's tranquil rows), 1 = treated
@@ -354,8 +345,6 @@ program define _aipwdiff, rclass
     return scalar bl = `bl'
     return scalar ah = `ah'
     return scalar al = `al'
-    return scalar ch = `ch'
-    return scalar cl = `cl'
     return scalar bseh = `bseh'
     return scalar bsel = `bsel'
     return scalar se = `se'
@@ -443,12 +432,10 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
             if r(ok) {
                 local BH = r(bh)   // high-nexus ATE
                 local BL = r(bl)   // low-nexus ATE
-                local AH = r(ah)   // analytic SE, high (unclustered, adopted)
-                local AL = r(al)   // analytic SE, low (unclustered, adopted)
-                local CH = r(ch)   // DIAGNOSTIC-ONLY: country-clustered SE, high
-                local CL = r(cl)   // DIAGNOSTIC-ONLY: country-clustered SE, low
-                local BSEH = r(bseh)   // DIAGNOSTIC-ONLY: row-bootstrap SE, high
-                local BSEL = r(bsel)   // DIAGNOSTIC-ONLY: row-bootstrap SE, low
+                local AH = r(ah)   // analytic SE, high (used only for Clogg z below)
+                local AL = r(al)   // analytic SE, low (used only for Clogg z below)
+                local BSEH = r(bseh)   // row-bootstrap SE, high (ADOPTED)
+                local BSEL = r(bsel)   // row-bootstrap SE, low (ADOPTED)
                 local DH = r(dh)
                 local SE = r(se)
                 local LO = r(lo)
@@ -485,17 +472,6 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
                    %8.3f `BH' "`sghi'" " (" %5.3f `BSEH' ")  " %8.3f `DH' ///
                    " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
                    " " %7.3f `zz' " " %5.3f `pz2'
-
-                * DIAGNOSTIC ONLY (kept for reference): the paper's own
-                * analytic SE and country-clustered variant, vs. se_boot.
-                local narrowlo = cond(`BSEL'>0, `AL'/`BSEL', .)
-                local narrowhi = cond(`BSEH'>0, `AH'/`BSEH', .)
-                di "         [analytic SE diag (paper's own, NOT adopted): LOW se_a=" %5.3f `AL' " (x" %4.2f `narrowlo' ")" ///
-                   "   HIGH se_a=" %5.3f `AH' " (x" %4.2f `narrowhi' ")]"
-                local widlo = cond(`AL'>0, `CL'/`AL', .)
-                local widhi = cond(`AH'>0, `CH'/`AH', .)
-                di "         [clustered SE diag: LOW se_clu=" %5.3f `CL' " (x" %4.2f `widlo' ")" ///
-                   "   HIGH se_clu=" %5.3f `CH' " (x" %4.2f `widhi' ")]"
             }
             else di as error "    h=" `h'+1 ": estimate failed (too thin)."
         }

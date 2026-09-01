@@ -41,9 +41,9 @@
   THIS IS A DELIBERATE DEPARTURE FROM THE PAPER'S OWN ANALYTIC-SE
   CONSTRUCTION -- a direct diagnostic showed that formula understated the
   def arm's true uncertainty by 3.75-5.5x on ~20-episode default arms (see
-  08b_aipw.do's header for the full argument and evidence). se_a (the
-  paper's own formula) and se_clu (country-clustered) are still printed
-  per row as diagnostic-only comparisons. The def-nd DIFFERENCE is
+  08b_aipw.do's header for the full argument and evidence -- the
+  analytic-vs-bootstrap/clustered comparison lines that established this
+  are no longer printed each run). The def-nd DIFFERENCE is
   bootstrapped directly with ROW-LEVEL resampling within control/nd/def
   pools -- the paper's own bootstrap device, a natural fit here since an
   onset row already is one episode; Clogg et al. (1995)'s z keeps the
@@ -207,16 +207,9 @@ program define _aipw, rclass
     quietly summarize `isq' if `touse', meanonly
     local sean = sqrt(r(mean)/r(N))
 
-    * DIAGNOSTIC-ONLY: country-clustered version of the same SE -- see
-    * 08b_aipw.do's _aipw for the full rationale. Not used for the adopted
-    * level bands, returned only for comparison.
-    quietly regress `summ' if `touse', vce(cluster cid)
-    local seclu = _se[_cons]
-
     return scalar theta  = `th'
     return scalar N      = `nn'
     return scalar se     = `sean'
-    return scalar se_clu = `seclu'
 end
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -299,7 +292,6 @@ program define _aipwpair, rclass
     }
     local b1 = r(theta)
     local a1 = r(se)
-    local c1 = r(se_clu)   // diagnostic-only country-clustered SE
     capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(cid)
     if _rc {
         return scalar ok = 0
@@ -307,7 +299,6 @@ program define _aipwpair, rclass
     }
     local b2 = r(theta)
     local a2 = r(se)
-    local c2 = r(se_clu)
     local dh = `b1' - `b2'
 
     capture drop _pool
@@ -362,8 +353,6 @@ program define _aipwpair, rclass
     return scalar b2 = `b2'
     return scalar a1 = `a1'
     return scalar a2 = `a2'
-    return scalar c1 = `c1'
-    return scalar c2 = `c2'
     return scalar bse1 = `bse1'
     return scalar bse2 = `bse2'
     return scalar se = `se'
@@ -491,12 +480,10 @@ foreach ch in credit claims_govt inv ///
         if r(ok) {
             local B1 = r(b1)   // default-linked ATE
             local B2 = r(b2)   // non-default ATE
-            local A1 = r(a1)   // analytic SE, default-linked (unclustered, adopted)
-            local A2 = r(a2)   // analytic SE, non-default (unclustered, adopted)
-            local C1 = r(c1)   // DIAGNOSTIC-ONLY: country-clustered SE, default-linked
-            local C2 = r(c2)   // DIAGNOSTIC-ONLY: country-clustered SE, non-default
-            local BSE1 = r(bse1)   // DIAGNOSTIC-ONLY: row-bootstrap SE, default-linked
-            local BSE2 = r(bse2)   // DIAGNOSTIC-ONLY: row-bootstrap SE, non-default
+            local A1 = r(a1)   // analytic SE, default-linked (used only for Clogg z below)
+            local A2 = r(a2)   // analytic SE, non-default (used only for Clogg z below)
+            local BSE1 = r(bse1)   // row-bootstrap SE, default-linked (ADOPTED)
+            local BSE2 = r(bse2)   // row-bootstrap SE, non-default (ADOPTED)
             local DH = r(dh)
             local SE = r(se)
             local LO = r(lo)
@@ -533,17 +520,6 @@ foreach ch in credit claims_govt inv ///
                %8.3f `B1' "`sgdef'" " (" %5.3f `BSE1' ")  " %8.3f `DH' ///
                " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
                " " %7.3f `zz' " " %5.3f `pz'
-
-            * DIAGNOSTIC ONLY (kept for reference): the paper's own analytic
-            * SE and the country-clustered variant, vs. the adopted se_boot.
-            local narrownd  = cond(`BSE2'>0, `A2'/`BSE2', .)
-            local narrowdef = cond(`BSE1'>0, `A1'/`BSE1', .)
-            di "         [analytic SE diag (paper's own, NOT adopted): ND se_a=" %5.3f `A2' " (x" %4.2f `narrownd' ")" ///
-               "   DEF se_a=" %5.3f `A1' " (x" %4.2f `narrowdef' ")]"
-            local widnd  = cond(`A2'>0, `C2'/`A2', .)
-            local widdef = cond(`A1'>0, `C1'/`A1', .)
-            di "         [clustered SE diag: ND se_clu=" %5.3f `C2' " (x" %4.2f `widnd' ")" ///
-               "   DEF se_clu=" %5.3f `C1' " (x" %4.2f `widdef' ")]"
         }
         else di as error "    h=" `h'+1 ": Act 2 estimate failed (thin sample)."
     }
