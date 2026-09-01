@@ -21,24 +21,39 @@
       with the country mean where the t-1 value is missing (coverage is thin, 2001+).
     Median split over crisis onsets: highbank = a_nexus >= median(onsets).
     AIPW cells (control = tranquil years only; treated = the specific cell; rival
-    onsets dropped), estimated with the same _aipw + cluster-bootstrap as 08b/13c:
+    onsets dropped), estimated with the same _aipw as 08b/13c (levels from the
+    analytic SE, only the high-low difference bootstrapped -- see below):
       Part A (robust headline): all onsets x {high, low}         -> 2 lines
       Part B (two-dimensional): {nd, def} x {high, low}          -> 4 lines
 
-  SMALL-SAMPLE CAVEAT: the default x {high,low} cells hold only a handful of events,
-  so many bootstrap draws drop out. CIs are shown only when >=50 valid draws; else
-  the point estimate stands with a printed caveat. That threshold is ABSOLUTE, so
-  with nboot now at 1000 read the printed nd/nboot RATE, not just the count: 292
-  of 300 is a healthy cell, 292 of 1000 would mean seven draws in ten failed to
-  estimate and the surviving subset is not representative. This thinness is the
-  honest limit vs Asonuma's 194 restructurings — read Part B as suggestive, Part A
-  as the result.
+  SMALL-SAMPLE CAVEAT: the default x {high,low} cells hold only a handful of events.
+  Level CIs no longer depend on the bootstrap at all (analytic SE, always reported);
+  only the HIGH-LOW DIFFERENCE is bootstrapped, and its CI is shown only when >=50
+  valid draws, else the point gap stands with a printed caveat. That threshold is
+  ABSOLUTE, so with nboot now at 1000 read the printed nd/nboot RATE, not just the
+  count: 292 of 300 is a healthy cell, 292 of 1000 would mean seven draws in ten
+  failed to estimate and the surviving subset is not representative. This thinness
+  is the honest limit vs Asonuma's 194 restructurings — read Part B as suggestive,
+  Part A as the result.
 
   Coherence with the Asonuma replication (their Fig 6 / IPWRA engine): (a) each
   channel outcome model controls for the channel's own pre-crisis change pre_<v>
   (their g_0); (b) besides the two level IRFs we bootstrap the HIGH - LOW nexus
   DIFFERENCE within each cell (their within-type high-vs-low contrast) so the
   sign-flip is formally tested, not just eyeballed from two bands.
+
+  INFERENCE, ALIGNED WITH 08b_aipw.do / 13c_aipw_channels.do / THE FLOW
+  TIER'S PRESENTATION (21_aipw_flow.do): each (part, bank) level's CI is
+  1.96*analytic influence-function SE (the paper's own Table 2/Fig. 4
+  construction), with a conventional t-test (b/se) and stars against zero.
+  The HIGH-LOW nexus difference within each part is bootstrapped directly
+  with ROW-LEVEL resampling within control/high/low pools -- the paper's
+  own bootstrap device, a natural fit since an onset row already is one
+  episode. Clogg et al. (1995)'s z (from the same analytic SEs as the
+  level bands) is reported alongside the bootstrap CI as the permissive
+  companion statistic (the two cells share the same tranquil control
+  pool, so they are not independent). See 08b_aipw.do's header for the
+  full argument.
 
   Output: $tabs/aipw_nexus_split.csv (outcome x part x bank x horizon, levels) ;
           $tabs/aipw_nexus_diff.csv  (outcome x part x horizon, high-low gap + CI) ;
@@ -190,34 +205,8 @@ foreach v in credit claimpriv_assets claims_govt pb {
 }
 
 * ══════════════════════════════════════════════════════════════════════════
-* PROGRAMS — _aipw (Eqs. 1-3) + _aipwci (point + bootstrap CI)  [as in 13c]
+* PROGRAM — _aipw (Eqs. 1-3), returns theta/N/analytic SE
 * ══════════════════════════════════════════════════════════════════════════
-* ══════════════════════════════════════════════════════════════════════════
-* PROGRAM — bootstrap stratum (see 08b_aipw.do for the full rationale).
-* The paper resamples the control pool and each treated type separately, holding
-* the treated count fixed. A plain cluster bsample does not, and on cells this
-* thin a draw can lose the treated group entirely. This makes the stratum so
-* `bsample, cluster(cid) strata()' preserves the ever-treated country count.
-* ══════════════════════════════════════════════════════════════════════════
-capture program drop _mkstrat
-program define _mkstrat
-    syntax varlist(min=1 max=2) [if], GENerate(name)
-    marksample touse
-    capture drop `generate'
-    tempvar t1 t2
-    local d1 : word 1 of `varlist'
-    local d2 : word 2 of `varlist'
-    quietly gen byte `t1' = `d1' if `touse'
-    bysort cid: egen byte `generate' = max(`t1')
-    quietly replace `generate' = 0 if missing(`generate')
-    if "`d2'" != "" {
-        quietly gen byte `t2' = `d2' if `touse'
-        tempvar s2
-        bysort cid: egen byte `s2' = max(`t2')
-        quietly replace `s2' = 0 if missing(`s2')
-        quietly replace `generate' = `generate' + 2*`s2'
-    }
-end
 
 capture program drop _aipw
 program define _aipw, rclass
@@ -249,113 +238,78 @@ program define _aipw, rclass
       - ( (`D'-`ps')/(`ps'*(1-`ps')) )*( (1-`ps')*`m1' + `ps'*`m0' ) ///
         if `touse'
     quietly summarize `summ' if `touse', meanonly
-    return scalar theta = r(mean)
-    return scalar N     = r(N)
-end
+    local th = r(mean)
+    local nn = r(N)
 
-capture program drop _aipwci
-program define _aipwci, rclass
-    syntax anything, IFC(string) OMOD(string) PZ(string) REPS(integer)
-    gettoken yv Dv : anything
-    capture _aipw `yv' `Dv' if `ifc', omodel(`omod') pmodel(`pz') fe(cid)
-    if _rc {
-        return scalar ok = 0
-        exit
-    }
-    local pt = r(theta)
-    * stratum: ever-treated vs never-treated countries within this cell, so each
-    * draw keeps the same number of treated countries (see _mkstrat).
-    _mkstrat `Dv' if `ifc', generate(_strat)
-    tempname pf
-    tempfile bf
-    quietly postfile `pf' double theta using "`bf'", replace
-    forvalues b = 1/`reps' {
-        preserve
-            capture drop _bid
-            bsample, cluster(cid) strata(_strat) idcluster(_bid)
-            capture _aipw `yv' `Dv' if `ifc', omodel(`omod') pmodel(`pz') fe(_bid)
-            if _rc == 0 quietly post `pf' (r(theta))
-        restore
-    }
-    quietly postclose `pf'
-    capture drop _strat
-    capture drop _strat
-    local se = .
-    local lo = .
-    local hi = .
-    local nd = 0
-    preserve
-        quietly use "`bf'", clear
-        quietly count if !missing(theta)
-        local nd = r(N)
-        if `nd' >= 50 {
-            quietly summarize theta
-            local se = r(sd)
-            _pctile theta, p(2.5 97.5)
-            local lo = r(r1)
-            local hi = r(r2)
-        }
-    restore
-    return scalar ok = 1
-    return scalar b  = `pt'
-    return scalar se = `se'
-    return scalar lo = `lo'
-    return scalar hi = `hi'
-    return scalar nd = `nd'
+    * Analytic (unclustered) influence-function SE -- matches 08b_aipw.do /
+    * 13c_aipw_channels.do / 21_aipw_flow.do's _aipw exactly: this is what
+    * bands the LEVEL estimates below (no bootstrap on levels).
+    tempvar isq
+    quietly gen double `isq' = (`summ' - `th')^2 if `touse'
+    quietly summarize `isq' if `touse', meanonly
+    local sean = sqrt(r(mean)/r(N))
+
+    return scalar theta = `th'
+    return scalar N     = `nn'
+    return scalar se    = `sean'
 end
 
 * ══════════════════════════════════════════════════════════════════════════
-* PROGRAM — (b) bootstrap the HIGH - LOW nexus DIFFERENCE within one cell
-*   (Asonuma's within-type high-vs-low contrast). Both cells are re-estimated on
-*   the SAME cluster resample each draw, so the difference distribution is valid.
+* PROGRAM — HIGH - LOW nexus DIFFERENCE within one cell (Asonuma's within-type
+*   high-vs-low contrast), aligned with 08b/13c's _aipwpair: levels come from
+*   the analytic SE (no bootstrap), and ONLY the difference is bootstrapped,
+*   with ROW-LEVEL resampling within control/high/low pools -- the reference
+*   paper's own bootstrap device (split into a control pool and one pool per
+*   treatment type, `bsample` each, stack), a natural fit here since an onset
+*   row already is one episode.
 *   _aipwdiff <yvar> <Dvar>, ifch(<high cond>) ifcl(<low cond>) omod() pz() reps()
-*   returns r(ok) r(dh) [point high-low] r(lo) r(hi) r(nd) r(bh) r(bl)
+*   returns r(ok) r(dh) [point high-low] r(bh) r(bl) r(ah) r(al) [analytic SEs]
+*           r(se) r(lo) r(hi) r(nd) [bootstrap, difference only]
 * ══════════════════════════════════════════════════════════════════════════
 capture program drop _aipwdiff
 program define _aipwdiff, rclass
     syntax anything, IFCH(string) IFCL(string) OMOD(string) PZ(string) REPS(integer)
     gettoken yv Dv : anything
-    * point estimates on the real data
     capture _aipw `yv' `Dv' if `ifch', omodel(`omod') pmodel(`pz') fe(cid)
     if _rc {
         return scalar ok = 0
         exit
     }
     local bh = r(theta)
+    local ah = r(se)
     capture _aipw `yv' `Dv' if `ifcl', omodel(`omod') pmodel(`pz') fe(cid)
     if _rc {
         return scalar ok = 0
         exit
     }
     local bl = r(theta)
+    local al = r(se)
     local dh = `bh' - `bl'
-    * bootstrap the difference (one resample -> both cells -> their gap).
-    * Here the SAME treatment is compared across the high- and low-nexus cells, so
-    * the stratum is built from two indicators — treated-in-high and treated-in-low
-    * — giving a 4-level stratum that preserves the treated count on BOTH sides.
-    * These cells hold 6-9 treated episodes, so an unstratified draw loses one of
-    * them constantly and the difference is undefined for that draw.
-    tempvar _dhi _dlo
-    quietly gen byte `_dhi' = `Dv' if `ifch'
-    quietly gen byte `_dlo' = `Dv' if `ifcl'
-    _mkstrat `_dhi' `_dlo', generate(_strat)
+
+    * Row-level pools: 0 = control (either cell's tranquil rows), 1 = treated
+    * in the HIGH-nexus cell, 2 = treated in the LOW-nexus cell.
+    capture drop _pool
+    quietly gen byte _pool = 0 if (`ifch') | (`ifcl')
+    quietly replace _pool = 1 if `Dv' == 1 & (`ifch')
+    quietly replace _pool = 2 if `Dv' == 1 & (`ifcl')
+
     tempname pf
     tempfile bf
     quietly postfile `pf' double diff using "`bf'", replace
     forvalues b = 1/`reps' {
         preserve
-            capture drop _bid
-            bsample, cluster(cid) strata(_strat) idcluster(_bid)
-            capture _aipw `yv' `Dv' if `ifch', omodel(`omod') pmodel(`pz') fe(_bid)
+            quietly keep if !missing(_pool)
+            quietly bsample, strata(_pool)
+            capture _aipw `yv' `Dv' if `ifch', omodel(`omod') pmodel(`pz') fe(cid)
             local th = cond(_rc==0, r(theta), .)
-            capture _aipw `yv' `Dv' if `ifcl', omodel(`omod') pmodel(`pz') fe(_bid)
+            capture _aipw `yv' `Dv' if `ifcl', omodel(`omod') pmodel(`pz') fe(cid)
             local tl = cond(_rc==0, r(theta), .)
             if !missing(`th') & !missing(`tl') quietly post `pf' (`th' - `tl')
         restore
     }
     quietly postclose `pf'
-    capture drop _strat
-    capture drop _strat
+    capture drop _pool
+    local se = .
     local lo = .
     local hi = .
     local nd = 0
@@ -364,6 +318,8 @@ program define _aipwdiff, rclass
         quietly count if !missing(diff)
         local nd = r(N)
         if `nd' >= 50 {
+            quietly summarize diff
+            local se = r(sd)
             _pctile diff, p(2.5 97.5)
             local lo = r(r1)
             local hi = r(r2)
@@ -373,6 +329,9 @@ program define _aipwdiff, rclass
     return scalar dh = `dh'
     return scalar bh = `bh'
     return scalar bl = `bl'
+    return scalar ah = `ah'
+    return scalar al = `al'
+    return scalar se = `se'
     return scalar lo = `lo'
     return scalar hi = `hi'
     return scalar nd = `nd'
@@ -389,8 +348,8 @@ postfile `R' str18 outcome str4 part str4 bank byte horizon double b se lo hi nt
 * (b) second results file: the HIGH - LOW nexus difference per outcome x part x h
 tempname D
 tempfile diff_resf
-postfile `D' str18 outcome str4 part byte horizon double dhl bhi blo lo hi nd ///
-    using "`diff_resf'", replace
+postfile `D' str18 outcome str4 part byte horizon double dhl bhi blo se lo hi nd ///
+    double cloggz double cloggp using "`diff_resf'", replace
 
 * Outcomes: label | outcome-variable stem (dy or ch_<v>) | channel-specific
 *   outcome-model controls (om), same specs as 13c. GDP uses cx (unchanged).
@@ -422,41 +381,16 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
         * predictor set (indirect: pzn is the local NAME cz or cz_def)
         local pz "``pzn''"
 
-        forvalues H = 0/1 {                       // 0 = low nexus, 1 = high nexus
-            local blab = cond(`H'==1, "high", "low")
-            di as result _n "--- `ocl' | Part `part' | `blab' nexus ---"
-            post `R' ("`ocl'") ("`part'") ("`blab'") (0) (0) (0) (0) (0) (0) (0)   // explicit baseline (h=0)
+        * Levels (analytic SE, no bootstrap) AND the high-low difference (row
+        * bootstrap + Clogg z) come from ONE call to _aipwdiff per horizon --
+        * see 08b/13c's header for why this replaces two separate estimation
+        * passes with a single, more efficient and internally consistent one.
+        di as result _n "--- `ocl' | Part `part' ---"
+        di as result "    h   LOW (se_a)        HIGH (se_a)       high-low  [95% boot CI]   Clogg z    p"
+        post `R' ("`ocl'") ("`part'") ("low")  (0) (0) (0) (0) (0) (0) (0)   // explicit baseline (h=0)
+        post `R' ("`ocl'") ("`part'") ("high") (0) (0) (0) (0) (0) (0) (0)
+        post `D' ("`ocl'") ("`part'") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)   // explicit baseline (h=0)
 
-            forvalues h = 0/4 {
-                * sample: tranquil (onset_all==0) + this cell's treated onsets only
-                if "`riv'" == "." {
-                    local ifc sample==1 & (onset_all==0 | (`Dv'==1 & highbank==`H'))
-                }
-                else {
-                    local ifc sample==1 & `riv'==0 & (onset_all==0 | (`Dv'==1 & highbank==`H'))
-                }
-                quietly count if `Dv'==1 & highbank==`H' & sample==1
-                local ntr = r(N)
-
-                * Strict parity: propensity baseline = outcome model `om' + predictors.
-                _aipwci `ystem'_`h' `Dv', ifc(`ifc') omod(`om') pz(`om' `pz') reps(`nboot')
-                if r(ok) {
-                    local b=r(b)
-                    local se=r(se)
-                    local lo=r(lo)
-                    local hi=r(hi)
-                    local nd=r(nd)
-                    post `R' ("`ocl'") ("`part'") ("`blab'") (`h'+1) (`b') (`se') (`lo') (`hi') (`ntr') (`nd')
-                    di "    h=" `h'+1 "  ATE=" %8.3f `b' "  [" %7.3f `lo' ", " %7.3f `hi' ///
-                       "]  (n_treat=" `ntr' ", " `nd' "/`nboot' draws)"
-                }
-                else di as error "    h=" `h'+1 ": estimate failed (too thin)."
-            }
-        }
-
-        * ── (b) HIGH - LOW nexus difference for this outcome x part ──────────
-        di as result _n "--- `ocl' | Part `part' | HIGH - LOW difference ---"
-        post `D' ("`ocl'") ("`part'") (0) (0) (0) (0) (0) (0) (0)   // explicit baseline (h=0)
         forvalues h = 0/4 {
             if "`riv'" == "." {
                 local ifch sample==1 & (onset_all==0 | (`Dv'==1 & highbank==1))
@@ -466,21 +400,44 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
                 local ifch sample==1 & `riv'==0 & (onset_all==0 | (`Dv'==1 & highbank==1))
                 local ifcl sample==1 & `riv'==0 & (onset_all==0 | (`Dv'==1 & highbank==0))
             }
+            quietly count if `Dv'==1 & highbank==1 & sample==1
+            local ntrh = r(N)
+            quietly count if `Dv'==1 & highbank==0 & sample==1
+            local ntrl = r(N)
+
             _aipwdiff `ystem'_`h' `Dv', ifch(`ifch') ifcl(`ifcl') ///
                 omod(`om') pz(`om' `pz') reps(`nboot')
             if r(ok) {
-                local dh=r(dh)
-                local bh=r(bh)
-                local bl=r(bl)
-                local lo=r(lo)
-                local hi=r(hi)
-                local nd=r(nd)
-                post `D' ("`ocl'") ("`part'") (`h'+1) (`dh') (`bh') (`bl') (`lo') (`hi') (`nd')
-                local sig = cond(`nd'>=50 & (`lo'>0 | `hi'<0), " *", "")
-                di "    h=" `h'+1 "  high-low=" %8.3f `dh' "  [" %7.3f `lo' ", " %7.3f `hi' ///
-                   "]  (" `nd' "/`nboot' draws)`sig'"
+                local BH = r(bh)   // high-nexus ATE
+                local BL = r(bl)   // low-nexus ATE
+                local AH = r(ah)   // analytic SE, high
+                local AL = r(al)   // analytic SE, low
+                local DH = r(dh)
+                local SE = r(se)
+                local LO = r(lo)
+                local HI = r(hi)
+                local ND = r(nd)
+
+                * Level CIs = theta +/- 1.96*analytic SE; the bootstrap is
+                * reserved for the difference only.
+                post `R' ("`ocl'") ("`part'") ("low")  (`h'+1) (`BL') (`AL') (`BL'-1.96*`AL') (`BL'+1.96*`AL') (`ntrl') (.)
+                post `R' ("`ocl'") ("`part'") ("high") (`h'+1) (`BH') (`AH') (`BH'-1.96*`AH') (`BH'+1.96*`AH') (`ntrh') (.)
+
+                local zz = .
+                local pz2 = .
+                if !missing(`AH') & !missing(`AL') & (`AH'^2 + `AL'^2) > 0 {
+                    local zz  = `DH' / sqrt(`AH'^2 + `AL'^2)
+                    local pz2 = 2*(1 - normal(abs(`zz')))
+                }
+                post `D' ("`ocl'") ("`part'") (`h'+1) (`DH') (`BH') (`BL') (`SE') (`LO') (`HI') (`ND') (`zz') (`pz2')
+
+                local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
+                di "    " %1.0f `h'+1 "  " %8.3f `BL' " (" %5.3f `AL' ")  " ///
+                   %8.3f `BH' " (" %5.3f `AH' ")  " %8.3f `DH' ///
+                   " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
+                   " " %7.3f `zz' " " %5.3f `pz2'
             }
-            else di as error "    h=" `h'+1 ": difference estimate failed (too thin)."
+            else di as error "    h=" `h'+1 ": estimate failed (too thin)."
         }
     }
 }
@@ -496,18 +453,25 @@ use "`diff_resf'", clear
 label var dhl "AIPW (high - low nexus) difference (pp)"
 label var bhi "High-nexus ATE"
 label var blo "Low-nexus ATE"
+label var lo  "95% CI lower (row bootstrap)"
+label var hi  "95% CI upper (row bootstrap)"
 label var nd  "Valid bootstrap draws"
+label var cloggz "Clogg et al. (1995) z (permissive; assumes independence)"
+label var cloggp "p-value of the Clogg z"
 gen byte sig95 = (nd>=50 & (lo>0 | hi<0))
-label var sig95 "High-low gap CI excludes 0"
-order outcome part horizon dhl bhi blo lo hi nd sig95
+label var sig95 "Bootstrap CI excludes 0 (governing test)"
+order outcome part horizon dhl bhi blo se lo hi nd sig95 cloggz cloggp
 export delimited "$tabs/aipw_nexus_diff.csv", replace
 di as result _n "Nexus high-low DIFFERENCE CSV saved: $tabs/aipw_nexus_diff.csv"
 
 use "`resf'", clear
 label var b  "AIPW ATE on outcome (pp)"
+label var se "Analytic influence-function SE (no bootstrap on levels)"
+label var lo "95% CI lower = b - 1.96*se (analytic)"
+label var hi "95% CI upper = b + 1.96*se (analytic)"
 label var ntreat "Treated onsets in cell"
-label var nd "Valid bootstrap draws"
-order outcome part bank horizon b se lo hi ntreat nd
+drop nd
+order outcome part bank horizon b se lo hi ntreat
 export delimited "$tabs/aipw_nexus_split.csv", replace
 di as result _n "Nexus-split AIPW results CSV saved: $tabs/aipw_nexus_split.csv"
 
@@ -538,7 +502,7 @@ foreach oc in gdp credit inv claimpriv_assets claims_govt {
         (connected b horizon if bank=="high" & outcome=="`oc'", lcolor("`c_hi'") lwidth(medthick) msymbol(square) lpattern(dash)) ///
         (connected b horizon if bank=="low"  & outcome=="`oc'", lcolor("`c_lo'") lwidth(medthick) msymbol(circle)), ///
         by(partid, yrescale ///
-            note("AIPW (Asonuma Eq. 3), ATE. Split by pre-crisis bank claims-on-govt / assets (median). Shaded = bootstrap 95% CI where >=50 draws.", size(vsmall)) ///
+            note("AIPW (Asonuma Eq. 3), ATE. Split by pre-crisis bank claims-on-govt / assets (median). Shaded = 1.96*analytic SE band. High-low gap bootstrapped directly (row-level).", size(vsmall)) ///
             title("`ptit'", size(medsmall) color(navy))) ///
         yline(0, lpattern(dash) lcolor(gs8)) ///
         xlabel(0(1)5) xtitle("Year (Year 1 = crisis year)", size(small)) ///

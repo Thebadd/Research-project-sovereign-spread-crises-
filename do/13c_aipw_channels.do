@@ -20,6 +20,21 @@
   PROPENSITY model = identical to 08b (selection into treatment is the same
   object regardless of outcome). Only the OUTCOME regression is channel-specific.
 
+  INFERENCE, ALIGNED WITH 08b_aipw.do / THE FLOW TIER'S PRESENTATION
+  (21_aipw_flow.do): Act 1 (single ATE per channel) keeps its cluster
+  bootstrap CI as before -- no by-type contrast to test. Act 2 (by
+  resolution type) and its difference are now estimated in ONE pass per
+  channel/horizon (_aipwpair, replacing the old separate _aipwci-levels
+  loop plus a second _aipwpairdiff-levels-recomputed-again loop): each
+  level's CI is 1.96*analytic influence-function SE (the paper's own
+  Table 2/Fig. 4 construction), with a conventional t-test (b/se) and
+  stars per level; the def-nd DIFFERENCE is bootstrapped directly with
+  ROW-LEVEL resampling within control/nd/def pools -- the paper's own
+  bootstrap device, a natural fit here since an onset row already is one
+  episode; Clogg et al. (1995)'s z (from the same analytic SEs) is
+  reported alongside the bootstrap CI as the permissive companion
+  statistic. See 08b_aipw.do's header for the full argument.
+
   CRITICAL: bsample (cluster bootstrap) destroys the panel time order, so nothing
   re-estimated inside the bootstrap may use L./F. operators. The outcome ch_*_h is
   precomputed, and every lagged control is pre-generated as a PLAIN column
@@ -163,8 +178,19 @@ program define _aipw, rclass
       - ( (`D'-`ps')/(`ps'*(1-`ps')) )*( (1-`ps')*`m1' + `ps'*`m0' ) ///
         if `touse'
     quietly summarize `summ' if `touse', meanonly
-    return scalar theta = r(mean)
-    return scalar N     = r(N)
+    local th = r(mean)
+    local nn = r(N)
+
+    * Analytic (unclustered) influence-function SE -- matches 08b_aipw.do /
+    * 21_aipw_flow.do's _aipw exactly: sqrt(mean((summand - theta)^2) / N).
+    tempvar isq
+    quietly gen double `isq' = (`summ' - `th')^2 if `touse'
+    quietly summarize `isq' if `touse', meanonly
+    local sean = sqrt(r(mean)/r(N))
+
+    return scalar theta = `th'
+    return scalar N     = `nn'
+    return scalar se    = `sean'
 end
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -227,16 +253,17 @@ program define _aipwci, rclass
 end
 
 * ══════════════════════════════════════════════════════════════════════════
-* PROGRAM — paired bootstrap of the DIFFERENCE between two AIPW cells
-*   (cell1 - cell2) recomputed on the SAME cluster resample each draw. Here
-*   cell1 = default vs tranquil, cell2 = non-default vs tranquil, so r(dh) =
-*   def - nd = the extra channel response of default. Matches the paper's
-*   inference for the between-type contrast (they bootstrap the gap directly
-*   rather than eyeballing the distance between two separately-banded lines).
-*   _aipwpairdiff, y() d1() if1() d2() if2() omod() pz() reps()
+* PROGRAM — paired bootstrap of the DIFFERENCE between two AIPW cells,
+*   ROW-LEVEL resampling within control/type1/type2 pools -- the reference
+*   paper's own bootstrap device (see 08b_aipw.do's _aipwpair header for the
+*   full rationale). Here cell1 = default vs tranquil, cell2 = non-default
+*   vs tranquil, so r(dh) = def - nd = the extra channel response of
+*   default. Also returns each cell's own analytic SE (a1/a2) so the console
+*   table and Clogg z are built from the same estimates as the bootstrap.
+*   _aipwpair, y() d1() if1() d2() if2() omod() pz() reps()
 * ══════════════════════════════════════════════════════════════════════════
-capture program drop _aipwpairdiff
-program define _aipwpairdiff, rclass
+capture program drop _aipwpair
+program define _aipwpair, rclass
     syntax , Y(string) D1(string) IF1(string) D2(string) IF2(string) ///
              OMOD(string) PZ(string) REPS(integer)
     capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(cid)
@@ -245,33 +272,37 @@ program define _aipwpairdiff, rclass
         exit
     }
     local b1 = r(theta)
+    local a1 = r(se)
     capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(cid)
     if _rc {
         return scalar ok = 0
         exit
     }
     local b2 = r(theta)
+    local a2 = r(se)
     local dh = `b1' - `b2'
-    * 4-level stratum (has-d1 x has-d2) so one resample preserves the treated
-    * count of BOTH cells; otherwise the thinner cell is routinely lost and the
-    * paired difference draw goes with it.
-    _mkstrat `d1' `d2', generate(_strat)
+
+    capture drop _pool
+    quietly gen byte _pool = 0 if (`if1') | (`if2')
+    quietly replace _pool = 1 if `d1' == 1
+    quietly replace _pool = 2 if `d2' == 1
+
     tempname pf
     tempfile bf
     quietly postfile `pf' double diff using "`bf'", replace
     forvalues b = 1/`reps' {
         preserve
-            capture drop _bid
-            bsample, cluster(cid) strata(_strat) idcluster(_bid)
-            capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(_bid)
+            quietly keep if !missing(_pool)
+            quietly bsample, strata(_pool)
+            capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(cid)
             local t1 = cond(_rc==0, r(theta), .)
-            capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(_bid)
+            capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(cid)
             local t2 = cond(_rc==0, r(theta), .)
             if !missing(`t1') & !missing(`t2') quietly post `pf' (`t1' - `t2')
         restore
     }
     quietly postclose `pf'
-    capture drop _strat
+    capture drop _pool
     local se = .
     local lo = .
     local hi = .
@@ -292,6 +323,8 @@ program define _aipwpairdiff, rclass
     return scalar dh = `dh'
     return scalar b1 = `b1'
     return scalar b2 = `b2'
+    return scalar a1 = `a1'
+    return scalar a2 = `a2'
     return scalar se = `se'
     return scalar lo = `lo'
     return scalar hi = `hi'
@@ -306,11 +339,11 @@ tempfile resf
 postfile `R' str24 channel str4 series byte horizon double b se lo hi ///
     using "`resf'", replace
 
-* second results file: the def - nd DIFFERENCE per channel x horizon (paired boot)
+* second results file: the def - nd DIFFERENCE per channel x horizon (row boot)
 tempname Rd
 tempfile diffresf
 postfile `Rd' str24 channel byte horizon double dhl bdef bnd se lo hi nd ///
-    using "`diffresf'", replace
+    double cloggz double cloggp using "`diffresf'", replace
 
 foreach ch in credit claims_govt inv govexp pb fdi ///
               claimsgov_assets claimpriv_assets ca {
@@ -350,46 +383,53 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
         else di as error "    h=" `h'+1 ": Act 1 estimate failed (rc)."
     }
 
-    * ── Act 2: resolution split, two level lines vs tranquil ────────────────
-    di as result "  Act 2 (vs tranquil):  type  h    ATE      SE      [95% CI]"
-    foreach spec in "onset_nd onset_def nd" "onset_def onset_nd def" {
-        gettoken Dv rest  : spec
-        gettoken drop sn  : rest
-        post `R' ("`ch'") ("`sn'") (0) (0) (0) (0) (0)   // explicit baseline (h=0)
-        forvalues h = 0/4 {
-            _aipwci ch_`ch'_`h' `Dv', ifc(sample==1 & `drop'==0) ///
-                omod(`om') pz(`om' `cz_def') reps(`nboot')
-            if r(ok) {
-                local b=r(b)
-                local se=r(se)
-                local lo=r(lo)
-                local hi=r(hi)
-                local nd=r(nd)
-                post `R' ("`ch'") ("`sn'") (`h'+1) (`b') (`se') (`lo') (`hi')
-                di "    `sn'  h=" `h'+1 "  " %8.3f `b' "  " %6.3f `se' ///
-                   "  [" %7.3f `lo' ", " %7.3f `hi' "]  " `nd' "/`nboot'"
-            }
-            else di as error "    `sn' h=" `h'+1 ": estimate failed (thin sample)."
-        }
-    }
-
-    * ── Act 2 (difference): extra channel response of default (def - nd) ────
-    *   bootstrapped directly on paired cluster resamples, so the between-type
-    *   gap gets a proper CI (the paper's inference), not an eyeballed distance.
-    di as result "  Act 2 (def - nd gap):  h    def-nd   SE      [95% CI]   draws"
-    post `Rd' ("`ch'") (0) (0) (0) (0) (0) (0) (0) (0)   // explicit baseline (h=0)
+    * ── Act 2: resolution split (levels, analytic-SE bands + t-test) AND the
+    * def-nd difference (row bootstrap + Clogg z), estimated together in ONE
+    * pass per horizon via _aipwpair -- see 08b_aipw.do's header for why this
+    * replaces two separate estimation loops (levels via bootstrap CI, then
+    * the diff re-estimating both cells again) with a single, more efficient
+    * and internally consistent one.
+    di as result "  Act 2:  h   ND (se_a)        DEF (se_a)        def-nd   [95% boot CI]   Clogg z    p"
+    post `R' ("`ch'") ("nd")  (0) (0) (0) (0) (0)   // explicit baseline (h=0)
+    post `R' ("`ch'") ("def") (0) (0) (0) (0) (0)
+    post `Rd' ("`ch'") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)   // explicit baseline (h=0)
     forvalues h = 0/4 {
-        _aipwpairdiff, y(ch_`ch'_`h') ///
+        _aipwpair, y(ch_`ch'_`h') ///
             d1(onset_def) if1(sample==1 & onset_nd==0) ///
             d2(onset_nd)  if2(sample==1 & onset_def==0) ///
             omod(`om') pz(`om' `cz_def') reps(`nboot')
         if r(ok) {
-            post `Rd' ("`ch'") (`h'+1) (r(dh)) (r(b1)) (r(b2)) (r(se)) (r(lo)) (r(hi)) (r(nd))
-            local sig = cond(r(nd)>=50 & (r(lo)>0 | r(hi)<0), " *", "")
-            di "    h=" `h'+1 "  " %8.3f r(dh) "  " %6.3f r(se) ///
-               "  [" %7.3f r(lo) ", " %7.3f r(hi) "]  " r(nd) "/`nboot'`sig'"
+            local B1 = r(b1)   // default-linked ATE
+            local B2 = r(b2)   // non-default ATE
+            local A1 = r(a1)   // analytic SE, default-linked
+            local A2 = r(a2)   // analytic SE, non-default
+            local DH = r(dh)
+            local SE = r(se)
+            local LO = r(lo)
+            local HI = r(hi)
+            local ND = r(nd)
+
+            * Level CIs = theta +/- 1.96*analytic SE, matching the paper's
+            * own Fig. 4 band construction; the bootstrap is reserved for the
+            * difference only.
+            post `R' ("`ch'") ("nd")  (`h'+1) (`B2') (`A2') (`B2'-1.96*`A2') (`B2'+1.96*`A2')
+            post `R' ("`ch'") ("def") (`h'+1) (`B1') (`A1') (`B1'-1.96*`A1') (`B1'+1.96*`A1')
+
+            local zz = .
+            local pz = .
+            if !missing(`A1') & !missing(`A2') & (`A1'^2 + `A2'^2) > 0 {
+                local zz = `DH' / sqrt(`A1'^2 + `A2'^2)
+                local pz = 2*(1 - normal(abs(`zz')))
+            }
+            post `Rd' ("`ch'") (`h'+1) (`DH') (`B1') (`B2') (`SE') (`LO') (`HI') (`ND') (`zz') (`pz')
+
+            local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
+            di "    " %1.0f `h'+1 "  " %8.3f `B2' " (" %5.3f `A2' ")  " ///
+               %8.3f `B1' " (" %5.3f `A1' ")  " %8.3f `DH' ///
+               " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
+               " " %7.3f `zz' " " %5.3f `pz'
         }
-        else di as error "    h=" `h'+1 ": def-nd gap failed (thin sample)."
+        else di as error "    h=" `h'+1 ": Act 2 estimate failed (thin sample)."
     }
 }
 postclose `R'
@@ -398,26 +438,29 @@ postclose `Rd'
 * ══════════════════════════════════════════════════════════════════════════
 * EXPORT — CSV + two small-multiple (by-channel) figures
 * ══════════════════════════════════════════════════════════════════════════
-* ── Difference CSV: def - nd gap per channel x horizon (paired bootstrap) ────
+* ── Difference CSV: def - nd gap per channel x horizon (row bootstrap) ──────
 preserve
     use "`diffresf'", clear
     label var dhl  "AIPW def - nd channel gap (pp)"
     label var bdef "Default-linked ATE"
     label var bnd  "Non-default ATE"
-    label var lo   "95% percentile CI lower"
-    label var hi   "95% percentile CI upper"
+    label var lo   "95% percentile CI lower (row bootstrap)"
+    label var hi   "95% percentile CI upper (row bootstrap)"
     label var nd   "Valid bootstrap draws"
+    label var cloggz "Clogg et al. (1995) z (permissive; assumes independence)"
+    label var cloggp "p-value of the Clogg z"
     gen byte sig95 = (nd>=50 & (lo>0 | hi<0))
-    label var sig95 "Gap CI excludes 0"
-    order channel horizon dhl bdef bnd se lo hi nd sig95
+    label var sig95 "Bootstrap CI excludes 0 (governing test)"
+    order channel horizon dhl bdef bnd se lo hi nd sig95 cloggz cloggp
     export delimited "$tabs/aipw_channels_diff.csv", replace
     di as result _n "AIPW channel def-nd difference CSV saved: $tabs/aipw_channels_diff.csv"
 restore
 
 use "`resf'", clear
 label var b  "AIPW ATE (pp of the channel ratio)"
-label var lo "95% percentile CI lower"
-label var hi "95% percentile CI upper"
+label var se "SE: bootstrap SD for series==all (Act 1), analytic influence-function SE for series==nd/def (Act 2)"
+label var lo "95% CI lower: bootstrap percentile (Act 1) or theta-1.96*se (Act 2, analytic)"
+label var hi "95% CI upper: bootstrap percentile (Act 1) or theta+1.96*se (Act 2, analytic)"
 order channel series horizon b se lo hi
 export delimited "$tabs/aipw_channels.csv", replace
 di as result _n "AIPW channel results CSV saved: $tabs/aipw_channels.csv"
@@ -451,7 +494,7 @@ capture twoway ///
     (connected b horizon if series=="nd",  lcolor("`c_nd'")  lwidth(medthick) msymbol(circle)) ///
     (connected b horizon if series=="def", lcolor("`c_def'") lwidth(medthick) lpattern(dash) msymbol(square)), ///
     by(chid, yrescale ///
-        note("Two AIPW level IRFs per channel; shaded = bootstrap 95% CI. Gap = extra cost of default.", size(vsmall)) ///
+        note("Two AIPW level IRFs per channel; shaded = 1.96*analytic SE band. Gap = extra cost of default, bootstrapped directly (row-level).", size(vsmall)) ///
         title("AIPW transmission channels by resolution", size(medsmall) color(navy))) ///
     yline(0, lpattern(dash) lcolor(gs8)) ///
     xlabel(0(1)5) xtitle("Year (Year 1 = crisis year)", size(small)) ///

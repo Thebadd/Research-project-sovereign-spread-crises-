@@ -29,9 +29,30 @@
   AIPW summand is formed from those weighted means. The summand itself is
   algebraically identical to theirs.
 
-  INFERENCE: percentile CIs from a STRATIFIED cluster `bsample` — resample
-  countries (cluster bootstrap), recompute Eq. (3) each draw, take the 2.5/97.5
-  percentiles. No analytic SE; the SE column reports the bootstrap SD.
+  INFERENCE, ALIGNED WITH THE FLOW TIER'S PRESENTATION (21_aipw_flow.do):
+    - Act 1 (pooled, single ATE): percentile CI from a STRATIFIED CLUSTER
+      bootstrap (resample countries), as before -- no by-type contrast to
+      test here, so the row-level scheme below does not apply.
+    - Act 2 (by resolution type) and its difference: each level's CI is now
+      1.96*SE around the point estimate, where SE is the ANALYTIC
+      influence-function standard error (sum of squared demeaned Eq.-3
+      summands / N) -- the same construction behind the reference paper's
+      own Table 2/Fig. 4 bands, not a bootstrap SD. A conventional t-test
+      (b/se) with stars is reported for each level against zero, exactly as
+      their Table 2. The bootstrap is reserved for the BETWEEN-TYPE
+      DIFFERENCE (def - nd), using ROW-LEVEL resampling within
+      control/non-default/default-linked pools -- the paper's own
+      bootstrap device (split into a control pool and one pool per
+      treatment type, `bsample` each, stack) -- which is a NATURAL fit
+      here (not merely matched for parity): an onset row already IS one
+      episode, so row resampling does not face the flow tier's own
+      caveat about a single chronic country contributing many
+      non-independent rows. Clogg et al. (1995)'s z, built from the same
+      analytic SEs as the level bands, is reported alongside the
+      bootstrap CI as the PERMISSIVE companion statistic (it assumes the
+      two cells are independent, which they are not, since they share the
+      tranquil control pool) -- the bootstrap CI governs where the two
+      disagree.
 
   SAMPLE: restriction to ever-treated countries is mechanical — the probit drops
   countries with no variation in D. Act 1 = onset vs tranquil. Act 2 = the
@@ -94,8 +115,10 @@ foreach m in b se lo hi {
     matrix A1_`m'     = J(5,1,.)   // Act 1: crisis cost (all onsets)
     matrix A2nd_`m'   = J(5,1,.)   // Act 2: non-default cost vs tranquil
     matrix A2def_`m'  = J(5,1,.)   // Act 2: default-linked cost vs tranquil
-    matrix A2diff_`m' = J(5,1,.)   // Act 2: extra cost of default (def - nd), paired bootstrap
+    matrix A2diff_`m' = J(5,1,.)   // Act 2: extra cost of default (def - nd), row bootstrap
 }
+matrix A2diff_z = J(5,1,.)   // Act 2 difference: Clogg et al. (1995) z (analytic SEs)
+matrix A2diff_p = J(5,1,.)   // Act 2 difference: p-value of the Clogg z
 
 * ══════════════════════════════════════════════════════════════════════════
 * PROGRAM — hand-coded AIPW point estimate (Eqs. 1-3), returns r(theta), r(N)
@@ -155,8 +178,20 @@ program define _aipw, rclass
       - ( (`D'-`ps')/(`ps'*(1-`ps')) )*( (1-`ps')*`m1' + `ps'*`m0' ) ///
         if `touse'
     quietly summarize `summ' if `touse', meanonly
-    return scalar theta = r(mean)
-    return scalar N     = r(N)
+    local th = r(mean)
+    local nn = r(N)
+
+    * Analytic (unclustered) influence-function SE -- the construction behind
+    * the reference paper's own Table 2/Fig. 4 bands: SE = sqrt(mean((summand
+    * - theta)^2) / N). Matches 21_aipw_flow.do's _aipw exactly.
+    tempvar isq
+    quietly gen double `isq' = (`summ' - `th')^2 if `touse'
+    quietly summarize `isq' if `touse', meanonly
+    local sean = sqrt(r(mean)/r(N))
+
+    return scalar theta = `th'
+    return scalar N     = `nn'
+    return scalar se    = `sean'
 end
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -202,54 +237,66 @@ end
 
 * ══════════════════════════════════════════════════════════════════════════
 * PROGRAM — paired bootstrap of the DIFFERENCE between two AIPW cells
-*   (cell1 - cell2) recomputed on the SAME cluster resample each draw, so the
-*   difference distribution is valid. This is the paper's inference for the
-*   between-type contrast: they bootstrap the extra cost of default directly
-*   rather than eyeballing the gap between two separately-banded level lines.
-*   Here cell1 = default vs tranquil, cell2 = non-default vs tranquil, so
-*   r(dh) = def - nd = the extra output cost of default.
-*   _aipwpairdiff, y() d1() if1() d2() if2() omod() pz() reps()
+*   (cell1 - cell2), ROW-LEVEL resampling within control/type1/type2 pools --
+*   THE REFERENCE PAPER'S OWN BOOTSTRAP DEVICE (their file splits the data
+*   into a control pool and one pool per treatment type, `bsample`s each
+*   independently, and stacks: drop if dum1|dum2|dum3; bsample (controls);
+*   keep if dum`s'==1; bsample; append). `bsample, strata()` does exactly
+*   that in one command -- draws N_k rows WITH REPLACEMENT inside each
+*   stratum, so every pool keeps its original size, which is what stops a
+*   draw landing with too few default-linked rows. This is a NATURAL match
+*   for the onset tier, not merely matched for parity with the flow tier's
+*   own file: an onset row already is one episode (unlike a flow-coded
+*   continuation row), so row resampling does not face the flow tier's own
+*   caveat about one chronic country contributing many non-independent rows.
+*   Also returns each cell's own analytic SE (a1/a2), so the console table
+*   and the Clogg z below are built from the SAME estimates as the
+*   bootstrap, not a separate run.
+*   _aipwpair, y() d1() if1() d2() if2() omod() pz() reps()
 * ══════════════════════════════════════════════════════════════════════════
-capture program drop _aipwpairdiff
-program define _aipwpairdiff, rclass
+capture program drop _aipwpair
+program define _aipwpair, rclass
     syntax , Y(string) D1(string) IF1(string) D2(string) IF2(string) ///
              OMOD(string) PZ(string) REPS(integer)
-    * point estimates on the real data
     capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(cid)
     if _rc {
         return scalar ok = 0
         exit
     }
     local b1 = r(theta)
+    local a1 = r(se)
     capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(cid)
     if _rc {
         return scalar ok = 0
         exit
     }
     local b2 = r(theta)
+    local a2 = r(se)
     local dh = `b1' - `b2'
-    * bootstrap the difference: one resample -> both cells -> their gap.
-    * STRATIFIED on both treatments at once (4 levels: has-nd x has-def), so a
-    * single resample preserves the treated count of BOTH cells. Without this the
-    * default cell — 12 episodes — routinely comes back too thin to estimate, and
-    * the difference draw is lost with it.
-    _mkstrat `d1' `d2', generate(_strat)
+
+    capture drop _pool
+    * Parentheses matter: `if1'/`if2' are compound expressions and Stata gives
+    * & and | equal precedence, left to right.
+    quietly gen byte _pool = 0 if (`if1') | (`if2')
+    quietly replace _pool = 1 if `d1' == 1
+    quietly replace _pool = 2 if `d2' == 1
+
     tempname pf
     tempfile bf
     quietly postfile `pf' double diff using "`bf'", replace
     forvalues b = 1/`reps' {
         preserve
-            capture drop _bid
-            bsample, cluster(cid) strata(_strat) idcluster(_bid)
-            capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(_bid)
+            quietly keep if !missing(_pool)
+            quietly bsample, strata(_pool)
+            capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(cid)
             local t1 = cond(_rc==0, r(theta), .)
-            capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(_bid)
+            capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(cid)
             local t2 = cond(_rc==0, r(theta), .)
             if !missing(`t1') & !missing(`t2') quietly post `pf' (`t1' - `t2')
         restore
     }
     quietly postclose `pf'
-    capture drop _strat
+    capture drop _pool
     local se = .
     local lo = .
     local hi = .
@@ -270,6 +317,8 @@ program define _aipwpairdiff, rclass
     return scalar dh = `dh'
     return scalar b1 = `b1'
     return scalar b2 = `b2'
+    return scalar a1 = `a1'
+    return scalar a2 = `a2'
     return scalar se = `se'
     return scalar lo = `lo'
     return scalar hi = `hi'
@@ -339,104 +388,103 @@ forvalues h = 0/4 {
 }
 
 * ══════════════════════════════════════════════════════════════════════════
-* ACT 2 — AIPW output cost by resolution, as TWO LEVEL lines vs tranquil
-*   (the doubly-robust analog of the Table 2 nd/def coefficients; their vertical
-*    gap = the extra default cost). Mirrors the IPW Act-2 figure (fig8): one line
-*    for non-default onsets, one for default-linked, each estimated against the
-*    tranquil control with country FE + the full (X,Z) probit — exactly like
-*    Act 1. The OTHER resolution type is dropped from each estimation so the
-*    control group is clean tranquil years, not the rival crisis type.
+* ACT 2 — AIPW output cost by resolution, levels + the DIFFERENCE (def - nd),
+* aligned with the flow tier's presentation (21_aipw_flow.do Section 3):
+*   - Each level's CI is 1.96*analytic-SE (the paper's own Table 2/Fig. 4
+*     construction), not a bootstrap band; a conventional t-test (b/se_a)
+*     with stars is shown for each level against zero, exactly as their
+*     Table 2. Mirrors the IPW Act-2 figure (fig8): one line for
+*     non-default onsets, one for default-linked, each vs tranquil with
+*     country FE + the full (X,Z) probit -- the OTHER resolution type
+*     dropped so the control group is clean tranquil years.
+*   - The DIFFERENCE (def - nd) is bootstrapped directly (row-level, within
+*     control/nd/def pools -- the paper's own device, see _aipwpair's
+*     header) so it gets a proper percentile CI, the quantity the paper
+*     actually tests rather than eyeballing the two level bands.
+*   - Clogg et al. (1995)'s z, built from the SAME analytic SEs as the
+*     level bands, is reported alongside the bootstrap CI as the
+*     PERMISSIVE companion statistic (assumes independence, which does not
+*     hold since both cells share the tranquil control pool) -- the
+*     bootstrap CI governs where the two disagree.
 * ══════════════════════════════════════════════════════════════════════════
-di as result _n "=== ACT 2 — AIPW (ATE) output cost by resolution (vs tranquil) ==="
-di as result "type  h    ATE       SE(boot)  [95% percentile CI]"
-
-* Loop over the two resolution types. `Dvar' = treatment dummy; `drop' = the
-* rival onset dummy to exclude; `stub' = storage-matrix prefix; `lab' = label.
-foreach spec in "onset_nd onset_def A2nd non-default" ///
-                "onset_def onset_nd A2def default-linked" {
-    gettoken Dvar spec  : spec
-    gettoken drop spec  : spec
-    gettoken stub lab   : spec
-    local lab = trim("`lab'")
-
-    forvalues h = 0/4 {
-        local row = `h' + 1
-
-        * point estimate: this type's onsets vs tranquil (rival type dropped)
-        capture _aipw dy_`h' `Dvar' if sample==1 & `drop'==0, ///
-            omodel($ctrl_core) pmodel(`cx' `cz_def') fe(cid)
-        if _rc {
-            di as error "`lab' h=" `h' ": point estimate failed, rc=" _rc
-            continue
-        }
-        local pt = r(theta)
-        matrix `stub'_b[`row',1] = `pt'
-
-        * STRATIFIED cluster bootstrap (fresh FE ids), recompute Eq. (3).
-        * Preserves the treated-country count per draw — essential here, since the
-        * default cell rests on 12 episodes.
-        _mkstrat `Dvar' if sample==1 & `drop'==0, generate(_strat)
-        tempname pf2
-        tempfile bf2
-        quietly postfile `pf2' double theta using "`bf2'", replace
-        forvalues b = 1/`nboot' {
-            preserve
-                capture drop _bid
-                bsample, cluster(cid) strata(_strat) idcluster(_bid)
-                capture _aipw dy_`h' `Dvar' if sample==1 & `drop'==0, ///
-                    omodel($ctrl_core) pmodel(`cx' `cz_def') fe(_bid)
-                if _rc == 0 quietly post `pf2' (r(theta))
-            restore
-        }
-        quietly postclose `pf2'
-        capture drop _strat
-
-        local ndraw = 0
-        preserve
-            quietly use "`bf2'", clear
-            quietly count if !missing(theta)
-            local ndraw = r(N)
-            if `ndraw' >= 50 {
-                quietly summarize theta
-                matrix `stub'_se[`row',1] = r(sd)
-                _pctile theta, p(2.5 97.5)
-                matrix `stub'_lo[`row',1] = r(r1)
-                matrix `stub'_hi[`row',1] = r(r2)
-            }
-        restore
-
-        di "`lab'  h=" `h'+1 "  " %7.3f `pt' "   " ///
-           %7.3f `stub'_se[`row',1] "   [" %7.3f `stub'_lo[`row',1] ", " ///
-           %7.3f `stub'_hi[`row',1] "]   (" `ndraw' "/`nboot' draws)"
-    }
-}
-
-* ══════════════════════════════════════════════════════════════════════════
-* ACT 2 (difference) — EXTRA COST OF DEFAULT, bootstrapped directly (def - nd)
-*   The two lines above show the levels; this bootstraps their GAP on paired
-*   cluster resamples so the extra default cost gets a proper 95% CI — the
-*   quantity the paper actually tests, rather than eyeballing the two bands.
-* ══════════════════════════════════════════════════════════════════════════
-di as result _n "=== ACT 2 (difference) — extra cost of default (def - nd), paired bootstrap ==="
-di as result "h    def-nd    SE(boot)  [95% percentile CI]"
+di as result _n "=== ACT 2 — AIPW output cost by resolution, levels + difference ==="
+di as result "h   ND (se_a)         DEF (se_a)         def-nd   [95% boot CI]      Clogg z    p     draws"
+di as result "    se_a = analytic influence-function SE (the paper's own construction)."
+di as result "    ND/DEF stars are the paper's 'conventional t-test' vs zero (b/se_a): * p<.10 ** p<.05 *** p<.01."
+di as result "    def-nd's own * marks the bootstrap CI excluding 0 -- the conservative, governing test for the difference."
 
 forvalues h = 0/4 {
     local row = `h' + 1
-    _aipwpairdiff, y(dy_`h') ///
+
+    _aipwpair, y(dy_`h') ///
         d1(onset_def) if1(sample==1 & onset_nd==0) ///
         d2(onset_nd)  if2(sample==1 & onset_def==0) ///
         omod($ctrl_core) pz(`cx' `cz_def') reps(`nboot')
-    if r(ok) {
-        matrix A2diff_b[`row',1]  = r(dh)
-        matrix A2diff_se[`row',1] = r(se)
-        matrix A2diff_lo[`row',1] = r(lo)
-        matrix A2diff_hi[`row',1] = r(hi)
-        local sig = cond(r(nd)>=50 & (r(lo)>0 | r(hi)<0), " *", "")
-        di "h=" `h'+1 "   " %7.3f r(dh) "   " %7.3f r(se) "   [" ///
-           %7.3f r(lo) ", " %7.3f r(hi) "]   (" r(nd) "/`nboot' draws)`sig'"
+
+    if !r(ok) {
+        di as error "  h=" `h'+1 ": estimate failed (cell too thin)."
+        continue
     }
-    else di as error "h=" `h'+1 ": difference estimate failed (too thin)."
+
+    local B1 = r(b1)   // default-linked ATE
+    local B2 = r(b2)   // non-default ATE
+    local A1 = r(a1)   // analytic SE, default-linked
+    local A2 = r(a2)   // analytic SE, non-default
+    local DH = r(dh)
+    local SE = r(se)
+    local LO = r(lo)
+    local HI = r(hi)
+    local ND = r(nd)
+
+    matrix A2def_b[`row',1]  = `B1'
+    matrix A2nd_b[`row',1]   = `B2'
+    matrix A2def_se[`row',1] = `A1'
+    matrix A2nd_se[`row',1]  = `A2'
+    matrix A2diff_b[`row',1]  = `DH'
+    matrix A2diff_se[`row',1] = `SE'
+    matrix A2diff_lo[`row',1] = `LO'
+    matrix A2diff_hi[`row',1] = `HI'
+
+    * Level CIs = theta +/- 1.96*analytic SE, matching how the reference
+    * paper bands its Fig. 4 (`up = irf + 1.96*se'); the bootstrap is
+    * reserved for the difference only, exactly as they reserve it.
+    matrix A2nd_lo[`row',1]  = `B2' - 1.96*`A2'
+    matrix A2nd_hi[`row',1]  = `B2' + 1.96*`A2'
+    matrix A2def_lo[`row',1] = `B1' - 1.96*`A1'
+    matrix A2def_hi[`row',1] = `B1' + 1.96*`A1'
+
+    * Clogg et al. (1995) z: (irf1 - irf2)/sqrt(se1^2+se2^2), the same
+    * analytic SEs as the level bands. Permissive (assumes independence).
+    local zz = .
+    local pz = .
+    if !missing(`A1') & !missing(`A2') & (`A1'^2 + `A2'^2) > 0 {
+        local zz = `DH' / sqrt(`A1'^2 + `A2'^2)
+        local pz = 2*(1 - normal(abs(`zz')))
+        matrix A2diff_z[`row',1] = `zz'
+        matrix A2diff_p[`row',1] = `pz'
+    }
+
+    * Conventional t-test for each level vs zero (b / own analytic SE), as
+    * the paper's Table 2 -- contrasted against the bootstrap/Clogg methods
+    * used for the difference below, not applied to this test.
+    local tnd  = cond(`A2'>0, `B2'/`A2', .)
+    local pnd  = cond(!missing(`tnd'), 2*(1-normal(abs(`tnd'))), .)
+    local sgnd = cond(missing(`pnd'), "", cond(`pnd'<.01,"***",cond(`pnd'<.05,"**",cond(`pnd'<.10,"*",""))))
+    local tdef  = cond(`A1'>0, `B1'/`A1', .)
+    local pdef  = cond(!missing(`tdef'), 2*(1-normal(abs(`tdef'))), .)
+    local sgdef = cond(missing(`pdef'), "", cond(`pdef'<.01,"***",cond(`pdef'<.05,"**",cond(`pdef'<.10,"*",""))))
+
+    local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
+    di "  " %1.0f `h'+1 "  " %8.3f `B2' "`sgnd'" " (" %5.3f `A2' ")  " ///
+       %8.3f `B1' "`sgdef'" " (" %5.3f `A1' ")  " %8.3f `DH' ///
+       " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
+       " " %7.3f `zz' " " %5.3f `pz' " " %4.0f `ND'
 }
+
+di as result _n "  * = bootstrap 95% percentile CI for the def-nd gap excludes zero."
+di as result "  Clogg z assumes the two cells are independent (they share the tranquil"
+di as result "  control pool), so it is the permissive statistic. Where it and the"
+di as result "  bootstrap disagree, the bootstrap governs."
 
 * ══════════════════════════════════════════════════════════════════════════
 * EXPORT (difference) — extra-cost-of-default CSV (def - nd, paired bootstrap)
@@ -445,20 +493,23 @@ preserve
     clear
     tempname pfd
     tempfile difff
-    postfile `pfd' horizon dhl se lo hi using "`difff'", replace
-    post `pfd' (0) (0) (0) (0) (0)   // explicit baseline (displayed h=0), matching Asonuma et al.
+    postfile `pfd' horizon dhl se lo hi double cloggz double cloggp using "`difff'", replace
+    post `pfd' (0) (0) (0) (0) (0) (.) (.)   // explicit baseline (displayed h=0), matching Asonuma et al.
     forvalues h = 0/4 {
         post `pfd' (`h'+1) (A2diff_b[`h'+1,1]) (A2diff_se[`h'+1,1]) ///
-            (A2diff_lo[`h'+1,1]) (A2diff_hi[`h'+1,1])
+            (A2diff_lo[`h'+1,1]) (A2diff_hi[`h'+1,1]) ///
+            (A2diff_z[`h'+1,1]) (A2diff_p[`h'+1,1])
     }
     postclose `pfd'
     use "`difff'", clear
     label var dhl "AIPW extra cost of default (def - nd, pp)"
-    label var lo  "95% percentile CI lower"
-    label var hi  "95% percentile CI upper"
+    label var lo  "95% percentile CI lower (row bootstrap)"
+    label var hi  "95% percentile CI upper (row bootstrap)"
+    label var cloggz "Clogg et al. (1995) z (permissive; assumes independence)"
+    label var cloggp "p-value of the Clogg z"
     gen byte sig95 = (!missing(lo) & (lo>0 | hi<0))
-    label var sig95 "Gap CI excludes 0"
-    order horizon dhl se lo hi sig95
+    label var sig95 "Bootstrap CI excludes 0 (governing test)"
+    order horizon dhl se lo hi sig95 cloggz cloggp
     export delimited "$tabs/aipw_act2_diff.csv", replace
     di as result "AIPW extra-cost-of-default CSV saved: $tabs/aipw_act2_diff.csv"
 restore
@@ -472,7 +523,7 @@ if !missing(`g2') & !missing(`g2l') {
     local g2s  : di %4.1f `g2'
     local g2ls : di %4.1f `g2l'
     local g2hs : di %4.1f `g2h'
-    local gapnote "Extra cost of default at h=3: `g2s' pp [`g2ls', `g2hs'] (paired bootstrap)."
+    local gapnote "Extra cost of default at h=3: `g2s' pp [`g2ls', `g2hs'] (row bootstrap, paper's device)."
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -538,7 +589,7 @@ preserve
     * takes the bottom position this note used to occupy). `gapnote' is a
     * runtime local (its rendered value can't be embedded in a static
     * comment), so the template is shown instead:
-    * "Two AIPW level IRFs; shaded = bootstrap 95% percentile CI (cluster by country). Gap = extra cost of default. <gapnote>"
+    * "Two AIPW level IRFs; shaded = 1.96*analytic SE band (the paper's own construction). Gap = extra cost of default, bootstrapped directly (row-level). <gapnote>"
     graph export "$figs/fig_aipw_act2.pdf", replace
     di as result "Figure saved: fig_aipw_act2.pdf"
 restore
