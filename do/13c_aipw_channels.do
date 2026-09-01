@@ -12,9 +12,13 @@
             fig_aipw_act2.
 
   Channels (level-difference outcomes, ch_v_h = F h.v - L.v, h=0..4), reusing the
-  construction and control sets from 11/11b/12/13:
-    credit, claims_govt, inv, govexp, pb, fdi           (11 / 12)
+  construction and control sets from 11/11b/12/13. ACTIVE (estimated below):
+    credit, inv                                         (11 / 12)
+    claims_govt                                         (12)
     claimsgov_assets, claimpriv_assets                  (11b nexus)
+  SILENCED for now (not important currently -- see the estimation loop's own
+  note; outcome construction still runs, only estimation is skipped):
+    govexp, pb, fdi                                     (11 / 12)
     ca (current account)                                (13 Aguiar-Gopinath)
 
   PROPENSITY model = identical to 08b (selection into treatment is the same
@@ -43,7 +47,9 @@
   Output: $tabs/aipw_channels.csv ; $figs/fig_aipw_ch_act2.pdf (Act 1 and its
           fig_aipw_ch_act1.pdf are SILENCED, see below). Leaves 11/11b/12/13
           (OLS+IPW) untouched.
-  Runtime note: heavy (9 channels x ~15 fits x nboot). nboot=300 for a practical
+  Runtime note: heavy (5 active channels x ~15 fits x nboot; 4 more channels'
+  outcome construction runs but their estimation is silenced, see above).
+  nboot=300 for a practical
   run; raise to 500 for the final.  Run AFTER 17_predictors.do.
 ===========================================================================*/
 
@@ -357,8 +363,15 @@ tempfile diffresf
 postfile `Rd' str24 channel byte horizon double dhl bdef bnd se lo hi nd ///
     double cloggz double cloggp using "`diffresf'", replace
 
-foreach ch in credit claims_govt inv govexp pb fdi ///
-              claimsgov_assets claimpriv_assets ca {
+* govexp, pb, ca, fdi SILENCED below -- not important for now (no reliable
+* channel signal so far: govexp/pb/ca/fdi's bootstrap CI never excluded
+* zero at any horizon in the last full run). Left out of the active list,
+* not deleted -- restore by adding them back: "credit claims_govt inv
+* govexp pb fdi claimsgov_assets claimpriv_assets ca". Their outcome
+* construction (ch_v_h/pre_v/l_v) above still runs regardless, since it is
+* cheap and shared -- only the estimation loop below is skipped for them.
+foreach ch in credit claims_govt inv ///
+              claimsgov_assets claimpriv_assets {
 
     * channel-specific OUTCOME-model controls (pre-lagged plain columns)
     * AIPW outcome core ($core_aipw = the common core, depth term l_credit_bank) +
