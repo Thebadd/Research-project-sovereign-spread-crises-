@@ -189,9 +189,16 @@ program define _aipw, rclass
     quietly summarize `isq' if `touse', meanonly
     local sean = sqrt(r(mean)/r(N))
 
-    return scalar theta = `th'
-    return scalar N     = `nn'
-    return scalar se    = `sean'
+    * DIAGNOSTIC-ONLY: country-clustered version of the same SE -- see
+    * 08b_aipw.do's _aipw for the full rationale. Not used for the adopted
+    * level bands, returned only for comparison.
+    quietly regress `summ' if `touse', vce(cluster cid)
+    local seclu = _se[_cons]
+
+    return scalar theta  = `th'
+    return scalar N      = `nn'
+    return scalar se     = `sean'
+    return scalar se_clu = `seclu'
 end
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -274,6 +281,7 @@ program define _aipwpair, rclass
     }
     local b1 = r(theta)
     local a1 = r(se)
+    local c1 = r(se_clu)   // diagnostic-only country-clustered SE
     capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(cid)
     if _rc {
         return scalar ok = 0
@@ -281,6 +289,7 @@ program define _aipwpair, rclass
     }
     local b2 = r(theta)
     local a2 = r(se)
+    local c2 = r(se_clu)
     local dh = `b1' - `b2'
 
     capture drop _pool
@@ -326,6 +335,8 @@ program define _aipwpair, rclass
     return scalar b2 = `b2'
     return scalar a1 = `a1'
     return scalar a2 = `a2'
+    return scalar c1 = `c1'
+    return scalar c2 = `c2'
     return scalar se = `se'
     return scalar lo = `lo'
     return scalar hi = `hi'
@@ -408,8 +419,10 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
         if r(ok) {
             local B1 = r(b1)   // default-linked ATE
             local B2 = r(b2)   // non-default ATE
-            local A1 = r(a1)   // analytic SE, default-linked
-            local A2 = r(a2)   // analytic SE, non-default
+            local A1 = r(a1)   // analytic SE, default-linked (unclustered, adopted)
+            local A2 = r(a2)   // analytic SE, non-default (unclustered, adopted)
+            local C1 = r(c1)   // DIAGNOSTIC-ONLY: country-clustered SE, default-linked
+            local C2 = r(c2)   // DIAGNOSTIC-ONLY: country-clustered SE, non-default
             local DH = r(dh)
             local SE = r(se)
             local LO = r(lo)
@@ -444,6 +457,13 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
                %8.3f `B1' "`sgdef'" " (" %5.3f `A1' ")  " %8.3f `DH' ///
                " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
                " " %7.3f `zz' " " %5.3f `pz'
+
+            * DIAGNOSTIC-ONLY: clustered-SE comparison, not adopted -- see
+            * _aipw's header (08b_aipw.do) for the full rationale.
+            local widnd  = cond(`A2'>0, `C2'/`A2', .)
+            local widdef = cond(`A1'>0, `C1'/`A1', .)
+            di "         [clustered SE diag: ND se_clu=" %5.3f `C2' " (x" %4.2f `widnd' ")" ///
+               "   DEF se_clu=" %5.3f `C1' " (x" %4.2f `widdef' ")]"
         }
         else di as error "    h=" `h'+1 ": Act 2 estimate failed (thin sample)."
     }

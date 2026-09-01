@@ -250,9 +250,16 @@ program define _aipw, rclass
     quietly summarize `isq' if `touse', meanonly
     local sean = sqrt(r(mean)/r(N))
 
-    return scalar theta = `th'
-    return scalar N     = `nn'
-    return scalar se    = `sean'
+    * DIAGNOSTIC-ONLY: country-clustered version of the same SE -- see
+    * 08b_aipw.do's _aipw for the full rationale. Not used for the adopted
+    * level bands, returned only for comparison.
+    quietly regress `summ' if `touse', vce(cluster cid)
+    local seclu = _se[_cons]
+
+    return scalar theta  = `th'
+    return scalar N      = `nn'
+    return scalar se     = `sean'
+    return scalar se_clu = `seclu'
 end
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -278,6 +285,7 @@ program define _aipwdiff, rclass
     }
     local bh = r(theta)
     local ah = r(se)
+    local ch = r(se_clu)   // diagnostic-only country-clustered SE
     capture _aipw `yv' `Dv' if `ifcl', omodel(`omod') pmodel(`pz') fe(cid)
     if _rc {
         return scalar ok = 0
@@ -285,6 +293,7 @@ program define _aipwdiff, rclass
     }
     local bl = r(theta)
     local al = r(se)
+    local cl = r(se_clu)
     local dh = `bh' - `bl'
 
     * Row-level pools: 0 = control (either cell's tranquil rows), 1 = treated
@@ -332,6 +341,8 @@ program define _aipwdiff, rclass
     return scalar bl = `bl'
     return scalar ah = `ah'
     return scalar al = `al'
+    return scalar ch = `ch'
+    return scalar cl = `cl'
     return scalar se = `se'
     return scalar lo = `lo'
     return scalar hi = `hi'
@@ -416,8 +427,10 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
             if r(ok) {
                 local BH = r(bh)   // high-nexus ATE
                 local BL = r(bl)   // low-nexus ATE
-                local AH = r(ah)   // analytic SE, high
-                local AL = r(al)   // analytic SE, low
+                local AH = r(ah)   // analytic SE, high (unclustered, adopted)
+                local AL = r(al)   // analytic SE, low (unclustered, adopted)
+                local CH = r(ch)   // DIAGNOSTIC-ONLY: country-clustered SE, high
+                local CL = r(cl)   // DIAGNOSTIC-ONLY: country-clustered SE, low
                 local DH = r(dh)
                 local SE = r(se)
                 local LO = r(lo)
@@ -452,6 +465,13 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
                    %8.3f `BH' "`sghi'" " (" %5.3f `AH' ")  " %8.3f `DH' ///
                    " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
                    " " %7.3f `zz' " " %5.3f `pz2'
+
+                * DIAGNOSTIC-ONLY: clustered-SE comparison, not adopted -- see
+                * _aipw's header (08b_aipw.do) for the full rationale.
+                local widlo = cond(`AL'>0, `CL'/`AL', .)
+                local widhi = cond(`AH'>0, `CH'/`AH', .)
+                di "         [clustered SE diag: LOW se_clu=" %5.3f `CL' " (x" %4.2f `widlo' ")" ///
+                   "   HIGH se_clu=" %5.3f `CH' " (x" %4.2f `widhi' ")]"
             }
             else di as error "    h=" `h'+1 ": estimate failed (too thin)."
         }
