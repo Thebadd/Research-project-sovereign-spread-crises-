@@ -33,20 +33,23 @@
   proportionally inflating the analytic SE). Diagnostic only, does not
   change the estimation.
 
-  INFERENCE, ALIGNED WITH 08b_aipw.do / THE FLOW TIER'S PRESENTATION
-  (21_aipw_flow.do): Act 1 (single ATE per channel) keeps its cluster
-  bootstrap CI as before -- no by-type contrast to test. Act 2 (by
-  resolution type) and its difference are now estimated in ONE pass per
-  channel/horizon (_aipwpair, replacing the old separate _aipwci-levels
-  loop plus a second _aipwpairdiff-levels-recomputed-again loop): each
-  level's CI is 1.96*analytic influence-function SE (the paper's own
-  Table 2/Fig. 4 construction), with a conventional t-test (b/se) and
-  stars per level; the def-nd DIFFERENCE is bootstrapped directly with
-  ROW-LEVEL resampling within control/nd/def pools -- the paper's own
-  bootstrap device, a natural fit here since an onset row already is one
-  episode; Clogg et al. (1995)'s z (from the same analytic SEs) is
-  reported alongside the bootstrap CI as the permissive companion
-  statistic. See 08b_aipw.do's header for the full argument.
+  INFERENCE, ALIGNED WITH 08b_aipw.do: Act 1 (single ATE per channel) keeps
+  its cluster bootstrap CI as before -- no by-type contrast to test. Act 2
+  (by resolution type) and its difference are estimated in ONE pass per
+  channel/horizon (_aipwpair): each level's CI is 1.96*ROW-BOOTSTRAP SE
+  (ADOPTED), with a conventional t-test (b/se_boot) and stars per level.
+  THIS IS A DELIBERATE DEPARTURE FROM THE PAPER'S OWN ANALYTIC-SE
+  CONSTRUCTION -- a direct diagnostic showed that formula understated the
+  def arm's true uncertainty by 3.75-5.5x on ~20-episode default arms (see
+  08b_aipw.do's header for the full argument and evidence). se_a (the
+  paper's own formula) and se_clu (country-clustered) are still printed
+  per row as diagnostic-only comparisons. The def-nd DIFFERENCE is
+  bootstrapped directly with ROW-LEVEL resampling within control/nd/def
+  pools -- the paper's own bootstrap device, a natural fit here since an
+  onset row already is one episode; Clogg et al. (1995)'s z keeps the
+  analytic SEs (its own literature definition) and is reported as the
+  permissive companion statistic on a different SE basis than the level
+  display.
 
   CRITICAL: bsample (cluster bootstrap) destroys the panel time order, so nothing
   re-estimated inside the bootstrap may use L./F. operators. The outcome ch_*_h is
@@ -474,8 +477,9 @@ foreach ch in credit claims_govt inv ///
     * replaces two separate estimation loops (levels via bootstrap CI, then
     * the diff re-estimating both cells again) with a single, more efficient
     * and internally consistent one.
-    di as result "  Act 2:  h   ND (se_a)        DEF (se_a)        def-nd   [95% boot CI]   Clogg z    p"
-    di as result "           ND/DEF stars are the conventional t-test vs zero (b/se_a): * p<.10 ** p<.05 *** p<.01."
+    di as result "  Act 2:  h   ND (se_boot)     DEF (se_boot)     def-nd   [95% boot CI]   Clogg z    p"
+    di as result "           se_boot = ROW-BOOTSTRAP SE (ADOPTED, not the paper's analytic formula -- see 08b_aipw.do's header)."
+    di as result "           ND/DEF stars are the conventional t-test vs zero (b/se_boot): * p<.10 ** p<.05 *** p<.01."
     post `R' ("`ch'") ("nd")  (0) (0) (0) (0) (0)   // explicit baseline (h=0)
     post `R' ("`ch'") ("def") (0) (0) (0) (0) (0)
     post `Rd' ("`ch'") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)   // explicit baseline (h=0)
@@ -499,12 +503,14 @@ foreach ch in credit claims_govt inv ///
             local HI = r(hi)
             local ND = r(nd)
 
-            * Level CIs = theta +/- 1.96*analytic SE, matching the paper's
-            * own Fig. 4 band construction; the bootstrap is reserved for the
-            * difference only.
-            post `R' ("`ch'") ("nd")  (`h'+1) (`B2') (`A2') (`B2'-1.96*`A2') (`B2'+1.96*`A2')
-            post `R' ("`ch'") ("def") (`h'+1) (`B1') (`A1') (`B1'-1.96*`A1') (`B1'+1.96*`A1')
+            * ADOPTED: level CIs = theta +/- 1.96*BOOTSTRAP SE (not analytic --
+            * see 08b_aipw.do's header for the diagnostic that motivated this
+            * switch: the analytic SE understated the def arm's true
+            * uncertainty by 3.75-5.5x on ~20-episode default arms).
+            post `R' ("`ch'") ("nd")  (`h'+1) (`B2') (`BSE2') (`B2'-1.96*`BSE2') (`B2'+1.96*`BSE2')
+            post `R' ("`ch'") ("def") (`h'+1) (`B1') (`BSE1') (`B1'-1.96*`BSE1') (`B1'+1.96*`BSE1')
 
+            * Clogg z: STILL analytic SEs (its own literature definition).
             local zz = .
             local pz = .
             if !missing(`A1') & !missing(`A2') & (`A1'^2 + `A2'^2) > 0 {
@@ -513,33 +519,31 @@ foreach ch in credit claims_govt inv ///
             }
             post `Rd' ("`ch'") (`h'+1) (`DH') (`B1') (`B2') (`SE') (`LO') (`HI') (`ND') (`zz') (`pz')
 
-            * Conventional t-test for each level vs zero (b / own analytic SE),
-            * as the paper's Table 2/Fig. 4 -- same construction as 08b_aipw.do.
-            local tnd  = cond(`A2'>0, `B2'/`A2', .)
+            * Conventional t-test for each level vs zero (b / own BOOTSTRAP
+            * SE) -- ADOPTED, not the paper's literal analytic construction.
+            local tnd  = cond(`BSE2'>0, `B2'/`BSE2', .)
             local pnd  = cond(!missing(`tnd'), 2*(1-normal(abs(`tnd'))), .)
             local sgnd = cond(missing(`pnd'), "", cond(`pnd'<.01,"***",cond(`pnd'<.05,"**",cond(`pnd'<.10,"*",""))))
-            local tdef  = cond(`A1'>0, `B1'/`A1', .)
+            local tdef  = cond(`BSE1'>0, `B1'/`BSE1', .)
             local pdef  = cond(!missing(`tdef'), 2*(1-normal(abs(`tdef'))), .)
             local sgdef = cond(missing(`pdef'), "", cond(`pdef'<.01,"***",cond(`pdef'<.05,"**",cond(`pdef'<.10,"*",""))))
 
             local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
-            di "    " %1.0f `h'+1 "  " %8.3f `B2' "`sgnd'" " (" %5.3f `A2' ")  " ///
-               %8.3f `B1' "`sgdef'" " (" %5.3f `A1' ")  " %8.3f `DH' ///
+            di "    " %1.0f `h'+1 "  " %8.3f `B2' "`sgnd'" " (" %5.3f `BSE2' ")  " ///
+               %8.3f `B1' "`sgdef'" " (" %5.3f `BSE1' ")  " %8.3f `DH' ///
                " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
                " " %7.3f `zz' " " %5.3f `pz'
 
-            * DIAGNOSTIC-ONLY: clustered-SE comparison, not adopted -- see
-            * _aipw's header (08b_aipw.do) for the full rationale.
+            * DIAGNOSTIC ONLY (kept for reference): the paper's own analytic
+            * SE and the country-clustered variant, vs. the adopted se_boot.
+            local narrownd  = cond(`BSE2'>0, `A2'/`BSE2', .)
+            local narrowdef = cond(`BSE1'>0, `A1'/`BSE1', .)
+            di "         [analytic SE diag (paper's own, NOT adopted): ND se_a=" %5.3f `A2' " (x" %4.2f `narrownd' ")" ///
+               "   DEF se_a=" %5.3f `A1' " (x" %4.2f `narrowdef' ")]"
             local widnd  = cond(`A2'>0, `C2'/`A2', .)
             local widdef = cond(`A1'>0, `C1'/`A1', .)
             di "         [clustered SE diag: ND se_clu=" %5.3f `C2' " (x" %4.2f `widnd' ")" ///
                "   DEF se_clu=" %5.3f `C1' " (x" %4.2f `widdef' ")]"
-
-            * DIAGNOSTIC-ONLY: each level's own row-bootstrap SE vs. se_a.
-            local bwidnd  = cond(`A2'>0, `BSE2'/`A2', .)
-            local bwiddef = cond(`A1'>0, `BSE1'/`A1', .)
-            di "         [level bootstrap SE diag: ND se_boot=" %5.3f `BSE2' " (x" %4.2f `bwidnd' ")" ///
-               "   DEF se_boot=" %5.3f `BSE1' " (x" %4.2f `bwiddef' ")]"
         }
         else di as error "    h=" `h'+1 ": Act 2 estimate failed (thin sample)."
     }
@@ -570,9 +574,9 @@ restore
 
 use "`resf'", clear
 label var b  "AIPW ATE (pp of the channel ratio)"
-label var se "Analytic influence-function SE (Act 2 levels; Act 1 silenced, see header)"
-label var lo "95% CI lower = theta-1.96*se (analytic)"
-label var hi "95% CI upper = theta+1.96*se (analytic)"
+label var se "Row-bootstrap SE (ADOPTED; not the paper's analytic formula, see header)"
+label var lo "95% CI lower = theta-1.96*se (bootstrap)"
+label var hi "95% CI upper = theta+1.96*se (bootstrap)"
 order channel series horizon b se lo hi
 export delimited "$tabs/aipw_channels.csv", replace
 di as result _n "AIPW channel results CSV saved: $tabs/aipw_channels.csv"
@@ -608,7 +612,7 @@ capture twoway ///
     (connected b horizon if series=="nd",  lcolor("`c_nd'")  lwidth(medthick) msymbol(circle)) ///
     (connected b horizon if series=="def", lcolor("`c_def'") lwidth(medthick) lpattern(dash) msymbol(square)), ///
     by(chid, yrescale ///
-        note("Two AIPW level IRFs per channel; shaded = 1.96*analytic SE band. Gap = extra cost of default, bootstrapped directly (row-level).", size(vsmall)) ///
+        note("Two AIPW level IRFs per channel; shaded = 1.96*row-bootstrap SE band (adopted, not the paper's analytic formula). Gap = extra cost of default, bootstrapped directly (row-level).", size(vsmall)) ///
         title("AIPW transmission channels by resolution", size(medsmall) color(navy))) ///
     yline(0, lpattern(dash) lcolor(gs8)) ///
     xlabel(0(1)5) xtitle("Year (Year 1 = crisis year)", size(small)) ///

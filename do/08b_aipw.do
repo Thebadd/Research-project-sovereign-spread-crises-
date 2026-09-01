@@ -29,30 +29,33 @@
   AIPW summand is formed from those weighted means. The summand itself is
   algebraically identical to theirs.
 
-  INFERENCE, ALIGNED WITH THE FLOW TIER'S PRESENTATION (21_aipw_flow.do):
+  INFERENCE:
     - Act 1 (pooled, single ATE): percentile CI from a STRATIFIED CLUSTER
       bootstrap (resample countries), as before -- no by-type contrast to
       test here, so the row-level scheme below does not apply.
-    - Act 2 (by resolution type) and its difference: each level's CI is now
-      1.96*SE around the point estimate, where SE is the ANALYTIC
-      influence-function standard error (sum of squared demeaned Eq.-3
-      summands / N) -- the same construction behind the reference paper's
-      own Table 2/Fig. 4 bands, not a bootstrap SD. A conventional t-test
-      (b/se) with stars is reported for each level against zero, exactly as
-      their Table 2. The bootstrap is reserved for the BETWEEN-TYPE
-      DIFFERENCE (def - nd), using ROW-LEVEL resampling within
-      control/non-default/default-linked pools -- the paper's own
-      bootstrap device (split into a control pool and one pool per
-      treatment type, `bsample` each, stack) -- which is a NATURAL fit
-      here (not merely matched for parity): an onset row already IS one
-      episode, so row resampling does not face the flow tier's own
-      caveat about a single chronic country contributing many
-      non-independent rows. Clogg et al. (1995)'s z, built from the same
-      analytic SEs as the level bands, is reported alongside the
-      bootstrap CI as the PERMISSIVE companion statistic (it assumes the
-      two cells are independent, which they are not, since they share the
-      tranquil control pool) -- the bootstrap CI governs where the two
-      disagree.
+    - Act 2 (by resolution type) and its difference: each level's CI is
+      1.96*ROW-BOOTSTRAP SE around the point estimate, and its t-test/stars
+      use that same bootstrap SE. THIS IS A DELIBERATE DEPARTURE FROM THE
+      REFERENCE PAPER'S OWN CONSTRUCTION, not a match to it. The paper
+      bands its Table 2/Fig. 4 with an ANALYTIC influence-function SE
+      (confirmed directly from their replication code); that construction
+      is only asymptotically valid, and a direct diagnostic on this
+      project's own data showed it understates the default-linked arm's
+      true uncertainty by 3.75-5.5x on our ~20-episode default arm (their
+      194 restructurings are large enough that the same formula holds up
+      far better for them). The analytic SE (se_a) and a country-clustered
+      variant (se_clu) are still printed on each row as DIAGNOSTIC-ONLY
+      comparisons. The difference (def - nd) is bootstrapped with ROW-LEVEL
+      resampling within control/non-default/default-linked pools -- the
+      paper's own bootstrap device (split into a control pool and one pool
+      per treatment type, `bsample` each, stack) -- a NATURAL fit here (not
+      merely matched for parity): an onset row already IS one episode, so
+      row resampling does not face the flow tier's own caveat about a
+      single chronic country contributing many non-independent rows. Clogg
+      et al. (1995)'s z keeps the analytic SEs, its own literature
+      definition, and is reported as the permissive companion statistic on
+      a different SE basis than the (now bootstrap-based) level display --
+      the bootstrap CI on the difference is the governing test throughout.
 
   SAMPLE: restriction to ever-treated countries is mechanical — the probit drops
   countries with no variation in D. Act 1 = onset vs tranquil. Act 2 = the
@@ -424,15 +427,14 @@ forvalues h = 0/4 {
 */
 
 * ══════════════════════════════════════════════════════════════════════════
-* ACT 2 — AIPW output cost by resolution, levels + the DIFFERENCE (def - nd),
-* aligned with the flow tier's presentation (21_aipw_flow.do Section 3):
-*   - Each level's CI is 1.96*analytic-SE (the paper's own Table 2/Fig. 4
-*     construction), not a bootstrap band; a conventional t-test (b/se_a)
-*     with stars is shown for each level against zero, exactly as their
-*     Table 2. Mirrors the IPW Act-2 figure (fig8): one line for
-*     non-default onsets, one for default-linked, each vs tranquil with
-*     country FE + the full (X,Z) probit -- the OTHER resolution type
-*     dropped so the control group is clean tranquil years.
+* ACT 2 — AIPW output cost by resolution, levels + the DIFFERENCE (def - nd):
+*   - Each level's CI is 1.96*ROW-BOOTSTRAP SE (ADOPTED, not the paper's own
+*     analytic Table 2/Fig. 4 formula -- see the file header for the
+*     diagnostic that motivated this), with a conventional t-test (b/se_boot)
+*     and stars shown for each level against zero. Mirrors the IPW Act-2
+*     figure (fig8): one line for non-default onsets, one for default-linked,
+*     each vs tranquil with country FE + the full (X,Z) probit -- the OTHER
+*     resolution type dropped so the control group is clean tranquil years.
 *   - The DIFFERENCE (def - nd) is bootstrapped directly (row-level, within
 *     control/nd/def pools -- the paper's own device, see _aipwpair's
 *     header) so it gets a proper percentile CI, the quantity the paper
@@ -444,13 +446,17 @@ forvalues h = 0/4 {
 *     bootstrap CI governs where the two disagree.
 * ══════════════════════════════════════════════════════════════════════════
 di as result _n "=== ACT 2 — AIPW output cost by resolution, levels + difference ==="
-di as result "h   ND (se_a)         DEF (se_a)         def-nd   [95% boot CI]      Clogg z    p     draws"
-di as result "    se_a = analytic influence-function SE (the paper's own construction)."
-di as result "    ND/DEF stars are the paper's 'conventional t-test' vs zero (b/se_a): * p<.10 ** p<.05 *** p<.01."
+di as result "h   ND (se_boot)      DEF (se_boot)      def-nd   [95% boot CI]      Clogg z    p     draws"
+di as result "    se_boot = ROW-BOOTSTRAP SE (ADOPTED), not the paper's own analytic formula -- switched"
+di as result "    after direct diagnostic evidence that the analytic SE understated the def arm's true"
+di as result "    uncertainty by 3.75-5.5x on this project's ~20-episode default arm (see _aipw's header)."
+di as result "    ND/DEF stars are the conventional t-test vs zero (b/se_boot): * p<.10 ** p<.05 *** p<.01."
 di as result "    def-nd's own * marks the bootstrap CI excluding 0 -- the conservative, governing test for the difference."
-di as result "    Each row's second line is DIAGNOSTIC ONLY: se_clu = country-clustered SE (regress summ, vce(cluster cid)),"
-di as result "    vs. the adopted unclustered se_a. The x-multiplier shows how much wider the level band would be if clustered --"
-di as result "    the unclustered construction (matching the paper's own Fig. 4 code) ignores serial correlation within country."
+di as result "    Clogg z still uses the analytic SEs (its own literature definition), so it is a permissive"
+di as result "    companion statistic on a different SE basis than the level display -- read it as that, not as"
+di as result "    directly comparable to the level stars."
+di as result "    Each row's second/third line is DIAGNOSTIC ONLY: the paper's own analytic se_a, and the"
+di as result "    country-clustered se_clu, shown for comparison against the adopted se_boot above."
 
 forvalues h = 0/4 {
     local row = `h' + 1
@@ -481,23 +487,31 @@ forvalues h = 0/4 {
 
     matrix A2def_b[`row',1]  = `B1'
     matrix A2nd_b[`row',1]   = `B2'
-    matrix A2def_se[`row',1] = `A1'
-    matrix A2nd_se[`row',1]  = `A2'
+    matrix A2def_se[`row',1] = `BSE1'
+    matrix A2nd_se[`row',1]  = `BSE2'
     matrix A2diff_b[`row',1]  = `DH'
     matrix A2diff_se[`row',1] = `SE'
     matrix A2diff_lo[`row',1] = `LO'
     matrix A2diff_hi[`row',1] = `HI'
 
-    * Level CIs = theta +/- 1.96*analytic SE, matching how the reference
-    * paper bands its Fig. 4 (`up = irf + 1.96*se'); the bootstrap is
-    * reserved for the difference only, exactly as they reserve it.
-    matrix A2nd_lo[`row',1]  = `B2' - 1.96*`A2'
-    matrix A2nd_hi[`row',1]  = `B2' + 1.96*`A2'
-    matrix A2def_lo[`row',1] = `B1' - 1.96*`A1'
-    matrix A2def_hi[`row',1] = `B1' + 1.96*`A1'
+    * ADOPTED: level CIs = theta +/- 1.96*BOOTSTRAP SE, not the analytic SE.
+    * Switched after direct diagnostic evidence (see _aipwpair's bse1/bse2):
+    * the analytic formula understated the def-arm's true uncertainty by
+    * 3.75-5.5x on this project's ~20-episode default arm (it is only
+    * asymptotically valid, and this sample is far from that regime -- see
+    * _aipw's header). The bootstrap band uses the SAME row-level draws as
+    * the difference CI below, so it is internally consistent with it.
+    matrix A2nd_lo[`row',1]  = `B2' - 1.96*`BSE2'
+    matrix A2nd_hi[`row',1]  = `B2' + 1.96*`BSE2'
+    matrix A2def_lo[`row',1] = `B1' - 1.96*`BSE1'
+    matrix A2def_hi[`row',1] = `B1' + 1.96*`BSE1'
 
-    * Clogg et al. (1995) z: (irf1 - irf2)/sqrt(se1^2+se2^2), the same
-    * analytic SEs as the level bands. Permissive (assumes independence).
+    * Clogg et al. (1995) z: (irf1 - irf2)/sqrt(se1^2+se2^2), STILL the
+    * analytic SEs (A1/A2) -- this is the statistic's own definition in the
+    * literature; switching its inputs would no longer be "the Clogg z", so
+    * it stays analytic even though the level bands above do not. Read it
+    * as the permissive companion it always was, now against a level display
+    * that itself uses the more honest (wider) bootstrap SE.
     local zz = .
     local pz = .
     if !missing(`A1') & !missing(`A2') & (`A1'^2 + `A2'^2) > 0 {
@@ -507,21 +521,27 @@ forvalues h = 0/4 {
         matrix A2diff_p[`row',1] = `pz'
     }
 
-    * Conventional t-test for each level vs zero (b / own analytic SE), as
-    * the paper's Table 2 -- contrasted against the bootstrap/Clogg methods
-    * used for the difference below, not applied to this test.
-    local tnd  = cond(`A2'>0, `B2'/`A2', .)
+    * Conventional t-test for each level vs zero (b / own BOOTSTRAP SE) --
+    * ADOPTED, not the paper's literal analytic-SE construction (see above).
+    local tnd  = cond(`BSE2'>0, `B2'/`BSE2', .)
     local pnd  = cond(!missing(`tnd'), 2*(1-normal(abs(`tnd'))), .)
     local sgnd = cond(missing(`pnd'), "", cond(`pnd'<.01,"***",cond(`pnd'<.05,"**",cond(`pnd'<.10,"*",""))))
-    local tdef  = cond(`A1'>0, `B1'/`A1', .)
+    local tdef  = cond(`BSE1'>0, `B1'/`BSE1', .)
     local pdef  = cond(!missing(`tdef'), 2*(1-normal(abs(`tdef'))), .)
     local sgdef = cond(missing(`pdef'), "", cond(`pdef'<.01,"***",cond(`pdef'<.05,"**",cond(`pdef'<.10,"*",""))))
 
     local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
-    di "  " %1.0f `h'+1 "  " %8.3f `B2' "`sgnd'" " (" %5.3f `A2' ")  " ///
-       %8.3f `B1' "`sgdef'" " (" %5.3f `A1' ")  " %8.3f `DH' ///
+    di "  " %1.0f `h'+1 "  " %8.3f `B2' "`sgnd'" " (" %5.3f `BSE2' ")  " ///
+       %8.3f `B1' "`sgdef'" " (" %5.3f `BSE1' ")  " %8.3f `DH' ///
        " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
        " " %7.3f `zz' " " %5.3f `pz' " " %4.0f `ND'
+
+    * DIAGNOSTIC ONLY (kept for reference): the paper's own analytic SE,
+    * and how much narrower it is than the adopted bootstrap SE above.
+    local narrownd  = cond(`BSE2'>0, `A2'/`BSE2', .)
+    local narrowdef = cond(`BSE1'>0, `A1'/`BSE1', .)
+    di "       [analytic SE diag (paper's own, NOT adopted): ND se_a=" %5.3f `A2' " (x" %4.2f `narrownd' ")" ///
+       "   DEF se_a=" %5.3f `A1' " (x" %4.2f `narrowdef' ")]"
 
     * DIAGNOSTIC-ONLY: how much would the level bands widen if clustered by
     * country instead of the paper's own unclustered construction? Not
@@ -530,15 +550,6 @@ forvalues h = 0/4 {
     local widdef = cond(`A1'>0, `C1'/`A1', .)
     di "       [clustered SE diag: ND se_clu=" %5.3f `C2' " (x" %4.2f `widnd' ")" ///
        "   DEF se_clu=" %5.3f `C1' " (x" %4.2f `widdef' ")]"
-
-    * DIAGNOSTIC-ONLY: each level's own row-bootstrap SE (same resampling
-    * device as the difference above), vs. the adopted analytic se_a --
-    * tests directly whether the analytic formula understates uncertainty
-    * on this thin a treated group (see _aipw's header).
-    local bwidnd  = cond(`A2'>0, `BSE2'/`A2', .)
-    local bwiddef = cond(`A1'>0, `BSE1'/`A1', .)
-    di "       [level bootstrap SE diag: ND se_boot=" %5.3f `BSE2' " (x" %4.2f `bwidnd' ")" ///
-       "   DEF se_boot=" %5.3f `BSE1' " (x" %4.2f `bwiddef' ")]"
 }
 
 di as result _n "  * = bootstrap 95% percentile CI for the def-nd gap excludes zero."
@@ -610,8 +621,9 @@ preserve
     postclose `pfx'
     use "`aipwf'", clear
     label var b  "AIPW ATE (pp)"
-    label var lo "95% percentile CI lower"
-    label var hi "95% percentile CI upper"
+    label var se "Row-bootstrap SE (ADOPTED; not the paper's analytic formula, see header)"
+    label var lo "95% CI lower = b - 1.96*se (bootstrap)"
+    label var hi "95% CI upper = b + 1.96*se (bootstrap)"
     order series horizon b se lo hi
     export delimited "$tabs/aipw_results.csv", replace
     di as result "AIPW results CSV saved: $tabs/aipw_results.csv"
@@ -654,7 +666,7 @@ preserve
     * takes the bottom position this note used to occupy). `gapnote' is a
     * runtime local (its rendered value can't be embedded in a static
     * comment), so the template is shown instead:
-    * "Two AIPW level IRFs; shaded = 1.96*analytic SE band (the paper's own construction). Gap = extra cost of default, bootstrapped directly (row-level). <gapnote>"
+    * "Two AIPW level IRFs; shaded = 1.96*row-bootstrap SE band (adopted; the paper's analytic formula understated def-arm uncertainty 3.75-5.5x, see header). Gap = extra cost of default, bootstrapped directly (row-level). <gapnote>"
     graph export "$figs/fig_aipw_act2.pdf", replace
     di as result "Figure saved: fig_aipw_act2.pdf"
 restore

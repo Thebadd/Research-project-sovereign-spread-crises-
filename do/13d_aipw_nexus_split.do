@@ -28,9 +28,9 @@
       Part B (two-dimensional): {nd, def} x {high, low}          -> 4 lines
 
   SMALL-SAMPLE CAVEAT: the default x {high,low} cells hold only a handful of events.
-  Level CIs no longer depend on the bootstrap at all (analytic SE, always reported);
-  only the HIGH-LOW DIFFERENCE is bootstrapped, and its CI is shown only when >=50
-  valid draws, else the point gap stands with a printed caveat. That threshold is
+  Level CIs now ALSO depend on the bootstrap (se_boot, ADOPTED -- see the INFERENCE
+  note above), same as the HIGH-LOW DIFFERENCE; both are shown only when >=50 valid
+  draws, else the point estimate/gap stands with a printed caveat. That threshold is
   ABSOLUTE, so with nboot now at 1000 read the printed nd/nboot RATE, not just the
   count: 292 of 300 is a healthy cell, 292 of 1000 would mean seven draws in ten
   failed to estimate and the surviving subset is not representative. This thinness
@@ -43,18 +43,22 @@
   DIFFERENCE within each cell (their within-type high-vs-low contrast) so the
   sign-flip is formally tested, not just eyeballed from two bands.
 
-  INFERENCE, ALIGNED WITH 08b_aipw.do / 13c_aipw_channels.do / THE FLOW
-  TIER'S PRESENTATION (21_aipw_flow.do): each (part, bank) level's CI is
-  1.96*analytic influence-function SE (the paper's own Table 2/Fig. 4
-  construction), with a conventional t-test (b/se) and stars against zero.
-  The HIGH-LOW nexus difference within each part is bootstrapped directly
-  with ROW-LEVEL resampling within control/high/low pools -- the paper's
-  own bootstrap device, a natural fit since an onset row already is one
-  episode. Clogg et al. (1995)'s z (from the same analytic SEs as the
-  level bands) is reported alongside the bootstrap CI as the permissive
-  companion statistic (the two cells share the same tranquil control
-  pool, so they are not independent). See 08b_aipw.do's header for the
-  full argument.
+  INFERENCE, ALIGNED WITH 08b_aipw.do / 13c_aipw_channels.do: each (part,
+  bank) level's CI is 1.96*ROW-BOOTSTRAP SE (ADOPTED), with a conventional
+  t-test (b/se_boot) and stars against zero. THIS IS A DELIBERATE
+  DEPARTURE FROM THE PAPER'S OWN ANALYTIC-SE CONSTRUCTION -- a direct
+  diagnostic (see 08b_aipw.do's header) showed that formula understated
+  the default-linked arm's true uncertainty by 3.75-5.5x on ~20-episode
+  default arms. se_a (the paper's own formula) and se_clu
+  (country-clustered) are still printed per row as diagnostic-only
+  comparisons. The HIGH-LOW nexus difference within each part is
+  bootstrapped directly with ROW-LEVEL resampling within control/high/low
+  pools -- the paper's own bootstrap device, a natural fit since an onset
+  row already is one episode. Clogg et al. (1995)'s z keeps the analytic
+  SEs (its own literature definition) and is reported as the permissive
+  companion statistic on a different SE basis than the (now
+  bootstrap-based) level display. See 08b_aipw.do's header for the full
+  argument.
 
   Output: $tabs/aipw_nexus_split.csv (outcome x part x bank x horizon, levels) ;
           $tabs/aipw_nexus_diff.csv  (outcome x part x horizon, high-low gap + CI) ;
@@ -413,8 +417,9 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
         * see 08b/13c's header for why this replaces two separate estimation
         * passes with a single, more efficient and internally consistent one.
         di as result _n "--- `ocl' | Part `part' ---"
-        di as result "    h   LOW (se_a)        HIGH (se_a)       high-low  [95% boot CI]   Clogg z    p"
-        di as result "        LOW/HIGH stars are the conventional t-test vs zero (b/se_a): * p<.10 ** p<.05 *** p<.01."
+        di as result "    h   LOW (se_boot)     HIGH (se_boot)    high-low  [95% boot CI]   Clogg z    p"
+        di as result "        se_boot = ROW-BOOTSTRAP SE (ADOPTED, not the paper's analytic formula -- see 08b_aipw.do's header)."
+        di as result "        LOW/HIGH stars are the conventional t-test vs zero (b/se_boot): * p<.10 ** p<.05 *** p<.01."
         post `R' ("`ocl'") ("`part'") ("low")  (0) (0) (0) (0) (0) (0) (0)   // explicit baseline (h=0)
         post `R' ("`ocl'") ("`part'") ("high") (0) (0) (0) (0) (0) (0) (0)
         post `D' ("`ocl'") ("`part'") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)   // explicit baseline (h=0)
@@ -450,11 +455,13 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
                 local HI = r(hi)
                 local ND = r(nd)
 
-                * Level CIs = theta +/- 1.96*analytic SE; the bootstrap is
-                * reserved for the difference only.
-                post `R' ("`ocl'") ("`part'") ("low")  (`h'+1) (`BL') (`AL') (`BL'-1.96*`AL') (`BL'+1.96*`AL') (`ntrl') (.)
-                post `R' ("`ocl'") ("`part'") ("high") (`h'+1) (`BH') (`AH') (`BH'-1.96*`AH') (`BH'+1.96*`AH') (`ntrh') (.)
+                * ADOPTED: level CIs = theta +/- 1.96*BOOTSTRAP SE (not
+                * analytic -- see 08b_aipw.do's header for the diagnostic
+                * that motivated this switch across all three AIPW files).
+                post `R' ("`ocl'") ("`part'") ("low")  (`h'+1) (`BL') (`BSEL') (`BL'-1.96*`BSEL') (`BL'+1.96*`BSEL') (`ntrl') (.)
+                post `R' ("`ocl'") ("`part'") ("high") (`h'+1) (`BH') (`BSEH') (`BH'-1.96*`BSEH') (`BH'+1.96*`BSEH') (`ntrh') (.)
 
+                * Clogg z: STILL analytic SEs (its own literature definition).
                 local zz = .
                 local pz2 = .
                 if !missing(`AH') & !missing(`AL') & (`AH'^2 + `AL'^2) > 0 {
@@ -463,34 +470,32 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
                 }
                 post `D' ("`ocl'") ("`part'") (`h'+1) (`DH') (`BH') (`BL') (`SE') (`LO') (`HI') (`ND') (`zz') (`pz2')
 
-                * Conventional t-test for each level vs zero (b / own analytic
-                * SE), as the paper's Table 2/Fig. 4 -- same construction as
-                * 08b_aipw.do / 13c_aipw_channels.do.
-                local tlo  = cond(`AL'>0, `BL'/`AL', .)
+                * Conventional t-test for each level vs zero (b / own
+                * BOOTSTRAP SE) -- ADOPTED, not the paper's literal analytic
+                * construction.
+                local tlo  = cond(`BSEL'>0, `BL'/`BSEL', .)
                 local plo  = cond(!missing(`tlo'), 2*(1-normal(abs(`tlo'))), .)
                 local sglo = cond(missing(`plo'), "", cond(`plo'<.01,"***",cond(`plo'<.05,"**",cond(`plo'<.10,"*",""))))
-                local thi  = cond(`AH'>0, `BH'/`AH', .)
+                local thi  = cond(`BSEH'>0, `BH'/`BSEH', .)
                 local phi  = cond(!missing(`thi'), 2*(1-normal(abs(`thi'))), .)
                 local sghi = cond(missing(`phi'), "", cond(`phi'<.01,"***",cond(`phi'<.05,"**",cond(`phi'<.10,"*",""))))
 
                 local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
-                di "    " %1.0f `h'+1 "  " %8.3f `BL' "`sglo'" " (" %5.3f `AL' ")  " ///
-                   %8.3f `BH' "`sghi'" " (" %5.3f `AH' ")  " %8.3f `DH' ///
+                di "    " %1.0f `h'+1 "  " %8.3f `BL' "`sglo'" " (" %5.3f `BSEL' ")  " ///
+                   %8.3f `BH' "`sghi'" " (" %5.3f `BSEH' ")  " %8.3f `DH' ///
                    " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
                    " " %7.3f `zz' " " %5.3f `pz2'
 
-                * DIAGNOSTIC-ONLY: clustered-SE comparison, not adopted -- see
-                * _aipw's header (08b_aipw.do) for the full rationale.
+                * DIAGNOSTIC ONLY (kept for reference): the paper's own
+                * analytic SE and country-clustered variant, vs. se_boot.
+                local narrowlo = cond(`BSEL'>0, `AL'/`BSEL', .)
+                local narrowhi = cond(`BSEH'>0, `AH'/`BSEH', .)
+                di "         [analytic SE diag (paper's own, NOT adopted): LOW se_a=" %5.3f `AL' " (x" %4.2f `narrowlo' ")" ///
+                   "   HIGH se_a=" %5.3f `AH' " (x" %4.2f `narrowhi' ")]"
                 local widlo = cond(`AL'>0, `CL'/`AL', .)
                 local widhi = cond(`AH'>0, `CH'/`AH', .)
                 di "         [clustered SE diag: LOW se_clu=" %5.3f `CL' " (x" %4.2f `widlo' ")" ///
                    "   HIGH se_clu=" %5.3f `CH' " (x" %4.2f `widhi' ")]"
-
-                * DIAGNOSTIC-ONLY: each level's own row-bootstrap SE vs. se_a.
-                local bwidlo = cond(`AL'>0, `BSEL'/`AL', .)
-                local bwidhi = cond(`AH'>0, `BSEH'/`AH', .)
-                di "         [level bootstrap SE diag: LOW se_boot=" %5.3f `BSEL' " (x" %4.2f `bwidlo' ")" ///
-                   "   HIGH se_boot=" %5.3f `BSEH' " (x" %4.2f `bwidhi' ")]"
             }
             else di as error "    h=" `h'+1 ": estimate failed (too thin)."
         }
@@ -521,9 +526,9 @@ di as result _n "Nexus high-low DIFFERENCE CSV saved: $tabs/aipw_nexus_diff.csv"
 
 use "`resf'", clear
 label var b  "AIPW ATE on outcome (pp)"
-label var se "Analytic influence-function SE (no bootstrap on levels)"
-label var lo "95% CI lower = b - 1.96*se (analytic)"
-label var hi "95% CI upper = b + 1.96*se (analytic)"
+label var se "Row-bootstrap SE (ADOPTED; not the paper's analytic formula, see header)"
+label var lo "95% CI lower = b - 1.96*se (bootstrap)"
+label var hi "95% CI upper = b + 1.96*se (bootstrap)"
 label var ntreat "Treated onsets in cell"
 drop nd
 order outcome part bank horizon b se lo hi ntreat
@@ -558,7 +563,7 @@ foreach oc in gdp credit inv claimpriv_assets claims_govt {
         (connected b horizon if bank=="high" & outcome=="`oc'", lcolor("`c_hi'") lwidth(medthick) msymbol(square) lpattern(dash)) ///
         (connected b horizon if bank=="low"  & outcome=="`oc'", lcolor("`c_lo'") lwidth(medthick) msymbol(circle)), ///
         by(partid, yrescale ///
-            note("AIPW (Asonuma Eq. 3), ATE. Split by pre-crisis bank claims-on-govt / assets (median). Shaded = 1.96*analytic SE band. High-low gap bootstrapped directly (row-level).", size(vsmall)) ///
+            note("AIPW (Asonuma Eq. 3), ATE. Split by pre-crisis bank claims-on-govt / assets (median). Shaded = 1.96*row-bootstrap SE band (adopted, not the paper's analytic formula). High-low gap bootstrapped directly (row-level).", size(vsmall)) ///
             title("`ptit'", size(medsmall) color(navy))) ///
         yline(0, lpattern(dash) lcolor(gs8)) ///
         xlabel(0(1)5) xtitle("Year (Year 1 = crisis year)", size(small)) ///
