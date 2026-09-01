@@ -392,6 +392,7 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
         * passes with a single, more efficient and internally consistent one.
         di as result _n "--- `ocl' | Part `part' ---"
         di as result "    h   LOW (se_a)        HIGH (se_a)       high-low  [95% boot CI]   Clogg z    p"
+        di as result "        LOW/HIGH stars are the conventional t-test vs zero (b/se_a): * p<.10 ** p<.05 *** p<.01."
         post `R' ("`ocl'") ("`part'") ("low")  (0) (0) (0) (0) (0) (0) (0)   // explicit baseline (h=0)
         post `R' ("`ocl'") ("`part'") ("high") (0) (0) (0) (0) (0) (0) (0)
         post `D' ("`ocl'") ("`part'") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)   // explicit baseline (h=0)
@@ -436,9 +437,19 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
                 }
                 post `D' ("`ocl'") ("`part'") (`h'+1) (`DH') (`BH') (`BL') (`SE') (`LO') (`HI') (`ND') (`zz') (`pz2')
 
+                * Conventional t-test for each level vs zero (b / own analytic
+                * SE), as the paper's Table 2/Fig. 4 -- same construction as
+                * 08b_aipw.do / 13c_aipw_channels.do.
+                local tlo  = cond(`AL'>0, `BL'/`AL', .)
+                local plo  = cond(!missing(`tlo'), 2*(1-normal(abs(`tlo'))), .)
+                local sglo = cond(missing(`plo'), "", cond(`plo'<.01,"***",cond(`plo'<.05,"**",cond(`plo'<.10,"*",""))))
+                local thi  = cond(`AH'>0, `BH'/`AH', .)
+                local phi  = cond(!missing(`thi'), 2*(1-normal(abs(`thi'))), .)
+                local sghi = cond(missing(`phi'), "", cond(`phi'<.01,"***",cond(`phi'<.05,"**",cond(`phi'<.10,"*",""))))
+
                 local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
-                di "    " %1.0f `h'+1 "  " %8.3f `BL' " (" %5.3f `AL' ")  " ///
-                   %8.3f `BH' " (" %5.3f `AH' ")  " %8.3f `DH' ///
+                di "    " %1.0f `h'+1 "  " %8.3f `BL' "`sglo'" " (" %5.3f `AL' ")  " ///
+                   %8.3f `BH' "`sghi'" " (" %5.3f `AH' ")  " %8.3f `DH' ///
                    " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
                    " " %7.3f `zz' " " %5.3f `pz2'
             }

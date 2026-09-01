@@ -396,6 +396,7 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
     * the diff re-estimating both cells again) with a single, more efficient
     * and internally consistent one.
     di as result "  Act 2:  h   ND (se_a)        DEF (se_a)        def-nd   [95% boot CI]   Clogg z    p"
+    di as result "           ND/DEF stars are the conventional t-test vs zero (b/se_a): * p<.10 ** p<.05 *** p<.01."
     post `R' ("`ch'") ("nd")  (0) (0) (0) (0) (0)   // explicit baseline (h=0)
     post `R' ("`ch'") ("def") (0) (0) (0) (0) (0)
     post `Rd' ("`ch'") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)   // explicit baseline (h=0)
@@ -429,9 +430,18 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
             }
             post `Rd' ("`ch'") (`h'+1) (`DH') (`B1') (`B2') (`SE') (`LO') (`HI') (`ND') (`zz') (`pz')
 
+            * Conventional t-test for each level vs zero (b / own analytic SE),
+            * as the paper's Table 2/Fig. 4 -- same construction as 08b_aipw.do.
+            local tnd  = cond(`A2'>0, `B2'/`A2', .)
+            local pnd  = cond(!missing(`tnd'), 2*(1-normal(abs(`tnd'))), .)
+            local sgnd = cond(missing(`pnd'), "", cond(`pnd'<.01,"***",cond(`pnd'<.05,"**",cond(`pnd'<.10,"*",""))))
+            local tdef  = cond(`A1'>0, `B1'/`A1', .)
+            local pdef  = cond(!missing(`tdef'), 2*(1-normal(abs(`tdef'))), .)
+            local sgdef = cond(missing(`pdef'), "", cond(`pdef'<.01,"***",cond(`pdef'<.05,"**",cond(`pdef'<.10,"*",""))))
+
             local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
-            di "    " %1.0f `h'+1 "  " %8.3f `B2' " (" %5.3f `A2' ")  " ///
-               %8.3f `B1' " (" %5.3f `A1' ")  " %8.3f `DH' ///
+            di "    " %1.0f `h'+1 "  " %8.3f `B2' "`sgnd'" " (" %5.3f `A2' ")  " ///
+               %8.3f `B1' "`sgdef'" " (" %5.3f `A1' ")  " %8.3f `DH' ///
                " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
                " " %7.3f `zz' " " %5.3f `pz'
         }
