@@ -168,6 +168,40 @@ xtset cid year
 gen double l_contagion_dist = L.contagion_dist
 label var l_contagion_dist "Z2b: lagged distance-weighted contagion (any onset), predetermined"
 
+* ── DIAGNOSTIC-ONLY: default-linked-only contagion, tested not adopted ──────
+* Same construction as contagion_dist, but the sum counts ONLY nearby
+* countries' onset_def (not onset_all) -- a more theoretically targeted
+* measure of default-specific contagion (investor reassessment of default
+* risk, restructuring precedent) rather than generic spread-crisis
+* contagion. Built to compare against l_contagion_dist in cz_def
+* (08c_first_stage_table.do / 08d_first_stage_figs.do's diagnostic block)
+* -- NOT wired into any adopted predictor set (cz/cz_def/cz_recency)
+* pending that comparison. Reuses the same `weights' tempfile (geography is
+* time-invariant, already built above).
+preserve
+    keep if carryin==0
+    keep iso3 year onset_def
+    rename iso3 iso3_k
+    tempfile donors_def
+    save `donors_def'
+
+    use `weights', clear
+    joinby iso3_k using `donors_def'
+    gen double _contrib = onset_def / w_ik
+    collapse (sum) contagion_dist_def = _contrib, by(iso3_i year)
+    rename iso3_i iso3
+    label var contagion_dist_def "DIAGNOSTIC: distance-weighted sum of OTHER countries' onset_def (year t), CEPII great-circle"
+    tempfile contagion_def
+    save `contagion_def'
+restore
+
+capture drop contagion_dist_def
+capture drop l_contagion_dist_def
+merge m:1 iso3 year using `contagion_def', keep(master match) nogen
+xtset cid year
+gen double l_contagion_dist_def = L.contagion_dist_def
+label var l_contagion_dist_def "DIAGNOSTIC: lagged distance-weighted contagion (default-linked onsets only), predetermined"
+
 * ── Proneness: cumulative own onsets, lagged (Z3) ───────────────────────────
 * Dropped SEPARATELY -- same reasoning as reg_crisis_share above: cum_onset/
 * cum_def are working variables dropped again below and never saved, while
