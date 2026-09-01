@@ -57,12 +57,6 @@
   Output: $tabs/table_first_stage.rtf. Run AFTER 17_predictors.do. The
   figure counterpart (kernel density + nested ROC, mirroring 21c) is
   08d_first_stage_figs.do.
-
-  Also runs a DIAGNOSTIC-ONLY comparison (console output only, before the
-  table export): does l_contagion_dist_def (distance-weighted contagion
-  counting only nearby DEFAULT-LINKED onsets, built in 17_predictors.do)
-  classify better than the adopted l_contagion_dist (any nearby onset) in
-  either resolution arm? Tested, not adopted -- cz/Z2 above are unchanged.
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -169,62 +163,6 @@ else {
     di as result "      significance only and says nothing about classification power; roccomp's test is the"
     di as result "      one that speaks to classification power directly, and it says 'suggestive, not"
     di as result "      established' here."
-}
-
-* ══════════════════════════════════════════════════════════════════════════
-* DIAGNOSTIC (NOT ADOPTED): does a DEFAULT-LINKED-ONLY contagion measure
-* sharpen classification power over the adopted l_contagion_dist (which
-* counts ANY nearby onset, non-default or default-linked)?
-*
-* l_contagion_dist_def (17_predictors.do) is the same distance-weighted
-* construction, but the sum counts only nearby countries' onset_def. Tested
-* here in BOTH arms (not just the def arm it was theoretically motivated
-* for) so a null or negative result in the nd arm is visible too, not
-* assumed. NOT wired into cz/cz_def/cz_recency -- this block only reports
-* the comparison; adopting the swap is a separate decision.
-* ══════════════════════════════════════════════════════════════════════════
-capture confirm variable l_contagion_dist_def
-if _rc {
-    di as error _n "  ** l_contagion_dist_def not in panel_lp.dta -- re-run 17_predictors.do/18_transforms.do first."
-    di as error "     Skipping the default-linked-contagion diagnostic."
-}
-else {
-    di as result _n "=== DIAGNOSTIC: l_contagion_dist_def (default-linked-only) vs l_contagion_dist (adopted) ==="
-    di as result "col            AUROC(adopted)  AUROC(def-only)  delta   roccomp chi2   p"
-
-    local Z2def l_fedfunds l_contagion_dist_def years_since_def_onset
-
-    foreach s in nd def {
-        local dv    = cond("`s'"=="nd", "onset_nd", "onset_def")
-        local ifc   = cond("`s'"=="nd", "sample==1 & onset_def==0", "sample==1 & onset_nd==0")
-
-        capture drop _padopt_`s' _pdefonly_`s'
-        quietly probit `dv' `X' `Z2' if `ifc', vce(cluster cid)
-        quietly lroc, nograph
-        local aucadopt_`s' = r(area)
-        quietly predict double _padopt_`s' if `ifc', pr
-
-        capture quietly probit `dv' `X' `Z2def' if `ifc', vce(cluster cid)
-        if _rc {
-            di as error "  `s' arm: default-linked-contagion probit failed (rc=" _rc ")"
-            continue
-        }
-        quietly lroc, nograph
-        local aucdef_`s' = r(area)
-        quietly predict double _pdefonly_`s' if `ifc', pr
-
-        quietly roccomp `dv' _padopt_`s' _pdefonly_`s' if !missing(_padopt_`s',_pdefonly_`s')
-        local dgdlt = `aucdef_`s'' - `aucadopt_`s''
-        local dgsign = cond(`dgdlt' >= 0, "+", "")
-        di as result %-14s "`s'" "  " %8.3f `aucadopt_`s'' "        " %8.3f `aucdef_`s'' ///
-            "        " "`dgsign'" %6.3f `dgdlt' "     " %6.2f r(chi2) "        " %5.3f r(p)
-
-        capture drop _padopt_`s' _pdefonly_`s'
-    }
-    di as result "      (Positive delta = default-linked-only contagion classifies better than the"
-    di as result "       adopted any-onset version; roccomp tests whether that delta is itself significant."
-    di as result "       Read the def arm as the theoretically motivated test; the nd arm as a check that"
-    di as result "       the swap doesn't hurt where it has no a priori reason to help.)"
 }
 
 * ══════════════════════════════════════════════════════════════════════════
