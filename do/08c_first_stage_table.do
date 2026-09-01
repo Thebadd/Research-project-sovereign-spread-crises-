@@ -21,7 +21,9 @@
   Rows are grouped, as in their Table 1, into:
     PREDICTORS (excluded from the LP/AIPW outcome eq.): Fed funds rate
         (global push) + distance-weighted contagion (l_contagion_dist,
-        a country-year-specific spatial lag, ANY onset type) + years since
+        a country-year-specific spatial lag of OTHER countries' in-crisis
+        STOCK, i.e. onset|continuation, not just onset years -- "how much
+        distress currently surrounds this country") + years since
         the most recent prior onset of ANY type (years_since_onset, a
         recency clock, censored at 50). Both the contagion and recency terms
         are deliberately kept GENERIC (not narrowed/broadened to
