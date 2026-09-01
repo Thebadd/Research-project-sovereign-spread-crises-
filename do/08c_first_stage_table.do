@@ -111,9 +111,26 @@
   Also runs a DIAGNOSTIC-ONLY comparison (console output only, before the
   table export): does adding COUNTRY FIXED EFFECTS to the probit (matching
   the reference paper's own $cf design) converge on this project's much
-  thinner panel, or does it collapse the default arm's control pool the way
-  21_aipw_flow.do's Section 1g already found for the flow tier's propensity
-  model? Tested, not adopted -- the exported table above is unaffected.
+  thinner panel? RESOLVED, NOT ADOPTED -- confirms the pooled design above:
+    - nd arm: 25 of 51 countries dropped for zero outcome variation (49 pct
+      of the sample), N 933->525, Wald chi2/p become UNCOMPUTABLE (Prob>chi2
+      = .), and both l_contagion_dist_def and years_since_def_onset collapse
+      to noise (z=-0.11, z=-1.00) once country FE absorb the between-country
+      variation they relied on.
+    - def arm: worse. 41 of 51 countries dropped (80 pct), N 917->133,
+      "8 failures and 0 successes completely determined" (severe
+      separation). Every predictor loses significance except
+      years_since_def_onset (z=1.98, p=.047); l_fedfunds itself -- robust in
+      every other specification in this file -- drops to z=0.61.
+    - Matches 21_aipw_flow.do's Section 1g exactly: with ~14 default-linked
+      countries mostly holding a single episode each, a country dummy
+      absorbs that one event entirely and leaves nothing to identify a
+      within-country contrast from. The reference paper's 194 events over
+      74 countries (~2.6 episodes/treated country on average) do not face
+      this; this project's panel does. Pooled, no country FE stays correct
+      -- confirmed empirically, not merely asserted by analogy to the flow
+      tier. The exported table above is unaffected; this block is a
+      permanent record of the test, not live code any consumer reads.
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
