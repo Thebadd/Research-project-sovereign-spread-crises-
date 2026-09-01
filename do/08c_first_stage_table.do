@@ -57,6 +57,12 @@
   Output: $tabs/table_first_stage.rtf. Run AFTER 17_predictors.do. The
   figure counterpart (kernel density + nested ROC, mirroring 21c) is
   08d_first_stage_figs.do.
+
+  Also runs a DIAGNOSTIC-ONLY comparison (console output only, before the
+  table export): does years_since_onset (recency reset by ANY onset type,
+  built in 17_predictors.do) classify better than the adopted
+  years_since_def_onset (default-linked only) in either resolution arm?
+  Tested, not adopted -- cz/Z2 above are unchanged.
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -163,6 +169,63 @@ else {
     di as result "      significance only and says nothing about classification power; roccomp's test is the"
     di as result "      one that speaks to classification power directly, and it says 'suggestive, not"
     di as result "      established' here."
+}
+
+* ══════════════════════════════════════════════════════════════════════════
+* DIAGNOSTIC (NOT ADOPTED): does a GENERIC (any-onset-type) recency measure
+* sharpen classification power over the adopted years_since_def_onset
+* (which resets only on a DEFAULT-linked onset)?
+*
+* years_since_onset (17_predictors.do) is the mirror-image test of the
+* contagion_dist_def diagnostic: there, a generic predictor was narrowed to
+* default-only; here, a default-specific predictor is broadened to generic.
+* Tested in BOTH arms so a null or negative result in the def arm -- the one
+* the current predictor was built for -- is visible too, not assumed. NOT
+* wired into cz/cz_def/cz_recency -- this block only reports the comparison;
+* adopting the swap is a separate decision.
+* ══════════════════════════════════════════════════════════════════════════
+capture confirm variable years_since_onset
+if _rc {
+    di as error _n "  ** years_since_onset not in panel_lp.dta -- re-run 17_predictors.do/18_transforms.do first."
+    di as error "     Skipping the generic-recency diagnostic."
+}
+else {
+    di as result _n "=== DIAGNOSTIC: years_since_onset (any type) vs years_since_def_onset (adopted) ==="
+    di as result "col            AUROC(adopted)  AUROC(any-type)  delta   roccomp chi2   p"
+
+    local Z2any l_fedfunds l_contagion_dist years_since_onset
+
+    foreach s in nd def {
+        local dv    = cond("`s'"=="nd", "onset_nd", "onset_def")
+        local ifc   = cond("`s'"=="nd", "sample==1 & onset_def==0", "sample==1 & onset_nd==0")
+
+        capture drop _radopt_`s' _ranytype_`s'
+        quietly probit `dv' `X' `Z2' if `ifc', vce(cluster cid)
+        quietly lroc, nograph
+        local aucadopt_`s' = r(area)
+        quietly predict double _radopt_`s' if `ifc', pr
+
+        capture quietly probit `dv' `X' `Z2any' if `ifc', vce(cluster cid)
+        if _rc {
+            di as error "  `s' arm: generic-recency probit failed (rc=" _rc ")"
+            continue
+        }
+        quietly lroc, nograph
+        local aucany_`s' = r(area)
+        quietly predict double _ranytype_`s' if `ifc', pr
+
+        quietly roccomp `dv' _radopt_`s' _ranytype_`s' if !missing(_radopt_`s',_ranytype_`s')
+        local rgdlt = `aucany_`s'' - `aucadopt_`s''
+        local rgsign = cond(`rgdlt' >= 0, "+", "")
+        di as result %-14s "`s'" "  " %8.3f `aucadopt_`s'' "        " %8.3f `aucany_`s'' ///
+            "        " "`rgsign'" %6.3f `rgdlt' "     " %6.2f r(chi2) "        " %5.3f r(p)
+
+        capture drop _radopt_`s' _ranytype_`s'
+    }
+    di as result "      (Positive delta = generic (any-type) recency classifies better than the"
+    di as result "       adopted default-specific version; roccomp tests whether that delta is itself"
+    di as result "       significant. Read the def arm as the one the current predictor was built for;"
+    di as result "       the nd arm as a secondary check.)"
 }
 
 * ══════════════════════════════════════════════════════════════════════════

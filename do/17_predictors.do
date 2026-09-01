@@ -223,6 +223,27 @@ replace years_since_def_onset = 50 if missing(years_since_def_onset)
 label var years_since_def_onset "Z3(def) recency: years since most recent PRIOR default-linked onset (censored at 50)"
 drop _defyear _defyear_lag
 
+* ── DIAGNOSTIC-ONLY: generic (any-type) recency, tested not adopted ─────────
+* Same construction as years_since_def_onset, but the clock resets on ANY
+* prior onset (onset_all), not just a default-linked one -- the mirror-image
+* test of the contagion_dist_def diagnostic (there: does restricting a
+* generic predictor to default-only sharpen it; here: does broadening a
+* default-specific predictor to generic hurt or help it). Built to compare
+* against years_since_def_onset in cz_def
+* (08c_first_stage_table.do / 08d_first_stage_figs.do's diagnostic block)
+* -- NOT wired into any adopted predictor set (cz/cz_def/cz_recency) pending
+* that comparison.
+capture drop _anyyear
+capture drop _anyyear_lag
+capture drop years_since_onset
+gen _anyyear = year if onset_all==1
+bysort cid (year): replace _anyyear = _anyyear[_n-1] if missing(_anyyear) & _n>1
+bysort cid (year): gen _anyyear_lag = _anyyear[_n-1]
+gen double years_since_onset = year - _anyyear_lag if !missing(_anyyear_lag)
+replace years_since_onset = 50 if missing(years_since_onset)
+label var years_since_onset "DIAGNOSTIC: years since most recent PRIOR onset of any type (censored at 50)"
+drop _anyyear _anyyear_lag
+
 save "$clean/panel_build.dta", replace
 
 di as result _n "17_predictors.do complete."
