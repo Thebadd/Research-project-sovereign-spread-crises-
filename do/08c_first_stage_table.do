@@ -131,6 +131,13 @@
       -- confirmed empirically, not merely asserted by analogy to the flow
       tier. The exported table above is unaffected; this block is a
       permanent record of the test, not live code any consumer reads.
+
+  A separate diagnostic (console output, run right after the adopted
+  fs_nd/fs_def models fit) investigates the def arm's own "2 failures
+  completely determined" note directly: does l_lninfl or exchange2 alone
+  cleanly separate onset_def on this sample, and which specific onset rows
+  sit at the extreme tails of each variable? Diagnostic only -- identifies
+  the source, does not change the adopted controls.
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -176,6 +183,54 @@ end
 
 _fscol fs_nd  "onset_nd"  "sample==1 & onset_def==0"      "`X'" "`Z2'"
 _fscol fs_def "onset_def" "sample==1 & onset_nd==0"       "`X'" "`Z2'"
+
+* ══════════════════════════════════════════════════════════════════════════
+* DIAGNOSTIC: WHICH ROWS ARE THE "2 FAILURES COMPLETELY DETERMINED" IN THE
+* DEF ARM? l_lninfl/exchange2 print implausibly large coefficients there
+* (roughly -7 to -8 and +4 to +5) alongside that separation note. Rather
+* than guess, this identifies the actual country-years responsible: for
+* each of the two suspect controls, split the def-arm sample by
+* onset_def and report whether there is a clean, non-overlapping cutoff --
+* the hallmark of (quasi-)complete separation -- then list the specific
+* onset rows sitting at the extreme tail, since a handful of onset years
+* with an unusually large inflation/depreciation reading are the most
+* likely source (matches the reasoning that already motivated swapping
+* l_hyperinfl->l_lninfl and ex_dum1-5->exchange2 in $ctrl_core itself).
+* ══════════════════════════════════════════════════════════════════════════
+di as result _n "=== DIAGNOSTIC: separation source in the def arm (l_lninfl / exchange2) ==="
+foreach v in l_lninfl exchange2 {
+    di as result _n "      `v', by onset_def (def-arm sample, onset_nd==0):"
+    quietly summarize `v' if sample==1 & onset_nd==0 & onset_def==1, detail
+    local mn1 = r(min)
+    local mx1 = r(max)
+    di as result "        onset_def==1 (treated): min=" %9.3f `mn1' "  p50=" %9.3f r(p50) "  max=" %9.3f `mx1'
+    quietly summarize `v' if sample==1 & onset_nd==0 & onset_def==0, detail
+    local mn0 = r(min)
+    local mx0 = r(max)
+    di as result "        onset_def==0 (control): min=" %9.3f `mn0' "  p50=" %9.3f r(p50) "  max=" %9.3f `mx0'
+    * A clean, non-overlapping range between the two groups is the direct
+    * signature of (quasi-)complete separation on this one variable alone.
+    if `mn1' > `mx0' | `mx1' < `mn0' {
+        di as result "        ** RANGES DO NOT OVERLAP -- `v' alone separates onset_def on this sample."
+    }
+    else {
+        di as result "        ranges overlap -- `v' alone does not fully separate; check jointly with other controls."
+    }
+}
+
+di as result _n "      Onset rows (def arm) at the extreme tails of l_lninfl / exchange2:"
+di as result "      (the likely candidates for the 2 perfectly-determined observations)"
+preserve
+    quietly keep if sample==1 & onset_nd==0
+    gen double _rank_infl = abs(l_lninfl - 0)
+    gsort -_rank_infl
+    di as result _n "      Top 5 by |l_lninfl|, def-arm sample:"
+    list country year onset_def l_lninfl exchange2 in 1/5, noobs clean
+    gen double _rank_fx = abs(exchange2 - 0)
+    gsort -_rank_fx
+    di as result _n "      Top 5 by |exchange2|, def-arm sample:"
+    list country year onset_def l_lninfl exchange2 in 1/5, noobs clean
+restore
 
 * ── FORMAL TEST OF WHETHER THE TWO AUROCs ACTUALLY DIFFER ──────────────────
 * The delta alone (auroc - aurocctrl) says nothing about whether that gap is
