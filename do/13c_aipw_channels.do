@@ -24,6 +24,15 @@
   PROPENSITY model = identical to 08b (selection into treatment is the same
   object regardless of outcome). Only the OUTCOME regression is channel-specific.
 
+  DIAGNOSTIC (console output, before the estimation loop): lists the most
+  extreme def-arm channel outcome rows per active channel/horizon. Added
+  after a full run showed EVERY level t-test at p<.01 across every channel
+  and horizon -- implausible on ~20 default-linked episodes, and consistent
+  with a handful of extreme rows dominating the outcome regression's
+  treatment coefficient (which inflates the point estimate without
+  proportionally inflating the analytic SE). Diagnostic only, does not
+  change the estimation.
+
   INFERENCE, ALIGNED WITH 08b_aipw.do / THE FLOW TIER'S PRESENTATION
   (21_aipw_flow.do): Act 1 (single ATE per channel) keeps its cluster
   bootstrap CI as before -- no by-type contrast to test. Act 2 (by
@@ -362,6 +371,41 @@ tempname Rd
 tempfile diffresf
 postfile `Rd' str24 channel byte horizon double dhl bdef bnd se lo hi nd ///
     double cloggz double cloggp using "`diffresf'", replace
+
+* ══════════════════════════════════════════════════════════════════════════
+* DIAGNOSTIC: are the def-arm outcome values themselves extreme?
+*
+* Every level t-test across every channel/horizon came back p<.01 in the
+* last full run -- implausible on ~20 default-linked episodes, and a
+* classic symptom of the outcome regression's treatment coefficient being
+* dominated by a handful of extreme rows (which inflates the point
+* estimate without proportionally inflating the analytic SE, since m0/m1
+* are a single shared shift, not independently varying per row -- see the
+* conversation this diagnostic responds to). For each active channel, list
+* the most extreme onset_def==1 rows at h=1 and h=4 (h=0/3 in code), so a
+* dominant outlier is visible directly rather than inferred from the
+* aggregate coefficient.
+* ══════════════════════════════════════════════════════════════════════════
+di as result _n "=== DIAGNOSTIC: extreme def-arm channel outcomes (candidates for outlier-driven ATEs) ==="
+foreach ch in credit inv claims_govt claimsgov_assets claimpriv_assets {
+    foreach h in 0 3 {
+        capture confirm variable ch_`ch'_`h'
+        if !_rc {
+            di as result "  `ch', h=" `h'+1 " (onset_def==1 rows, sorted by |value|):"
+            preserve
+                quietly keep if sample==1 & onset_def==1 & !missing(ch_`ch'_`h')
+                quietly count
+                if r(N) > 0 {
+                    gen double _absval = abs(ch_`ch'_`h')
+                    gsort -_absval
+                    local ntop = min(5, r(N))
+                    list country year ch_`ch'_`h' in 1/`ntop', noobs clean
+                }
+                else di as result "    (no non-missing rows)"
+            restore
+        }
+    }
+}
 
 * govexp, pb, ca, fdi SILENCED below -- not important for now (no reliable
 * channel signal so far: govexp/pb/ca/fdi's bootstrap CI never excluded
