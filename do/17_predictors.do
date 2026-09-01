@@ -12,19 +12,26 @@
                         years (onset|continuation, a STOCK of regional distress,
                         not just onset years) at year t, CEPII great-circle
                         distance (GEO_CEPII.xlsx)
-    l_contagion_dist    Z2b lagged (predetermined) -- ADOPTED in cz_def and cz:
-                        both predictor sets use the GENERIC (any-onset-type)
-                        contagion measure, not a default-linked-only version
-                        (tested as l_contagion_dist_def in 08c; narrowing to
-                        default-only made no difference, so the generic
-                        measure is kept everywhere for simplicity)
+    l_contagion_dist    Z2b lagged (predetermined) -- ADOPTED in cz (Act 1,
+                        pooled): the GENERIC (any-onset-type) contagion
+                        measure, since there is no resolution type to be
+                        specific about in a pooled spec
+    contagion_dist_def  Z2b(def): same construction, DEFAULT-LINKED in-crisis
+                        years only (onset_def|continuation of a default-
+                        linked episode)
+    l_contagion_dist_def  Z2b(def) lagged -- ADOPTED in cz_def (resolution-
+                        type): the default arm's classification power was
+                        materially weaker under the generic contagion/recency
+                        combination (08c_first_stage_table.do's diagnostics),
+                        so cz_def is narrowed to default-linked-only
     past_onsets         Z3: cumulative own onsets before year t (proneness)
     past_def_onsets     Z3(def): cumulative own default-linked onsets before t
-    years_since_onset   Z3-recency: years since most recent prior onset of
-                        ANY type -- ADOPTED in cz_def (replaces the earlier
-                        default-linked-only years_since_def_onset; see
-                        08c_first_stage_table.do's header for the diagnostic
-                        history)
+    years_since_def_onset  Z3(def)-recency: years since most recent prior
+                        DEFAULT-linked onset -- ADOPTED in cz_def, same
+                        reasoning as l_contagion_dist_def above
+    years_since_onset   Z3-recency: generic (any-onset-type) version -- kept
+                        built but not currently used by any adopted
+                        predictor set (see 08c's diagnostic history)
 ===========================================================================*/
 
 use "$clean/panel_build.dta", clear
@@ -188,11 +195,52 @@ xtset cid year
 gen double l_contagion_dist = L.contagion_dist
 label var l_contagion_dist "Z2b: lagged distance-weighted contagion (in-crisis stock, any type), predetermined"
 
-* A default-linked-only version of this contagion measure (contagion_dist_def)
-* was tested in 08c_first_stage_table.do as a diagnostic and found to make no
-* difference to classification power in either resolution arm (nd delta
-* +0.009, p=.609; def delta +0.000, p=.931) -- so cz_def keeps the generic
-* l_contagion_dist above rather than carrying a second, unused variable.
+* ── DEFAULT-LINKED contagion stock (Z2b-def): ADOPTED for cz_def ────────────
+* Same "in-crisis stock" construction as contagion_dist above, but the donor
+* flag is restricted to a country's DEFAULT-LINKED in-crisis years (its own
+* episode's resolution type, not just its onset year). 08c_first_stage_table.do
+* found the DEFAULT-linked arm's classification power essentially disappears
+* under the generic contagion_dist/years_since_onset combination (chi2(pred)
+* p=.101, roccomp p=.525 -- barely distinguishable from the controls-only
+* model), unlike the non-default arm (p<.001, roccomp p=.039). Narrowing both
+* predictors to default-linked-only is tested here as the fix for that arm
+* specifically.
+*
+* The resolution-type fill (nd_ep in 18_transforms.do) does not exist yet at
+* this stage of the build, so it is reproduced locally here, restricted to
+* carryin==0 exactly like the donors block above: ep_seq_tmp is a running
+* onset counter per country, nd_ep_tmp is nondefault's episode fill over that
+* counter -- identical logic to 18_transforms.do's own construction, just
+* computed early because this predictor is needed before that file runs.
+preserve
+    keep if carryin==0
+    sort cid year
+    bysort cid (year): gen byte ep_seq_tmp = sum(onset_all)
+    bysort cid ep_seq_tmp: egen byte nd_ep_tmp = max(nondefault)
+    gen byte donor_in_crisis_def = (onset_all==1 | continuation==1) & nd_ep_tmp==0
+    keep iso3 year donor_in_crisis_def
+    rename iso3 iso3_k
+    tempfile donors_def
+    save `donors_def'
+
+    use `weights', clear
+    joinby iso3_k using `donors_def'
+    gen double _contrib = donor_in_crisis_def / w_ik
+    collapse (sum) contagion_dist_def = _contrib, by(iso3_i year)
+    rename iso3_i iso3
+    label var contagion_dist_def "Z2b(def): distance-weighted sum of OTHER countries' DEFAULT-linked in-crisis years, CEPII great-circle"
+    tempfile contagion_def
+    save `contagion_def'
+restore
+
+capture drop contagion_dist_def
+capture drop l_contagion_dist_def
+merge m:1 iso3 year using `contagion_def', keep(master match) nogen
+sort cid year
+xtset cid year
+gen double l_contagion_dist_def = L.contagion_dist_def
+label var l_contagion_dist_def "Z2b(def): lagged distance-weighted contagion (default-linked in-crisis stock), predetermined"
+
 
 * ── Proneness: cumulative own onsets, lagged (Z3) ───────────────────────────
 * Dropped SEPARATELY -- same reasoning as reg_crisis_share above: cum_onset/
@@ -246,16 +294,15 @@ bysort cid (year): replace _defyear = _defyear[_n-1] if missing(_defyear) & _n>1
 bysort cid (year): gen _defyear_lag = _defyear[_n-1]
 gen double years_since_def_onset = year - _defyear_lag if !missing(_defyear_lag)
 replace years_since_def_onset = 50 if missing(years_since_def_onset)
-label var years_since_def_onset "Z3(def) recency: years since most recent PRIOR default-linked onset (censored at 50). NOT in cz_def -- see years_since_onset below."
+label var years_since_def_onset "Z3(def) recency: years since most recent PRIOR default-linked onset (censored at 50). ADOPTED in cz_def."
 drop _defyear _defyear_lag
 
-* ── Generic (any-onset-type) recency (Z3-recency): ADOPTED in cz_def ────────
+* ── Generic (any-onset-type) recency (Z3-recency) ───────────────────────────
 * Same construction as years_since_def_onset, but the clock resets on ANY
-* prior onset (onset_all), not just a default-linked one. Tested in
-* 08c_first_stage_table.do against years_since_def_onset and against a
-* default-linked-only contagion measure (contagion_dist_def, see above): kept
-* generic/any-onset-type throughout cz_def, matching l_contagion_dist's own
-* generic construction, so both predictors are defined consistently.
+* prior onset (onset_all), not just a default-linked one. Built and tested
+* against years_since_def_onset in 08c_first_stage_table.do; not currently
+* used in any adopted predictor set (cz_def is default-linked-only -- see
+* years_since_def_onset above), kept built for reference/future comparison.
 capture drop _anyyear
 capture drop _anyyear_lag
 capture drop years_since_onset
@@ -270,7 +317,7 @@ drop _anyyear _anyyear_lag
 save "$clean/panel_build.dta", replace
 
 di as result _n "17_predictors.do complete."
-foreach v in l_reg_crisis_share l_contagion_dist past_onsets past_def_onsets years_since_onset {
+foreach v in l_reg_crisis_share l_contagion_dist l_contagion_dist_def past_onsets past_def_onsets years_since_def_onset years_since_onset {
     quietly count if !missing(`v') & sample_base==1
     di as result "  `v': `r(N)' non-missing sample rows"
 }

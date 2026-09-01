@@ -20,17 +20,16 @@
 
   Rows are grouped, as in their Table 1, into:
     PREDICTORS (excluded from the LP/AIPW outcome eq.): Fed funds rate
-        (global push) + distance-weighted contagion (l_contagion_dist,
-        a country-year-specific spatial lag of OTHER countries' in-crisis
-        STOCK, i.e. onset|continuation, not just onset years -- "how much
-        distress currently surrounds this country") + years since
-        the most recent prior onset of ANY type (years_since_onset, a
-        recency clock, censored at 50). Both the contagion and recency terms
-        are deliberately kept GENERIC (not narrowed/broadened to
-        default-linked-only) so the two predictors are built consistently
-        with each other -- see the diagnostic history below and
-        17_predictors.do's header for the two comparisons that were run
-        before settling on this combination.
+        (global push) + distance-weighted contagion (l_contagion_dist_def,
+        a country-year-specific spatial lag of OTHER countries' DEFAULT-
+        LINKED in-crisis STOCK, i.e. onset_def|continuation of a default
+        episode, not just onset years) + years since the most recent prior
+        DEFAULT-LINKED onset (years_since_def_onset, a recency clock,
+        censored at 50). Both predictors are DEFAULT-LINKED-SPECIFIC: an
+        earlier version used the generic (any-onset-type) versions of both
+        terms, but the default arm's classification power was materially
+        weaker under that combination (see the diagnostic history below),
+        so both were narrowed to default-linked-only.
     BASELINE CONTROLS (the SAME $ctrl_core used in the LP/AIPW outcome eq. —
         strict parity with the reference paper's $convar-in-both design):
         l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2
@@ -63,16 +62,24 @@
   figure counterpart (kernel density + nested ROC, mirroring 21c) is
   08d_first_stage_figs.do.
 
-  DIAGNOSTIC HISTORY (both resolved, neither block kept as live code):
-    - A default-linked-only contagion measure (contagion_dist_def) was
-      tested against the generic l_contagion_dist used here: no difference
-      in either arm (nd delta +0.009, p=.609; def delta +0.000, p=.931).
-      Generic kept.
-    - A default-linked-only recency measure (years_since_def_onset) was
-      tested against the generic years_since_onset used here in an earlier
-      pass. Both predictors are now kept generic (any-onset-type) for
-      consistency with each other, rather than mixing a generic contagion
-      term with a default-specific recency term.
+  DIAGNOSTIC HISTORY:
+    - An earlier pass tested a default-linked-only contagion measure
+      (built by restricting the ORIGINAL onset-only contagion_dist to
+      onset_def) against the generic version: no difference in either arm
+      (nd delta +0.009, p=.609; def delta +0.000, p=.931). Kept generic on
+      that basis.
+    - contagion_dist was then redefined project-wide from an onset-only
+      SHOCK indicator to an in-crisis STOCK (onset|continuation) -- see
+      17_predictors.do's header. Re-run under that new construction, the
+      def arm's classification power collapsed under the generic predictor
+      combination (chi2(pred) p=.101, roccomp p=.525, both individually
+      insignificant: l_contagion_dist z=-0.74, years_since_onset z=-1.19),
+      unlike the nd arm (p<.001, roccomp p=.039, l_contagion_dist z=-2.58).
+    - Both predictors were therefore narrowed to default-linked-specific
+      (l_contagion_dist_def, years_since_def_onset) for cz_def, matching
+      what the default arm's own diagnostics call for. cz (Act 1, pooled)
+      keeps the generic l_contagion_dist -- there is no resolution type to
+      be specific about in a pooled spec.
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -83,7 +90,7 @@ if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l
 * Baseline = outcome baseline ($ctrl_core): the Table-1 probit shares its controls
 * with the LP/AIPW outcome equation (their $convar in both stages).
 local X    $ctrl_core
-local Z2   l_fedfunds l_contagion_dist years_since_onset
+local Z2   l_fedfunds l_contagion_dist_def years_since_def_onset
 
 eststo clear
 
@@ -187,11 +194,11 @@ else {
 capture esttab fs_nd fs_def using "$tabs/table_first_stage.rtf", replace ///
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
     mtitles("Non-default" "Default-linked") ///
-    order(l_fedfunds l_contagion_dist years_since_onset ///
+    order(l_fedfunds l_contagion_dist_def years_since_def_onset ///
           l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2) ///
     coeflabel(l_fedfunds "US fed funds rate (t-1)" ///
-              l_contagion_dist "Distance-weighted contagion (t-1)" ///
-              years_since_onset "Years since last onset (any type)" ///
+              l_contagion_dist_def "Distance-weighted contagion, default-linked (t-1)" ///
+              years_since_def_onset "Years since last default-linked onset" ///
               l1_gdpg "GDP growth (t-1)" ///
               l_debt "Public debt / GDP (t-1)" ///
               l_banking_crisis "Systemic banking-crisis dummy (t-1)" ///
