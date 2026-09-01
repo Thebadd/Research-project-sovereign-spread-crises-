@@ -141,8 +141,24 @@
   and -- the step that actually pins it down -- which control rows have the
   most extreme predicted linear index (xb) once all controls+predictors are
   combined, the direct signature of "N failures completely determined."
-  Diagnostic only -- identifies the source, does not change the adopted
-  controls.
+
+  RESULT, FLAGGED NOT ACTED ON: El Salvador 2002 is the clear primary case
+  -- predicted index -9.80, ~4 log-probit units more extreme than the
+  next-closest observation (China 2022, -6.09), driven by exchange2=-1.58,
+  by far the largest currency move in the def-arm sample (next runner-up
+  +-0.83). A cluster of China years (2019, 2021-23) sits at a similarly
+  extreme index despite near-zero l_lninfl/exchange2 values of their own --
+  most likely a symptom of the same instability (the huge coefficients the
+  El Salvador observation forces onto l_lninfl/exchange2 make the whole
+  index sensitive even where those two terms are near zero), not an
+  independent second cause; the exact second "completely determined" row
+  was not pinned down further. NOT acted on: this is one country-year out
+  of a full $ctrl_core shared with every other regression in this project
+  (the LP/AIPW outcome equation, every onset-tier table) -- dropping or
+  winsorizing it here only, for this one probit, would decouple this
+  table's control set from the rest of the project's, which is a larger
+  change than the finding warrants. Recorded so the "2 failures completely
+  determined" note is explained, not left as an unexplained artifact.
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
