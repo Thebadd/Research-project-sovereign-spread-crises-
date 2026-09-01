@@ -135,9 +135,14 @@
   A separate diagnostic (console output, run right after the adopted
   fs_nd/fs_def models fit) investigates the def arm's own "2 failures
   completely determined" note directly: does l_lninfl or exchange2 alone
-  cleanly separate onset_def on this sample, and which specific onset rows
-  sit at the extreme tails of each variable? Diagnostic only -- identifies
-  the source, does not change the adopted controls.
+  cleanly separate onset_def on this sample (checked first; ranges
+  overlapped for both, so separation is on the FULL linear index, not
+  either term alone), which onset rows sit at the extreme univariate tails,
+  and -- the step that actually pins it down -- which control rows have the
+  most extreme predicted linear index (xb) once all controls+predictors are
+  combined, the direct signature of "N failures completely determined."
+  Diagnostic only -- identifies the source, does not change the adopted
+  controls.
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -230,6 +235,27 @@ preserve
     gsort -_rank_fx
     di as result _n "      Top 5 by |exchange2|, def-arm sample:"
     list country year onset_def l_lninfl exchange2 in 1/5, noobs clean
+restore
+
+* Neither variable alone need have disjoint ranges for "N failures completely
+* determined" to fire -- that note flags separation on the FULL linear index
+* (all controls + predictors combined), not any one term in isolation. This
+* step finds the exact rows directly: refit the def-arm model, predict the
+* linear index (xb, not the bounded probability), and list the rows whose
+* index is most extreme AMONG THE CONTROLS (onset_def==0) -- "failures
+* completely determined" means Stata's optimizer drove some control rows'
+* predicted probability to (numerically) exactly 0, which shows up as an
+* extreme negative xb.
+di as result _n "      Exact rows: def-arm CONTROL rows (onset_def==0) with the most extreme"
+di as result "      predicted index (candidates for the '2 failures completely determined'):"
+preserve
+    quietly keep if sample==1 & onset_nd==0
+    quietly probit onset_def `X' `Z2', vce(cluster cid)
+    capture drop _xb_def
+    quietly predict double _xb_def, xb
+    keep if onset_def==0
+    sort _xb_def
+    list country year onset_def l_lninfl exchange2 _xb_def in 1/5, noobs clean
 restore
 
 * ── FORMAL TEST OF WHETHER THE TWO AUROCs ACTUALLY DIFFER ──────────────────
