@@ -14,7 +14,7 @@
   Outcomes: GDP (dy_h, coherent with 08b) PLUS the transmission channels
   credit, inv, claimpriv_assets, claims_govt — so we can watch each channel evolve
   differently under high vs low nexus (which channel carries the non-default
-  cushion vs the default-linked doom-loop loss). Same Part A + Part B per outcome.
+  cushion vs the default-linked doom-loop loss).
 
   Design (per outcome, coherent with 08b/13c):
     Amplifier a_nexus = pre-crisis claimsgov_assets (L.claimsgov_assets), filled
@@ -23,7 +23,8 @@
     AIPW cells (control = tranquil years only; treated = the specific cell; rival
     onsets dropped), estimated with the same _aipw as 08b/13c (levels from the
     analytic SE, only the high-low difference bootstrapped -- see below):
-      Part A (robust headline): all onsets x {high, low}         -> 2 lines
+      Part A (robust headline, all onsets x {high, low}) is SILENCED -- only
+        the resolution split below is of interest now.
       Part B (two-dimensional): {nd, def} x {high, low}          -> 4 lines
 
   SMALL-SAMPLE CAVEAT: the default x {high,low} cells hold only a handful of events.
@@ -33,8 +34,8 @@
   ABSOLUTE, so with nboot now at 1000 read the printed nd/nboot RATE, not just the
   count: 292 of 300 is a healthy cell, 292 of 1000 would mean seven draws in ten
   failed to estimate and the surviving subset is not representative. This thinness
-  is the honest limit vs Asonuma's 194 restructurings — read Part B as suggestive,
-  Part A as the result.
+  is the honest limit vs Asonuma's 194 restructurings -- read the def x {high,low}
+  cell as suggestive.
 
   Coherence with the Asonuma replication (their Fig 6 / IPWRA engine): (a) each
   channel outcome model controls for the channel's own pre-crisis change pre_<v>
@@ -370,9 +371,13 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
     di as result _n "############### OUTCOME: `ocl' ###############"
 
     * Rows: part-label | treatment dummy | rival dummy to drop | predictors
-    *   Part A uses onset_all (rival = "" -> none); Parts nd/def drop the other type.
-    foreach cell in "all onset_all . cz" ///
-                    "nd  onset_nd onset_def cz_def" ///
+    *   Part A ("all", onset_all, rival = "" -> none) is SILENCED -- only the
+    *   resolution split (nd/def) is of interest now. Restoring it means
+    *   adding "all onset_all . cz" back as the first entry below:
+    *     foreach cell in "all onset_all . cz" ///
+    *                     "nd  onset_nd onset_def cz_def" ///
+    *                     "def onset_def onset_nd cz_def" {
+    foreach cell in "nd  onset_nd onset_def cz_def" ///
                     "def onset_def onset_nd cz_def" {
         gettoken part cell : cell
         gettoken Dv   cell : cell
@@ -475,11 +480,12 @@ order outcome part bank horizon b se lo hi ntreat
 export delimited "$tabs/aipw_nexus_split.csv", replace
 di as result _n "Nexus-split AIPW results CSV saved: $tabs/aipw_nexus_split.csv"
 
-* numeric part id for by() panels, ordered all -> nd -> def
-gen byte partid = 1 if part=="all"
-replace partid = 2 if part=="nd"
-replace partid = 3 if part=="def"
-label define pl 1 "All onsets" 2 "Non-default" 3 "Default-linked"
+* numeric part id for by() panels. Part "all" is SILENCED above (see the
+* "all onset_all . cz" note), so `part' now only ever takes nd/def -- no
+* partid==1/"All onsets" panel exists any more.
+gen byte partid = 1 if part=="nd"
+replace partid = 2 if part=="def"
+label define pl 1 "Non-default" 2 "Default-linked"
 label values partid pl
 
 * ── One high-vs-low figure per outcome (GDP keeps its historical look) ───────

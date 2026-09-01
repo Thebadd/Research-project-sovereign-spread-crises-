@@ -40,8 +40,9 @@
   precomputed, and every lagged control is pre-generated as a PLAIN column
   (l_credit = L.credit, ...) before estimation. cx/cz are already plain columns.
 
-  Output: $tabs/aipw_channels.csv ; $figs/fig_aipw_ch_act1.pdf ;
-          $figs/fig_aipw_ch_act2.pdf. Leaves 11/11b/12/13 (OLS+IPW) untouched.
+  Output: $tabs/aipw_channels.csv ; $figs/fig_aipw_ch_act2.pdf (Act 1 and its
+          fig_aipw_ch_act1.pdf are SILENCED, see below). Leaves 11/11b/12/13
+          (OLS+IPW) untouched.
   Runtime note: heavy (9 channels x ~15 fits x nboot). nboot=300 for a practical
   run; raise to 500 for the final.  Run AFTER 17_predictors.do.
 ===========================================================================*/
@@ -362,7 +363,11 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
 
     di as result _n "=== CHANNEL: `ch' ==="
 
-    * ── Act 1: all-crises AIPW (onset_all vs tranquil) ──────────────────────
+    * ── Act 1: SILENCED. Only Act 2 (by resolution) is of interest now. Left
+    * commented, not deleted -- restoring it means adding back "all A1" to
+    * the export foreach below and un-silencing Figure A. _aipwci (the
+    * bootstrap-CI helper it used) is left defined, just uncalled.
+    /*
     di as result "  Act 1 (all onsets):   h    ATE      SE      [95% CI]   draws"
     post `R' ("`ch'") ("all") (0) (0) (0) (0) (0)   // explicit baseline (h=0), matching Asonuma et al.
     forvalues h = 0/4 {
@@ -382,6 +387,7 @@ foreach ch in credit claims_govt inv govexp pb fdi ///
         }
         else di as error "    h=" `h'+1 ": Act 1 estimate failed (rc)."
     }
+    */
 
     * ── Act 2: resolution split (levels, analytic-SE bands + t-test) AND the
     * def-nd difference (row bootstrap + Clogg z), estimated together in ONE
@@ -458,16 +464,17 @@ restore
 
 use "`resf'", clear
 label var b  "AIPW ATE (pp of the channel ratio)"
-label var se "SE: bootstrap SD for series==all (Act 1), analytic influence-function SE for series==nd/def (Act 2)"
-label var lo "95% CI lower: bootstrap percentile (Act 1) or theta-1.96*se (Act 2, analytic)"
-label var hi "95% CI upper: bootstrap percentile (Act 1) or theta+1.96*se (Act 2, analytic)"
+label var se "Analytic influence-function SE (Act 2 levels; Act 1 silenced, see header)"
+label var lo "95% CI lower = theta-1.96*se (analytic)"
+label var hi "95% CI upper = theta+1.96*se (analytic)"
 order channel series horizon b se lo hi
 export delimited "$tabs/aipw_channels.csv", replace
 di as result _n "AIPW channel results CSV saved: $tabs/aipw_channels.csv"
 
 encode channel, gen(chid)
 
-* ── Figure A: Act 1 all-crises AIPW per channel (line + CI band) ────────────
+* ── Figure A: Act 1 all-crises AIPW per channel — SILENCED, see header. ─────
+/*
 local c1 "23 55 94"
 capture twoway ///
     (rarea lo hi horizon if series=="all", color("`c1'%18") lwidth(none)) ///
@@ -484,6 +491,7 @@ if _rc == 0 {
     di as result "Figure saved: fig_aipw_ch_act1.pdf"
 }
 else di as error "  ** fig_aipw_ch_act1 failed (rc=" _rc ")"
+*/
 
 * ── Figure B: Act 2 resolution split per channel (nd vs def, fig8 palette) ──
 local c_nd  "0 84 166"

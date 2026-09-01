@@ -111,8 +111,9 @@ set seed 20260819
 local nboot = 500      // bootstrap reps; raise to 1000+ for the final run
 
 * Storage: rows h=0..4
+* Act 1 (pooled, all onsets) SILENCED below -- only Act 2 is of interest now.
+* A1_* matrices left undeclared/unpopulated; kept out of every export.
 foreach m in b se lo hi {
-    matrix A1_`m'     = J(5,1,.)   // Act 1: crisis cost (all onsets)
     matrix A2nd_`m'   = J(5,1,.)   // Act 2: non-default cost vs tranquil
     matrix A2def_`m'  = J(5,1,.)   // Act 2: default-linked cost vs tranquil
     matrix A2diff_`m' = J(5,1,.)   // Act 2: extra cost of default (def - nd), row bootstrap
@@ -332,8 +333,12 @@ end
 * (inlined below rather than a second program, to keep matrix names in scope)
 
 * ══════════════════════════════════════════════════════════════════════════
-* ACT 1 — AIPW output cost of a spread crisis (onset vs tranquil), ATE
+* ACT 1 — SILENCED. The user is only interested in Act 2 (the by-resolution
+* split) going forward. Left commented out, not deleted, for reference/future
+* use. Restoring it requires also uncommenting the A1_* matrix declarations
+* above and the "all A1" export/Figure-A blocks below.
 * ══════════════════════════════════════════════════════════════════════════
+/*
 di as result _n "=== ACT 1 — AIPW (ATE): output cost of a spread crisis ==="
 di as result "h    ATE       SE(boot)  [95% percentile CI]"
 
@@ -386,6 +391,7 @@ forvalues h = 0/4 {
        %7.3f A1_se[`row',1] "   [" %7.3f A1_lo[`row',1] ", " %7.3f A1_hi[`row',1] "]" ///
        "   (" `ndraw' "/`nboot' draws)"
 }
+*/
 
 * ══════════════════════════════════════════════════════════════════════════
 * ACT 2 — AIPW output cost by resolution, levels + the DIFFERENCE (def - nd),
@@ -527,15 +533,18 @@ if !missing(`g2') & !missing(`g2l') {
 }
 
 * ══════════════════════════════════════════════════════════════════════════
-* EXPORT — AIPW results CSV + figures (Act 1 single line; Act 2 two-line split)
+* EXPORT — AIPW results CSV + figures (Act 2 two-line split only; Act 1's
+* single-line series/figure are SILENCED above, see that block's note)
 * ══════════════════════════════════════════════════════════════════════════
 preserve
     clear
-    * Long dataset: 3 series (all / nd / def) x 5 horizons.
+    * Long dataset: 2 series (nd / def) x 5 horizons. ("all"/A1 removed --
+    * see the Act 1 silencing note above; restoring it means adding back
+    * "all A1" to this foreach and un-silencing Figure A below.)
     tempname pfx
     tempfile aipwf
     postfile `pfx' str3 series horizon b se lo hi using "`aipwf'", replace
-    foreach map in "all A1" "nd A2nd" "def A2def" {
+    foreach map in "nd A2nd" "def A2def" {
         gettoken sname stub : map
         post `pfx' ("`sname'") (0) (0) (0) (0) (0)   // explicit baseline, matching Asonuma et al.
         forvalues h = 0/4 {
@@ -553,7 +562,8 @@ preserve
     export delimited "$tabs/aipw_results.csv", replace
     di as result "AIPW results CSV saved: $tabs/aipw_results.csv"
 
-    * ── Figure A: Act 1 crisis cost (single line + CI band) ──────────────────
+    * ── Figure A: Act 1 crisis cost — SILENCED, see the note above. ──────────
+    /*
     local c1 "23 55 94"
     twoway ///
         (rarea lo hi horizon if series=="all", color("`c1'%20") lwidth(none)) ///
@@ -567,6 +577,7 @@ preserve
         graphregion(color(white)) plotregion(color(white))
     graph export "$figs/fig_aipw.pdf", replace
     di as result "Figure saved: fig_aipw.pdf"
+    */
 
     * ── Figure B: Act 2 resolution split (two lines + CI bands), fig8 palette ─
     local c_nd  "0 84 166"
@@ -595,8 +606,8 @@ preserve
 restore
 
 di as result _n "08b_aipw.do complete."
-di as result "fig_aipw.pdf = Act 1 crisis cost; fig_aipw_act2.pdf = the two-line"
-di as result "resolution split (non-default vs default, each vs tranquil) — the AIPW"
+di as result "fig_aipw_act2.pdf = the two-line resolution split (non-default vs"
+di as result "default, each vs tranquil) — the AIPW"
 di as result "twin of the IPW fig8. Compare the nd/def AIPW levels to fig8's IPW lines"
 di as result "and to the Table 2 OLS coefficients (similar ordering => selection is not"
 di as result "driving the resolution gap; their Fig C1 logic)."
