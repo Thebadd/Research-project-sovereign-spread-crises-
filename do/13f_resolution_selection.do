@@ -513,9 +513,10 @@ else {
 di as result _n "  Mirror of 08b_aipw.do's first stages (DIAGNOSTIC ONLY —"
 di as result "  the weighting models in 08b/13d are not modified):"
 * Matches 08b_aipw.do's own cz_def (see its header for the swap rationale,
-* citing 21_aipw_flow.do's "SECOND PREDICTOR CHANGE") -- kept in sync since
+* citing 21_aipw_flow.do's "SECOND PREDICTOR CHANGE"; both terms are kept
+* GENERIC/any-onset-type, not default-linked-only) -- kept in sync since
 * this block exists only to mirror 08b's first stage for comparability.
-local predictors_z2 l_fedfunds l_contagion_dist years_since_def_onset
+local predictors_z2 l_fedfunds l_contagion_dist years_since_onset
 foreach s in nd def {
     if "`s'" == "nd"  local rival onset_def
     else              local rival onset_nd

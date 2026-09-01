@@ -38,8 +38,9 @@
   SAMPLE AND MODELS — IDENTICAL TO 08c
   -------------------------------------
   sample==1, rival type dropped, pooled probit, clustered SEs by country.
-  `X' = $ctrl_core. `Z2' = l_fedfunds, l_contagion_dist, years_since_def_onset
-  (matching 08c's and the flow tier's adopted predictor set). The kernel
+  `X' = $ctrl_core. `Z2' = l_fedfunds, l_contagion_dist, years_since_onset --
+  both the contagion and recency terms are generic (any onset type), matching
+  08c's adopted predictor set. The kernel
   density figure uses the FULL model's (controls+predictors) predicted
   probability, matching the reference paper's own kdensity figure, which is
   drawn from their single richest probit ($cf $convar $instrument), not a
@@ -72,7 +73,7 @@
 use "$clean/panel_lp.dta", clear
 if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 
-foreach v in onset_nd onset_def sample years_since_def_onset l_contagion_dist {
+foreach v in onset_nd onset_def sample years_since_onset l_contagion_dist {
     capture confirm variable `v', exact
     if _rc {
         di as error "  ** `v' not in panel_lp.dta — re-run 18_transforms.do first."
@@ -81,7 +82,7 @@ foreach v in onset_nd onset_def sample years_since_def_onset l_contagion_dist {
 }
 
 local X  $ctrl_core
-local Z2 l_fedfunds l_contagion_dist years_since_def_onset
+local Z2 l_fedfunds l_contagion_dist years_since_onset
 
 local c_nd   "0 84 166"
 local c_def  "157 36 73"

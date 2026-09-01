@@ -10,9 +10,19 @@
     l_reg_crisis_share  Z2: lagged regional crisis share (contagion)
     contagion_dist      Z2b: distance-weighted sum of OTHER countries' onsets
                         (year t), CEPII great-circle distance (GEO_CEPII.xlsx)
-    l_contagion_dist    Z2b lagged (predetermined)
+    l_contagion_dist    Z2b lagged (predetermined) -- ADOPTED in cz_def and cz:
+                        both predictor sets use the GENERIC (any-onset-type)
+                        contagion measure, not a default-linked-only version
+                        (tested as l_contagion_dist_def in 08c; narrowing to
+                        default-only made no difference, so the generic
+                        measure is kept everywhere for simplicity)
     past_onsets         Z3: cumulative own onsets before year t (proneness)
     past_def_onsets     Z3(def): cumulative own default-linked onsets before t
+    years_since_onset   Z3-recency: years since most recent prior onset of
+                        ANY type -- ADOPTED in cz_def (replaces the earlier
+                        default-linked-only years_since_def_onset; see
+                        08c_first_stage_table.do's header for the diagnostic
+                        history)
 ===========================================================================*/
 
 use "$clean/panel_build.dta", clear
@@ -168,6 +178,12 @@ xtset cid year
 gen double l_contagion_dist = L.contagion_dist
 label var l_contagion_dist "Z2b: lagged distance-weighted contagion (any onset), predetermined"
 
+* A default-linked-only version of this contagion measure (contagion_dist_def)
+* was tested in 08c_first_stage_table.do as a diagnostic and found to make no
+* difference to classification power in either resolution arm (nd delta
+* +0.009, p=.609; def delta +0.000, p=.931) -- so cz_def keeps the generic
+* l_contagion_dist above rather than carrying a second, unused variable.
+
 * ── Proneness: cumulative own onsets, lagged (Z3) ───────────────────────────
 * Dropped SEPARATELY -- same reasoning as reg_crisis_share above: cum_onset/
 * cum_def are working variables dropped again below and never saved, while
@@ -220,19 +236,16 @@ bysort cid (year): replace _defyear = _defyear[_n-1] if missing(_defyear) & _n>1
 bysort cid (year): gen _defyear_lag = _defyear[_n-1]
 gen double years_since_def_onset = year - _defyear_lag if !missing(_defyear_lag)
 replace years_since_def_onset = 50 if missing(years_since_def_onset)
-label var years_since_def_onset "Z3(def) recency: years since most recent PRIOR default-linked onset (censored at 50)"
+label var years_since_def_onset "Z3(def) recency: years since most recent PRIOR default-linked onset (censored at 50). NOT in cz_def -- see years_since_onset below."
 drop _defyear _defyear_lag
 
-* ── DIAGNOSTIC-ONLY: generic (any-type) recency, tested not adopted ─────────
+* ── Generic (any-onset-type) recency (Z3-recency): ADOPTED in cz_def ────────
 * Same construction as years_since_def_onset, but the clock resets on ANY
-* prior onset (onset_all), not just a default-linked one -- the mirror-image
-* test of the contagion_dist_def diagnostic (there: does restricting a
-* generic predictor to default-only sharpen it; here: does broadening a
-* default-specific predictor to generic hurt or help it). Built to compare
-* against years_since_def_onset in cz_def
-* (08c_first_stage_table.do / 08d_first_stage_figs.do's diagnostic block)
-* -- NOT wired into any adopted predictor set (cz/cz_def/cz_recency) pending
-* that comparison.
+* prior onset (onset_all), not just a default-linked one. Tested in
+* 08c_first_stage_table.do against years_since_def_onset and against a
+* default-linked-only contagion measure (contagion_dist_def, see above): kept
+* generic/any-onset-type throughout cz_def, matching l_contagion_dist's own
+* generic construction, so both predictors are defined consistently.
 capture drop _anyyear
 capture drop _anyyear_lag
 capture drop years_since_onset
@@ -241,13 +254,13 @@ bysort cid (year): replace _anyyear = _anyyear[_n-1] if missing(_anyyear) & _n>1
 bysort cid (year): gen _anyyear_lag = _anyyear[_n-1]
 gen double years_since_onset = year - _anyyear_lag if !missing(_anyyear_lag)
 replace years_since_onset = 50 if missing(years_since_onset)
-label var years_since_onset "DIAGNOSTIC: years since most recent PRIOR onset of any type (censored at 50)"
+label var years_since_onset "Z3-recency: years since most recent PRIOR onset of any type (censored at 50)"
 drop _anyyear _anyyear_lag
 
 save "$clean/panel_build.dta", replace
 
 di as result _n "17_predictors.do complete."
-foreach v in l_reg_crisis_share l_contagion_dist past_onsets past_def_onsets years_since_def_onset {
+foreach v in l_reg_crisis_share l_contagion_dist past_onsets past_def_onsets years_since_onset {
     quietly count if !missing(`v') & sample_base==1
     di as result "  `v': `r(N)' non-missing sample rows"
 }

@@ -56,14 +56,20 @@ local cx    $ctrl_core
 * Act 1 predictors Z1: single global push (fed funds) + contagion + proneness.
 local cz    l_fedfunds l_reg_crisis_share past_onsets
 * Act 2 predictors Z2 (resolution-type): matches the flow tier's adopted
-* cz_recency (l_contagion_dist for l_reg_crisis_share, years_since_def_onset
-* for past_def_onsets) -- see 21_aipw_flow.do's "SECOND PREDICTOR CHANGE"
-* section for the diagnostic history behind both swaps (a country-year-
-* specific spatial-lag contagion measure in place of a coarse regional
+* cz_recency in spirit (l_contagion_dist for l_reg_crisis_share, a recency
+* clock for past_def_onsets) -- see 21_aipw_flow.do's "SECOND PREDICTOR
+* CHANGE" section for the diagnostic history behind both swaps (a country-
+* year-specific spatial-lag contagion measure in place of a coarse regional
 * share; a genuine recency clock in place of a raw past-event count that
-* conflates recency and frequency). cz (Act 1, pooled) is unchanged: no
-* pooled analog of years_since_def_onset exists.
-local cz_def l_fedfunds l_contagion_dist years_since_def_onset
+* conflates recency and frequency). Both terms are kept GENERIC (any onset
+* type), not narrowed to default-linked-only: a default-linked-only
+* contagion measure (contagion_dist_def) and a default-linked-only recency
+* measure (years_since_def_onset) were each tested against their generic
+* counterparts (08c_first_stage_table.do's diagnostic history) and neither
+* materially improved classification power, so cz_def uses the same generic
+* l_contagion_dist/years_since_onset as cz (Act 1, pooled) rather than
+* mixing generic and default-specific terms.
+local cz_def l_fedfunds l_contagion_dist years_since_onset
 
 * ── REPRODUCIBILITY: seed the bootstrap ────────────────────────────────────
 * Every CI in this file comes from `bsample', which draws at random. Without a
