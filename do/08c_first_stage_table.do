@@ -107,6 +107,13 @@
       what the default arm's own diagnostics call for. cz (Act 1, pooled)
       keeps the generic l_contagion_dist -- there is no resolution type to
       be specific about in a pooled spec.
+
+  Also runs a DIAGNOSTIC-ONLY comparison (console output only, before the
+  table export): does adding COUNTRY FIXED EFFECTS to the probit (matching
+  the reference paper's own $cf design) converge on this project's much
+  thinner panel, or does it collapse the default arm's control pool the way
+  21_aipw_flow.do's Section 1g already found for the flow tier's propensity
+  model? Tested, not adopted -- the exported table above is unaffected.
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -214,6 +221,61 @@ else {
     di as result "      one that speaks to classification power directly, and it says 'suggestive, not"
     di as result "      established' here."
 }
+
+* ══════════════════════════════════════════════════════════════════════════
+* DIAGNOSTIC (NOT ADOPTED): does adding COUNTRY FIXED EFFECTS to the probit
+* match the reference paper's design ($cf c1-c74, noconstant), or does it
+* break on this project's much thinner panel?
+*
+* The reference paper's own probit carries country dummies directly. Their
+* design can afford this because with 194 events over 74 countries most
+* treated countries have MULTIPLE episodes (~2.6 on average), so a country
+* FE for a never-treated country is absorbed cheaply while enough
+* ever-treated countries remain to identify the slopes. This project's
+* onset probit is pooled, no country FE, precisely because that condition
+* does not hold here: ~54 countries, 61 onsets, and in the default-linked
+* arm specifically only ~14 countries ever had a default-linked episode,
+* most with a single short episode -- close to one event per treated
+* country, not 2.6.
+*
+* THE EXPECTED FAILURE MODE, STATED IN ADVANCE (matching 21_aipw_flow.do's
+* own Section 1g, which ran the identical test for the flow tier's
+* propensity model and found country FE either failed to converge or
+* collapsed the def-arm control pool to only ever-treated countries): any
+* country with ZERO outcome variation in a given arm is dropped
+* automatically ("predicts failure/success perfectly"), and on the def arm
+* this could mean far more than a handful of countries -- checked directly
+* below, not assumed.
+* ══════════════════════════════════════════════════════════════════════════
+di as result _n "=== DIAGNOSTIC: country FE added to the probit -- does it even converge? ==="
+foreach s in nd def {
+    local dv  = cond("`s'"=="nd", "onset_nd", "onset_def")
+    local ifc = cond("`s'"=="nd", "sample==1 & onset_def==0", "sample==1 & onset_nd==0")
+
+    di as result _n "      `s' arm, WITH i.cid (raw probit output, watch for separation notes):"
+    capture noisily probit `dv' `X' `Z2' i.cid if `ifc', vce(cluster cid)
+    if _rc {
+        di as error "      `s' arm: probit FAILED to converge (rc=" _rc ")."
+        continue
+    }
+
+    * How many countries were in the fitting sample vs actually used
+    * (e(sample)==1 excludes rows dropped for zero outcome variation)?
+    quietly levelsof cid if `ifc', local(allcty)
+    quietly levelsof cid if e(sample)==1, local(keptcty)
+    local ndrop : list allcty - keptcty
+    local ndropn : word count `ndrop'
+    local nallc  : word count `allcty'
+    di as result "      countries in the `s' fitting sample: " `nallc' ///
+                 "  |  dropped for zero outcome variation: " `ndropn'
+}
+di as result _n "      Compare to the pooled (no country FE) columns above: if country FE"
+di as result "      converges cleanly without collapsing the def-arm country pool, it is"
+di as result "      worth adopting; if it drops most of the def arm's countries or fails to"
+di as result "      converge, that is the honest reason this project's onset probit stays"
+di as result "      pooled, matching what 21_aipw_flow.do's Section 1g already found for the"
+di as result "      flow tier's propensity model. NOT wired into the adopted `X'/`Z2' probit"
+di as result "      above -- this block only reports the comparison."
 
 * ══════════════════════════════════════════════════════════════════════════
 * TABLE EXPORT — Table 1 style (Predictors / Baseline controls blocks + diags)
