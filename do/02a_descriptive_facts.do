@@ -44,15 +44,24 @@
   would invite reading it as a result.
 
   HORIZONS: same convention as the rest of the paper -- Year 1 is the crisis
-  year, Year 0 is the hard-coded pre-crisis baseline, Year -1 is the single
-  estimable pre-crisis point (on the same t-1 base as every other horizon).
+  year, Year 0 is the hard-coded pre-crisis baseline. Years -1, -2 and -3 are
+  additional pre-crisis points, all built on the same t-1 base as every other
+  horizon (e.g. Year -3 = value(t-4) - value(t-1)), giving a four-year
+  pre-crisis run-up to check for a divergence that predates the crisis
+  itself, not just the single-point placebo a shorter window would allow.
 
-  Output: $figs/fig0_descriptive_paths.pdf     (GDP, nd vs def -- the Data-section figure)
-          $figs/fig0a_descriptive_all.pdf      (GDP, all episodes pooled)
-          $figs/fig0_descriptive_<channel>.pdf (standalone figure, one per channel -- each
-                                                 channel is its own independent graph, not
-                                                 combined into a multi-panel figure)
-          $tabs/descriptive_paths.csv          (all plotted numbers, GDP + channels)
+  Output: $figs/fig0_descriptive_paths.pdf          (GDP, nd vs def, Years -3..5 -- the
+                                                      Data-section figure)
+          $figs/fig0_descriptive_paths_post.pdf     (GDP, nd vs def, Years 0..5 only)
+          $figs/fig0a_descriptive_all.pdf           (GDP, all episodes pooled, Years -3..5)
+          $figs/fig0a_descriptive_all_post.pdf      (GDP, all episodes pooled, Years 0..5)
+          $figs/fig0_descriptive_<channel>.pdf      (standalone figure, one per channel,
+                                                      Years -3..5 -- each channel is its
+                                                      own independent graph, not combined
+                                                      into a multi-panel figure)
+          $figs/fig0_descriptive_<channel>_post.pdf (same, Years 0..5 only)
+          $tabs/descriptive_paths.csv               (all plotted numbers, GDP + channels,
+                                                      Years -3..5)
           $tabs/descriptive_summary.csv        (pre-crisis characteristics by group)
 ===========================================================================*/
 
@@ -69,7 +78,23 @@ xtset cid year
 *    -- NOT the reference paper's full Figure 1 (gross capital inflows, real
 *    lending rates), for which this project has no source data. See this
 *    file's header note on that scope decision.
+*
+*    Pre-crisis horizons -1, -2, -3 (ch_v_m2/m3/m4) are all built on the SAME
+*    t-1 base as every other horizon (L.src), following further back in time
+*    for each -- e.g. ch_v_m3 = L3.src - L.src is the change from t-3 to t-1.
+*    This gives the descriptive figures a longer pre-crisis window (Years
+*    -3..5) to check for a pre-existing divergence, not just the single
+*    Year -1 placebo point.
 * ══════════════════════════════════════════════════════════════════════════
+capture drop ln_gdp_desc ln_gdp_desc_base
+gen double ln_gdp_desc = ln(gdp_real) if gdp_real > 0 & !missing(gdp_real)
+gen double ln_gdp_desc_base = L.ln_gdp_desc
+forvalues k = 3/4 {
+    capture drop dy_m`k'
+    gen double dy_m`k' = (L`k'.ln_gdp_desc - ln_gdp_desc_base) * 100
+    label var dy_m`k' "Pre-trend h=-`k' (same t-1 base as dy_h): GDP(t-`k') - GDP(t-1)"
+}
+
 foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
     local src `v'
     if inlist("`v'","credit","inv") local src ln_r_`v'
@@ -79,10 +104,12 @@ foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
         capture drop ch_`v'_`h'
         gen double ch_`v'_`h' = F`h'.`src' - `v'_base
     }
-    * Year -1 placebo point, same t-1 base as every other horizon (mirrors
-    * dy_m2's construction for GDP: change from t-2 to the t-1 base).
-    capture drop ch_`v'_m2
-    gen double ch_`v'_m2 = L2.`src' - `v'_base
+    * Years -1, -2, -3 placebo points, all on the same t-1 base as every
+    * other horizon (mirrors dy_m2..dy_m4's construction for GDP above).
+    forvalues k = 2/4 {
+        capture drop ch_`v'_m`k'
+        gen double ch_`v'_m`k' = L`k'.`src' - `v'_base
+    }
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -92,7 +119,7 @@ foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
 *    in the same universe the regressions use, not one that includes the
 *    continuation years the design deliberately drops.
 * ══════════════════════════════════════════════════════════════════════════
-foreach h in m2 0 1 2 3 4 {
+foreach h in m4 m3 m2 0 1 2 3 4 {
     capture drop cmean_`h' dd_`h'
     quietly bysort cid: egen double cmean_`h' = mean(dy_`h') if sample==1
     quietly gen double dd_`h' = dy_`h' - cmean_`h' if sample==1
@@ -100,7 +127,7 @@ foreach h in m2 0 1 2 3 4 {
 label var dd_0 "Country-demeaned cumulative GDP change, crisis year"
 
 foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
-    foreach h in m2 0 1 2 3 4 {
+    foreach h in m4 m3 m2 0 1 2 3 4 {
         capture drop cmean_`v'_`h' dd_`v'_`h'
         quietly bysort cid: egen double cmean_`v'_`h' = mean(ch_`v'_`h') if sample==1
         quietly gen double dd_`v'_`h' = ch_`v'_`h' - cmean_`v'_`h' if sample==1
@@ -108,25 +135,32 @@ foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
 }
 
 * ══════════════════════════════════════════════════════════════════════════
-* 2. GROUP MEANS BY HORIZON  (rows: 1 = Year -1, 2 = Year 0, 3..7 = Years 1-5)
+* 2. GROUP MEANS BY HORIZON  (rows: 1 = Year -3, 2 = Year -2, 3 = Year -1,
+*    4 = Year 0, 5..9 = Years 1-5)
 * ══════════════════════════════════════════════════════════════════════════
 foreach g in all nd def {
-    matrix desc_`g' = J(7, 1, .)
-    matrix nobs_`g' = J(7, 1, .)
-    matrix desc_`g'[2,1] = 0          // Year 0 = the baseline, zero by construction
-    matrix nobs_`g'[2,1] = .
+    matrix desc_`g' = J(9, 1, .)
+    matrix nobs_`g' = J(9, 1, .)
+    matrix desc_`g'[4,1] = 0          // Year 0 = the baseline, zero by construction
+    matrix nobs_`g'[4,1] = .
 }
 
-* Year -1: the pre-crisis placebo point, same t-1 base as every other horizon
+* Years -3, -2, -1: pre-crisis placebo points, same t-1 base as every horizon
 foreach g in all nd def {
-    quietly summarize dd_m2 if onset_`g'==1 & sample==1
+    quietly summarize dd_m4 if onset_`g'==1 & sample==1
     matrix desc_`g'[1,1] = r(mean)
     matrix nobs_`g'[1,1] = r(N)
+    quietly summarize dd_m3 if onset_`g'==1 & sample==1
+    matrix desc_`g'[2,1] = r(mean)
+    matrix nobs_`g'[2,1] = r(N)
+    quietly summarize dd_m2 if onset_`g'==1 & sample==1
+    matrix desc_`g'[3,1] = r(mean)
+    matrix nobs_`g'[3,1] = r(N)
 }
 
 * Years 1-5
 forvalues h = 0/4 {
-    local row = `h' + 3
+    local row = `h' + 5
     foreach g in all nd def {
         quietly summarize dd_`h' if onset_`g'==1 & sample==1
         matrix desc_`g'[`row',1] = r(mean)
@@ -139,9 +173,9 @@ di as result "DESCRIPTIVE PATHS — country-demeaned mean cumulative GDP change"
 di as result "No controls, no fixed effects beyond the demeaning, no estimator."
 di as result "════════════════════════════════════════════════════════════"
 di as result "Year      All (n)        Non-default (n)     Default-linked (n)"
-forvalues r = 1/7 {
-    local yr = `r' - 2
-    if `r' == 2 {
+forvalues r = 1/9 {
+    local yr = `r' - 4
+    if `r' == 4 {
         di "  " %2.0f `yr' "     0.000  (base)      0.000  (base)        0.000  (base)"
     }
     else {
@@ -150,10 +184,10 @@ forvalues r = 1/7 {
            "    " %8.3f desc_def[`r',1] " (" %3.0f nobs_def[`r',1] ")"
     }
 }
-di as result _n "  Read the Year -1 row as the descriptive counterpart of the placebo"
-di as result "  test: if the two groups were already diverging before the crisis it"
-di as result "  shows up here, with no specification standing between the reader and"
-di as result "  the data."
+di as result _n "  Read the Years -3..-1 rows as the descriptive counterpart of the"
+di as result "  placebo test: if the two groups were already diverging before the"
+di as result "  crisis it shows up here, with no specification standing between the"
+di as result "  reader and the data."
 
 * ══════════════════════════════════════════════════════════════════════════
 * 2b. CHANNEL GROUP MEANS BY HORIZON -- identical construction to Section 2,
@@ -162,18 +196,24 @@ di as result "  the data."
 * ══════════════════════════════════════════════════════════════════════════
 foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
     foreach g in all nd def {
-        matrix descv_`v'_`g' = J(7, 1, .)
-        matrix nobsv_`v'_`g' = J(7, 1, .)
-        matrix descv_`v'_`g'[2,1] = 0
-        matrix nobsv_`v'_`g'[2,1] = .
+        matrix descv_`v'_`g' = J(9, 1, .)
+        matrix nobsv_`v'_`g' = J(9, 1, .)
+        matrix descv_`v'_`g'[4,1] = 0
+        matrix nobsv_`v'_`g'[4,1] = .
     }
     foreach g in all nd def {
-        quietly summarize dd_`v'_m2 if onset_`g'==1 & sample==1
+        quietly summarize dd_`v'_m4 if onset_`g'==1 & sample==1
         matrix descv_`v'_`g'[1,1] = r(mean)
         matrix nobsv_`v'_`g'[1,1] = r(N)
+        quietly summarize dd_`v'_m3 if onset_`g'==1 & sample==1
+        matrix descv_`v'_`g'[2,1] = r(mean)
+        matrix nobsv_`v'_`g'[2,1] = r(N)
+        quietly summarize dd_`v'_m2 if onset_`g'==1 & sample==1
+        matrix descv_`v'_`g'[3,1] = r(mean)
+        matrix nobsv_`v'_`g'[3,1] = r(N)
     }
     forvalues h = 0/4 {
-        local row = `h' + 3
+        local row = `h' + 5
         foreach g in all nd def {
             quietly summarize dd_`v'_`h' if onset_`g'==1 & sample==1
             matrix descv_`v'_`g'[`row',1] = r(mean)
@@ -186,9 +226,9 @@ foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
     di as result "No controls, no fixed effects beyond the demeaning, no estimator."
     di as result "════════════════════════════════════════════════════════════"
     di as result "Year      All (n)        Non-default (n)     Default-linked (n)"
-    forvalues r = 1/7 {
-        local yr = `r' - 2
-        if `r' == 2 {
+    forvalues r = 1/9 {
+        local yr = `r' - 4
+        if `r' == 4 {
             di "  " %2.0f `yr' "     0.000  (base)      0.000  (base)        0.000  (base)"
         }
         else {
@@ -204,8 +244,8 @@ foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
 * ══════════════════════════════════════════════════════════════════════════
 preserve
     clear
-    set obs 7
-    gen horizon = _n - 2
+    set obs 9
+    gen horizon = _n - 4
     foreach g in all nd def {
         svmat desc_`g', names(b_`g')
         rename b_`g'1 b_`g'
@@ -228,6 +268,14 @@ preserve
     local c_def "157 36 73"
     local c_all "23 55 94"
 
+    * Two windows are exported for every series below: the FULL window
+    * (Years -3..5, suffix none) shows the longer pre-crisis run-up used to
+    * check for a pre-existing divergence; the POST-ONSET window (Years 0..5,
+    * suffix _post) drops the pre-crisis years entirely and is the cleaner
+    * figure for a reader only interested in the path after the crisis
+    * starts. Both are built from the identical underlying series -- only
+    * the plotted horizon range and the file name differ.
+
     * ── Figure 0: the Data-section figure — nd vs def, raw ────────────────
     twoway ///
         (connected b_nd horizon, ///
@@ -237,7 +285,7 @@ preserve
             lpattern(dash) lwidth(medthick)), ///
         yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
         xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
-        xlabel(-1(1)5, labsize(medsmall)) ///
+        xlabel(-3(1)5, labsize(medsmall)) ///
         ylabel(, format(%4.1f) labsize(medsmall)) ///
         xtitle("Year (Year 0 = pre-crisis baseline, Year 1 = crisis year)", size(small)) ///
         ytitle("Cumulative change in log real GDP (pp)", size(small)) ///
@@ -254,14 +302,32 @@ preserve
     *  not an estimate — the conditional versions with inference are Figure 2 and Table 2."
     graph export "$figs/fig0_descriptive_paths.pdf", replace
     capture graph export "$figs/fig0_descriptive_paths.png", replace width(1200)
-    di as result "Figure saved: fig0_descriptive_paths.pdf"
+    di as result "Figure saved: fig0_descriptive_paths.pdf (Years -3..5)"
+
+    twoway ///
+        (connected b_nd horizon if horizon>=0, ///
+            lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
+        (connected b_def horizon if horizon>=0, ///
+            lcolor("`c_def'") mcolor("`c_def'") msymbol(square) ///
+            lpattern(dash) lwidth(medthick)), ///
+        yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
+        xlabel(0(1)5, labsize(medsmall)) ///
+        ylabel(, format(%4.1f) labsize(medsmall)) ///
+        xtitle("Year (Year 0 = pre-crisis baseline, Year 1 = crisis year)", size(small)) ///
+        ytitle("Cumulative change in log real GDP (pp)", size(small)) ///
+        title("Output around a spread crisis, by resolution", size(medium) color(navy)) ///
+        subtitle("Country-demeaned means. No controls, no estimator. Post-onset window.", size(small)) ///
+        legend(order(1 "Non-default" 2 "Default-linked") size(small)) ///
+        graphregion(color(white)) plotregion(color(white))
+    graph export "$figs/fig0_descriptive_paths_post.pdf", replace
+    di as result "Figure saved: fig0_descriptive_paths_post.pdf (Years 0..5)"
 
     * ── Figure 0a: pooled, for the motivating paragraph ───────────────────
     twoway (connected b_all horizon, ///
             lcolor("`c_all'") mcolor("`c_all'") msymbol(circle) lwidth(medthick)), ///
         yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
         xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
-        xlabel(-1(1)5, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
+        xlabel(-3(1)5, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
         xtitle("Year (Year 0 = pre-crisis baseline, Year 1 = crisis year)", size(small)) ///
         ytitle("Cumulative change in log real GDP (pp)", size(small)) ///
         title("Output around a spread crisis, all episodes", size(medium) color(navy)) ///
@@ -270,12 +336,27 @@ preserve
         note("All 61 identified onsets. Construction as in Figure 0.", size(vsmall)) ///
         graphregion(color(white)) plotregion(color(white))
     graph export "$figs/fig0a_descriptive_all.pdf", replace
-    di as result "Figure saved: fig0a_descriptive_all.pdf"
+    di as result "Figure saved: fig0a_descriptive_all.pdf (Years -3..5)"
+
+    twoway (connected b_all horizon if horizon>=0, ///
+            lcolor("`c_all'") mcolor("`c_all'") msymbol(circle) lwidth(medthick)), ///
+        yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
+        xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
+        xtitle("Year (Year 0 = pre-crisis baseline, Year 1 = crisis year)", size(small)) ///
+        ytitle("Cumulative change in log real GDP (pp)", size(small)) ///
+        title("Output around a spread crisis, all episodes", size(medium) color(navy)) ///
+        subtitle("Country-demeaned means. No controls, no estimator. Post-onset window.", size(small)) ///
+        legend(off) ///
+        note("All 61 identified onsets. Construction as in Figure 0.", size(vsmall)) ///
+        graphregion(color(white)) plotregion(color(white))
+    graph export "$figs/fig0a_descriptive_all_post.pdf", replace
+    di as result "Figure saved: fig0a_descriptive_all_post.pdf (Years 0..5)"
 
     * ── Figures 0b-0f: channel descriptive paths, same construction as
     * Figure 0, one standalone figure per active channel (GDP already has
     * its own standalone Figure 0/0a above). Each channel gets its own
-    * independent graph/PDF -- no combined small-multiple panel.
+    * independent graph/PDF -- no combined small-multiple panel -- plus a
+    * post-onset-only companion, same as GDP above.
     local panellab_credit "Bank credit"
     local panellab_inv "Investment"
     local panellab_claims_govt "Claims on govt"
@@ -286,15 +367,28 @@ preserve
             (connected b_`v'_nd horizon, lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
             (connected b_`v'_def horizon, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lpattern(dash) lwidth(medthick)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
-            xlabel(-1(1)5, labsize(small)) ylabel(, format(%4.1f) labsize(small)) ///
+            xlabel(-3(1)5, labsize(small)) ylabel(, format(%4.1f) labsize(small)) ///
             xtitle("Years relative to crisis onset") ytitle("`v' (pp, country-demeaned)", size(small)) ///
             title("`panellab_`v''", size(medium)) ///
             legend(order(1 "Non-default" 2 "Default-linked") pos(6) size(small) rows(1)) ///
             name(gk_`v', replace) graphregion(color(white)) plotregion(color(white))
         graph export "$figs/fig0_descriptive_`v'.pdf", replace name(gk_`v')
         graph drop gk_`v'
+
+        twoway ///
+            (connected b_`v'_nd horizon if horizon>=0, lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
+            (connected b_`v'_def horizon if horizon>=0, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lpattern(dash) lwidth(medthick)), ///
+            yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
+            xlabel(0(1)5, labsize(small)) ylabel(, format(%4.1f) labsize(small)) ///
+            xtitle("Years relative to crisis onset") ytitle("`v' (pp, country-demeaned)", size(small)) ///
+            title("`panellab_`v'' (post-onset)", size(medium)) ///
+            legend(order(1 "Non-default" 2 "Default-linked") pos(6) size(small) rows(1)) ///
+            name(gk_`v'_post, replace) graphregion(color(white)) plotregion(color(white))
+        graph export "$figs/fig0_descriptive_`v'_post.pdf", replace name(gk_`v'_post)
+        graph drop gk_`v'_post
     }
-    di as result "Figures saved: fig0_descriptive_<channel>.pdf, one standalone graph per channel"
+    di as result "Figures saved: fig0_descriptive_<channel>.pdf (Years -3..5) and"
+    di as result "               fig0_descriptive_<channel>_post.pdf (Years 0..5)"
 restore
 
 * ══════════════════════════════════════════════════════════════════════════
