@@ -1,8 +1,8 @@
 /*===========================================================================
   02A_DESCRIPTIVE_FACTS.DO
-  Stylised facts: the raw output path around a spread crisis, before any
-  conditioning. Runs BEFORE the local projections and is the figure the Data
-  section of the paper leads with.
+  Stylised facts: the raw GDP and transmission-channel paths around a spread
+  crisis, before any conditioning. Runs BEFORE the local projections and is
+  the figure the Data section of the paper leads with.
 
   WHY THIS EXISTS
   ---------------
@@ -13,19 +13,29 @@
   controls go in, that is worth knowing; if it is visible in the raw data, the
   regressions are sharpening a fact rather than manufacturing one.
 
-  This is the analog of the reference paper's descriptive tier (their Fig. 2),
-  which reports conditional MEANS of the same horizon-differenced outcome by
-  restructuring type, with no regression at all. We follow that construction.
+  This is the analog of the reference paper's descriptive tier (their Fig. 1/
+  Section 2.2), which reports conditional MEANS of the same horizon-
+  differenced outcome by restructuring type, with no regression at all. We
+  follow that construction, extended from GDP alone to the transmission
+  channels this project actually estimates with AIPW (13c_aipw_channels.do):
+  bank credit, investment, claims on government, and the two sovereign-bank
+  nexus shares. UNLIKE the reference paper's Figure 1, this file does NOT
+  cover gross capital inflows or real lending interest rates -- this project
+  has no source data for either, and building it would be new data
+  construction, not a figure extension; that scope decision is stated here
+  rather than left implicit.
 
   WHAT IS AND IS NOT DONE TO THE DATA
   -----------------------------------
-  DONE: the outcome is country-demeaned. dy_h is a cumulative growth rate, and
-  countries differ systematically in trend growth, so a raw average across
-  episodes would partly rank countries rather than describe crises. Subtracting
-  each country's own mean over the estimation sample removes that and leaves
-  the deviation from a country's normal path -- exactly what a country fixed
-  effect does in the regressions, and the same demeaning the reference paper
-  applies.
+  DONE: every outcome is country-demeaned. A cumulative-change outcome
+  reflects systematic cross-country differences in trend, so a raw average
+  across episodes would partly rank countries rather than describe crises.
+  Subtracting each country's own mean over the estimation sample removes
+  that and leaves the deviation from a country's normal path -- exactly what
+  a country fixed effect does in the regressions, and the same demeaning the
+  reference paper applies. Each channel outcome (ch_v_h = F h.v - L.v) is
+  built here with the identical construction used in 13c_aipw_channels.do,
+  since ch_v_h is not persisted in panel_lp.dta and this file runs before 13c.
 
   NOT DONE: no controls, no year effects, no weighting, no estimator. The
   plotted point at horizon h for group g is the simple average of the
@@ -35,12 +45,14 @@
 
   HORIZONS: same convention as the rest of the paper -- Year 1 is the crisis
   year, Year 0 is the hard-coded pre-crisis baseline, Year -1 is the single
-  estimable pre-crisis point (dy_m2, on the same t-1 base).
+  estimable pre-crisis point (on the same t-1 base as every other horizon).
 
-  Output: $figs/fig0_descriptive_paths.pdf   (nd vs def, the Data-section figure)
-          $figs/fig0a_descriptive_all.pdf    (all episodes pooled)
-          $tabs/descriptive_paths.csv        (the plotted numbers)
-          $tabs/descriptive_summary.csv      (pre-crisis characteristics by group)
+  Output: $figs/fig0_descriptive_paths.pdf     (GDP, nd vs def -- the Data-section figure)
+          $figs/fig0a_descriptive_all.pdf      (GDP, all episodes pooled)
+          $figs/fig0_descriptive_<channel>.pdf (standalone panel, one per channel)
+          $figs/fig1_descriptive_channels.pdf  (GDP + all channels, combined small-multiple)
+          $tabs/descriptive_paths.csv          (all plotted numbers, GDP + channels)
+          $tabs/descriptive_summary.csv        (pre-crisis characteristics by group)
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -48,7 +60,32 @@ sort cid year
 xtset cid year
 
 * ══════════════════════════════════════════════════════════════════════════
-* 1. COUNTRY-DEMEAN THE OUTCOME
+* 0. CHANNEL OUTCOMES ch_v_h = F h.v - L.v (h=0..4), IDENTICAL CONSTRUCTION TO
+*    13c_aipw_channels.do -- built fresh here since this file runs early in
+*    the pipeline (before 13c) and ch_v_h is not persisted in panel_lp.dta.
+*    Scope: the channels this project actually has data for and estimates
+*    with AIPW (credit, inv, claims_govt, claimsgov_assets, claimpriv_assets)
+*    -- NOT the reference paper's full Figure 1 (gross capital inflows, real
+*    lending rates), for which this project has no source data. See this
+*    file's header note on that scope decision.
+* ══════════════════════════════════════════════════════════════════════════
+foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
+    local src `v'
+    if inlist("`v'","credit","inv") local src ln_r_`v'
+    capture drop `v'_base
+    gen double `v'_base = L.`src'
+    forvalues h = 0/4 {
+        capture drop ch_`v'_`h'
+        gen double ch_`v'_`h' = F`h'.`src' - `v'_base
+    }
+    * Year -1 placebo point, same t-1 base as every other horizon (mirrors
+    * dy_m2's construction for GDP: change from t-2 to the t-1 base).
+    capture drop ch_`v'_m2
+    gen double ch_`v'_m2 = L2.`src' - `v'_base
+}
+
+* ══════════════════════════════════════════════════════════════════════════
+* 1. COUNTRY-DEMEAN THE OUTCOMES
 *    Demeaning is over sample==1 (onset + tranquil years, continuation and
 *    carry-in rows excluded) so the reference path is a country's behaviour
 *    in the same universe the regressions use, not one that includes the
@@ -60,6 +97,14 @@ foreach h in m2 0 1 2 3 4 {
     quietly gen double dd_`h' = dy_`h' - cmean_`h' if sample==1
 }
 label var dd_0 "Country-demeaned cumulative GDP change, crisis year"
+
+foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
+    foreach h in m2 0 1 2 3 4 {
+        capture drop cmean_`v'_`h' dd_`v'_`h'
+        quietly bysort cid: egen double cmean_`v'_`h' = mean(ch_`v'_`h') if sample==1
+        quietly gen double dd_`v'_`h' = ch_`v'_`h' - cmean_`v'_`h' if sample==1
+    }
+}
 
 * ══════════════════════════════════════════════════════════════════════════
 * 2. GROUP MEANS BY HORIZON  (rows: 1 = Year -1, 2 = Year 0, 3..7 = Years 1-5)
@@ -110,6 +155,50 @@ di as result "  shows up here, with no specification standing between the reader
 di as result "  the data."
 
 * ══════════════════════════════════════════════════════════════════════════
+* 2b. CHANNEL GROUP MEANS BY HORIZON -- identical construction to Section 2,
+*     applied to each active channel (credit, inv, claims_govt,
+*     claimsgov_assets, claimpriv_assets). No regression, no controls.
+* ══════════════════════════════════════════════════════════════════════════
+foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
+    foreach g in all nd def {
+        matrix descv_`v'_`g' = J(7, 1, .)
+        matrix nobsv_`v'_`g' = J(7, 1, .)
+        matrix descv_`v'_`g'[2,1] = 0
+        matrix nobsv_`v'_`g'[2,1] = .
+    }
+    foreach g in all nd def {
+        quietly summarize dd_`v'_m2 if onset_`g'==1 & sample==1
+        matrix descv_`v'_`g'[1,1] = r(mean)
+        matrix nobsv_`v'_`g'[1,1] = r(N)
+    }
+    forvalues h = 0/4 {
+        local row = `h' + 3
+        foreach g in all nd def {
+            quietly summarize dd_`v'_`h' if onset_`g'==1 & sample==1
+            matrix descv_`v'_`g'[`row',1] = r(mean)
+            matrix nobsv_`v'_`g'[`row',1] = r(N)
+        }
+    }
+
+    di as result _n "════════════════════════════════════════════════════════════"
+    di as result "DESCRIPTIVE PATHS — country-demeaned mean cumulative `v' change"
+    di as result "No controls, no fixed effects beyond the demeaning, no estimator."
+    di as result "════════════════════════════════════════════════════════════"
+    di as result "Year      All (n)        Non-default (n)     Default-linked (n)"
+    forvalues r = 1/7 {
+        local yr = `r' - 2
+        if `r' == 2 {
+            di "  " %2.0f `yr' "     0.000  (base)      0.000  (base)        0.000  (base)"
+        }
+        else {
+            di "  " %2.0f `yr' "  " %8.3f descv_`v'_all[`r',1] " (" %3.0f nobsv_`v'_all[`r',1] ")" ///
+               "  " %8.3f descv_`v'_nd[`r',1]  " (" %3.0f nobsv_`v'_nd[`r',1] ")" ///
+               "    " %8.3f descv_`v'_def[`r',1] " (" %3.0f nobsv_`v'_def[`r',1] ")"
+        }
+    }
+}
+
+* ══════════════════════════════════════════════════════════════════════════
 * 3. PLOT DATASET + FIGURES
 * ══════════════════════════════════════════════════════════════════════════
 preserve
@@ -121,6 +210,14 @@ preserve
         rename b_`g'1 b_`g'
         svmat nobs_`g', names(n_`g')
         rename n_`g'1 n_`g'
+    }
+    foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
+        foreach g in all nd def {
+            svmat descv_`v'_`g', names(b_`v'_`g')
+            rename b_`v'_`g'1 b_`v'_`g'
+            svmat nobsv_`v'_`g', names(n_`v'_`g')
+            rename n_`v'_`g'1 n_`v'_`g'
+        }
     }
     label var horizon "Year (Year 1 = crisis year)"
     export delimited "$tabs/descriptive_paths.csv", replace
@@ -173,6 +270,52 @@ preserve
         graphregion(color(white)) plotregion(color(white))
     graph export "$figs/fig0a_descriptive_all.pdf", replace
     di as result "Figure saved: fig0a_descriptive_all.pdf"
+
+    * ── Figures 0b-0f: channel descriptive paths, same construction as
+    * Figure 0, one per active channel, plus a combined small-multiple
+    * matching the reference paper's Figure 1 Panels A-C in spirit (GDP +
+    * channels, no capital-flow/lending-rate panels -- this project has no
+    * source data for those, see this file's header note).
+    local gnames gk_gdp
+    twoway ///
+        (connected b_nd horizon, lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
+        (connected b_def horizon, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lpattern(dash) lwidth(medthick)), ///
+        yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
+        xlabel(-1(1)5, labsize(small)) ylabel(, format(%4.1f) labsize(small)) ///
+        xtitle("") ytitle("GDP (pp)", size(small)) ///
+        title("Panel A: GDP", size(medium)) legend(off) ///
+        name(gk_gdp, replace) nodraw graphregion(color(white)) plotregion(color(white))
+
+    local panellab_credit "Panel B: Bank credit"
+    local panellab_inv "Panel C: Investment"
+    local panellab_claims_govt "Panel D: Claims on govt"
+    local panellab_claimsgov_assets "Panel E: Claims/assets (govt)"
+    local panellab_claimpriv_assets "Panel F: Claims/assets (private)"
+    foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
+        twoway ///
+            (connected b_`v'_nd horizon, lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
+            (connected b_`v'_def horizon, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lpattern(dash) lwidth(medthick)), ///
+            yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
+            xlabel(-1(1)5, labsize(small)) ylabel(, format(%4.1f) labsize(small)) ///
+            xtitle("") ytitle("`v' (pp)", size(small)) ///
+            title("`panellab_`v''", size(medium)) legend(off) ///
+            name(gk_`v', replace) nodraw graphregion(color(white)) plotregion(color(white))
+        local gnames `gnames' gk_`v'
+
+        * standalone version of each channel panel, in case the paper wants
+        * it individually rather than only in the combined small-multiple
+        capture graph export "$figs/fig0_descriptive_`v'.pdf", replace name(gk_`v')
+    }
+
+    graph combine `gnames', rows(2) graphregion(color(white)) ///
+        title("Output and transmission channels around a spread crisis, by resolution", size(medsmall) color(navy)) ///
+        subtitle("Country-demeaned means. No controls, no estimator. Blue = non-default, red/dashed = default-linked.", size(small)) ///
+        xsize(9) ysize(6)
+    graph export "$figs/fig1_descriptive_channels.pdf", replace
+    di as result "Figure saved: fig1_descriptive_channels.pdf (Panels A-F, GDP + channels)"
+    foreach nm of local gnames {
+        capture graph drop `nm'
+    }
 restore
 
 * ══════════════════════════════════════════════════════════════════════════
