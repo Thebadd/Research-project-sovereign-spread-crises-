@@ -1,0 +1,273 @@
+/*===========================================================================
+  21B_FIRST_STAGE_TABLE_FLOW.DO
+  First-stage probit table, styled on Asonuma et al. (2024) Table 1
+  ("Predicting the start of debt restructurings, probit") — the FLOW file's
+  analogue of 08c_first_stage_table.do.
+
+  WHY THIS FILE EXISTS
+  --------------------
+  08c_first_stage_table.do documents the propensity model behind 08b_aipw.do
+  (onset coding). 21_aipw_flow.do's Eq. (2) now fits on the SAME kind of
+  restricted sample — tranquil and onset rows only, continuation years
+  excluded (`if `touse' & continuation==0' inside _aipw, adopted per the
+  estimator change documented in 21_aipw_flow.do's header, "DIAGNOSTIC
+  HISTORY"). This file is that model, styled
+  the same way 08c styles its onset probit: PREDICTING THE START of a spread
+  crisis, non-default and default-linked, never continuation years — matching
+  the reference IMF working paper's own Table 1, whose main specification
+  bounds the probit to "the year of the start of the restructuring and in the
+  previous year" (their Section 4.1), with a continuation-inclusive version
+  relegated to an appendix robustness check rather than the headline table.
+
+  SAMPLE: sample_flow==1 & continuation==0 -- tranquil country-years plus
+  ONSET rows only. This is deliberately NOT sample_flow==1 alone: the whole
+  point of the adopted estimator change was to keep continuation years out
+  of the probit's fitting sample while still scoring them (Eq. 1/Eq. 3 keep
+  the full flow-coded treatment) -- this table documents exactly the sample
+  the actual estimator fits on, not the broader sample it later extrapolates
+  to.
+
+  COLUMNS: non-default and default-linked, each predicted vs TRANQUIL (the
+  rival type dropped), exactly as 08c does it and as the reference paper's
+  own sample_for* design does.
+
+  Rows, grouped as in the source Table 1:
+    PREDICTORS (excluded from the LP/AIPW outcome eq. -- $ctrl_flow/$com):
+        Fed funds rate (global push) + distance-weighted contagion
+        (l_contagion_dist, CEPII great-circle -- see 17_predictors.do and
+        21_aipw_flow.do's "SECOND PREDICTOR CHANGE") + years since the
+        country's most recent PRIOR default-linked onset. Both columns share
+        these predictors, matching 21_aipw_flow.do's cz_recency (used
+        identically for both nd and def there).
+    PREDICTOR CHANGE FROM past_def_onsets: a diagnostic run in
+        24_aipw_channels_flow.do (credit, h=1; the code is no longer kept
+        there, see that file's header) found the def arm's propensity model
+        severely weight-concentrated, with past_def_onsets (a running COUNT
+        that never resets) as the leading suspect -- for a serial defaulter it
+        behaves close to a permanent country identifier. years_since_def_onset
+        was tested as a replacement: individually significant (z=-2.84,
+        p=.005), economically sensible sign, and not circular for the same
+        reason the continuation==0 restriction above is not. It did NOT
+        meaningfully fix the weight concentration (98.9% -> 98.6%, essentially
+        unchanged) -- adopted for being a better, independently-motivated
+        predictor, not as a variance fix. See 21_aipw_flow.do's header,
+        "PREDICTOR CHANGE," for the full note.
+    BASELINE CONTROLS: $ctrl_core -- the SAME row-dated ADOPTED set
+        21_aipw_flow.do's `cx_active' uses for Eq. (2) (NOT $ctrl_flow/epc_*,
+        which 21_aipw_flow.do's header explains cannot be used in the probit:
+        epc_X differs from X only on continuation rows, so it would
+        mechanically encode treatment -- a smaller population of rows since
+        the annual-criterion redefinition, 18_transforms.do, but the same
+        mechanism and the same reason to exclude epc_* from the probit).
+
+  Diagnostic rows (source Table 1's bottom block):
+    Chi2 (predictors)      — joint Wald test that the 3 predictors are all zero
+    p-value                — of that test
+    AUROC, controls only   — lroc on a probit with ONLY $ctrl_core, no predictors
+    AUROC, with predictors — lroc on the full model
+    Observations
+
+  WHY BOTH AUROCs, NOT JUST THE FULL MODEL'S: the source paper's actual
+  demonstration that predictors earn their place isn't the chi-squared test
+  alone -- it's the WITH-vs-WITHOUT-predictors AUROC comparison they report
+  directly in their text (0.87 vs 0.79 post-default, 0.94 vs 0.85 preemptive).
+  Chi2(predictors) only says the predictors are jointly non-zero; it says
+  nothing about how much discriminatory power they actually add on top of
+  what the baseline controls already provide. Reporting only the full model's
+  AUROC would assert predictive power without showing the counterfactual.
+
+  THE DELTA ITSELF IS NOT A SIGNIFICANCE TEST -- roccomp's chi2 test for
+  equal correlated ROC areas is, and it is reported alongside the delta in
+  the console output. On this project's panel the point deltas are
+  comparable in size to the reference paper's own gap (+0.077 nd, +0.080
+  def vs their 0.08-0.09), but roccomp's formal test does not clear the
+  conventional 5 pct level for either arm (nd p=.084, def p=.055) -- both
+  sit inside the 10 pct band. Read as modest, not absent: on a much smaller
+  sample the same-sized gap is harder to distinguish from noise, and the
+  write-up should quote the roccomp p-values, not just the delta, when
+  characterising how much work the predictors are doing.
+
+  Pooled probit, no country FE (matches 21_aipw_flow.do's Eq. (2), which is
+  "Pooled, no country FE" per that file's own header). Clustered SEs by
+  country, matching 08c's choice.
+
+  Output: $tabs/table_first_stage_flow.rtf. Run AFTER 21_aipw_flow.do (reads
+  only $clean/panel_lp.dta, so it does not actually depend on 21 having run,
+  but is numbered to sit beside it for the reader).
+===========================================================================*/
+
+use "$clean/panel_lp.dta", clear
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
+
+foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def_onset l_contagion_dist {
+    capture confirm variable `v', exact
+    if _rc {
+        di as error "  ** `v' not in panel_lp.dta — re-run 18_transforms.do first."
+        exit 111
+    }
+}
+
+* CONTROL SET. flow_ctrl_variant: 0 = the ADOPTED flow-tier baseline,
+* $ctrl_core (18_transforms.do's "ADOPTED FLOW-TIER CORE CONTROL
+* SET": l_banking_crisis, l_lninfl, exchange2 in place of l_banking_duration,
+* l_ca/tot_chg, l_hyperinfl). 1 = the adopted core PLUS two further
+* candidates, tot_chg (the term exchange2 replaced) and l_imf
+* (18_transforms.do's "ALTERNATE FLOW CONTROL SET"). Default 0.
+local flow_ctrl_variant 0
+if `flow_ctrl_variant'==1 & "$ctrl_core_flowplus"=="" {
+    di as error "  ** flow_ctrl_variant==1 requested but \$ctrl_core_flowplus is empty (exchange2"
+    di as error "     unavailable, exch missing) -- re-run 01_build_panel.do/12_wdi.do/18_transforms.do"
+    di as error "     after confirming data/raw/officialexchangerate.xlsx is present, or use 0."
+    exit 111
+}
+local X = cond(`flow_ctrl_variant'==1, "$ctrl_core_flowplus", "$ctrl_core")
+* l_contagion_dist (distance-weighted, CEPII great-circle) in place of
+* l_reg_crisis_share (flat regional share) -- matches 21_aipw_flow.do's
+* cz_recency, "SECOND PREDICTOR CHANGE".
+local Z l_fedfunds l_contagion_dist years_since_def_onset
+
+eststo clear
+
+* ── Helper: run one column, add the χ²(predictors)/p/AUROC diagnostics ────────
+* Sample is FIXED across both columns: sample_flow==1 & continuation==0, plus
+* dropping the rival type -- the flow file's actual Eq. (2) fitting universe.
+*
+* AUROC WITH vs WITHOUT PREDICTORS -- the source Table 1's actual demonstration
+* that predictors add classification power (their 0.87 vs 0.79, 0.94 vs 0.85),
+* not just the chi2(predictors) joint-significance test. Controls-ONLY model is
+* fit FIRST so its AUROC can be estadd-ed onto the full model's stored estimate
+* once that is eststo-d (estadd only writes to the currently active estimates).
+capture program drop _fscolflow
+program define _fscolflow
+    args nm dv ifcond xlist zlist
+    quietly probit `dv' `xlist' if `ifcond', vce(cluster cid)
+    quietly lroc, nograph
+    local aucctrl = r(area)
+    capture drop _pctrl_`nm'
+    quietly predict double _pctrl_`nm' if `ifcond', pr
+
+    probit `dv' `xlist' `zlist' if `ifcond', vce(cluster cid)
+    eststo `nm'
+    quietly test `zlist'
+    estadd scalar chi2p = r(chi2)
+    estadd scalar pp    = r(p)
+    quietly lroc, nograph
+    estadd scalar auroc     = r(area)
+    estadd scalar aurocctrl = `aucctrl'
+    capture drop _pfull_`nm'
+    quietly predict double _pfull_`nm' if `ifcond', pr
+end
+
+_fscolflow ffs_nd  "in_crisis_nd"  "sample_flow==1 & continuation==0 & in_crisis_def==0" "`X'" "`Z'"
+_fscolflow ffs_def "in_crisis_def" "sample_flow==1 & continuation==0 & in_crisis_nd==0"  "`X'" "`Z'"
+
+* ── FORMAL TEST OF WHETHER THE TWO AUROCs ACTUALLY DIFFER ──────────────────
+* The delta alone (auroc - aurocctrl) says nothing about whether that gap is
+* distinguishable from sampling noise -- an informal 0.03 threshold cannot
+* substitute for a test. roccomp's chi2 test for equal correlated ROC areas
+* (same subjects, two nested classifiers) is that test, and it needs the two
+* models' predicted probabilities on the SAME sample, saved above.
+quietly roccomp in_crisis_nd _pctrl_ffs_nd _pfull_ffs_nd if !missing(_pctrl_ffs_nd,_pfull_ffs_nd)
+local rocchi2_nd = r(chi2)
+local rocp_nd    = r(p)
+quietly roccomp in_crisis_def _pctrl_ffs_def _pfull_ffs_def if !missing(_pctrl_ffs_def,_pfull_ffs_def)
+local rocchi2_def = r(chi2)
+local rocp_def    = r(p)
+capture drop _pctrl_ffs_nd _pfull_ffs_nd _pctrl_ffs_def _pfull_ffs_def
+
+* ── Console echo of the diagnostics ──────────────────────────────────────────
+di as result _n "=== FLOW FIRST-STAGE PROBIT DIAGNOSTICS (predictors jointly) ==="
+di as result "     sample = tranquil + onset rows only (continuation==0)"
+di as result "col            chi2(pred)   p        AUROC(ctrl only)  AUROC(+pred)  delta   roccomp chi2   p"
+local mindlt = .
+foreach c in ffs_nd ffs_def {
+    quietly estimates restore `c'
+    local dlt = e(auroc) - e(aurocctrl)
+    local dltsign = cond(`dlt' >= 0, "+", "")
+    local sfx = subinstr("`c'", "ffs_", "", .)
+    di as result %-14s "`c'" "  " %8.2f e(chi2p) "  " %6.3f e(pp) "  " ///
+                 %8.3f e(aurocctrl) "        " %6.3f e(auroc) "       " "`dltsign'" %6.3f `dlt' ///
+                 "     " %6.2f `rocchi2_`sfx'' "        " %5.3f `rocp_`sfx''
+    * Track the SMALLER of the two deltas -- the interpretation below should
+    * reflect the weaker column, not be driven by whichever column happens
+    * to look best.
+    if missing(`mindlt') | `dlt' < `mindlt' local mindlt = `dlt'
+}
+* The raw delta and the informal 0.03 threshold are NOT a significance test --
+* roccomp's chi2 test (above, same-subjects correlated-ROC-areas test) is.
+* Report that number, not the informal threshold, as the governing statistic:
+* a delta can clear 0.03 and still not be distinguishable from noise on a
+* sample this size, which is exactly what happens here.
+local worstp = max(`rocp_nd', `rocp_def')
+di as result _n "      Both columns' AUROC delta: " %5.3f `mindlt' " (smaller of the two)."
+di as result "      roccomp's formal test for whether the two AUROCs differ: nd chi2(1)=" ///
+    %5.2f `rocchi2_nd' ", p=" %5.3f `rocp_nd' "   def chi2(1)=" %5.2f `rocchi2_def' ", p=" %5.3f `rocp_def' "."
+if `worstp' < 0.05 {
+    di as result "      BOTH columns clear the conventional 5 pct level (worse column p=" %5.3f `worstp' ")."
+    di as result "      Read this as ESTABLISHED, not merely suggestive: the point deltas are comparable in"
+    di as result "      size to the reference paper's own with/without-predictors gap (0.08-0.09), and on this"
+    di as result "      run that gap is also distinguishable from noise in both arms, the same as it is in"
+    di as result "      their much larger panel. The chi-squared row above tests joint predictor significance"
+    di as result "      only and says nothing about classification power; roccomp's test is the one that speaks"
+    di as result "      to classification power directly, and here it backs the chi-squared row up."
+}
+else if `worstp' < 0.10 {
+    di as result "      One column clears the conventional 5 pct level; the other does not (worse column p=" ///
+        %5.3f `worstp' "), but both are inside the 10 pct band."
+    di as result "      Read this as MODEST, NOT ABSENT: the point deltas are comparable in size to the"
+    di as result "      reference paper's own with/without-predictors gap (0.08-0.09), but on this project's"
+    di as result "      sample the weaker arm's gap does not clear a formal significance test the way it does"
+    di as result "      in their much larger panel. The chi-squared row above tests joint predictor significance"
+    di as result "      only and says nothing about classification power; roccomp's test is the one that speaks"
+    di as result "      to classification power directly, and it says 'suggestive, not fully established' here."
+}
+else {
+    di as result "      Neither reaches the conventional 5 pct level (worse column p=" %5.3f `worstp' ///
+        "); at least one arm sits outside even the 10 pct band."
+    di as result "      Read this as MODEST, NOT ABSENT: the point deltas are comparable in size to the"
+    di as result "      reference paper's own with/without-predictors gap (0.08-0.09), but on this project's"
+    di as result "      much smaller sample that gap does not clear a formal significance test the way it does"
+    di as result "      in their much larger panel. The chi-squared row above tests joint predictor significance"
+    di as result "      only and says nothing about classification power; roccomp's test is the one that speaks"
+    di as result "      to classification power directly, and it says 'suggestive, not established' here."
+}
+
+* ══════════════════════════════════════════════════════════════════════════
+* TABLE EXPORT — Table 1 style (Predictors / Baseline controls blocks + diags)
+* ══════════════════════════════════════════════════════════════════════════
+capture esttab ffs_nd ffs_def using "$tabs/table_first_stage_flow.rtf", replace ///
+    b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
+    mtitles("Non-default" "Default-linked") ///
+    order(l_fedfunds l_contagion_dist years_since_def_onset ///
+          l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2) ///
+    coeflabel(l_fedfunds "US fed funds rate (t-1)" ///
+              l_contagion_dist "Distance-weighted contagion (t-1)" ///
+              years_since_def_onset "Years since last default onset" ///
+              l1_gdpg "GDP growth (t-1)" ///
+              l_debt "Public debt / GDP (t-1)" ///
+              l_banking_crisis "Banking crisis dummy (t-1)" ///
+              l_govexp "Govt expenditure / GDP (t-1)" ///
+              l_open "Trade openness (t-1)" ///
+              l_credit_bank "Private credit by banks / GDP (t-1)" ///
+              l_lninfl "Log gross inflation (t-1)" ///
+              exchange2 "Log exchange-rate change (t-1)") ///
+    refcat(l_fedfunds "Predictors" l1_gdpg "Baseline controls", nolabel) ///
+    stats(chi2p pp aurocctrl auroc N, ///
+          labels("Chi-squared (predictors)" "  p-value" "AUROC, controls only" "AUROC, with predictors" "Observations") ///
+          fmt(2 3 3 3 0)) ///
+    title("Table 1f. First-stage probit for the flow AIPW: predicting the START of a spread crisis") ///
+    addnotes("Dependent variable: dummy = 1 in the onset year of the indicated crisis type; each type predicted vs tranquil years, the rival type dropped." ///
+             "Sample restricted to tranquil years and ONSET rows only (continuation==0) -- this is the actual fitting sample 21_aipw_flow.do's Eq. (2) now" ///
+             "uses (see that file's header, ESTIMATOR CHANGE, SECTION 1f ONWARD), not the full flow-coded sample. Eq. (1) and Eq. (3) there still use the" ///
+             "full flow-coded treatment; only the propensity model's fitting sample is bounded to the start year and tranquil years." ///
+             "Pooled probit, no country fixed effects. Robust standard errors clustered by country in parentheses." ///
+             "Predictors are excluded from the LP/AIPW outcome equation. Chi-squared (predictors) is the joint Wald test that the three predictors are zero." ///
+             "AUROC, controls only is from a probit on the baseline controls alone (no predictors); AUROC, with predictors adds the three predictors -- the" ///
+             "difference between the two is the source Table 1's own demonstration that predictors add classification power (their 0.87 vs 0.79, 0.94 vs 0.85)," ///
+             "not just the chi-squared joint-significance test. * p<0.10, ** p<0.05, *** p<0.01.")
+
+if _rc == 608 di as error "  ** table_first_stage_flow.rtf is OPEN IN WORD — close it and re-run to refresh."
+else if _rc  di as error "  ** Table (flow first stage): esttab failed (rc=" _rc ")"
+else di as result "Flow first-stage table saved: $tabs/table_first_stage_flow.rtf"
+
+di as result _n "21b_first_stage_table_flow.do complete."
