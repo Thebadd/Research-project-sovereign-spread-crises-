@@ -49,8 +49,9 @@
 
   Output: $figs/fig0_descriptive_paths.pdf     (GDP, nd vs def -- the Data-section figure)
           $figs/fig0a_descriptive_all.pdf      (GDP, all episodes pooled)
-          $figs/fig0_descriptive_<channel>.pdf (standalone panel, one per channel)
-          $figs/fig1_descriptive_channels.pdf  (GDP + all channels, combined small-multiple)
+          $figs/fig0_descriptive_<channel>.pdf (standalone figure, one per channel -- each
+                                                 channel is its own independent graph, not
+                                                 combined into a multi-panel figure)
           $tabs/descriptive_paths.csv          (all plotted numbers, GDP + channels)
           $tabs/descriptive_summary.csv        (pre-crisis characteristics by group)
 ===========================================================================*/
@@ -272,50 +273,28 @@ preserve
     di as result "Figure saved: fig0a_descriptive_all.pdf"
 
     * ── Figures 0b-0f: channel descriptive paths, same construction as
-    * Figure 0, one per active channel, plus a combined small-multiple
-    * matching the reference paper's Figure 1 Panels A-C in spirit (GDP +
-    * channels, no capital-flow/lending-rate panels -- this project has no
-    * source data for those, see this file's header note).
-    local gnames gk_gdp
-    twoway ///
-        (connected b_nd horizon, lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
-        (connected b_def horizon, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lpattern(dash) lwidth(medthick)), ///
-        yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
-        xlabel(-1(1)5, labsize(small)) ylabel(, format(%4.1f) labsize(small)) ///
-        xtitle("") ytitle("GDP (pp)", size(small)) ///
-        title("Panel A: GDP", size(medium)) legend(off) ///
-        name(gk_gdp, replace) nodraw graphregion(color(white)) plotregion(color(white))
-
-    local panellab_credit "Panel B: Bank credit"
-    local panellab_inv "Panel C: Investment"
-    local panellab_claims_govt "Panel D: Claims on govt"
-    local panellab_claimsgov_assets "Panel E: Claims/assets (govt)"
-    local panellab_claimpriv_assets "Panel F: Claims/assets (private)"
+    * Figure 0, one standalone figure per active channel (GDP already has
+    * its own standalone Figure 0/0a above). Each channel gets its own
+    * independent graph/PDF -- no combined small-multiple panel.
+    local panellab_credit "Bank credit"
+    local panellab_inv "Investment"
+    local panellab_claims_govt "Claims on govt"
+    local panellab_claimsgov_assets "Claims/assets (govt)"
+    local panellab_claimpriv_assets "Claims/assets (private)"
     foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
         twoway ///
             (connected b_`v'_nd horizon, lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
             (connected b_`v'_def horizon, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lpattern(dash) lwidth(medthick)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
             xlabel(-1(1)5, labsize(small)) ylabel(, format(%4.1f) labsize(small)) ///
-            xtitle("") ytitle("`v' (pp)", size(small)) ///
-            title("`panellab_`v''", size(medium)) legend(off) ///
-            name(gk_`v', replace) nodraw graphregion(color(white)) plotregion(color(white))
-        local gnames `gnames' gk_`v'
-
-        * standalone version of each channel panel, in case the paper wants
-        * it individually rather than only in the combined small-multiple
-        capture graph export "$figs/fig0_descriptive_`v'.pdf", replace name(gk_`v')
+            xtitle("Years relative to crisis onset") ytitle("`v' (pp, country-demeaned)", size(small)) ///
+            title("`panellab_`v''", size(medium)) ///
+            legend(order(1 "Non-default" 2 "Default-linked") pos(6) size(small) rows(1)) ///
+            name(gk_`v', replace) graphregion(color(white)) plotregion(color(white))
+        graph export "$figs/fig0_descriptive_`v'.pdf", replace name(gk_`v')
+        graph drop gk_`v'
     }
-
-    graph combine `gnames', rows(2) graphregion(color(white)) ///
-        title("Output and transmission channels around a spread crisis, by resolution", size(medsmall) color(navy)) ///
-        subtitle("Country-demeaned means. No controls, no estimator. Blue = non-default, red/dashed = default-linked.", size(small)) ///
-        xsize(9) ysize(6)
-    graph export "$figs/fig1_descriptive_channels.pdf", replace
-    di as result "Figure saved: fig1_descriptive_channels.pdf (Panels A-F, GDP + channels)"
-    foreach nm of local gnames {
-        capture graph drop `nm'
-    }
+    di as result "Figures saved: fig0_descriptive_<channel>.pdf, one standalone graph per channel"
 restore
 
 * ══════════════════════════════════════════════════════════════════════════
