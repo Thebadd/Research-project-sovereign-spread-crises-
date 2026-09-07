@@ -172,10 +172,16 @@ gen int    l_banking_duration_total = L.banking_duration_total
 * L. under xtset cid year gives the year-(t-1) value for every country. vix/ust10y
 * built too so a future push-variable swap is one line. Raw fedfunds/vix/ust10y
 * columns are kept (coverage report below still uses them).
-gen double l_fedfunds     = L.fedfunds
+* SCALE, matching Asonuma et al.'s federal_funds2 exactly: federal_funds2 =
+* L.federal_funds/100, rescaling their raw percent source (e.g. 5.25) to a
+* decimal (0.0525). l_fedfunds previously stayed on the raw percent scale
+* with no such division; the /100 below matches their convention. This
+* changes the coefficient on l_fedfunds by a factor of 100 in every table
+* that uses it as a propensity predictor (p-values/stars/AUROC unaffected).
+gen double l_fedfunds     = L.fedfunds/100
 gen double l_vix          = L.vix
 gen double l_ust10y       = L.ust10y
-label var l_fedfunds "L1 US fed funds rate (predetermined; = Asonuma federal_funds2)"
+label var l_fedfunds "L1 US fed funds rate, decimal (Asonuma federal_funds2 scale)"
 label var l_vix      "L1 CBOE VIX (predetermined)"
 label var l_ust10y   "L1 US 10y Treasury yield (predetermined)"
 label var l_hyperinfl    "L1 hyperinflation dummy (L.infl > 50; predetermined) — common core"
