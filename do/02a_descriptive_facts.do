@@ -264,9 +264,13 @@ preserve
     export delimited "$tabs/descriptive_paths.csv", replace
     di as result "Descriptive paths saved: $tabs/descriptive_paths.csv"
 
-    local c_nd  "0 84 166"
-    local c_def "157 36 73"
-    local c_all "23 55 94"
+    * UNIFORM IRF STYLE (project-wide onset-tier convention): non-default =
+    * blue, default-linked = red, both solid lines, markers the same color
+    * as their line. y-axis always "Cumulative percent change", x-axis
+    * always "Year", title = the variable's plain name only.
+    local c_nd  "blue"
+    local c_def "red"
+    local c_all "blue"
 
     * Two windows are exported for every series below: the FULL window
     * (Years -3..5, suffix none) shows the longer pre-crisis run-up used to
@@ -281,16 +285,14 @@ preserve
         (connected b_nd horizon, ///
             lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
         (connected b_def horizon, ///
-            lcolor("`c_def'") mcolor("`c_def'") msymbol(square) ///
-            lpattern(dash) lwidth(medthick)), ///
+            lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
         yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
         xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
         xlabel(-3(1)5, labsize(medsmall)) ///
         ylabel(, format(%4.1f) labsize(medsmall)) ///
-        xtitle("Year (Year 0 = pre-crisis baseline, Year 1 = crisis year)", size(small)) ///
-        ytitle("Cumulative change in log real GDP (pp)", size(small)) ///
-        title("Output around a spread crisis, by resolution", size(medium) color(navy)) ///
-        subtitle("Country-demeaned means. No controls, no estimator.", size(small)) ///
+        xtitle("Year", size(small)) ///
+        ytitle("Cumulative percent change", size(small)) ///
+        title("GDP", size(medium) color(navy)) ///
         legend(order(1 "Non-default" 2 "Default-linked") size(small)) ///
         graphregion(color(white)) plotregion(color(white))
     * Note text (kept as source comment, no longer rendered on the figure --
@@ -308,15 +310,13 @@ preserve
         (connected b_nd horizon if horizon>=0, ///
             lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
         (connected b_def horizon if horizon>=0, ///
-            lcolor("`c_def'") mcolor("`c_def'") msymbol(square) ///
-            lpattern(dash) lwidth(medthick)), ///
+            lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
         yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
         xlabel(0(1)5, labsize(medsmall)) ///
         ylabel(, format(%4.1f) labsize(medsmall)) ///
-        xtitle("Year (Year 0 = pre-crisis baseline, Year 1 = crisis year)", size(small)) ///
-        ytitle("Cumulative change in log real GDP (pp)", size(small)) ///
-        title("Output around a spread crisis, by resolution", size(medium) color(navy)) ///
-        subtitle("Country-demeaned means. No controls, no estimator. Post-onset window.", size(small)) ///
+        xtitle("Year", size(small)) ///
+        ytitle("Cumulative percent change", size(small)) ///
+        title("GDP", size(medium) color(navy)) ///
         legend(order(1 "Non-default" 2 "Default-linked") size(small)) ///
         graphregion(color(white)) plotregion(color(white))
     graph export "$figs/fig0_descriptive_paths_post.pdf", replace
@@ -328,12 +328,10 @@ preserve
         yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
         xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
         xlabel(-3(1)5, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
-        xtitle("Year (Year 0 = pre-crisis baseline, Year 1 = crisis year)", size(small)) ///
-        ytitle("Cumulative change in log real GDP (pp)", size(small)) ///
-        title("Output around a spread crisis, all episodes", size(medium) color(navy)) ///
-        subtitle("Country-demeaned means. No controls, no estimator.", size(small)) ///
+        xtitle("Year", size(small)) ///
+        ytitle("Cumulative percent change", size(small)) ///
+        title("GDP", size(medium) color(navy)) ///
         legend(off) ///
-        note("All 61 identified onsets. Construction as in Figure 0.", size(vsmall)) ///
         graphregion(color(white)) plotregion(color(white))
     graph export "$figs/fig0a_descriptive_all.pdf", replace
     di as result "Figure saved: fig0a_descriptive_all.pdf (Years -3..5)"
@@ -342,12 +340,10 @@ preserve
             lcolor("`c_all'") mcolor("`c_all'") msymbol(circle) lwidth(medthick)), ///
         yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
         xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
-        xtitle("Year (Year 0 = pre-crisis baseline, Year 1 = crisis year)", size(small)) ///
-        ytitle("Cumulative change in log real GDP (pp)", size(small)) ///
-        title("Output around a spread crisis, all episodes", size(medium) color(navy)) ///
-        subtitle("Country-demeaned means. No controls, no estimator. Post-onset window.", size(small)) ///
+        xtitle("Year", size(small)) ///
+        ytitle("Cumulative percent change", size(small)) ///
+        title("GDP", size(medium) color(navy)) ///
         legend(off) ///
-        note("All 61 identified onsets. Construction as in Figure 0.", size(vsmall)) ///
         graphregion(color(white)) plotregion(color(white))
     graph export "$figs/fig0a_descriptive_all_post.pdf", replace
     di as result "Figure saved: fig0a_descriptive_all_post.pdf (Years 0..5)"
@@ -359,16 +355,16 @@ preserve
     * post-onset-only companion, same as GDP above.
     local panellab_credit "Bank credit"
     local panellab_inv "Investment"
-    local panellab_claims_govt "Claims on govt"
-    local panellab_claimsgov_assets "Claims/assets (govt)"
-    local panellab_claimpriv_assets "Claims/assets (private)"
+    local panellab_claims_govt "Bank claims on government"
+    local panellab_claimsgov_assets "Bank claims on government / assets"
+    local panellab_claimpriv_assets "Bank claims on private sector / assets"
     foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
         twoway ///
             (connected b_`v'_nd horizon, lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
-            (connected b_`v'_def horizon, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lpattern(dash) lwidth(medthick)), ///
+            (connected b_`v'_def horizon, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
             xlabel(-3(1)5, labsize(small)) ylabel(, format(%4.1f) labsize(small)) ///
-            xtitle("Years relative to crisis onset") ytitle("`v' (pp, country-demeaned)", size(small)) ///
+            xtitle("Year") ytitle("Cumulative percent change", size(small)) ///
             title("`panellab_`v''", size(medium)) ///
             legend(order(1 "Non-default" 2 "Default-linked") pos(6) size(small) rows(1)) ///
             name(gk_`v', replace) graphregion(color(white)) plotregion(color(white))
@@ -377,11 +373,11 @@ preserve
 
         twoway ///
             (connected b_`v'_nd horizon if horizon>=0, lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
-            (connected b_`v'_def horizon if horizon>=0, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lpattern(dash) lwidth(medthick)), ///
+            (connected b_`v'_def horizon if horizon>=0, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
             xlabel(0(1)5, labsize(small)) ylabel(, format(%4.1f) labsize(small)) ///
-            xtitle("Years relative to crisis onset") ytitle("`v' (pp, country-demeaned)", size(small)) ///
-            title("`panellab_`v'' (post-onset)", size(medium)) ///
+            xtitle("Year") ytitle("Cumulative percent change", size(small)) ///
+            title("`panellab_`v''", size(medium)) ///
             legend(order(1 "Non-default" 2 "Default-linked") pos(6) size(small) rows(1)) ///
             name(gk_`v'_post, replace) graphregion(color(white)) plotregion(color(white))
         graph export "$figs/fig0_descriptive_`v'_post.pdf", replace name(gk_`v'_post)
