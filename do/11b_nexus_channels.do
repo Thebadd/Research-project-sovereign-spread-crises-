@@ -129,13 +129,14 @@ foreach ch of local channels {
         xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%5.1f) labsize(medsmall)) ///
         xtitle("Year", size(small)) ///
         ytitle("Cumulative percent change", size(small)) ///
-        title(`tlab', size(medsmall) color(navy)) legend(off) ///
+        title("{bf:`tlab'}", size(medium) color(navy)) legend(off) ///
         graphregion(color(white)) plotregion(color(white)) name(nx_`i', replace)
     local ++i
 }
+* No note() -- paper-ready, so the figure reads cleanly if copy-pasted
+* directly into a manuscript.
 graph combine nx_1 nx_2, cols(2) ///
     title("Sovereign-Bank Nexus Channels (pooled)", size(medlarge) color(navy)) ///
-    note("90%/95% CI. Robust SE. Country FE only (no year FE). IMF MFS, 2001-2024.", size(vsmall)) ///
     graphregion(color(white)) xsize(10) ysize(4)
 graph export "$figs/fig11b_nexus_pooled.pdf", replace
 forvalues i = 1/2 {
@@ -284,15 +285,15 @@ foreach ch of local channels {
         xlabel(0(1)5, labsize(small)) ylabel(, format(%5.1f) labsize(small)) ///
         xtitle("Year", size(vsmall)) ///
         ytitle("Cumulative percent change", size(vsmall)) ///
-        title(`tlab', size(small) color(navy)) ///
+        title("{bf:`tlab'}", size(medium) color(navy)) ///
         legend(off) graphregion(color(white)) plotregion(color(white)) ///
         name(nxr_`i', replace)
     local ++i
 }
+* No note() -- paper-ready, so the figure reads cleanly if copy-pasted
+* directly into a manuscript.
 graph combine nxr_1 nxr_2, cols(2) ///
     title("Nexus Channels by Resolution", size(medlarge) color(navy)) ///
-    note("90% CI. Robust SE. Country FE only (no year FE). Non-default vs. default-linked. IMF MFS 2001-2024.", ///
-         size(vsmall)) ///
     graphregion(color(white)) xsize(10) ysize(4)
 graph export "$figs/fig11b_nexus_resolution.pdf", replace
 forvalues i = 1/2 {

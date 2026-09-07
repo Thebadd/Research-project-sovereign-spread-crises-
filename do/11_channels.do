@@ -459,7 +459,7 @@ foreach ch of local channels {
         ylabel(, format(%5.2f) labsize(medsmall)) ///
         xtitle("Year", size(small)) ///
         ytitle("Cumulative percent change", size(small)) ///
-        title(`tlab', size(medsmall) color(navy)) ///
+        title("{bf:`tlab'}", size(medium) color(navy)) ///
         legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
         name(`: word `i' of `fignames'', replace)
@@ -467,14 +467,13 @@ foreach ch of local channels {
     local ++i
 }
 
+* No note() -- paper-ready, so the figure reads cleanly if copy-pasted
+* directly into a manuscript.
 * Combine into 2×3 grid
 graph combine fig11a fig11b fig11c fig11d fig11e fig11f, ///
     cols(3) rows(2) ///
     title("Transmission Channels of Sovereign Spread Crises", ///
           size(medlarge) color(navy)) ///
-    note("90% and 95% CI. Robust (heteroskedasticity-only) SE. Country FE only (no year FE). Treatment: all 61 onset episodes." ///
-         "Units differ by channel: private credit, bank claims on govt, investment and govt expenditure are LOG REAL LEVELS, so their scale is cumulative percent change (comparable to the GDP result). Primary balance and FDI change sign, so no log is possible and they remain ratios to GDP, in percentage points.", ///
-         size(vsmall)) ///
     graphregion(color(white)) xsize(10) ysize(7)
 
 graph export "$figs/fig11_channels.pdf", replace

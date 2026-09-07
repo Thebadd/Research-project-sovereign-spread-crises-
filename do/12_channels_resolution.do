@@ -340,7 +340,7 @@ foreach ch of local channels {
         ylabel(, format(%5.1f) labsize(small)) ///
         xtitle("Year", size(vsmall)) ///
         ytitle("Cumulative percent change", size(vsmall)) ///
-        title(`tlab', size(small) color(navy)) ///
+        title("{bf:`tlab'}", size(medium) color(navy)) ///
         legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
         name(ols_`i', replace)
@@ -348,13 +348,14 @@ foreach ch of local channels {
     local ++i
 }
 
+* No note() -- paper-ready, so the figure reads cleanly if copy-pasted
+* directly into a manuscript. The caveats it stated (SE type, no year FE,
+* per-channel units) belong in the paper's own figure caption text, not
+* baked into the image itself.
 graph combine ols_1 ols_2 ols_3 ols_4 ols_5 ols_6, ///
     cols(3) rows(2) ///
     title("Transmission Channels by Resolution Type", ///
           size(medlarge) color(navy)) ///
-    note("90% CI. Robust (heteroskedasticity-only) SE. Country FE only (no year FE). Non-default: N=40. Default-linked: N=21." ///
-         "Units differ by channel: private credit, bank claims on govt, investment and govt expenditure are LOG REAL LEVELS, so their scale is cumulative percent change (comparable to the GDP result). Primary balance and FDI change sign, so no log is possible and they remain ratios to GDP, in percentage points.", ///
-         size(vsmall)) ///
     graphregion(color(white)) xsize(10) ysize(7)
 
 graph export "$figs/fig12a_channels_ols.pdf", replace

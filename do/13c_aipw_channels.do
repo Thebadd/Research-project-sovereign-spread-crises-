@@ -572,7 +572,7 @@ foreach ch of local channels_ord {
         xlabel(0(1)5, labsize(small)) ylabel(, labsize(small)) ///
         xtitle("Year", size(small)) ///
         ytitle("Cumulative percent change", size(small)) ///
-        title(`tlab', size(medsmall) color(navy)) legend(off) ///
+        title("{bf:`tlab'}", size(medium) color(navy)) legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
         name(aipwch_`i', replace)
     local ++i
@@ -612,7 +612,7 @@ foreach ch of local channels_ord {
         xlabel(0(1)5, labsize(small)) ylabel(, labsize(small)) ///
         xtitle("Year", size(small)) ///
         ytitle("Cumulative percent change", size(small)) ///
-        title(`tlab', size(medsmall) color(navy)) legend(off) ///
+        title("{bf:`tlab'}", size(medium) color(navy)) legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
         name(aipwch2_`i', replace)
     local ++i

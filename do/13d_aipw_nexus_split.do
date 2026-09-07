@@ -554,7 +554,7 @@ foreach oc in gdp credit inv claimpriv_assets claims_govt {
         (rarea lo hi horizon if bank=="low"  & outcome=="`oc'", color("`c_lo'%16") lwidth(none)) ///
         (connected b horizon if bank=="high" & outcome=="`oc'", lcolor("`c_hi'") lwidth(medthick) msymbol(square)) ///
         (connected b horizon if bank=="low"  & outcome=="`oc'", lcolor("`c_lo'") lwidth(medthick) msymbol(circle)), ///
-        by(partid, yrescale legend(off) title("`ptit'", size(medsmall) color(navy))) ///
+        by(partid, yrescale legend(off) title("{bf:`ptit'}", size(medium) color(navy))) ///
         yline(0, lpattern(dash) lcolor(gs8)) ///
         xlabel(0(1)5) xtitle("Year", size(small)) ///
         ytitle("Cumulative percent change", size(small)) ///
