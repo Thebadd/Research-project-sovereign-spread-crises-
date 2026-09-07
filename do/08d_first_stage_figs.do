@@ -153,6 +153,15 @@ foreach s in nd def {
     local yc_lab = cond(missing(`dcmax'), 2, `dcmax' * 0.85)
     capture drop _xt_`s' _dt_`s' _xc_`s' _dc_`s' _tagt_`s' _tagc_`s'
 
+    * "Treatment group"/"Control group" text shown only once, in the first
+    * panel (nd) -- not repeated in both, same convention already applied
+    * elsewhere for a label that would otherwise just repeat.
+    local txtopt
+    if "`s'" == "nd" {
+        local txtopt text(`yt_lab' `xt_lab' "Treatment group", color(blue) size(medium) place(e)) ///
+                     text(`yc_lab' `xc_lab' "Control group", color(red) size(medium) place(e))
+    }
+
     twoway ///
         (kdensity _p2_`s' if onset_`s'==1 & inrange(_p2_`s', 0.01, 0.6), ///
             lwidth(thick) lcolor(blue)) ///
@@ -160,16 +169,15 @@ foreach s in nd def {
             lwidth(thick) lcolor(red) lpattern(dash)), ///
         graphregion(color(white)) plotregion(color(white)) ///
         legend(off) ///
-        text(`yt_lab' `xt_lab' "Treatment group", color(blue) size(small) place(e)) ///
-        text(`yc_lab' `xc_lab' "Control group", color(red) size(small) place(e)) ///
-        ytitle("Probability density", size(small)) xtitle("Predicted probability", size(small)) ///
+        `txtopt' ///
+        ylabel(, angle(horizontal)) ///
+        ytitle("Probability density", size(medium)) xtitle("Predicted probability", size(medium)) ///
         title("`ttl'", size(medium) color(black)) ///
         name(gk_`s', replace) nodraw
     local gnames_a `gnames_a' gk_`s'
 }
+* No combine-level title() -- paper-ready.
 graph combine `gnames_a', rows(1) graphregion(color(white)) ///
-    title("Predicted Probability of Onset: Treated vs Control", size(medsmall) color(navy)) ///
-    subtitle("Onset first-stage probit, controls + predictors. Density trimmed to [0.01, 0.6].", size(small)) ///
     xsize(7) ysize(3.2)
 capture graph export "$figs/fig_kdensity.pdf", replace
 if _rc di as error "  ** fig_kdensity.pdf export failed (rc=" _rc ") — is it open?"
