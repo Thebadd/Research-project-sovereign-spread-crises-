@@ -95,7 +95,7 @@ forvalues k = 3/4 {
     label var dy_m`k' "Pre-trend h=-`k' (same t-1 base as dy_h): GDP(t-`k') - GDP(t-1)"
 }
 
-foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending {
+foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending fdi {
     local src `v'
     if inlist("`v'","credit","inv") local src ln_r_`v'
     * real_lending is already a log level (built in 18_transforms.do), same
@@ -142,7 +142,7 @@ foreach h in m4 m3 m2 0 1 2 3 4 {
 }
 label var dd_0 "Country-demeaned cumulative GDP change, crisis year"
 
-foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending {
+foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending fdi {
     foreach h in m4 m3 m2 0 1 2 3 4 {
         capture drop cmean_`v'_`h' dd_`v'_`h'
         quietly bysort cid: egen double cmean_`v'_`h' = mean(ch_`v'_`h') if sample==1
@@ -210,7 +210,7 @@ di as result "  reader and the data."
 *     applied to each active channel (credit, inv, claims_govt,
 *     claimsgov_assets, claimpriv_assets). No regression, no controls.
 * ══════════════════════════════════════════════════════════════════════════
-foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending {
+foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending fdi {
     foreach g in all nd def {
         matrix descv_`v'_`g' = J(9, 1, .)
         matrix nobsv_`v'_`g' = J(9, 1, .)
@@ -268,7 +268,7 @@ preserve
         svmat nobs_`g', names(n_`g')
         rename n_`g'1 n_`g'
     }
-    foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending {
+    foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending fdi {
         foreach g in all nd def {
             svmat descv_`v'_`g', names(b_`v'_`g')
             rename b_`v'_`g'1 b_`v'_`g'
@@ -375,7 +375,8 @@ preserve
     local panellab_claimsgov_assets "Bank claims on government / assets"
     local panellab_claimpriv_assets "Bank claims on private sector / assets"
     local panellab_real_lending "Real lending interest rate"
-    foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending {
+    local panellab_fdi "FDI"
+    foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending fdi {
         twoway ///
             (connected b_`v'_nd horizon, lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
             (connected b_`v'_def horizon, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
@@ -402,6 +403,40 @@ preserve
     }
     di as result "Figures saved: fig0_descriptive_<channel>.pdf (Years -3..5) and"
     di as result "               fig0_descriptive_<channel>_post.pdf (Years 0..5)"
+
+    * ── Combined 6-panel figure: Panel A GDP, B Investment, C Bank credit,
+    * D Claims on government, E FDI, F Real lending rate -- same nd/def
+    * two-line construction as the standalone figures above, merged into one
+    * publication-ready small multiple (cols(3) rows(2)) rather than six
+    * separate files. Kept ALONGSIDE the standalone per-channel figures
+    * above, not a replacement for them.
+    local combo_vars   gdp inv credit claims_govt fdi real_lending
+    local combo_labels `" "GDP" "Investment" "Bank credit" "Claims on government" "FDI" "Real lending rate" "'
+    local i = 1
+    foreach cv of local combo_vars {
+        local clab : word `i' of `combo_labels'
+        local ytit ""
+        if inlist(`i', 1, 4) local ytit "Cumulative percent change"
+        local bser_nd  = cond("`cv'"=="gdp", "b_nd", "b_`cv'_nd")
+        local bser_def = cond("`cv'"=="gdp", "b_def", "b_`cv'_def")
+        twoway ///
+            (connected `bser_nd' horizon, lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
+            (connected `bser_def' horizon, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
+            yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
+            xlabel(-3(1)5, labsize(small)) ylabel(, format(%9.0f) labsize(small) angle(horizontal)) ///
+            xtitle("Year", size(small)) ytitle("`ytit'", size(small)) ///
+            title("`clab'", size(medium)) ///
+            legend(off) ///
+            name(combo_`i', replace) graphregion(color(white)) plotregion(color(white))
+        local ++i
+    }
+    graph combine combo_1 combo_2 combo_3 combo_4 combo_5 combo_6, ///
+        cols(3) rows(2) graphregion(color(white)) xsize(10) ysize(7)
+    graph export "$figs/fig0_descriptive_combined.pdf", replace
+    di as result "Figure saved: fig0_descriptive_combined.pdf (Panel A-F: GDP, Investment, Bank credit, Claims on government, FDI, Real lending rate)"
+    forvalues i = 1/6 {
+        capture graph drop combo_`i'
+    }
 restore
 
 * ══════════════════════════════════════════════════════════════════════════

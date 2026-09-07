@@ -16,9 +16,14 @@
     credit, inv                                         (11 / 12)
     claims_govt                                         (12)
     claimsgov_assets, claimpriv_assets                  (11b nexus)
+    real_lending                                        (18_transforms; new WDI channel)
+    fdi                                                 (11 / 12; added for the combined
+                                                          Panel A-F GDP/Investment/Bank credit/
+                                                          Claims on government/FDI/Real
+                                                          lending-rate figure below)
   SILENCED for now (not important currently -- see the estimation loop's own
   note; outcome construction still runs, only estimation is skipped):
-    govexp, pb, fdi                                     (11 / 12)
+    govexp, pb                                          (11 / 12)
     ca (current account)                                (13 Aguiar-Gopinath)
 
   PROPENSITY model = identical to 08b (selection into treatment is the same
@@ -57,12 +62,15 @@
   (l_credit = L.credit, ...) before estimation. cx/cz are already plain columns.
 
   Output: $tabs/aipw_channels.csv ; $figs/fig_aipw_ch_act2.pdf (Act 1 and its
-          fig_aipw_ch_act1.pdf are SILENCED, see below). Leaves 11/11b/12/13
-          (OLS+IPW) untouched.
-  Runtime note: heavy (5 active channels x ~15 fits x nboot; 4 more channels'
+          fig_aipw_ch_act1.pdf are SILENCED, see below); $figs/fig_aipw_combined.pdf
+          (Panel A-F: GDP [imported from 08b_aipw.do's aipw_results.csv],
+          Investment, Bank credit, Claims on government, FDI, Real lending
+          rate). Leaves 11/11b/12/13 (OLS+IPW) untouched.
+  Runtime note: heavy (7 active channels x ~15 fits x nboot; 2 more channels'
   outcome construction runs but their estimation is silenced, see above).
   nboot=300 for a practical
-  run; raise to 500 for the final.  Run AFTER 17_predictors.do.
+  run; raise to 500 for the final.  Run AFTER 17_predictors.do and 08b_aipw.do
+  (the combined figure reads 08b's saved aipw_results.csv for GDP).
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -390,7 +398,7 @@ postfile `Rd' str24 channel byte horizon double dhl bdef bnd se lo hi nd ///
 * aggregate coefficient.
 * ══════════════════════════════════════════════════════════════════════════
 di as result _n "=== DIAGNOSTIC: extreme def-arm channel outcomes (candidates for outlier-driven ATEs) ==="
-foreach ch in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending {
+foreach ch in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending fdi {
     foreach h in 0 3 {
         capture confirm variable ch_`ch'_`h'
         if !_rc {
@@ -410,15 +418,18 @@ foreach ch in credit inv claims_govt claimsgov_assets claimpriv_assets real_lend
     }
 }
 
-* govexp, pb, ca, fdi SILENCED below -- not important for now (no reliable
-* channel signal so far: govexp/pb/ca/fdi's bootstrap CI never excluded
-* zero at any horizon in the last full run). Left out of the active list,
-* not deleted -- restore by adding them back: "credit claims_govt inv
-* govexp pb fdi claimsgov_assets claimpriv_assets ca". Their outcome
-* construction (ch_v_h/pre_v/l_v) above still runs regardless, since it is
-* cheap and shared -- only the estimation loop below is skipped for them.
+* govexp, pb, ca SILENCED below -- not important for now (no reliable
+* channel signal so far: govexp/pb/ca's bootstrap CI never excluded
+* zero at any horizon in the last full run). fdi is ACTIVE, added to
+* build the combined 6-panel Panel A-F figure (GDP/Investment/Bank credit/
+* Claims on government/FDI/Real lending rate) alongside the other channels
+* below. Left out of the active list, not deleted -- restore govexp/pb/ca
+* by adding them back: "credit claims_govt inv govexp pb fdi
+* claimsgov_assets claimpriv_assets ca". Their outcome construction
+* (ch_v_h/pre_v/l_v) above still runs regardless, since it is cheap and
+* shared -- only the estimation loop below is skipped for them.
 foreach ch in credit claims_govt inv ///
-              claimsgov_assets claimpriv_assets real_lending {
+              claimsgov_assets claimpriv_assets real_lending fdi {
 
     * channel-specific OUTCOME-model controls (pre-lagged plain columns)
     * AIPW outcome core ($core_aipw = the common core, depth term l_credit_bank) +
@@ -635,6 +646,58 @@ else di as error "  ** fig_aipw_ch_act2 failed (rc=" _rc ")"
 forvalues i = 1/6 {
     capture graph drop aipwch2_`i'
 }
+
+* ══════════════════════════════════════════════════════════════════════════
+* Combined 6-panel figure: Panel A GDP, B Investment, C Bank credit, D Claims
+* on government, E FDI, F Real lending rate. GDP is not estimated in this
+* file (08b_aipw.do's own headline result) -- imported from its saved
+* $tabs/aipw_results.csv (columns series/horizon/b/se/lo/hi; 08b runs before
+* this file in 00_master.do, so that CSV already exists). Kept ALONGSIDE
+* Figure B above, not a replacement for it.
+* ══════════════════════════════════════════════════════════════════════════
+preserve
+    use "`resf'", clear
+    tempfile _chanres
+    save `_chanres'
+
+    import delimited "$tabs/aipw_results.csv", clear varnames(1) case(preserve)
+    keep if inlist(series, "nd", "def")
+    gen str24 channel = "gdp"
+    keep channel series horizon b se lo hi
+    append using `_chanres'
+
+    local combo_vars   gdp inv credit claims_govt fdi real_lending
+    local combo_labels `" "GDP" "Investment" "Bank credit" "Claims on government" "FDI" "Real lending rate" "'
+    local i = 1
+    foreach cv of local combo_vars {
+        local clab : word `i' of `combo_labels'
+        local ytit ""
+        if inlist(`i', 1, 4) local ytit "Cumulative percent change"
+        capture twoway ///
+            (rarea lo hi horizon if series=="nd"  & channel=="`cv'", color("`c_nd'%16")  lwidth(none)) ///
+            (rarea lo hi horizon if series=="def" & channel=="`cv'", color("`c_def'%16") lwidth(none)) ///
+            (connected b horizon if series=="nd"  & channel=="`cv'", lcolor("`c_nd'")  lwidth(medthick) msymbol(circle)) ///
+            (connected b horizon if series=="def" & channel=="`cv'", lcolor("`c_def'") lwidth(medthick) msymbol(square)), ///
+            yline(0, lpattern(dash) lcolor(gs8)) ///
+            xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
+            xtitle("Year", size(medium)) ///
+            ytitle("`ytit'", size(medsmall)) ///
+            title("`clab'", size(medlarge) color(navy)) legend(off) ///
+            graphregion(color(white)) plotregion(color(white)) ///
+            name(combA_`i', replace)
+        local ++i
+    }
+    capture graph combine combA_1 combA_2 combA_3 combA_4 combA_5 combA_6, ///
+        cols(3) rows(2) graphregion(color(white)) xsize(10) ysize(7)
+    if _rc == 0 {
+        graph export "$figs/fig_aipw_combined.pdf", replace
+        di as result "Figure saved: fig_aipw_combined.pdf (Panel A-F: GDP, Investment, Bank credit, Claims on government, FDI, Real lending rate)"
+    }
+    else di as error "  ** fig_aipw_combined failed (rc=" _rc ")"
+    forvalues i = 1/6 {
+        capture graph drop combA_`i'
+    }
+restore
 
 di as result _n "13c_aipw_channels.do complete."
 di as result "Compare the AIPW channel IRFs to the OLS/IPW versions in 11/12 (same"

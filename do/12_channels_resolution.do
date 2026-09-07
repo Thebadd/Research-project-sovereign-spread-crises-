@@ -370,4 +370,72 @@ forvalues i = 1/7 {
     capture graph drop ols_`i'
 }
 
+* ══════════════════════════════════════════════════════════════════════════
+* 8. COMBINED 6-PANEL FIGURE: Panel A GDP, B Investment, C Bank credit,
+*    D Claims on government, E FDI, F Real lending rate. GDP's own IRF is
+*    NOT built in this file (it is Table 2's own headline result) -- read
+*    from 03_lp_resolution.do's saved irf_nd.dta/irf_def.dta (horizon -1..5,
+*    columns b/se/lo90/hi90/lo95/hi95/series; 03 runs before this file in
+*    00_master.do, so those files already exist). Kept ALONGSIDE the 7-panel
+*    figure above (Section 7), not a replacement for it.
+* ══════════════════════════════════════════════════════════════════════════
+local combo_vars   gdp inv credit claims_govt fdi real_lending
+local combo_labels `" "GDP" "Investment" "Bank credit" "Claims on government" "FDI" "Real lending rate" "'
+local i = 1
+foreach cv of local combo_vars {
+    local clab : word `i' of `combo_labels'
+    local ytit ""
+    if inlist(`i', 1, 4) local ytit "Cumulative percent change"
+
+    if "`cv'" == "gdp" {
+        * rename series->group in BOTH files before appending -- append
+        * matches columns by NAME, so renaming only the in-memory dataset
+        * would leave irf_def.dta's own "series" column unmatched (a
+        * separate, mostly-empty column) rather than merged into "group".
+        use "$clean/irf_nd.dta", clear
+        rename series group
+        tempfile _gdpnd
+        save `_gdpnd'
+        use "$clean/irf_def.dta", clear
+        rename series group
+        append using `_gdpnd'
+        keep if horizon >= 0
+    }
+    else {
+        use "$clean/irf_nd_`cv'.dta",  clear
+        append using "$clean/irf_def_`cv'.dta"
+    }
+
+    twoway ///
+        (rarea lo90 hi90 horizon if group=="nd", ///
+            color("`c_nd'%20") lwidth(none)) ///
+        (rarea lo90 hi90 horizon if group=="def", ///
+            color("`c_def'%20") lwidth(none)) ///
+        (connected b horizon if group=="nd", ///
+            lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) ///
+            lwidth(medthick) msize(small)) ///
+        (connected b horizon if group=="def", ///
+            lcolor("`c_def'") mcolor("`c_def'") msymbol(square) ///
+            lwidth(medthick) msize(small)) ///
+        , ///
+        yline(0, lcolor(gs10) lpattern(dash) lwidth(thin)) ///
+        xlabel(0(1)5, labsize(medium)) ///
+        ylabel(, format(%9.0f) labsize(medium) angle(horizontal)) ///
+        xtitle("Year", size(medium)) ///
+        ytitle("`ytit'", size(medsmall)) ///
+        title("`clab'", size(medlarge) color(navy)) ///
+        legend(off) ///
+        graphregion(color(white)) plotregion(color(white)) ///
+        name(comb_`i', replace)
+
+    local ++i
+}
+graph combine comb_1 comb_2 comb_3 comb_4 comb_5 comb_6, ///
+    cols(3) rows(2) graphregion(color(white)) xsize(10) ysize(7)
+graph export "$figs/fig12_combined_ols.pdf", replace
+di as result "Figure saved: fig12_combined_ols.pdf (Panel A-F: GDP, Investment, Bank credit, Claims on government, FDI, Real lending rate)"
+forvalues i = 1/6 {
+    capture graph drop comb_`i'
+}
+
 di as result _n "12_channels_resolution.do complete."
