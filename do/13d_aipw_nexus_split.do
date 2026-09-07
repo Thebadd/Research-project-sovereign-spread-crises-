@@ -519,32 +519,45 @@ replace partid = 2 if part=="def"
 label define pl 1 "Non-default" 2 "Default-linked"
 label values partid pl
 
-* ── One high-vs-low figure per outcome (GDP keeps its historical look) ───────
+* ── One high-vs-low figure per outcome (GDP keeps its historical filename) ──
+* UNIFORM IRF STYLE (project-wide onset-tier convention): solid lines,
+* markers match line color, y-axis "Cumulative percent change", x-axis
+* "Year", title = plain variable name, no legend. This split is by
+* pre-crisis bank exposure (high/low), not by resolution type, so its own
+* established high=red/low=blue convention (the "doom-loop" color coding)
+* is kept rather than forced onto the nd/def convention used elsewhere.
 local c_hi "157 36 73"    // high nexus = red (the doom-loop)
 local c_lo "0 84 166"     // low  nexus = blue
 foreach oc in gdp credit inv claimpriv_assets claims_govt {
     if "`oc'" == "gdp" {
-        local ptit "Output cost by sovereign-bank nexus"
-        local ytit "Cumulative real GDP change (pp)"
+        local ptit "GDP"
         local fnm  "fig_aipw_nexus_split"       // unchanged filename for GDP
     }
-    else {
-        local ptit "`oc' channel by sovereign-bank nexus"
-        local ytit "Cumulative change in `oc' (pp)"
+    else if "`oc'" == "credit" {
+        local ptit "Bank credit"
+        local fnm  "fig_nexus_`oc'"
+    }
+    else if "`oc'" == "inv" {
+        local ptit "Investment"
+        local fnm  "fig_nexus_`oc'"
+    }
+    else if "`oc'" == "claimpriv_assets" {
+        local ptit "Bank claims on private sector / assets"
+        local fnm  "fig_nexus_`oc'"
+    }
+    else if "`oc'" == "claims_govt" {
+        local ptit "Bank claims on government"
         local fnm  "fig_nexus_`oc'"
     }
     capture twoway ///
         (rarea lo hi horizon if bank=="high" & outcome=="`oc'", color("`c_hi'%16") lwidth(none)) ///
         (rarea lo hi horizon if bank=="low"  & outcome=="`oc'", color("`c_lo'%16") lwidth(none)) ///
-        (connected b horizon if bank=="high" & outcome=="`oc'", lcolor("`c_hi'") lwidth(medthick) msymbol(square) lpattern(dash)) ///
+        (connected b horizon if bank=="high" & outcome=="`oc'", lcolor("`c_hi'") lwidth(medthick) msymbol(square)) ///
         (connected b horizon if bank=="low"  & outcome=="`oc'", lcolor("`c_lo'") lwidth(medthick) msymbol(circle)), ///
-        by(partid, yrescale ///
-            note("AIPW (Asonuma Eq. 3), ATE. Split by pre-crisis bank claims-on-govt / assets (median). Shaded = 1.96*row-bootstrap SE band (adopted, not the paper's analytic formula). High-low gap bootstrapped directly (row-level).", size(vsmall)) ///
-            title("`ptit'", size(medsmall) color(navy))) ///
+        by(partid, yrescale legend(off) title("`ptit'", size(medsmall) color(navy))) ///
         yline(0, lpattern(dash) lcolor(gs8)) ///
-        xlabel(0(1)5) xtitle("Year (Year 1 = crisis year)", size(small)) ///
-        ytitle("`ytit'", size(small)) ///
-        legend(order(3 "High nexus" 4 "Low nexus") size(small)) ///
+        xlabel(0(1)5) xtitle("Year", size(small)) ///
+        ytitle("Cumulative percent change", size(small)) ///
         graphregion(color(white)) plotregion(color(white))
     if _rc == 0 {
         graph export "$figs/`fnm'.pdf", replace
