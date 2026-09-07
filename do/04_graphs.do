@@ -40,7 +40,7 @@ twoway ///
         mcolor("`c_all'") msize(medium) msymbol(circle)), ///
     yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
     xlabel(0(1)5, labsize(medsmall)) ///
-    ylabel(, format(%4.1f) labsize(medsmall)) ///
+    ylabel(, format(%9.0f) labsize(medsmall)) ///
     xtitle("Year", size(medsmall)) ///
     ytitle("Cumulative percent change", size(medsmall)) ///
     title("GDP", size(medium)) ///
@@ -80,7 +80,7 @@ else {
             mcolor("`c_def'") msize(medium) msymbol(square)), ///
         yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
         xlabel(0(1)5, labsize(medsmall)) ///
-        ylabel(, format(%4.1f) labsize(medsmall)) ///
+        ylabel(, format(%9.0f) labsize(medsmall)) ///
         xtitle("Year", size(medsmall)) ///
         ytitle("Cumulative percent change", size(medsmall)) ///
         title("GDP", size(medium)) ///
@@ -113,7 +113,7 @@ twoway ///
         mcolor("`c_def'") msize(medium) msymbol(square)), ///
     yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
     xlabel(0(1)5, labsize(medsmall)) ///
-    ylabel(, format(%4.1f) labsize(medsmall)) ///
+    ylabel(, format(%9.0f) labsize(medsmall)) ///
     xtitle("Year", size(medsmall)) ///
     ytitle("Cumulative percent change", size(medsmall)) ///
     title("GDP", size(medium)) ///
@@ -153,7 +153,7 @@ else {
             mcolor("`c_def'") msize(medium) msymbol(square)), ///
         yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
         xlabel(0(1)5, labsize(medsmall)) ///
-        ylabel(, format(%4.1f) labsize(medsmall)) ///
+        ylabel(, format(%9.0f) labsize(medsmall)) ///
         xtitle("Year", size(medsmall)) ///
         ytitle("Cumulative percent change", size(medsmall)) ///
         title("GDP", size(medium)) ///
@@ -181,7 +181,7 @@ twoway ///
     yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
     xline(0.5, lpattern(solid) lcolor("`c_zero'") lwidth(thin)) ///
     xlabel(-1(1)5, labsize(medsmall)) ///
-    ylabel(, format(%4.1f) labsize(medsmall)) ///
+    ylabel(, format(%9.0f) labsize(medsmall)) ///
     xtitle("Year", size(medsmall)) ///
     ytitle("Cumulative percent change", size(medsmall)) ///
     title("GDP", size(medium)) ///

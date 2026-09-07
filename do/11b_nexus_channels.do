@@ -126,7 +126,7 @@ foreach ch of local channels {
         (connected b horizon, lcolor("`c_main'") mcolor("`c_main'") ///
             msymbol(circle) lwidth(medthick)), ///
         yline(0, lcolor(gs8) lpattern(dash) lwidth(thin)) ///
-        xlabel(0(1)5, labsize(medium)) ylabel(, format(%5.1f) labsize(medium)) ///
+        xlabel(0(1)5, labsize(medium)) ylabel(, format(%9.0f) labsize(medium)) ///
         xtitle("Year", size(medium)) ///
         ytitle("Cumulative percent change", size(medsmall)) ///
         title("`tlab'", size(medlarge) color(navy)) legend(off) ///
@@ -283,7 +283,7 @@ foreach ch of local channels {
         (connected b horizon if group=="def", lcolor("`c_def'") mcolor("`c_def'") ///
             msymbol(square) lwidth(medthick)), ///
         yline(0, lcolor(gs10) lpattern(dash) lwidth(thin)) ///
-        xlabel(0(1)5, labsize(medium)) ylabel(, format(%5.1f) labsize(medium)) ///
+        xlabel(0(1)5, labsize(medium)) ylabel(, format(%9.0f) labsize(medium)) ///
         xtitle("Year", size(medium)) ///
         ytitle("Cumulative percent change", size(medsmall)) ///
         title("`tlab'", size(medlarge) color(navy)) ///

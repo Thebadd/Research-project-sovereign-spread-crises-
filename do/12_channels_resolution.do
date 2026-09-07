@@ -337,7 +337,7 @@ foreach ch of local channels {
         , ///
         yline(0, lcolor(gs10) lpattern(dash) lwidth(thin)) ///
         xlabel(0(1)5, labsize(medium)) ///
-        ylabel(, format(%5.1f) labsize(medium)) ///
+        ylabel(, format(%9.0f) labsize(medium)) ///
         xtitle("Year", size(medium)) ///
         ytitle("Cumulative percent change", size(medsmall)) ///
         title("`tlab'", size(medlarge) color(navy)) ///
