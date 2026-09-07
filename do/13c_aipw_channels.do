@@ -667,7 +667,7 @@ preserve
     append using `_chanres'
 
     local combo_vars   gdp inv credit claims_govt fdi real_lending
-    local combo_labels `" "GDP" "Investment" "Bank credit" "Claims on government" "FDI" "Real lending rate" "'
+    local combo_labels `" "Panel A: GDP" "Panel B: Investment" "Panel C: Bank credit" "Panel D: Claims on government" "Panel E: FDI" "Panel F: Real lending rate" "'
     local i = 1
     foreach cv of local combo_vars {
         local clab : word `i' of `combo_labels'
