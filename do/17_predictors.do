@@ -8,10 +8,13 @@
     reg_crisis_share    leave-one-out share of OTHER same-region countries with
                         an onset in year t
     l_reg_crisis_share  Z2: lagged regional crisis share (contagion)
-    contagion_dist      Z2b: distance-weighted sum of OTHER countries' IN-CRISIS
+    contagion_dist      Z2b: distance-weighted SHARE (bounded [0,1], weights
+                        normalized to sum to 1) of OTHER countries IN-CRISIS
                         years (onset|continuation, a STOCK of regional distress,
                         not just onset years) at year t, CEPII great-circle
-                        distance (GEO_CEPII.xlsx)
+                        distance (GEO_CEPII.xlsx) -- matches the reference
+                        paper's own contagion predictor's bounded scale
+                        (their Table B3: mean 0.05, range [0,0.88])
     l_contagion_dist    Z2b lagged (predetermined) -- ADOPTED in cz (Act 1,
                         pooled): the GENERIC (any-onset-type) contagion
                         measure, since there is no resolution type to be
@@ -150,15 +153,25 @@ preserve
     gen double dist_ik = 6371 * acos(_arg)
     drop _arg
 
-    bysort iso3_i: egen double _sumdist_i = total(dist_ik)
-    gen double w_ik = dist_ik / _sumdist_i
+    * NORMALIZED INVERSE-DISTANCE WEIGHT, summing to 1 across every donor k
+    * for a given i -- so that a weighted sum of a 0/1 donor flag below is a
+    * bounded WEIGHTED SHARE (in [0,1]), not an unbounded quantity. w_ik is
+    * proportional to 1/dist_ik (a closer country gets more weight), then
+    * divided by the sum of every country's inverse distance so the weights
+    * sum to exactly 1 for each i, the same way reg_crisis_share's flat
+    * regional weights (1/(reg_n_members-1) each) sum to 1 -- this is that
+    * same "share of X" construction, with a distance-based weight in place
+    * of a flat same-region one, rather than an unbounded weighted sum.
+    gen double _invdist_ik = 1 / dist_ik
+    bysort iso3_i: egen double _suminvdist_i = total(_invdist_ik)
+    gen double w_ik = _invdist_ik / _suminvdist_i
     keep iso3_i iso3_k w_ik
     tempfile weights
     save `weights'
 restore
 
 * Join the (i,k) weights to every (k,t) onset, then collapse to (i,t):
-* contagion_dist_it = sum over k of in_crisis_kt / w_ik, where in_crisis_kt =
+* contagion_dist_it = sum over k of in_crisis_kt * w_ik, where in_crisis_kt =
 * onset_all|continuation -- a STOCK of regional distress (every year another
 * country IS in a crisis, not just the year its crisis STARTED). An earlier
 * version of this variable summed onset_all alone (a shock indicator: a
@@ -166,6 +179,12 @@ restore
 * nothing in every subsequent year it remained in crisis, even though it was
 * still visibly in distress) -- corrected here to measure "how much distress
 * currently surrounds country i", the intended meaning of this predictor.
+* Since w_ik sums to 1 across every donor k, this is a distance-WEIGHTED
+* SHARE bounded in [0,1] -- a country surrounded entirely by in-crisis
+* neighbors approaches 1, one with no in-crisis neighbors is 0 -- matching
+* the scale of a genuine "share of peers in crisis" measure (the same
+* bounded scale as reg_crisis_share, and as the reference paper's own
+* contagion predictor: Table B3 reports it as mean 0.05, range [0,0.88]).
 preserve
     keep if carryin==0
     gen byte donor_in_crisis = (onset_all==1 | continuation==1)
@@ -176,10 +195,10 @@ preserve
 
     use `weights', clear
     joinby iso3_k using `donors'
-    gen double _contrib = donor_in_crisis / w_ik
+    gen double _contrib = donor_in_crisis * w_ik
     collapse (sum) contagion_dist = _contrib, by(iso3_i year)
     rename iso3_i iso3
-    label var contagion_dist "Z2b: distance-weighted sum of OTHER countries' in-crisis years (onset|continuation, year t), CEPII great-circle"
+    label var contagion_dist "Z2b: distance-weighted SHARE of OTHER countries in-crisis (onset|continuation, year t), CEPII great-circle, bounded [0,1]"
     tempfile contagion
     save `contagion'
 restore
@@ -193,7 +212,7 @@ capture drop l_contagion_dist
 merge m:1 iso3 year using `contagion', keep(master match) nogen
 xtset cid year
 gen double l_contagion_dist = L.contagion_dist
-label var l_contagion_dist "Z2b: lagged distance-weighted contagion (in-crisis stock, any type), predetermined"
+label var l_contagion_dist "Z2b: lagged distance-weighted contagion share (in-crisis stock, any type, bounded [0,1]), predetermined"
 
 * ── DEFAULT-LINKED contagion stock (Z2b-def): ADOPTED for cz_def ────────────
 * Same "in-crisis stock" construction as contagion_dist above, but the donor
@@ -225,10 +244,10 @@ preserve
 
     use `weights', clear
     joinby iso3_k using `donors_def'
-    gen double _contrib = donor_in_crisis_def / w_ik
+    gen double _contrib = donor_in_crisis_def * w_ik
     collapse (sum) contagion_dist_def = _contrib, by(iso3_i year)
     rename iso3_i iso3
-    label var contagion_dist_def "Z2b(def): distance-weighted sum of OTHER countries' DEFAULT-linked in-crisis years, CEPII great-circle"
+    label var contagion_dist_def "Z2b(def): distance-weighted SHARE of OTHER countries DEFAULT-linked in-crisis, CEPII great-circle, bounded [0,1]"
     tempfile contagion_def
     save `contagion_def'
 restore
@@ -239,7 +258,7 @@ merge m:1 iso3 year using `contagion_def', keep(master match) nogen
 sort cid year
 xtset cid year
 gen double l_contagion_dist_def = L.contagion_dist_def
-label var l_contagion_dist_def "Z2b(def): lagged distance-weighted contagion (default-linked in-crisis stock), predetermined"
+label var l_contagion_dist_def "Z2b(def): lagged distance-weighted contagion share (default-linked in-crisis stock, bounded [0,1]), predetermined"
 
 
 * ── Proneness: cumulative own onsets, lagged (Z3) ───────────────────────────
