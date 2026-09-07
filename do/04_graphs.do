@@ -14,10 +14,13 @@
   Year 0 is the explicit pre-crisis baseline (hardcoded 0, no CI).
 ===========================================================================*/
 
-* Color scheme
-local c_all  "23 55 94"
-local c_nd   "0 84 166"
-local c_def  "157 36 73"
+* UNIFORM IRF STYLE (project-wide onset-tier convention): non-default =
+* blue, default-linked = red, both solid lines, markers match their line's
+* color. Y-axis always "Cumulative percent change", x-axis always "Year",
+* title = the plain variable name only.
+local c_all  "blue"
+local c_nd   "blue"
+local c_def  "red"
 local c_zero "150 150 150"
 
 * ════════════════════════════════════════════════════════════════════════════
@@ -38,17 +41,10 @@ twoway ///
     yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
     xlabel(0(1)5, labsize(medsmall)) ///
     ylabel(, format(%4.1f) labsize(medsmall)) ///
-    xtitle("Year (Year 1 = crisis year)", size(medsmall)) ///
-    ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
-    title("Output Cost of Sovereign Spread Crises", size(medium)) ///
-    subtitle("All episodes (N = 61), 52 EM economies, 1994-2025", size(small)) ///
-    note("Local projections (Jorda 2005). Robust (heteroskedasticity-only) SE." ///
-         "Country FE only (no year FE), matching the reference paper's own" ///
-         "Table I1 design. Controls: lagged GDP growth, banking-crisis dummy," ///
-         "govt expenditure, openness, bank credit, log inflation, FX change.", ///
-         size(vsmall)) ///
-    legend(order(3 "Point estimate" 2 "90% CI" 1 "95% CI") ///
-           ring(0) pos(1) size(small)) ///
+    xtitle("Year", size(medsmall)) ///
+    ytitle("Cumulative percent change", size(medsmall)) ///
+    title("GDP", size(medium)) ///
+    legend(off) ///
     graphregion(color(white)) plotregion(color(white))
 
 graph export "$figs/fig1_irf_all.pdf",  replace
@@ -80,20 +76,15 @@ else {
         (rarea lo90 hi90 horizon if series=="all_asonumasample", ///
             color("`c_def'%20") lwidth(none)) ///
         (connected b horizon if series=="all_asonumasample", ///
-            lcolor("`c_def'") lwidth(medthick) lpattern(dash) ///
+            lcolor("`c_def'") lwidth(medthick) ///
             mcolor("`c_def'") msize(medium) msymbol(square)), ///
         yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
         xlabel(0(1)5, labsize(medsmall)) ///
         ylabel(, format(%4.1f) labsize(medsmall)) ///
-        xtitle("Year (Year 1 = crisis year)", size(medsmall)) ///
-        ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
-        title("Output Cost of Sovereign Spread Crises: Sample Robustness", size(medium)) ///
-        subtitle("Baseline (continuation years excluded) vs. continuation years kept as controls" ///
-                 " (matches Asonuma et al.'s own sample)", size(small)) ///
-        legend(order(2 "Baseline (sample==1)" 4 "Asonuma sample (sample_flow==1)") ///
-               ring(0) pos(1) size(small)) ///
-        note("90% CI shown. Robust SE. Country FE only, same controls as Figure 1.", ///
-             size(vsmall)) ///
+        xtitle("Year", size(medsmall)) ///
+        ytitle("Cumulative percent change", size(medsmall)) ///
+        title("GDP", size(medium)) ///
+        legend(off) ///
         graphregion(color(white)) plotregion(color(white))
 
     graph export "$figs/fig1a_irf_all_asonumasample.pdf", replace
@@ -118,21 +109,16 @@ twoway ///
     (rarea lo90 hi90 horizon if series=="def", ///
         color("`c_def'%20") lwidth(none)) ///
     (connected b horizon if series=="def", ///
-        lcolor("`c_def'") lwidth(medthick) lpattern(dash) ///
+        lcolor("`c_def'") lwidth(medthick) ///
         mcolor("`c_def'") msize(medium) msymbol(square)), ///
     yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
     xlabel(0(1)5, labsize(medsmall)) ///
     ylabel(, format(%4.1f) labsize(medsmall)) ///
-    xtitle("Year (Year 1 = crisis year)", size(medsmall)) ///
-    ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
-    title("Output Cost: Non-Default vs. Default-Linked Crises", size(medium)) ///
-    subtitle("52 EM economies, 1994-2025", size(small)) ///
-    legend(order(2 "Non-default (N=40)" 4 "Default-linked (N=21)") size(small)) ///
+    xtitle("Year", size(medsmall)) ///
+    ytitle("Cumulative percent change", size(medsmall)) ///
+    title("GDP", size(medium)) ///
+    legend(off) ///
     graphregion(color(white)) plotregion(color(white))
-    * Note text (kept as source comment, no longer rendered on the figure --
-    * the legend, previously overlapping the plot at ring(0) pos(3), now
-    * takes the bottom position this note used to occupy):
-    * "Robust (heteroskedasticity-only) SE. Country FE only (no year FE)."
 
 graph export "$figs/fig2_irf_resolution.pdf", replace
 graph export "$figs/fig2_irf_resolution.png", replace width(1200)
@@ -163,22 +149,16 @@ else {
         (rarea lo90 hi90 horizon if series=="def_asonumasample", ///
             color("`c_def'%20") lwidth(none)) ///
         (connected b horizon if series=="def_asonumasample", ///
-            lcolor("`c_def'") lwidth(medthick) lpattern(dash) ///
+            lcolor("`c_def'") lwidth(medthick) ///
             mcolor("`c_def'") msize(medium) msymbol(square)), ///
         yline(0, lpattern(dash) lcolor("`c_zero'") lwidth(thin)) ///
         xlabel(0(1)5, labsize(medsmall)) ///
         ylabel(, format(%4.1f) labsize(medsmall)) ///
-        xtitle("Year (Year 1 = crisis year)", size(medsmall)) ///
-        ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
-        title("Output Cost by Resolution: Asonuma-Sample Robustness", size(medium)) ///
-        subtitle("Continuation years kept as controls (matches Asonuma et al.'s own sample)", size(small)) ///
-        legend(order(2 "Non-default" 4 "Default-linked") size(small)) ///
+        xtitle("Year", size(medsmall)) ///
+        ytitle("Cumulative percent change", size(medsmall)) ///
+        title("GDP", size(medium)) ///
+        legend(off) ///
         graphregion(color(white)) plotregion(color(white))
-        * Note text (kept as source comment, no longer rendered on the figure --
-        * the legend, previously overlapping the plot at ring(0) pos(3), now
-        * takes the bottom position this note used to occupy):
-        * "Compare against Figure 2 (baseline, continuation years excluded).
-        *  90% CI shown. Robust SE. Country FE only (no year FE)."
 
     graph export "$figs/fig2a_irf_resolution_asonumasample.pdf", replace
     graph export "$figs/fig2a_irf_resolution_asonumasample.png", replace width(1200)
@@ -202,13 +182,10 @@ twoway ///
     xline(0.5, lpattern(solid) lcolor("`c_zero'") lwidth(thin)) ///
     xlabel(-1(1)5, labsize(medsmall)) ///
     ylabel(, format(%4.1f) labsize(medsmall)) ///
-    xtitle("Year (Year 0 = pre-crisis baseline, Year 1 = crisis year)", size(medsmall)) ///
-    ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
-    title("Pre-Trend Test + Main Horizons", size(medium)) ///
-    subtitle("All spread crises (N = 61). Placebo: h = -1.", size(small)) ///
-    text(0 -1 "Pre-trend (should be ~0)", size(vsmall) color(gray)) ///
-    text(0 3 "Post-onset", size(vsmall) color(gray)) ///
-    legend(order(2 "Point estimate" 1 "90% CI") ring(0) pos(1) size(small)) ///
+    xtitle("Year", size(medsmall)) ///
+    ytitle("Cumulative percent change", size(medsmall)) ///
+    title("GDP", size(medium)) ///
+    legend(off) ///
     graphregion(color(white)) plotregion(color(white))
 
 graph export "$figs/fig3_pretrend.pdf", replace
