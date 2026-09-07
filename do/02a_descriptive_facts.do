@@ -402,8 +402,24 @@ restore
 local sumvars l1_gdpg l_debt l_banking_crisis l_govexp l_open ///
               l_credit_bank l_lninfl exchange2 l_spr_mean claimsgov_assets
 
+* DISPLAY-ONLY rescale: l1_gdpg/l_debt/l_govexp/l_open/l_credit_bank were put
+* on a decimal scale project-wide (18_transforms.do) to match Asonuma et
+* al.'s own $convar convention for REGRESSION coefficients. This table is not
+* a regression output -- it is read directly by a reader as "what did debt/
+* GDP look like going in", so printing 0.608 for a 60.8% debt ratio would be
+* actively harder to read than the underlying variable's own units warrant.
+* Multiplying by 100 HERE, for display and the exported CSV only, restores
+* the percent-of-GDP/percentage-point reading; the p-values and every
+* regression elsewhere in the project are computed on the real (decimal)
+* $ctrl_core values and are completely unaffected, since a t-test's p-value
+* is invariant to a linear rescaling of the tested variable.
+local pct100 l1_gdpg l_debt l_govexp l_open l_credit_bank
+
 di as result _n "════════════════════════════════════════════════════════════"
 di as result "PRE-CRISIS CHARACTERISTICS (all at t-1) BY GROUP"
+di as result "  (l1_gdpg/l_debt/l_govexp/l_open/l_credit_bank shown x100, i.e."
+di as result "   percent/percentage points, for readability -- underlying"
+di as result "   regressions use the decimal $ctrl_core scale; unaffected)"
 di as result "════════════════════════════════════════════════════════════"
 di as result %-22s "Variable" "   Tranquil    Non-default   Default    p(nd=def)"
 
@@ -433,6 +449,15 @@ foreach v of local sumvars {
     capture ttest `v' if sample==1 & onset_all==1, by(nondefault)
     if _rc == 0 local pd = r(p)
 
+    * Display-only x100 for the five decimal-scale $ctrl_core terms (see
+    * `pct100' note above) -- applied AFTER the t-test, which already used
+    * the real (unscaled) values and is invariant to this anyway.
+    if strpos(" `pct100' ", " `v' ") {
+        local mt = `mt' * 100
+        local mn = `mn' * 100
+        local md = `md' * 100
+    }
+
     post `S' ("`v'") (`mt') (`mn') (`md') (`pd') (`nt') (`nn') (`nd')
     di as result %-22s "`v'" "  " %9.2f `mt' "  " %9.2f `mn' "  " %9.2f `md' "   " %6.3f `pd'
 }
@@ -440,9 +465,9 @@ postclose `S'
 
 preserve
     use "`sumf'", clear
-    label var m_tranq "Mean, tranquil years"
-    label var m_nd    "Mean, non-default onsets"
-    label var m_def   "Mean, default-linked onsets"
+    label var m_tranq "Mean, tranquil years (l1_gdpg/l_debt/l_govexp/l_open/l_credit_bank x100 for display)"
+    label var m_nd    "Mean, non-default onsets (l1_gdpg/l_debt/l_govexp/l_open/l_credit_bank x100 for display)"
+    label var m_def   "Mean, default-linked onsets (l1_gdpg/l_debt/l_govexp/l_open/l_credit_bank x100 for display)"
     label var pdiff   "p-value, nd = def"
     export delimited "$tabs/descriptive_summary.csv", replace
     di as result _n "Summary table saved: $tabs/descriptive_summary.csv"
