@@ -23,7 +23,7 @@
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl l_reer_chg"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 
 local core   $ctrl_core
 local outref dy_0        // reference horizon: h=0 has the largest sample

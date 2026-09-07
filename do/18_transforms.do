@@ -441,33 +441,22 @@ label var nd_ep "Resolution type of the episode, filled to all its years (1=non-
 * inflation information as a continuous variable, which cannot by itself
 * perfectly separate treated from control the way a threshold dummy can.
 *
-* THE THIRD SWAP, l_ca -> exchange2 -> l_reer_chg (as of this revision), was
-* made in two steps. l_ca -> exchange2 was on literature grounds: the
-* reference paper's own $convar carries an exchange-rate depreciation term
-* (their ex_dum1-ex_dum5 percentile bins, built from a NOMINAL bilateral
-* rate, exchange2 = ln(1+L.exchange_official) - ln(1+L2.exchange_official) --
-* confirmed directly from their own replication code) as a baseline control;
-* the current account is not in their $convar at all. This project's own
-* exchange2 (the continuous log FX change) used their literal bin
-* construction as a starting point rather than reproducing the bins
-* themselves: 21b_first_stage_table_flow.do's flow_ctrl_variant testing found
-* the bins separate on this project's much smaller panel exactly the way
-* country FE and past_def_onsets did (ex_dum1, and in the def arm ex_dum2 as
-* well, have zero outcome variation and Stata drops the dummy and every row
-* in the bin automatically), so the continuous level was the workable proxy.
-*
-* exchange2 -> l_reer_chg is a SEPARATE, DELIBERATE DEPARTURE from the
-* reference paper's own choice, not a further approximation of it -- their
-* exchange-rate term is nominal and bilateral (LCU/USD only); l_reer_chg is
-* real (inflation-adjusted relative to trading partners) and effective
-* (trade-weighted across all partners, not just the US). Adopted on the
-* grounds that a trade-weighted, inflation-adjusted measure is the more
-* economically meaningful proxy for a currency crisis's actual competitiveness
-* impact, stated plainly as its own justification rather than folded into the
-* literature-fidelity argument above, which this swap does not extend.
-* exchange2 itself remains built (robustness-tier, not in $ctrl_core) and
-* is available as a robustness-tier alternative to l_reer_chg, alongside
-* tot_chg (terms-of-trade log-change; see $ctrl_core_flowplus below).
+* THE THIRD SWAP, l_ca -> exchange2, IS ON LITERATURE GROUNDS, NOT PURELY
+* EMPIRICAL PERFORMANCE -- state both sides plainly. The reference paper's
+* own $convar carries exchange-rate depreciation (their ex_dum1-ex_dum5
+* percentile bins) as a baseline control; the current account is not in
+* their $convar at all. exchange2 (the continuous log FX change) is used
+* here rather than their literal ex_dum1-ex_dum5 bins:
+* 21b_first_stage_table_flow.do's flow_ctrl_variant testing found the bins
+* separate on this project's much smaller panel exactly the way country FE
+* and past_def_onsets did (ex_dum1, and in the def arm ex_dum2 as well, have
+* zero outcome variation and Stata drops the dummy and every row in the bin
+* automatically), so the continuous level is the workable proxy, not a
+* literal reproduction of their construction. tot_chg (terms-of-trade
+* log-change, this project's own earlier addition, never in the reference
+* paper's $convar) is available as a robustness-tier alternative to
+* exchange2 (see $ctrl_core_flowplus below) rather than folded into the
+* core, since exchange2 is the term with the literature-fidelity claim.
 *
 * CONSEQUENCE FOR EVERY PUBLISHED NUMBER, STATED PLAINLY: this control set
 * now governs Table 1, Table 2, Table 3, the AIPW tables (08b/13c/13d), and
@@ -481,14 +470,14 @@ label var nd_ep "Resolution type of the episode, filled to all its years (1=non-
 * a KNOWN risk in one place, and the onset-tier propensity models should be
 * checked directly (not assumed clean) after this change.
 * ══════════════════════════════════════════════════════════════════════════
-capture confirm variable l_reer_chg
+capture confirm variable exchange2
 if _rc {
-    di as error "  ** l_reer_chg not built (reer_chg missing) -- \$ctrl_core needs it as a"
-    di as error "     core term now, not an optional one. Add data/raw/REER_INDEX.xlsx"
-    di as error "     and re-run 01b_merge_new_controls.do/12_wdi.do before this file."
+    di as error "  ** exchange2 not built (exch missing) -- \$ctrl_core needs it as a"
+    di as error "     core term now, not an optional one. Add data/raw/officialexchangerate.xlsx"
+    di as error "     and re-run 01_build_panel.do/12_wdi.do before this file."
     exit 111
 }
-global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl l_reer_chg"
+global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 
 global ctrl_flow ""
 foreach X of global ctrl_core {
