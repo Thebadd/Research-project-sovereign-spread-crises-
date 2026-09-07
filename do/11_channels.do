@@ -459,7 +459,7 @@ foreach ch of local channels {
         ylabel(, format(%5.2f) labsize(medium)) ///
         xtitle("Year", size(medium)) ///
         ytitle("Cumulative percent change", size(medsmall)) ///
-        title("{bf:`tlab'}", size(medium) color(navy)) ///
+        title("`tlab'", size(medlarge) color(navy)) ///
         legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
         name(`: word `i' of `fignames'', replace)

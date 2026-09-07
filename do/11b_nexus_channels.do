@@ -129,7 +129,7 @@ foreach ch of local channels {
         xlabel(0(1)5, labsize(medium)) ylabel(, format(%5.1f) labsize(medium)) ///
         xtitle("Year", size(medium)) ///
         ytitle("Cumulative percent change", size(medsmall)) ///
-        title("{bf:`tlab'}", size(medium) color(navy)) legend(off) ///
+        title("`tlab'", size(medlarge) color(navy)) legend(off) ///
         graphregion(color(white)) plotregion(color(white)) name(nx_`i', replace)
     local ++i
 }
@@ -286,7 +286,7 @@ foreach ch of local channels {
         xlabel(0(1)5, labsize(medium)) ylabel(, format(%5.1f) labsize(medium)) ///
         xtitle("Year", size(medium)) ///
         ytitle("Cumulative percent change", size(medsmall)) ///
-        title("{bf:`tlab'}", size(medium) color(navy)) ///
+        title("`tlab'", size(medlarge) color(navy)) ///
         legend(off) graphregion(color(white)) plotregion(color(white)) ///
         name(nxr_`i', replace)
     local ++i
