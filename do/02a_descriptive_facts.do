@@ -411,7 +411,7 @@ preserve
     * separate files. Kept ALONGSIDE the standalone per-channel figures
     * above, not a replacement for them.
     local combo_vars   gdp inv credit claims_govt fdi real_lending
-    local combo_labels `" "Panel A: GDP" "Panel B: Investment" "Panel C: Bank credit" "Panel D: Claims on government" "Panel E: FDI" "Panel F: Real lending rate" "'
+    local combo_labels `" "Panel A: GDP" "Panel B: Investment" "Panel C: Bank credit" "Panel D: Claims on govt" "Panel E: FDI" "Panel F: Real lending rate" "'
     local i = 1
     foreach cv of local combo_vars {
         local clab : word `i' of `combo_labels'
