@@ -420,40 +420,56 @@ other country in the region as an equally weighted neighbor and ignores
 countries outside it entirely, which is a strong assumption about who a
 country's crisis is contagious from.
 
-A distance-weighted alternative, `contagion_dist`, was built to relax that
-assumption, following the construction the reference paper's own
-methodology section describes for its restructuring-contagion variable:
+A distance-weighted alternative, `contagion_dist` / `contagion_dist_def`,
+relaxes that assumption and is the ADOPTED contagion term in every
+resolution-type predictor set (`cz_def`, `cz_recency`) and the pooled `cz`.
+It is built in two steps in `17_predictors.do`. First, a normalized
+inverse-distance weight, summing to exactly 1 across every donor country *k*
+for a given country *i*:
 
 ```
-Contagion_it = sum_k [ onset_all_kt / W_ik ],   W_ik = Dist_ik / sum_k' Dist_ik'
+W_ik = (1 / Dist_ik) / sum_k' (1 / Dist_ik')
 ```
 
-applied here to any spread-crisis onset (`onset_all`) rather than a
-restructuring dummy specifically. `Dist_ik` is the great-circle distance
-between country *i* and *k*'s capital cities, computed from CEPII's
-`geo_cepii` reference file (`data/raw/GEO_CEPII.xlsx`) via the Haversine
-formula on each country's coordinates. Dividing by `W_ik` — country *i*'s
-distance to *k* as a share of its total distance to every other country —
-amplifies close neighbors and shrinks distant ones, so this is a genuine
-inverse-distance weighting rather than the flat regional average
-`l_reg_crisis_share` uses. Two panel countries carried non-standard codes in
-this CEPII vintage (Romania as `ROM`, Serbia as `YUG` "Serbia and
-Montenegro") and were remapped before merging; both have valid capital
-coordinates so no country is lost. Four countries in this vintage's file
-also carry a second, non-capital city row (Bolivia, Brazil, Nigeria,
-Turkey) — the construction filters to the `cap==1` row before deduplicating
-so the correct capital's coordinates are always used, not whichever row the
-sheet happens to list first.
+`Dist_ik` is the great-circle distance between country *i* and *k*'s capital
+cities, computed from CEPII's `geo_cepii` reference file
+(`data/raw/GEO_CEPII.xlsx`) via the spherical law of cosines on each
+country's coordinates (self-pairs, `i==k`, are dropped before this step, so
+there is no division by a zero distance). Second, the contagion measure is
+a weighted **sum**, not a division, of a 0/1 in-crisis flag:
+
+```
+Contagion_it = sum_k [ Rest_kt * W_ik ]
+```
+
+where `Rest_kt = 1` if country *k* is in a spread crisis (onset or
+continuation) in year *t*, 0 otherwise; the default-linked-specific version,
+`contagion_dist_def`, restricts `Rest_kt` to a default-linked in-crisis year
+only. Because the weights sum to 1 across every donor and `Rest_kt` is 0/1,
+this construction is bounded in `[0,1]` by design: it is a distance-weighted
+*share* of a country's neighborhood currently in crisis, not an unbounded
+sum. This bounded scale is a deliberate correction of an earlier version of
+this construction that divided by `W_ik` instead of multiplying by it, which
+produced values reaching into the hundreds and coefficients correspondingly
+near zero in every reported table — mathematically valid but not comparable
+in scale to the reference paper's own contagion predictor, whose reported
+summary statistics (their online-appendix Table B3: mean 0.05, range
+[0, 0.88]) are consistent only with a bounded, weighted-sum construction,
+not a division. Two panel countries carried non-standard codes in this
+CEPII vintage (Romania as `ROM`, Serbia as `YUG` "Serbia and Montenegro")
+and were remapped before merging; both have valid capital coordinates so no
+country is lost. Four countries in this vintage's file also carry a second,
+non-capital city row (Bolivia, Brazil, Nigeria, Turkey) — the construction
+filters to the `cap==1` row before deduplicating so the correct capital's
+coordinates are always used, not whichever row the sheet happens to list
+first.
 
 Unlike `l_reg_crisis_share` (a fixed regional grouping) or `past_def_onsets`
 (a slow-moving running count that behaves close to a country identifier for
-a serial defaulter), `contagion_dist` is a contemporaneous, country-year–
-specific spatial lag: its value changes with who else is in crisis that
-particular year, weighted by proximity, rather than being a near-permanent
-characteristic of country *i* itself. It is built and available
-(`17_predictors.do`) but, as of this writing, not yet adopted in place of
-`l_reg_crisis_share` in any estimator's predictor set — that is a separate
-decision, to be made after comparing the two empirically.
+a serial defaulter), `contagion_dist`/`contagion_dist_def` is a
+contemporaneous, country-year–specific spatial lag: its value changes with
+who else is in crisis that particular year, weighted by proximity, rather
+than being a near-permanent characteristic of country *i* itself.
 
 ---
 
