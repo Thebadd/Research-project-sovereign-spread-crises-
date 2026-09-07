@@ -127,6 +127,11 @@ local gnames_a
 foreach s in nd def {
     local ttl = cond("`s'"=="nd", "Non-default", "Default-linked")
 
+    * Y-axis title shown only on the leftmost panel (nd) -- not repeated
+    * in both.
+    local ytit ""
+    if "`s'" == "nd" local ytit "Probability density"
+
     capture drop _xt_`s' _dt_`s' _xc_`s' _dc_`s' _tagt_`s' _tagc_`s'
     quietly kdensity _p2_`s' if onset_`s'==1 & inrange(_p2_`s', 0.01, 0.6), ///
         generate(_xt_`s' _dt_`s') n(200) nograph
@@ -171,7 +176,7 @@ foreach s in nd def {
         legend(off) ///
         `txtopt' ///
         ylabel(, angle(horizontal)) ///
-        ytitle("Probability density", size(medium)) xtitle("Predicted probability", size(medium)) ///
+        ytitle("`ytit'", size(medium)) xtitle("Predicted probability", size(medium)) ///
         title("`ttl'", size(medium) color(black)) ///
         name(gk_`s', replace) nodraw
     local gnames_a `gnames_a' gk_`s'
@@ -200,6 +205,11 @@ local worstp_b = 0
 foreach s in nd def {
     local ttl = cond("`s'"=="nd", "Non-default", "Default-linked")
 
+    * Y-axis title shown only on the leftmost panel (nd) -- not repeated
+    * in both.
+    local ytit ""
+    if "`s'" == "nd" local ytit "Sensitivity"
+
     * roccomp's own chi2 test for equal correlated ROC areas -- the formal
     * significance test the raw AUROC delta cannot substitute for. Run once,
     * quietly, to capture r(chi2)/r(p) BEFORE the graphing call (whose own
@@ -218,7 +228,7 @@ foreach s in nd def {
         plot1opts(lcolor(red) mcolor(red) msymbol(circle)) ///
         plot2opts(lcolor(green) mcolor(green) msymbol(diamond)) ///
         title("`ttl'", size(medlarge)) ///
-        ytitle("Sensitivity", size(medium)) xtitle("1 - Specificity", size(medium)) ///
+        ytitle("`ytit'", size(medium)) xtitle("1 - Specificity", size(medium)) ///
         ylabel(0(.25)1, angle(horizontal)) xlabel(0(.25)1) ///
         legend(position(5) region(lwidth(none)) size(medium) cols(1) ring(0) ///
             order(1 "Controls: `auc1_`s''" 2 "Controls+Predictors: `auc2_`s''"))
