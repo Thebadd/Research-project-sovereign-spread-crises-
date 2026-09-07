@@ -308,10 +308,13 @@ restore
 * 7. FIGURE — 2×3 MULTI-PANEL
 * ══════════════════════════════════════════════════════════════════════════
 
-local c_nd  "23 55 94"    // navy   — non-default
-local c_def "180 60 40"   // brick  — default-linked
+* UNIFORM IRF STYLE (project-wide onset-tier convention): non-default =
+* blue, default-linked = red, both solid, markers match line color, no
+* legend (color already distinguishes the two lines).
+local c_nd  "blue"
+local c_def "red"
 
-local titlelabels `" "Private Credit/GDP" "Bank Claims on Govt/GDP" "Investment/GDP" "Govt Expenditure/GDP" "Primary Balance/GDP" "FDI/GDP" "'
+local titlelabels `" "Bank credit" "Bank claims on government" "Investment" "Government expenditure" "Primary balance" "FDI" "'
 
 local i = 1
 foreach ch of local channels {
@@ -319,16 +322,6 @@ foreach ch of local channels {
 
     use "$clean/irf_nd_`ch'.dta",  clear
     append using "$clean/irf_def_`ch'.dta"
-
-    * Show legend only in last panel (bottom-right), bottom-anchored (no
-    * ring(0)/pos()) rather than overlapping the plotted lines.
-    if `i' == 6 {
-        local legopt legend(order(3 "Non-default" 4 "Default-linked") ///
-                     cols(2) size(vsmall))
-    }
-    else {
-        local legopt legend(off)
-    }
 
     twoway ///
         (rarea lo90 hi90 horizon if group=="nd", ///
@@ -340,15 +333,15 @@ foreach ch of local channels {
             lwidth(medthick) msize(small)) ///
         (connected b horizon if group=="def", ///
             lcolor("`c_def'") mcolor("`c_def'") msymbol(square) ///
-            lwidth(medthick) msize(small) lpattern(dash)) ///
+            lwidth(medthick) msize(small)) ///
         , ///
         yline(0, lcolor(gs10) lpattern(dash) lwidth(thin)) ///
         xlabel(0(1)5, labsize(small)) ///
         ylabel(, format(%5.1f) labsize(small)) ///
-        xtitle("Years after onset", size(vsmall)) ///
-        ytitle("Cumulative change (% or pp — see note)", size(vsmall)) ///
+        xtitle("Year", size(vsmall)) ///
+        ytitle("Cumulative percent change", size(vsmall)) ///
         title(`tlab', size(small) color(navy)) ///
-        `legopt' ///
+        legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
         name(ols_`i', replace)
 
