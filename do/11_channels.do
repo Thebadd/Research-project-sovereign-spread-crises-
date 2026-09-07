@@ -67,7 +67,7 @@ xtset cid year
 * the variable itself rather than in its ratio to a GDP that is collapsing — the
 * reference paper's var2/var3 construction. pb and fdi change sign, so no log is
 * possible and they keep the ratio; for a balance the ratio is the right object.
-foreach var in credit claims_govt inv govexp pb fdi {
+foreach var in credit claims_govt inv govexp pb fdi real_lending {
     local src `var'
     if inlist("`var'","credit","inv","govexp") local src ln_r_`var'
     capture drop `var'_base
@@ -89,7 +89,7 @@ foreach var in credit claims_govt inv govexp pb fdi {
 * ══════════════════════════════════════════════════════════════════════════
 
 di as result _n "=== DATA COVERAGE AT ONSET (sample==1 & onset_all==1) ==="
-foreach var in credit claims_govt inv govexp pb fdi {
+foreach var in credit claims_govt inv govexp pb fdi real_lending {
     quietly count if onset_all == 1 & sample == 1 & !missing(ch_`var'_0)
     di as result "  `var': " r(N) " / 61 onsets with non-missing data at h=0"
 }
@@ -112,7 +112,7 @@ foreach var in credit claims_govt inv govexp pb fdi {
   propensity model only; in the LP they are absorbed by year FE.
 */
 
-local channels credit claims_govt inv govexp pb fdi
+local channels credit claims_govt inv govexp pb fdi real_lending
 
 * Controls: uniform common core ($ctrl_core) + each channel's own pre_<v>; drop the core term equal to the channel's own lagged level.
 * Common-core controls (Asonuma-aligned $ctrl_core) + each channel's own pre_<v>;
@@ -127,6 +127,7 @@ local ctrl_inv         $ctrl_core pre_inv
 local ctrl_govexp      l1_gdpg l_debt l_banking_crisis l_open l_credit_bank l_lninfl exchange2 pre_govexp
 local ctrl_pb          $ctrl_core pre_pb
 local ctrl_fdi         $ctrl_core pre_fdi
+local ctrl_real_lending $ctrl_core pre_real_lending
 
 foreach ch of local channels {
     foreach m in b lo90 hi90 lo95 hi95 {
@@ -301,6 +302,29 @@ forvalues h = 0/4 {
     else di as error "h=" `h'+1 ": xtreg failed for fdi (rc=" _rc ")"
 }
 
+* ── Channel 7: Real lending interest rate ────────────────────────────────
+di as result _n "=== CHANNEL 7: REAL LENDING INTEREST RATE ==="
+
+forvalues h = 0/4 {
+    capture xtreg ch_real_lending_`h' onset_all `ctrl_real_lending' ///
+        if sample==1, fe vce(robust)
+    if _rc == 0 {
+        quietly count if onset_all==1 & sample==1 & !missing(ch_real_lending_`h')
+        local nep = r(N)
+        eststo t3_real_lending_`h', title("h=`=`h'+1'")
+        estadd scalar nep = `nep'
+        local elist_real_lending `elist_real_lending' t3_real_lending_`h'
+        matrix b_real_lending[`h'+2,1]    = _b[onset_all]
+        matrix lo90_real_lending[`h'+2,1] = _b[onset_all] - 1.645*_se[onset_all]
+        matrix hi90_real_lending[`h'+2,1] = _b[onset_all] + 1.645*_se[onset_all]
+        matrix lo95_real_lending[`h'+2,1] = _b[onset_all] - 1.960*_se[onset_all]
+        matrix hi95_real_lending[`h'+2,1] = _b[onset_all] + 1.960*_se[onset_all]
+        di "h=" `h'+1 ": beta=" %7.3f _b[onset_all] "  SE=" %6.3f _se[onset_all] ///
+           "  p=" %5.3f (2*(1-normal(abs(_b[onset_all]/_se[onset_all])))) "  N=" e(N)
+    }
+    else di as error "h=" `h'+1 ": xtreg failed for real_lending (rc=" _rc ")"
+}
+
 * ══════════════════════════════════════════════════════════════════════════
 * TABLE EXPORT — TABLE 3: Transmission channels (pooled, all episodes)
 *   Word/RTF, multi-panel: one panel per channel, columns = horizons h=0..4.
@@ -319,6 +343,7 @@ local ptitle_inv         "Panel C: Investment/GDP"
 local ptitle_govexp      "Panel D: Govt expenditure/GDP"
 local ptitle_pb          "Panel E: Primary balance/GDP"
 local ptitle_fdi         "Panel F: FDI/GDP"
+local ptitle_real_lending "Panel G: Real lending interest rate"
 
 * Write one panel per channel to a single RTF. First successful panel uses
 * "replace" (creates the file); the rest "append". Each esttab is wrapped in
@@ -327,7 +352,7 @@ local ptitle_fdi         "Panel F: FDI/GDP"
 local writemode replace
 local t3fail 0
 
-foreach ch in credit claims_govt inv govexp pb fdi {
+foreach ch in credit claims_govt inv govexp pb fdi real_lending {
 
     * Skip channel entirely if no horizon estimate was stored
     if "`elist_`ch''" == "" {
@@ -338,7 +363,7 @@ foreach ch in credit claims_govt inv govexp pb fdi {
 
     * Attach the methodology note to the last channel only
     local t3extra
-    if "`ch'" == "fdi" local t3extra addnotes("`t3note'")
+    if "`ch'" == "real_lending" local t3extra addnotes("`t3note'")
 
     capture esttab `elist_`ch'' using "$tabs/table3_channels.rtf", `writemode' ///
         b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
@@ -369,10 +394,10 @@ else di as error "Table 3 written with warnings (see messages above)."
 * 4. SAVE IRF DATASETS
 * ══════════════════════════════════════════════════════════════════════════
 
-local channels      credit claims_govt inv govexp pb fdi
+local channels      credit claims_govt inv govexp pb fdi real_lending
 local chan_labels   "Private credit/GDP" "Bank claims on govt/GDP" ///
                     "Investment/GDP" "Govt expenditure/GDP" ///
-                    "Primary balance/GDP" "FDI/GDP"
+                    "Primary balance/GDP" "FDI/GDP" "Real lending rate"
 
 local i = 1
 foreach ch of local channels {
@@ -396,7 +421,7 @@ foreach ch of local channels {
 
 preserve
     clear
-    local nobs = 5 * 6    // 5 horizons × 6 channels
+    local nobs = 5 * 7    // 5 horizons × 7 channels
     set obs `nobs'
     gen channel = ""
     gen horizon = .
@@ -434,20 +459,20 @@ restore
 * "Cumulative percent change", x-axis "Year", title = plain variable name.
 local c_main "blue"
 
-local channels    credit claims_govt inv govexp pb fdi
-local titlelabels `" "Bank credit" "Bank claims on government" "Investment" "Government expenditure" "Primary balance" "FDI" "'
-local fignames    fig11a fig11b fig11c fig11d fig11e fig11f
+local channels    credit claims_govt inv govexp pb fdi real_lending
+local titlelabels `" "Bank credit" "Bank claims on government" "Investment" "Government expenditure" "Primary balance" "FDI" "Real lending rate" "'
+local fignames    fig11a fig11b fig11c fig11d fig11e fig11f fig11g
 
 local i = 1
 foreach ch of local channels {
 
     local tlab : word `i' of `titlelabels'
 
-    * Y-axis title shown only on the leftmost panel of each row (cols(3)
-    * rows(2): panels 1 and 4), matching the reference paper's own Figure 2
+    * Y-axis title shown only on the leftmost panel of each row (cols(4)
+    * rows(2): panels 1 and 5), matching the reference paper's own Figure 2
     * -- not repeated on every panel.
     local ytit ""
-    if inlist(`i', 1, 4) local ytit "Cumulative percent change"
+    if inlist(`i', 1, 5) local ytit "Cumulative percent change"
 
     use "$clean/irf_ch_`ch'.dta", clear
 
@@ -477,10 +502,10 @@ foreach ch of local channels {
 * {bf:...} title already names the channel, so a combine-level title would
 * only repeat what the panel titles already say once several are merged
 * into one figure; dropped rather than kept as redundant text.
-* Combine into 2×3 grid
-graph combine fig11a fig11b fig11c fig11d fig11e fig11f, ///
-    cols(3) rows(2) ///
-    graphregion(color(white)) xsize(10) ysize(7)
+* Combine into 4×2 grid (7 channels)
+graph combine fig11a fig11b fig11c fig11d fig11e fig11f fig11g, ///
+    cols(4) rows(2) ///
+    graphregion(color(white)) xsize(12) ysize(7)
 
 graph export "$figs/fig11_channels.pdf", replace
 di as result "Figure saved: fig11_channels.pdf"

@@ -48,7 +48,7 @@ xtset cid year
 * the variable itself rather than in its ratio to a GDP that is collapsing — the
 * reference paper's var2/var3 construction. pb and fdi change sign, so no log is
 * possible and they keep the ratio; for a balance the ratio is the right object.
-foreach var in credit claims_govt inv govexp pb fdi {
+foreach var in credit claims_govt inv govexp pb fdi real_lending {
     local src `var'
     if inlist("`var'","credit","inv","govexp") local src ln_r_`var'
     capture drop `var'_base
@@ -69,7 +69,7 @@ foreach var in credit claims_govt inv govexp pb fdi {
 
 di as result _n "=== DATA COVERAGE AT ONSET BY RESOLUTION TYPE ==="
 di as result "  Variable        nd (39)   def (22)"
-foreach var in credit claims_govt inv govexp pb fdi {
+foreach var in credit claims_govt inv govexp pb fdi real_lending {
     quietly count if onset_nd  == 1 & sample == 1 & !missing(ch_`var'_0)
     local n_nd = r(N)
     quietly count if onset_def == 1 & sample == 1 & !missing(ch_`var'_0)
@@ -81,7 +81,7 @@ foreach var in credit claims_govt inv govexp pb fdi {
 * 3. LP ESTIMATION BY CHANNEL
 * ══════════════════════════════════════════════════════════════════════════
 
-local channels   credit claims_govt inv govexp pb fdi
+local channels   credit claims_govt inv govexp pb fdi real_lending
 
 * Controls: common core ($ctrl_core) + each channel's own pre_<v> (same as 11_channels.do)
 * Common-core controls (Asonuma-aligned $ctrl_core) + each channel's own pre_<v>;
@@ -96,6 +96,7 @@ local ctrl_inv         $ctrl_core pre_inv
 local ctrl_govexp      l1_gdpg l_debt l_banking_crisis l_open l_credit_bank l_lninfl exchange2 pre_govexp
 local ctrl_pb          $ctrl_core pre_pb
 local ctrl_fdi         $ctrl_core pre_fdi
+local ctrl_real_lending $ctrl_core pre_real_lending
 
 * Initialize storage matrices
 foreach ch of local channels {
@@ -203,6 +204,7 @@ local ptitle_inv         "Panel C: Investment/GDP"
 local ptitle_govexp      "Panel D: Govt expenditure/GDP"
 local ptitle_pb          "Panel E: Primary balance/GDP"
 local ptitle_fdi         "Panel F: FDI/GDP"
+local ptitle_real_lending "Panel G: Real lending interest rate"
 
 * Write one panel per channel to a single RTF. First successful panel uses
 * "replace"; the rest "append". Each esttab is wrapped in capture so a locked
@@ -211,7 +213,7 @@ local ptitle_fdi         "Panel F: FDI/GDP"
 local writemode replace
 local t4fail 0
 
-foreach ch in credit claims_govt inv govexp pb fdi {
+foreach ch in credit claims_govt inv govexp pb fdi real_lending {
 
     if "`elist_`ch''" == "" {
         di as error "  ** Table 4: no estimates for channel `ch' — panel skipped"
@@ -220,7 +222,7 @@ foreach ch in credit claims_govt inv govexp pb fdi {
     }
 
     local t4extra
-    if "`ch'" == "fdi" local t4extra addnotes("`t4note'")
+    if "`ch'" == "real_lending" local t4extra addnotes("`t4note'")
 
     capture esttab `elist_`ch'' using "$tabs/table4_channels_resolution.rtf", `writemode' ///
         b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
@@ -279,7 +281,7 @@ foreach ch of local channels {
 
 preserve
     clear
-    local nrows = 5 * 6   // 5 horizons × 6 channels
+    local nrows = 5 * 7   // 5 horizons × 7 channels
     set obs `nrows'
     gen channel  = ""
     gen horizon  = .
@@ -314,17 +316,17 @@ restore
 local c_nd  "blue"
 local c_def "red"
 
-local titlelabels `" "Bank credit" "Bank claims on government" "Investment" "Government expenditure" "Primary balance" "FDI" "'
+local titlelabels `" "Bank credit" "Bank claims on government" "Investment" "Government expenditure" "Primary balance" "FDI" "Real lending rate" "'
 
 local i = 1
 foreach ch of local channels {
     local tlab : word `i' of `titlelabels'
 
-    * Y-axis title shown only on the leftmost panel of each row (cols(3)
-    * rows(2): panels 1 and 4), matching the reference paper's own Figure 2
+    * Y-axis title shown only on the leftmost panel of each row (cols(4)
+    * rows(2): panels 1 and 5), matching the reference paper's own Figure 2
     * -- not repeated on every panel.
     local ytit ""
-    if inlist(`i', 1, 4) local ytit "Cumulative percent change"
+    if inlist(`i', 1, 5) local ytit "Cumulative percent change"
 
     use "$clean/irf_nd_`ch'.dta",  clear
     append using "$clean/irf_def_`ch'.dta"
@@ -358,13 +360,13 @@ foreach ch of local channels {
 * {bf:...} title already names the channel, so a combine-level title would
 * only repeat what the panel titles already say once several are merged
 * into one figure; dropped rather than kept as redundant text.
-graph combine ols_1 ols_2 ols_3 ols_4 ols_5 ols_6, ///
-    cols(3) rows(2) ///
-    graphregion(color(white)) xsize(10) ysize(7)
+graph combine ols_1 ols_2 ols_3 ols_4 ols_5 ols_6 ols_7, ///
+    cols(4) rows(2) ///
+    graphregion(color(white)) xsize(12) ysize(7)
 
 graph export "$figs/fig12a_channels_ols.pdf", replace
 di as result "Figure saved: fig12a_channels_ols.pdf"
-forvalues i = 1/6 {
+forvalues i = 1/7 {
     capture graph drop ols_`i'
 }
 
