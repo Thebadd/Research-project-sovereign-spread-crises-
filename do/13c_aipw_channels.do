@@ -556,6 +556,43 @@ foreach ch in credit claims_govt inv ///
         else di as error "    h=" `h'+1 ": Act 2 estimate failed (thin sample)."
     }
 }
+
+* ══════════════════════════════════════════════════════════════════════════
+* ROBUSTNESS: CREDIT CHANNEL AIPW, BULGARIA EXCLUDED (LEAVE-ONE-OUT)
+*
+* Same reasoning as 12_channels_resolution.do's own leave-one-out block:
+* Bulgaria's 1994 default-linked onset is followed by a real, well-
+* documented banking-system collapse (WDI credit/GDP: 66% in 1993 -> 8.5%
+* in 1997), landing inside h=3/h=4 of this LP's own outcome window. With
+* only 13-14 default-linked episodes in the balanced A-D sample, one
+* country's real crisis can set the def-arm AIPW estimate almost by
+* itself -- a small-N generalizability question, not an omitted-variable
+* one (l_banking_crisis is lagged/predetermined and correctly does NOT
+* net out a post-onset banking collapse -- doing so would control away
+* part of the transmission channel itself). Uses the identical om/cz_def/
+* balflag as credit's own Act 2 loop above. Diagnostic only: does NOT
+* change the headline credit estimate, the exported CSVs, or Figure B.
+* ══════════════════════════════════════════════════════════════════════════
+di as result _n "=== ROBUSTNESS: credit channel AIPW, Bulgaria excluded (leave-one-out) ==="
+di as result "  h   DEF, ex.Bulgaria (se_boot)   DEF, full sample (se_boot)"
+local om_credit_lo1 l1_gdpg l_debt l_banking_crisis l_govexp l_open l_lninfl exchange2 pre_credit
+forvalues h = 0/4 {
+    _aipwpair, y(ch_credit_`h') ///
+        d1(onset_def) if1(sample==1 & onset_nd==0 & common_abcd==1 & country!="Bulgaria") ///
+        d2(onset_nd)  if2(sample==1 & onset_def==0 & common_abcd==1 & country!="Bulgaria") ///
+        omod(`om_credit_lo1') pz(`om_credit_lo1' `cz_def') reps(`nboot')
+    if r(ok) {
+        local B1_lo1   = r(b1)
+        local BSE1_lo1 = r(bse1)
+        di "  h=" `h'+1 "   " %10.3f `B1_lo1' " (" %6.3f `BSE1_lo1' ")"
+    }
+    else di as error "  h=" `h'+1 ": leave-one-out estimate failed (thin sample)."
+}
+di as result "  Compare against credit's own DEF row printed under '=== CHANNEL: credit ==='"
+di as result "  above (same B1/BSE1, full sample). If ex.Bulgaria stays large and"
+di as result "  significant, the headline result is not just Bulgaria; if it collapses"
+di as result "  toward zero, most of the def-arm signal was one country's crisis."
+
 postclose `R'
 postclose `Rd'
 

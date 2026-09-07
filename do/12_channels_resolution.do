@@ -203,6 +203,45 @@ foreach ch of local channels {
 }
 
 * ══════════════════════════════════════════════════════════════════════════
+* 3b. ROBUSTNESS: CREDIT CHANNEL EXCLUDING BULGARIA (LEAVE-ONE-OUT)
+*
+* Bulgaria's 1994 default-linked onset is followed by a real, well-documented
+* banking-system collapse (WDI credit/GDP: 66% in 1993 -> 8.5% in 1997 -- a
+* third of banks closed, hyperinflation, currency board adopted mid-1997),
+* landing inside this LP's own h=3/h=4 outcome window. l_banking_crisis in
+* the control set is LAGGED (t-1, predetermined) and cannot and should not
+* net this out -- doing so would control away part of the very transmission
+* channel (default -> banking distress -> credit collapse) this regression
+* exists to measure, not a genuine confound. With only 13-14 default-linked
+* episodes in the balanced A-D sample, though, one country's real crisis can
+* set the def-arm average almost by itself -- this is a small-N
+* generalizability question, not an omitted-variable one, checked directly
+* here rather than argued informally. Diagnostic only: does NOT change the
+* headline credit estimate above or the exported Table 4/IRF figures.
+* ══════════════════════════════════════════════════════════════════════════
+di as result _n "========================================"
+di as result "ROBUSTNESS: credit channel, Bulgaria excluded (leave-one-out)"
+di as result "========================================"
+di "h   b_nd(ex.Bulg)  b_def(ex.Bulg)  b_def(full sample)  p(nd=def, ex.Bulg)"
+forvalues h = 0/4 {
+    capture xtreg ch_credit_`h' onset_nd onset_def `ctrl_credit' ///
+        if sample==1 & common_abcd==1 & country!="Bulgaria", fe vce(robust)
+    if _rc == 0 {
+        local bnd_lo1  = _b[onset_nd]
+        local bdef_lo1 = _b[onset_def]
+        test onset_nd = onset_def
+        local p_lo1 = r(p)
+        local bdef_full = b_def_credit[`h'+2,1]
+        di "h=" `h'+1 "  " %9.3f `bnd_lo1' "  " %10.3f `bdef_lo1' ///
+           "  " %14.3f `bdef_full' "  " %10.3f `p_lo1'
+    }
+    else di as error "  leave-one-out regression failed for credit h=" `h'+1 " (rc=" _rc ")"
+}
+di as result "  Read b_def(ex.Bulg) against b_def(full sample): if they stay close, the"
+di as result "  headline credit coefficient is not just Bulgaria; if it collapses toward"
+di as result "  zero, most of the def-arm signal was one country's crisis."
+
+* ══════════════════════════════════════════════════════════════════════════
 * 4. TABLE EXPORT — TABLE 4: Transmission channels by resolution type
 *   Word/RTF, multi-panel: one panel per channel, columns = horizons h=0..4.
 *   Each panel reports non-default and default-linked onset coefficients from the
