@@ -127,22 +127,31 @@ local gnames_a
 foreach s in nd def {
     local ttl = cond("`s'"=="nd", "Non-default", "Default-linked")
 
-    capture drop _xt_`s' _dt_`s' _xc_`s' _dc_`s'
+    capture drop _xt_`s' _dt_`s' _xc_`s' _dc_`s' _tagt_`s' _tagc_`s'
     quietly kdensity _p2_`s' if onset_`s'==1 & inrange(_p2_`s', 0.01, 0.6), ///
         generate(_xt_`s' _dt_`s') n(200) nograph
     quietly kdensity _p2_`s' if onset_`s'==0 & inrange(_p2_`s', 0.01, 0.6), ///
         generate(_xc_`s' _dc_`s') n(200) nograph
+
+    * Peak location via a TOLERANCE match, not exact equality (`==` on two
+    * floats computed independently, as r(max) and the stored column are,
+    * routinely fails to match at all -- that is what produced the earlier
+    * "invalid point" error: r(mean) came back missing for one label, so
+    * the text() coordinate pair was malformed).
     quietly summarize _dt_`s'
     local dtmax = r(max)
-    quietly summarize _xt_`s' if _dt_`s'==`dtmax'
-    local xt_lab = r(mean) + 0.08
-    local yt_lab = `dtmax' * 0.85
+    quietly gen byte _tagt_`s' = abs(_dt_`s' - `dtmax') < 1e-6 if !missing(_dt_`s')
+    quietly summarize _xt_`s' if _tagt_`s'==1
+    local xt_lab = cond(missing(r(mean)), 0.2, r(mean) + 0.08)
+    local yt_lab = cond(missing(`dtmax'), 1, `dtmax' * 0.85)
+
     quietly summarize _dc_`s'
     local dcmax = r(max)
-    quietly summarize _xc_`s' if _dc_`s'==`dcmax'
-    local xc_lab = r(mean) + 0.10
-    local yc_lab = `dcmax' * 0.85
-    capture drop _xt_`s' _dt_`s' _xc_`s' _dc_`s'
+    quietly gen byte _tagc_`s' = abs(_dc_`s' - `dcmax') < 1e-6 if !missing(_dc_`s')
+    quietly summarize _xc_`s' if _tagc_`s'==1
+    local xc_lab = cond(missing(r(mean)), 0.1, r(mean) + 0.10)
+    local yc_lab = cond(missing(`dcmax'), 2, `dcmax' * 0.85)
+    capture drop _xt_`s' _dt_`s' _xc_`s' _dc_`s' _tagt_`s' _tagc_`s'
 
     twoway ///
         (kdensity _p2_`s' if onset_`s'==1 & inrange(_p2_`s', 0.01, 0.6), ///
