@@ -429,6 +429,13 @@ forvalues h = 0/4 {
 *     PERMISSIVE companion statistic (assumes independence, which does not
 *     hold since both cells share the tranquil control pool) -- the
 *     bootstrap CI governs where the two disagree.
+*   - BALANCED A-D SAMPLE (common_abcd, built in 18_transforms.do): this is
+*     now the ACTUAL AIPW headline sample for GDP, not an added robustness
+*     check -- restricted to onsets where GDP, Investment, Bank credit, and
+*     Claims on government are ALL non-missing at every horizon h=0..4,
+*     matching 03_lp_resolution.do's Table 2 and 13c_aipw_channels.do's
+*     Investment/Bank credit/Claims-on-govt columns. Feeds BOTH stages of
+*     _aipwpair (propensity and outcome), the same restriction throughout.
 * ══════════════════════════════════════════════════════════════════════════
 di as result _n "=== ACT 2 — AIPW output cost by resolution, levels + difference ==="
 di as result "h   ND (se_boot)      DEF (se_boot)      def-nd   [95% boot CI]      Clogg z    p     draws"
@@ -441,12 +448,30 @@ di as result "    Clogg z still uses the analytic SEs (its own literature defini
 di as result "    companion statistic on a different SE basis than the level display -- read it as that, not as"
 di as result "    directly comparable to the level stars."
 
+* BALANCED A-D SAMPLE (common_abcd, built in 18_transforms.do): this is now
+* the ACTUAL AIPW headline sample for GDP, not an added robustness check --
+* restricted to onsets where GDP, Investment, Bank credit, and Claims on
+* government are ALL non-missing at every horizon h=0..4, so this file's
+* GDP result and 13c_aipw_channels.do's Investment/Bank credit/Claims-on-
+* govt columns are estimated on the identical set of restructuring episodes
+* (Asonuma et al.'s own "balanced panels" convention, extended here to four
+* panels rather than their own three). This restriction feeds BOTH the
+* propensity probit and the outcome regression inside _aipw (via if1/if2),
+* not just the outcome model -- the whole two-stage estimator moves to the
+* common sample, which is the intended effect, not a partial fix. See
+* 18_transforms.do's own diagnostic for the live episode count.
+quietly count if sample==1 & common_abcd==1 & onset_nd==1
+local n_bal_nd  = r(N)
+quietly count if sample==1 & common_abcd==1 & onset_def==1
+local n_bal_def = r(N)
+di as result _n "  Balanced A-D sample for this Act 2 loop: nd=`n_bal_nd'  def=`n_bal_def' (of the file's own onset_nd/onset_def totals)"
+
 forvalues h = 0/4 {
     local row = `h' + 1
 
     _aipwpair, y(dy_`h') ///
-        d1(onset_def) if1(sample==1 & onset_nd==0) ///
-        d2(onset_nd)  if2(sample==1 & onset_def==0) ///
+        d1(onset_def) if1(sample==1 & onset_nd==0 & common_abcd==1) ///
+        d2(onset_nd)  if2(sample==1 & onset_def==0 & common_abcd==1) ///
         omod($ctrl_core) pz(`cx' `cz_def') reps(`nboot')
 
     if !r(ok) {

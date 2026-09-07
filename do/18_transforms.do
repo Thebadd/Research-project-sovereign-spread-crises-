@@ -337,6 +337,68 @@ if !_rc {
 else di as error "  ** lending/infl_defl not found — real_lending not built (add lendinginterestrate.xlsx/inflationgdpdeflator.xlsx to \$raw)."
 
 * ══════════════════════════════════════════════════════════════════════════
+* BALANCED A-D SAMPLE FLAG (common_abcd) — matches Asonuma et al.'s own
+* convention that some panels of a multi-panel figure/table are balanced
+* across each other (same restructuring episodes feed every one of them) and
+* others are left unbalanced to preserve coverage. Here: GDP, Investment,
+* Bank credit and Claims on government (the project's own Panel A-D) are
+* balanced against each other -- an onset only counts for ANY of these four
+* regressions if all four outcomes are non-missing at EVERY horizon h=0..4 (a
+* single fixed episode set, not decided separately per horizon). FDI and
+* Real lending rate (Panel E/F), and every other channel (govexp, pb, ca,
+* claimsgov_assets, claimpriv_assets), keep their own best-available sample,
+* unrestricted by this flag -- matching the reference paper's own text:
+* "Panels D, E, F ... not balanced ... to cover as many restructuring
+* episodes as possible" (here, that unbalanced treatment extends to E/F and
+* every remaining channel, since this project balances one panel further,
+* A-D, than the reference paper's own A-C).
+*
+* REPLACES the current headline sample for GDP (03_lp_resolution.do's
+* Table 2, 08b_aipw.do's AIPW headline) and for the Investment/Bank
+* credit/Claims-on-government columns of 12_channels_resolution.do and
+* 13c_aipw_channels.do -- not an additional robustness variant. Every one
+* of those files' actual reported coefficients changes once this runs,
+* because the estimation sample itself shrinks to the common set. Report
+* the resulting count live below rather than assuming it.
+*
+* Built from TEMPORARY local copies of ch_credit_h/ch_inv_h (log real level,
+* matching ln_r_credit/ln_r_inv) and ch_claims_govt_h (ratio form, matching
+* the channel files' own choice not to log claims_govt -- see the
+* as_r_claims_govt note above for why) -- these helper columns are dropped
+* immediately after building the flag; only the flag itself, not the
+* channel outcomes, is persisted to panel_lp.dta. 03/08b/12/13c can then all
+* read the identical flag directly rather than each re-deriving it, which
+* would risk the four files' independent copies drifting apart from each
+* other over time.
+* ══════════════════════════════════════════════════════════════════════════
+capture drop common_abcd
+gen byte common_abcd = 1
+foreach v in credit inv claims_govt {
+    local src `v'
+    if inlist("`v'","credit","inv") local src ln_r_`v'
+    capture drop `v'_cabase
+    gen double `v'_cabase = L.`src'
+    forvalues h = 0/4 {
+        capture drop _ch_`v'_`h'
+        gen double _ch_`v'_`h' = F`h'.`src' - `v'_cabase
+        quietly replace common_abcd = 0 if missing(_ch_`v'_`h')
+        drop _ch_`v'_`h'
+    }
+    drop `v'_cabase
+}
+forvalues h = 0/4 {
+    quietly replace common_abcd = 0 if missing(dy_`h')
+}
+label var common_abcd "1 if GDP/Investment/Bank credit/Claims-on-govt all non-missing at every h=0..4 (balanced A-D sample)"
+
+quietly count if onset_all==1 & sample==1 & common_abcd==1
+di as result _n "  BALANCED A-D SAMPLE: `r(N)' onsets qualify (of 61)"
+quietly count if onset_nd==1 & sample==1 & common_abcd==1
+di as result "    non-default: `r(N)'"
+quietly count if onset_def==1 & sample==1 & common_abcd==1
+di as result "    default-linked: `r(N)'"
+
+* ══════════════════════════════════════════════════════════════════════════
 * FLOW TREATMENT — "being in a spread crisis" (consumed by 20_lp_flow.do)
 *
 * The headline design treats an episode as a point event: onset_all is 1 in the

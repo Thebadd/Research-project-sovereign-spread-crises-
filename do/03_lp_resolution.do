@@ -33,6 +33,22 @@
     the bottom, plus the F-statistic difference row — matching Table I1's
     own OLS layout exactly).
 
+    BALANCED A-D SAMPLE (common_abcd, built in 18_transforms.do): the
+    headline h=0..4 loop and its h=-1 pre-trend row are now estimated on
+    the common set of onsets where GDP, Investment, Bank credit, and
+    Claims on government are ALL non-missing at every horizon — Asonuma
+    et al.'s own convention that some panels of a multi-panel result are
+    balanced against each other so the same restructuring episodes feed
+    every one of them, applied here to this project's own Panel A-D
+    (extended one panel further than the reference paper's own A-C). This
+    REPLACES the prior best-available-sample Table 2, not an added
+    robustness check — Bank credit is the thinnest of the four, so the
+    default-linked arm shrinks materially; see 18_transforms.do's own
+    diagnostic for the live count. 12_channels_resolution.do's
+    Investment/Bank credit/Claims-on-govt columns and 08b_aipw.do's AIPW
+    GDP result use the identical flag, so all four are on the same
+    episode set; every other channel keeps its own best-available sample.
+
   Specification A (ROBUSTNESS): one LP per resolution type, each vs TRANQUIL with
     the RIVAL type DROPPED. This is the sample the paper's two-stage estimator
     uses (their probit + weighted regression are both `if sample_for_s == 1`), so
@@ -340,10 +356,14 @@ foreach m in b se lo90 hi90 lo95 hi95 {
 }
 
 * Pre-trend placebo, same joint spec (l1_gdpg dropped — it IS -1 times the dy_m2
-* outcome), displayed as h=-1.
+* outcome), displayed as h=-1. Restricted to the same balanced A-D sample as
+* the h=0..4 rows below (common_abcd), so Table 2's own placebo row reports
+* the same episode count as the horizons it is meant to check -- an
+* inconsistent n between the placebo and the main rows of the same table
+* would be confusing on its own terms, independent of the balancing choice.
 foreach h_neg in 2 {
     local row = 3 - `h_neg'
-    xtreg dy_m`h_neg' onset_nd onset_def `controls_pre' if sample==1, fe vce(robust)
+    xtreg dy_m`h_neg' onset_nd onset_def `controls_pre' if sample==1 & common_abcd==1, fe vce(robust)
     _critvals
     local c90 = r(c90)
     local c95 = r(c95)
@@ -371,10 +391,23 @@ foreach g in nd def {
 
 eststo clear   // clear any stored estimates before capturing for Table 2
 
+* BALANCED A-D SAMPLE (common_abcd, built in 18_transforms.do): this is now
+* the ACTUAL headline Table 2 estimation sample, not an added robustness
+* check -- restricted to onsets where GDP, Investment, Bank credit, and
+* Claims on government are ALL non-missing at every horizon h=0..4 (one
+* fixed episode set, matching Asonuma et al.'s own convention that Panels
+* A-D of a multi-panel result are balanced against each other so a reader
+* is comparing the same restructuring episodes across every one of them;
+* here that balancing is extended one panel further than the reference
+* paper's own A-C). Bank credit is the thinnest of the four, so this
+* shrinks Table 2's own sample, most severely on the default-linked arm --
+* see 18_transforms.do's own diagnostic for the live count, not assumed
+* here. Panels E/F (FDI, Real lending rate) and every other channel in
+* 11/12/13c keep their own best-available sample, unrestricted by this flag.
 forvalues h = 0/4 {
     local hd  = `h' + 1
     local row = `h' + 3
-    xtreg dy_`h' onset_nd onset_def `controls' if sample==1, fe vce(robust)
+    xtreg dy_`h' onset_nd onset_def `controls' if sample==1 & common_abcd==1, fe vce(robust)
 
     * Total regression sample/countries/R-squared -- shared across both arms
     * (this is ONE joint regression), matching the reference paper's own

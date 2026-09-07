@@ -27,6 +27,14 @@
   estimator superseded plain IPW as the estimator this project reports --
   see METHODOLOGY.md and 08b_aipw.do's header.
 
+  BALANCED A-D SAMPLE (common_abcd, built in 18_transforms.do): the
+  Investment, Bank credit, and Claims-on-govt columns are now ACTUALLY
+  estimated on the common episode set shared with 03_lp_resolution.do's
+  Table 2 and 08b_aipw.do's AIPW GDP result (Asonuma et al.'s own
+  "balanced panels" convention -- see the per-channel loop below for the
+  full argument). govexp, pb, fdi, and real_lending keep their own
+  best-available sample, unrestricted.
+
   OUTPUTS:
   --------
   - fig12a_channels_ols.pdf   : 2×3 grid (nd=navy, def=brick)
@@ -116,6 +124,18 @@ foreach ch of local channels {
 
     local ctrl `ctrl_`ch''
 
+    * BALANCED A-D SAMPLE (common_abcd, built in 18_transforms.do): Investment
+    * and Bank credit (this file's own `inv'/`credit') plus Claims on
+    * government (`claims_govt') are now ACTUALLY estimated on the same
+    * common episode set as 03_lp_resolution.do's GDP and 08b_aipw.do's AIPW
+    * GDP -- restricted to onsets where all four outcomes are non-missing at
+    * every horizon h=0..4 (Asonuma et al.'s own "balanced panels"
+    * convention). govexp, pb, fdi, and real_lending keep their own
+    * best-available sample, unrestricted -- matching the reference paper's
+    * own text that not every panel of a multi-panel result is balanced.
+    local balflag
+    if inlist("`ch'","credit","inv","claims_govt") local balflag " & common_abcd==1"
+
     di as result _n "========================================"
     di as result "CHANNEL: `ch'"
     di as result "========================================"
@@ -130,7 +150,7 @@ foreach ch of local channels {
         * omitted category (reg g_h dum1 dum2 dum3 g_0 $convar, vce(robust),
         * noconstant).
         capture xtreg ch_`ch'_`h' onset_nd onset_def `ctrl' ///
-            if sample == 1, fe vce(robust)
+            if sample == 1`balflag', fe vce(robust)
 
         if _rc == 0 {
             matrix b_nd_`ch'[`row',1]    = _b[onset_nd]

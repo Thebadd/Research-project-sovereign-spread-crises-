@@ -26,6 +26,14 @@
     govexp, pb                                          (11 / 12)
     ca (current account)                                (13 Aguiar-Gopinath)
 
+  BALANCED A-D SAMPLE (common_abcd, built in 18_transforms.do): credit, inv,
+  and claims_govt are now ACTUALLY estimated on the common episode set
+  shared with 08b_aipw.do's AIPW GDP result and 03_lp_resolution.do's
+  Table 2 (Asonuma et al.'s own "balanced panels" convention -- see the
+  per-channel loop below for the full argument). claimsgov_assets,
+  claimpriv_assets, real_lending, and fdi keep their own best-available
+  sample, unrestricted.
+
   PROPENSITY model = identical to 08b (selection into treatment is the same
   object regardless of outcome). Only the OUTCOME regression is channel-specific.
 
@@ -443,6 +451,19 @@ foreach ch in credit claims_govt inv ///
     else if "`ch'" == "govexp"            local om l1_gdpg l_debt l_banking_crisis l_open l_credit_bank l_lninfl exchange2 pre_govexp
     else                                  local om `core_aipw' pre_`ch'
 
+    * BALANCED A-D SAMPLE (common_abcd, built in 18_transforms.do): Investment
+    * and Bank credit (`inv'/`credit') plus Claims on government
+    * (`claims_govt') are now ACTUALLY estimated on the same common episode
+    * set as 08b_aipw.do's AIPW GDP result and 03_lp_resolution.do's Table 2
+    * -- restricted to onsets where all four outcomes are non-missing at
+    * every horizon h=0..4 (Asonuma et al.'s own "balanced panels"
+    * convention). This feeds BOTH stages of _aipwpair (propensity and
+    * outcome), the same as in 08b_aipw.do. claimsgov_assets,
+    * claimpriv_assets, real_lending, and fdi keep their own best-available
+    * sample, unrestricted.
+    local balflag
+    if inlist("`ch'","credit","inv","claims_govt") local balflag " & common_abcd==1"
+
     di as result _n "=== CHANNEL: `ch' ==="
 
     * ── Act 1: SILENCED. Only Act 2 (by resolution) is of interest now. Left
@@ -485,8 +506,8 @@ foreach ch in credit claims_govt inv ///
     post `Rd' ("`ch'") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)   // explicit baseline (h=0)
     forvalues h = 0/4 {
         _aipwpair, y(ch_`ch'_`h') ///
-            d1(onset_def) if1(sample==1 & onset_nd==0) ///
-            d2(onset_nd)  if2(sample==1 & onset_def==0) ///
+            d1(onset_def) if1(sample==1 & onset_nd==0`balflag') ///
+            d2(onset_nd)  if2(sample==1 & onset_def==0`balflag') ///
             omod(`om') pz(`om' `cz_def') reps(`nboot')
         if r(ok) {
             local B1 = r(b1)   // default-linked ATE
