@@ -47,7 +47,7 @@ global tabs  "$root/output/tables"
 * 18_transforms.do; set here so analysis files run standalone after a build.
 * The plain lagged columns (l_govexp/l_open/l_credit_bank/l_hyperinfl) are
 * created in 18_transforms.do and saved in panel_lp.dta.
-global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
+global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl l_reer_chg"
 
 * ══════════════════════════════════════════════════════════════════════════
 * DATA BUILD (10-18) — from-scratch, fully-sourced panel. Keeps ONLY the own

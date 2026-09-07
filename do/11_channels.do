@@ -39,7 +39,7 @@
 
   CONTROLS (uniform common core, Asonuma-aligned):
   -----------------------------------------------
-  $ctrl_core = l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2
+  $ctrl_core = l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl l_reer_chg
                l_hyperinfl      (+ each channel's own pre_<v>)
   The core term equal to a channel's own lagged level is dropped from its own
   regression (credit -> the depth term; govexp -> l_govexp). Global time-series
@@ -53,7 +53,7 @@
 
 use "$clean/panel_lp.dta", clear
 * safety: define the common core if this file is run standalone (master/18 also set it)
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl l_reer_chg"
 sort cid year
 xtset cid year
 
@@ -101,7 +101,7 @@ foreach var in credit claims_govt inv govexp pb fdi {
 /*
   CONTROL SET (uniform across all six channels):
   ----------------------------------------------
-  $ctrl_core = l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2
+  $ctrl_core = l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl l_reer_chg
                l_hyperinfl   + each channel's own pre_<v> (Asonuma g_0).
   Rationale: pre-crisis GDP momentum, fiscal solvency (debt) and external
   balance (ca), banking distress, government spending, trade openness, private-

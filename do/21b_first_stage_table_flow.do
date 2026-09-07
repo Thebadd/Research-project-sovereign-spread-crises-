@@ -97,7 +97,7 @@
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl l_reer_chg"
 
 foreach v in in_crisis_nd in_crisis_def sample_flow continuation years_since_def_onset l_contagion_dist {
     capture confirm variable `v', exact
@@ -239,7 +239,7 @@ capture esttab ffs_nd ffs_def using "$tabs/table_first_stage_flow.rtf", replace 
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
     mtitles("Non-default" "Default-linked") ///
     order(l_fedfunds l_contagion_dist years_since_def_onset ///
-          l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2) ///
+          l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl l_reer_chg) ///
     coeflabel(l_fedfunds "US fed funds rate (t-1)" ///
               l_contagion_dist "Distance-weighted contagion (t-1)" ///
               years_since_def_onset "Years since last default onset" ///
@@ -250,7 +250,7 @@ capture esttab ffs_nd ffs_def using "$tabs/table_first_stage_flow.rtf", replace 
               l_open "Trade openness (t-1)" ///
               l_credit_bank "Private credit by banks / GDP (t-1)" ///
               l_lninfl "Log gross inflation (t-1)" ///
-              exchange2 "Log exchange-rate change (t-1)") ///
+              l_reer_chg "Real effective exchange-rate change (t-1)") ///
     refcat(l_fedfunds "Predictors" l1_gdpg "Baseline controls", nolabel) ///
     stats(chi2p pp aurocctrl auroc N, ///
           labels("Chi-squared (predictors)" "  p-value" "AUROC, controls only" "AUROC, with predictors" "Observations") ///

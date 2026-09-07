@@ -37,7 +37,7 @@
 ===========================================================================*/
 
 * safety: define the common core if this file is run standalone (master/18 also set it)
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl l_reer_chg"
 
 * ── CONTROL CONVENTION (aligned to $ctrl_core, as in 02/03/11/12/13c) ──────
 * Every regression below now carries the common core
@@ -302,7 +302,7 @@ forvalues h = 0/4 {
     * Aggregate — with lagged CA for persistence
     * Country FE only, no year FE, robust SE -- matches 02/03/11/12's switch.
     capture xtreg ch_ca_`h' onset_all ///
-        l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2 pre_ca ///
+        l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl l_reer_chg pre_ca ///
         if sample==1, fe vce(robust)
     if _rc == 0 {
         matrix b_all[`row',1]    = _b[onset_all]
@@ -317,7 +317,7 @@ forvalues h = 0/4 {
     * category. This is the reference paper's OLS baseline; their rival-drop
     * applies to the two-stage design only, i.e. the weighted lines below.
     capture xtreg ch_ca_`h' onset_nd onset_def ///
-        l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2 pre_ca ///
+        l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl l_reer_chg pre_ca ///
         if sample==1, fe vce(robust)
     if _rc == 0 {
         matrix b_nd[`row',1]    = _b[onset_nd]

@@ -73,7 +73,7 @@
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl l_reer_chg"
 
 foreach v in onset_nd onset_def sample years_since_def_onset l_contagion_dist_def {
     capture confirm variable `v', exact

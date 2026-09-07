@@ -67,7 +67,7 @@
 
 use "$clean/panel_lp.dta", clear
 * safety: define the common core if this file is run standalone (master/18 also set it)
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl l_reer_chg"
 sort cid year
 xtset cid year
 
@@ -103,7 +103,7 @@ local cz_def l_fedfunds l_contagion_dist_def years_since_def_onset
 * two correlate 0.950. The swap was costing observations, not saving them, so
 * the core now carries l_credit_bank everywhere and this file needs no exception.
 * Both are plain saved columns, so the bootstrap stays operator-free either way.
-local core_aipw l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2
+local core_aipw l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl l_reer_chg
 
 * ── Build channel outcomes ch_v_h = F h.v - L.v (h=0..4) ─────────────────────
 * OUTCOME SCALE. Strictly-positive GDP-ratio channels use the LOG REAL LEVEL

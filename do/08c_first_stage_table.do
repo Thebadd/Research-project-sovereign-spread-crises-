@@ -59,7 +59,7 @@
     power statistically indistinguishable from controls-only.
     BASELINE CONTROLS (the SAME $ctrl_core used in the LP/AIPW outcome eq. —
         strict parity with the reference paper's $convar-in-both design):
-        l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2
+        l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl l_reer_chg
 
   Diagnostic rows (their Table 1 bottom block):
     Chi2 (predictors)      — joint Wald test that the 3 predictors are all zero
@@ -142,27 +142,34 @@
   most extreme predicted linear index (xb) once all controls+predictors are
   combined, the direct signature of "N failures completely determined."
 
-  RESULT, FLAGGED NOT ACTED ON: El Salvador 2002 is the clear primary case
-  -- predicted index -9.80, ~4 log-probit units more extreme than the
+  RESULT, FLAGGED NOT ACTED ON (HISTORICAL -- found while exchange2, the
+  NOMINAL bilateral FX log-change, was still the live $ctrl_core term; the
+  core now carries l_reer_chg, the REAL EFFECTIVE rate, instead -- see
+  18_transforms.do's "CORE CONTROL SET" header for that swap). El Salvador
+  2002 was the clear primary case under the old exchange2-based model --
+  predicted index -9.80, ~4 log-probit units more extreme than the
   next-closest observation (China 2022, -6.09), driven by exchange2=-1.58,
-  by far the largest currency move in the def-arm sample (next runner-up
-  +-0.83). A cluster of China years (2019, 2021-23) sits at a similarly
-  extreme index despite near-zero l_lninfl/exchange2 values of their own --
-  most likely a symptom of the same instability (the huge coefficients the
-  El Salvador observation forces onto l_lninfl/exchange2 make the whole
-  index sensitive even where those two terms are near zero), not an
-  independent second cause; the exact second "completely determined" row
-  was not pinned down further. NOT acted on: this is one country-year out
-  of a full $ctrl_core shared with every other regression in this project
-  (the LP/AIPW outcome equation, every onset-tier table) -- dropping or
+  by far the largest currency move in the def-arm sample under that
+  construction (next runner-up +-0.83). A cluster of China years (2019,
+  2021-23) sat at a similarly extreme index despite near-zero
+  l_lninfl/exchange2 values of their own -- most likely a symptom of the
+  same instability, not an independent second cause. Whether El Salvador
+  2002 (or a different country-year) is still the driver of the def arm's
+  separation note under l_reer_chg is a SEPARATE, NOT YET RE-CONFIRMED
+  question -- the diagnostic block below now re-runs on the live term, so
+  its own console output on the next run is the current answer, not this
+  paragraph. NOT acted on either way: this is one country-year out of a
+  full $ctrl_core shared with every other regression in this project (the
+  LP/AIPW outcome equation, every onset-tier table) -- dropping or
   winsorizing it here only, for this one probit, would decouple this
   table's control set from the rest of the project's, which is a larger
   change than the finding warrants. Recorded so the "2 failures completely
-  determined" note is explained, not left as an unexplained artifact.
+  determined" note (if it recurs under l_reer_chg) is explained, not left
+  as an unexplained artifact.
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
-if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl l_reer_chg"
 
 * Baseline controls X (both columns) and predictors Z2 (resolution-type
 * proneness = years since the most recent prior default-linked onset).
@@ -206,20 +213,20 @@ _fscol fs_nd  "onset_nd"  "sample==1 & onset_def==0"      "`X'" "`Z2'"
 _fscol fs_def "onset_def" "sample==1 & onset_nd==0"       "`X'" "`Z2'"
 
 * ══════════════════════════════════════════════════════════════════════════
-* DIAGNOSTIC: WHICH ROWS ARE THE "2 FAILURES COMPLETELY DETERMINED" IN THE
-* DEF ARM? l_lninfl/exchange2 print implausibly large coefficients there
-* (roughly -7 to -8 and +4 to +5) alongside that separation note. Rather
-* than guess, this identifies the actual country-years responsible: for
-* each of the two suspect controls, split the def-arm sample by
-* onset_def and report whether there is a clean, non-overlapping cutoff --
-* the hallmark of (quasi-)complete separation -- then list the specific
-* onset rows sitting at the extreme tail, since a handful of onset years
-* with an unusually large inflation/depreciation reading are the most
-* likely source (matches the reasoning that already motivated swapping
-* l_hyperinfl->l_lninfl and ex_dum1-5->exchange2 in $ctrl_core itself).
+* DIAGNOSTIC: WHICH ROWS ARE THE "N FAILURES COMPLETELY DETERMINED" IN THE
+* DEF ARM (IF ANY)? Re-run on the LIVE core term (l_reer_chg, real effective
+* FX change) as of this revision -- previously run against exchange2
+* (nominal bilateral FX change), see this file's header for that historical
+* finding (El Salvador 2002). Rather than guess whether the same or a
+* different observation drives separation under the new term, this
+* identifies the actual country-years responsible directly: for each of the
+* two suspect controls, split the def-arm sample by onset_def and report
+* whether there is a clean, non-overlapping cutoff -- the hallmark of
+* (quasi-)complete separation -- then list the specific onset rows sitting
+* at the extreme tail.
 * ══════════════════════════════════════════════════════════════════════════
-di as result _n "=== DIAGNOSTIC: separation source in the def arm (l_lninfl / exchange2) ==="
-foreach v in l_lninfl exchange2 {
+di as result _n "=== DIAGNOSTIC: separation source in the def arm (l_lninfl / l_reer_chg) ==="
+foreach v in l_lninfl l_reer_chg {
     di as result _n "      `v', by onset_def (def-arm sample, onset_nd==0):"
     quietly summarize `v' if sample==1 & onset_nd==0 & onset_def==1, detail
     local mn1 = r(min)
@@ -239,18 +246,18 @@ foreach v in l_lninfl exchange2 {
     }
 }
 
-di as result _n "      Onset rows (def arm) at the extreme tails of l_lninfl / exchange2:"
-di as result "      (the likely candidates for the 2 perfectly-determined observations)"
+di as result _n "      Onset rows (def arm) at the extreme tails of l_lninfl / l_reer_chg:"
+di as result "      (candidates for any 'completely determined' observations under the live term)"
 preserve
     quietly keep if sample==1 & onset_nd==0
     gen double _rank_infl = abs(l_lninfl - 0)
     gsort -_rank_infl
     di as result _n "      Top 5 by |l_lninfl|, def-arm sample:"
-    list country year onset_def l_lninfl exchange2 in 1/5, noobs clean
-    gen double _rank_fx = abs(exchange2 - 0)
+    list country year onset_def l_lninfl l_reer_chg in 1/5, noobs clean
+    gen double _rank_fx = abs(l_reer_chg - 0)
     gsort -_rank_fx
-    di as result _n "      Top 5 by |exchange2|, def-arm sample:"
-    list country year onset_def l_lninfl exchange2 in 1/5, noobs clean
+    di as result _n "      Top 5 by |l_reer_chg|, def-arm sample:"
+    list country year onset_def l_lninfl l_reer_chg in 1/5, noobs clean
 restore
 
 * Neither variable alone need have disjoint ranges for "N failures completely
@@ -263,7 +270,7 @@ restore
 * predicted probability to (numerically) exactly 0, which shows up as an
 * extreme negative xb.
 di as result _n "      Exact rows: def-arm CONTROL rows (onset_def==0) with the most extreme"
-di as result "      predicted index (candidates for the '2 failures completely determined'):"
+di as result "      predicted index (candidates for any 'completely determined' rows):"
 preserve
     quietly keep if sample==1 & onset_nd==0
     quietly probit onset_def `X' `Z2', vce(cluster cid)
@@ -271,7 +278,7 @@ preserve
     quietly predict double _xb_def, xb
     keep if onset_def==0
     sort _xb_def
-    list country year onset_def l_lninfl exchange2 _xb_def in 1/5, noobs clean
+    list country year onset_def l_lninfl l_reer_chg _xb_def in 1/5, noobs clean
 restore
 
 * ── FORMAL TEST OF WHETHER THE TWO AUROCs ACTUALLY DIFFER ──────────────────
@@ -398,7 +405,7 @@ capture esttab fs_nd fs_def using "$tabs/table_first_stage.rtf", replace ///
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
     mtitles("Non-default" "Default-linked") ///
     order(l_fedfunds l_contagion_dist_def years_since_def_onset ///
-          l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2) ///
+          l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl l_reer_chg) ///
     coeflabel(l_fedfunds "US fed funds rate (t-1)" ///
               l_contagion_dist_def "Distance-weighted contagion, default-linked (t-1)" ///
               years_since_def_onset "Years since last default-linked onset" ///
@@ -409,7 +416,7 @@ capture esttab fs_nd fs_def using "$tabs/table_first_stage.rtf", replace ///
               l_open "Trade openness (t-1)" ///
               l_credit_bank "Private credit by banks / GDP (t-1)" ///
               l_lninfl "Log inflation, continuous (t-1)" ///
-              exchange2 "Nominal exchange-rate log-change (t-1)") ///
+              l_reer_chg "Real effective exchange-rate change (t-1)") ///
     refcat(l_fedfunds "Predictors" l1_gdpg "Baseline controls", nolabel) ///
     stats(chi2p pp aurocctrl auroc N, ///
           labels("Chi-squared (predictors)" "  p-value" "AUROC, controls only" "AUROC, with predictors" "Observations") ///
