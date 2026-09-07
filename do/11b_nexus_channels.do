@@ -119,6 +119,10 @@ local titles `" "Bank claims on government / assets" "Bank claims on private sec
 local i = 1
 foreach ch of local channels {
     local tlab : word `i' of `titles'
+    * Y-axis title shown only on the leftmost panel (cols(2)) -- not
+    * repeated on every panel.
+    local ytit ""
+    if `i' == 1 local ytit "Cumulative percent change"
     use "$clean/irf_nx_`ch'.dta", clear
     twoway ///
         (rarea lo95 hi95 horizon, color("`c_main'%15") lwidth(none)) ///
@@ -126,9 +130,9 @@ foreach ch of local channels {
         (connected b horizon, lcolor("`c_main'") mcolor("`c_main'") ///
             msymbol(circle) lwidth(medthick)), ///
         yline(0, lcolor(gs8) lpattern(dash) lwidth(thin)) ///
-        xlabel(0(1)5, labsize(medium)) ylabel(, format(%9.0f) labsize(medium)) ///
+        xlabel(0(1)5, labsize(medium)) ylabel(, format(%9.0f) labsize(medium) angle(horizontal)) ///
         xtitle("Year", size(medium)) ///
-        ytitle("Cumulative percent change", size(medsmall)) ///
+        ytitle("`ytit'", size(medsmall)) ///
         title("`tlab'", size(medlarge) color(navy)) legend(off) ///
         graphregion(color(white)) plotregion(color(white)) name(nx_`i', replace)
     local ++i
@@ -273,6 +277,10 @@ local titles `" "Bank claims on government / assets" "Bank claims on private sec
 local i = 1
 foreach ch of local channels {
     local tlab : word `i' of `titles'
+    * Y-axis title shown only on the leftmost panel (cols(2)) -- not
+    * repeated on every panel.
+    local ytit ""
+    if `i' == 1 local ytit "Cumulative percent change"
     use "$clean/irf_nx_nd_`ch'.dta", clear
     append using "$clean/irf_nx_def_`ch'.dta"
     twoway ///
@@ -283,9 +291,9 @@ foreach ch of local channels {
         (connected b horizon if group=="def", lcolor("`c_def'") mcolor("`c_def'") ///
             msymbol(square) lwidth(medthick)), ///
         yline(0, lcolor(gs10) lpattern(dash) lwidth(thin)) ///
-        xlabel(0(1)5, labsize(medium)) ylabel(, format(%9.0f) labsize(medium)) ///
+        xlabel(0(1)5, labsize(medium)) ylabel(, format(%9.0f) labsize(medium) angle(horizontal)) ///
         xtitle("Year", size(medium)) ///
-        ytitle("Cumulative percent change", size(medsmall)) ///
+        ytitle("`ytit'", size(medsmall)) ///
         title("`tlab'", size(medlarge) color(navy)) ///
         legend(off) graphregion(color(white)) plotregion(color(white)) ///
         name(nxr_`i', replace)

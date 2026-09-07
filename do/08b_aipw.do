@@ -622,7 +622,7 @@ preserve
         (connected b horizon if series=="nd",  lcolor("`c_nd'")  lwidth(medthick) msymbol(circle)) ///
         (connected b horizon if series=="def", lcolor("`c_def'") lwidth(medthick) msymbol(square)), ///
         yline(0, lpattern(dash) lcolor(gs8)) ///
-        xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%9.0f) labsize(medsmall)) ///
+        xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%9.0f) labsize(medsmall) angle(horizontal)) ///
         xtitle("Year", size(medsmall)) ///
         ytitle("Cumulative percent change", size(medsmall)) ///
         title("GDP", size(medium) color(navy)) ///

@@ -565,13 +565,17 @@ local titlelabels_ch `" "Bank credit" "Bank claims on government" "Investment" "
 local i = 1
 foreach ch of local channels_ord {
     local tlab : word `i' of `titlelabels_ch'
+    * Y-axis title shown only on the leftmost panel of each row (cols(3)
+    * rows(2): panels 1 and 4) -- not repeated on every panel.
+    local ytit ""
+    if inlist(`i', 1, 4) local ytit "Cumulative percent change"
     capture twoway ///
         (rarea lo hi horizon if series=="all" & channel=="`ch'", color("`c1'%18") lwidth(none)) ///
         (connected b horizon if series=="all" & channel=="`ch'", lcolor("`c1'") lwidth(medthick) msymbol(circle)), ///
         yline(0, lpattern(dash) lcolor(gs8)) ///
-        xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium)) ///
+        xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
         xtitle("Year", size(medium)) ///
-        ytitle("Cumulative percent change", size(medsmall)) ///
+        ytitle("`ytit'", size(medsmall)) ///
         title("`tlab'", size(medlarge) color(navy)) legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
         name(aipwch_`i', replace)
@@ -603,15 +607,19 @@ local titlelabels_ch `" "Bank credit" "Bank claims on government" "Investment" "
 local i = 1
 foreach ch of local channels_ord {
     local tlab : word `i' of `titlelabels_ch'
+    * Y-axis title shown only on the leftmost panel of each row (cols(3)
+    * rows(2): panels 1 and 4) -- not repeated on every panel.
+    local ytit ""
+    if inlist(`i', 1, 4) local ytit "Cumulative percent change"
     capture twoway ///
         (rarea lo hi horizon if series=="nd"  & channel=="`ch'", color("`c_nd'%16")  lwidth(none)) ///
         (rarea lo hi horizon if series=="def" & channel=="`ch'", color("`c_def'%16") lwidth(none)) ///
         (connected b horizon if series=="nd"  & channel=="`ch'", lcolor("`c_nd'")  lwidth(medthick) msymbol(circle)) ///
         (connected b horizon if series=="def" & channel=="`ch'", lcolor("`c_def'") lwidth(medthick) msymbol(square)), ///
         yline(0, lpattern(dash) lcolor(gs8)) ///
-        xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium)) ///
+        xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
         xtitle("Year", size(medium)) ///
-        ytitle("Cumulative percent change", size(medsmall)) ///
+        ytitle("`ytit'", size(medsmall)) ///
         title("`tlab'", size(medlarge) color(navy)) legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
         name(aipwch2_`i', replace)

@@ -443,6 +443,12 @@ foreach ch of local channels {
 
     local tlab : word `i' of `titlelabels'
 
+    * Y-axis title shown only on the leftmost panel of each row (cols(3)
+    * rows(2): panels 1 and 4), matching the reference paper's own Figure 2
+    * -- not repeated on every panel.
+    local ytit ""
+    if inlist(`i', 1, 4) local ytit "Cumulative percent change"
+
     use "$clean/irf_ch_`ch'.dta", clear
 
     twoway ///
@@ -456,9 +462,9 @@ foreach ch of local channels {
         , ///
         yline(0, lcolor(gs8) lpattern(dash) lwidth(thin)) ///
         xlabel(0(1)5, labsize(medium)) ///
-        ylabel(, format(%9.0f) labsize(medium)) ///
+        ylabel(, format(%9.0f) labsize(medium) angle(horizontal)) ///
         xtitle("Year", size(medium)) ///
-        ytitle("Cumulative percent change", size(medsmall)) ///
+        ytitle("`ytit'", size(medsmall)) ///
         title("`tlab'", size(medlarge) color(navy)) ///
         legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///

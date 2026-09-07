@@ -289,7 +289,7 @@ preserve
         yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
         xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
         xlabel(-3(1)5, labsize(medsmall)) ///
-        ylabel(, format(%9.0f) labsize(medsmall)) ///
+        ylabel(, format(%9.0f) labsize(medsmall) angle(horizontal)) ///
         xtitle("Year", size(small)) ///
         ytitle("Cumulative percent change", size(small)) ///
         title("GDP", size(medium) color(navy)) ///
@@ -313,7 +313,7 @@ preserve
             lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
         yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
         xlabel(0(1)5, labsize(medsmall)) ///
-        ylabel(, format(%9.0f) labsize(medsmall)) ///
+        ylabel(, format(%9.0f) labsize(medsmall) angle(horizontal)) ///
         xtitle("Year", size(small)) ///
         ytitle("Cumulative percent change", size(small)) ///
         title("GDP", size(medium) color(navy)) ///
@@ -327,7 +327,7 @@ preserve
             lcolor("`c_all'") mcolor("`c_all'") msymbol(circle) lwidth(medthick)), ///
         yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
         xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
-        xlabel(-3(1)5, labsize(medsmall)) ylabel(, format(%9.0f) labsize(medsmall)) ///
+        xlabel(-3(1)5, labsize(medsmall)) ylabel(, format(%9.0f) labsize(medsmall) angle(horizontal)) ///
         xtitle("Year", size(small)) ///
         ytitle("Cumulative percent change", size(small)) ///
         title("GDP", size(medium) color(navy)) ///
@@ -339,7 +339,7 @@ preserve
     twoway (connected b_all horizon if horizon>=0, ///
             lcolor("`c_all'") mcolor("`c_all'") msymbol(circle) lwidth(medthick)), ///
         yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
-        xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%9.0f) labsize(medsmall)) ///
+        xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%9.0f) labsize(medsmall) angle(horizontal)) ///
         xtitle("Year", size(small)) ///
         ytitle("Cumulative percent change", size(small)) ///
         title("GDP", size(medium) color(navy)) ///
@@ -363,7 +363,7 @@ preserve
             (connected b_`v'_nd horizon, lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
             (connected b_`v'_def horizon, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
-            xlabel(-3(1)5, labsize(small)) ylabel(, format(%9.0f) labsize(small)) ///
+            xlabel(-3(1)5, labsize(small)) ylabel(, format(%9.0f) labsize(small) angle(horizontal)) ///
             xtitle("Year") ytitle("Cumulative percent change", size(small)) ///
             title("`panellab_`v''", size(medium)) ///
             legend(off) ///
@@ -375,7 +375,7 @@ preserve
             (connected b_`v'_nd horizon if horizon>=0, lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
             (connected b_`v'_def horizon if horizon>=0, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
-            xlabel(0(1)5, labsize(small)) ylabel(, format(%9.0f) labsize(small)) ///
+            xlabel(0(1)5, labsize(small)) ylabel(, format(%9.0f) labsize(small) angle(horizontal)) ///
             xtitle("Year") ytitle("Cumulative percent change", size(small)) ///
             title("`panellab_`v''", size(medium)) ///
             legend(off) ///
