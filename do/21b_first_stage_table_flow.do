@@ -240,20 +240,20 @@ capture esttab ffs_nd ffs_def using "$tabs/table_first_stage_flow.rtf", replace 
     mtitles("Non-default" "Default-linked") ///
     order(l_fedfunds l_contagion_dist years_since_def_onset ///
           l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2) ///
-    coeflabel(l_fedfunds "US fed funds rate (t-1)" ///
-              l_contagion_dist "Distance-weighted contagion (t-1)" ///
-              years_since_def_onset "Years since last default onset" ///
-              l1_gdpg "GDP growth (t-1)" ///
-              l_debt "Public debt / GDP (t-1)" ///
-              l_banking_crisis "Banking crisis dummy (t-1)" ///
-              l_govexp "Govt expenditure / GDP (t-1)" ///
-              l_open "Trade openness (t-1)" ///
-              l_credit_bank "Private credit by banks / GDP (t-1)" ///
-              l_lninfl "Log gross inflation (t-1)" ///
-              exchange2 "Log exchange-rate change (t-1)") ///
+    coeflabel(l_fedfunds "US federal funds rate" ///
+              l_contagion_dist "Contagion, based on spread crisis (any type)" ///
+              years_since_def_onset "Years since last default-linked onset" ///
+              l1_gdpg "GDP growth" ///
+              l_debt "Public debt-to-GDP ratio" ///
+              l_banking_crisis "Banking crisis dummy" ///
+              l_govexp "Government expenditure-to-GDP ratio" ///
+              l_open "Trade openness" ///
+              l_credit_bank "Bank credit-to-GDP ratio" ///
+              l_lninfl "Inflation" ///
+              exchange2 "Nominal exchange-rate") ///
     refcat(l_fedfunds "Predictors" l1_gdpg "Baseline controls", nolabel) ///
     stats(chi2p pp aurocctrl auroc N, ///
-          labels("Chi-squared (predictors)" "  p-value" "AUROC, controls only" "AUROC, with predictors" "Observations") ///
+          labels("Chi-squared for predictors" " p-value of Chi-squared" "AUROC, controls only" "AUROC, with predictors" "Observations") ///
           fmt(2 3 3 3 0)) ///
     title("Table 1f. First-stage probit for the flow AIPW: predicting the START of a spread crisis") ///
     addnotes("Dependent variable: dummy = 1 in the onset year of the indicated crisis type; each type predicted vs tranquil years, the rival type dropped." ///
