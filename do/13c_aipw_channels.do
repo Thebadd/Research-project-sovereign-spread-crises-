@@ -557,20 +557,32 @@ order channel series horizon b se lo hi
 export delimited "$tabs/aipw_channels.csv", replace
 di as result _n "AIPW channel results CSV saved: $tabs/aipw_channels.csv"
 
-encode channel, gen(chid)
+* UNIFORM IRF STYLE (project-wide onset-tier convention): by()'s per-panel
+* title comes from chid's value label -- built here by EXPLICIT string
+* match (not encode()'s alphabetical numbering, which would silently
+* mismatch the labels below if it ever reordered) so each panel's title is
+* the plain variable name, not the raw channel string.
+gen byte chid = .
+replace chid = 1 if channel=="credit"
+replace chid = 2 if channel=="claims_govt"
+replace chid = 3 if channel=="inv"
+replace chid = 4 if channel=="claimsgov_assets"
+replace chid = 5 if channel=="claimpriv_assets"
+label define chidlbl 1 "Bank credit" 2 "Bank claims on government" ///
+    3 "Investment" 4 "Bank claims on government / assets" ///
+    5 "Bank claims on private sector / assets", replace
+label values chid chidlbl
 
 * ── Figure A: Act 1 all-crises AIPW per channel — SILENCED, see header. ─────
 /*
-local c1 "23 55 94"
+local c1 "blue"
 capture twoway ///
     (rarea lo hi horizon if series=="all", color("`c1'%18") lwidth(none)) ///
     (connected b horizon if series=="all", lcolor("`c1'") lwidth(medthick) msymbol(circle)), ///
-    by(chid, yrescale legend(off) ///
-        note("Doubly-robust AIPW (Asonuma et al. Eq. 3), ATE. Shaded = bootstrap 95% percentile CI.", size(vsmall)) ///
-        title("AIPW transmission channels — all crises", size(medsmall) color(navy))) ///
+    by(chid, yrescale legend(off)) ///
     yline(0, lpattern(dash) lcolor(gs8)) ///
-    xlabel(0(1)5) xtitle("Year (Year 1 = crisis year)", size(small)) ///
-    ytitle("Cumulative change in channel (pp)", size(small)) ///
+    xlabel(0(1)5) xtitle("Year", size(small)) ///
+    ytitle("Cumulative percent change", size(small)) ///
     graphregion(color(white)) plotregion(color(white))
 if _rc == 0 {
     graph export "$figs/fig_aipw_ch_act1.pdf", replace
@@ -579,21 +591,20 @@ if _rc == 0 {
 else di as error "  ** fig_aipw_ch_act1 failed (rc=" _rc ")"
 */
 
-* ── Figure B: Act 2 resolution split per channel (nd vs def, fig8 palette) ──
-local c_nd  "0 84 166"
-local c_def "157 36 73"
+* ── Figure B: Act 2 resolution split per channel ─────────────────────────
+* UNIFORM IRF STYLE: non-default = blue, default-linked = red, both solid,
+* markers match line color, no legend.
+local c_nd  "blue"
+local c_def "red"
 capture twoway ///
     (rarea lo hi horizon if series=="nd",  color("`c_nd'%16")  lwidth(none)) ///
     (rarea lo hi horizon if series=="def", color("`c_def'%16") lwidth(none)) ///
     (connected b horizon if series=="nd",  lcolor("`c_nd'")  lwidth(medthick) msymbol(circle)) ///
-    (connected b horizon if series=="def", lcolor("`c_def'") lwidth(medthick) lpattern(dash) msymbol(square)), ///
-    by(chid, yrescale ///
-        note("Two AIPW level IRFs per channel; shaded = 1.96*row-bootstrap SE band (adopted, not the paper's analytic formula). Gap = extra cost of default, bootstrapped directly (row-level).", size(vsmall)) ///
-        title("AIPW transmission channels by resolution", size(medsmall) color(navy))) ///
+    (connected b horizon if series=="def", lcolor("`c_def'") lwidth(medthick) msymbol(square)), ///
+    by(chid, yrescale legend(off)) ///
     yline(0, lpattern(dash) lcolor(gs8)) ///
-    xlabel(0(1)5) xtitle("Year (Year 1 = crisis year)", size(small)) ///
-    ytitle("Cumulative change in channel (pp)", size(small)) ///
-    legend(order(3 "Non-default" 4 "Default-linked") size(small)) ///
+    xlabel(0(1)5) xtitle("Year", size(small)) ///
+    ytitle("Cumulative percent change", size(small)) ///
     graphregion(color(white)) plotregion(color(white))
 if _rc == 0 {
     graph export "$figs/fig_aipw_ch_act2.pdf", replace
