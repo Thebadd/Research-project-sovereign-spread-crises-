@@ -144,12 +144,14 @@ gen double l_open         = L.open/100
 gen double l_credit_bank  = L.credit_bank/100
 gen double l_credit       = L.credit
 * Exchange rate — robustness-tier, not in $ctrl_core. reer_chg (12_wdi.do) is
-* already a % change, so this is a plain lag, same pattern as every other
-* control here.
+* a % change (e.g. 5.2 for 5.2%); /100 below is for INTERNAL consistency
+* only, matching the decimal scale the rest of $ctrl_core is now on -- no
+* Asonuma counterpart to align against (exchange2 is their matching term,
+* already decimal, already in the core).
 capture confirm variable reer_chg
 if !_rc {
-    gen double l_reer_chg = L.reer_chg
-    label var l_reer_chg "L1 real effective exchange rate, % change (predetermined; robustness alt., not in core)"
+    gen double l_reer_chg = L.reer_chg/100
+    label var l_reer_chg "L1 real effective exchange rate, decimal change (predetermined; robustness alt., not in core)"
 }
 else di as error "  ** reer_chg not found — skipping l_reer_chg (add REER_INDEX.xlsx to build it)."
 * debt, current account, and the banking-crisis flag lagged to t-1 so the ENTIRE
@@ -162,7 +164,10 @@ else di as error "  ** reer_chg not found — skipping l_reer_chg (add REER_INDE
 * l_fedfunds now do, rather than being the one $ctrl_core term left on a raw
 * 0-100 percent scale. Source is raw percent-of-GDP (IMF WEO GGXWDG_NGDP).
 gen double l_debt         = L.debt/100
-gen double l_ca           = L.ca
+* SCALE: same internal-consistency reasoning as l_debt above -- ca has no
+* Asonuma counterpart either (not in their $convar), raw source is percent-
+* of-GDP (IMF WEO BCA_NGDPD). Robustness-tier only, not in $ctrl_core.
+gen double l_ca           = L.ca/100
 gen byte   l_banking_crisis = L.banking_crisis
 * DURATION, not a flag — the reference paper's banking_duration_lv2018 analog.
 * banking_duration counts how long the crisis has ALREADY lasted at that year
@@ -198,7 +203,7 @@ label var l_open         "L1 trade openness, decimal (Asonuma open2 scale)"
 label var l_credit_bank  "L1 bank credit to private / GDP, decimal (Asonuma credit_bank2 scale; COMMON CORE)"
 label var l_credit       "L1 private credit / GDP (all fin. corps; robustness alt., NOT in core)"
 label var l_debt         "L1 public debt / GDP, decimal (predetermined; internal-consistency scale, no Asonuma counterpart)"
-label var l_ca           "L1 current account, % GDP (predetermined)"
+label var l_ca           "L1 current account / GDP, decimal (predetermined; internal-consistency scale, no Asonuma counterpart)"
 label var l_banking_crisis      "L1 systemic banking-crisis dummy (robustness alt., not in core)"
 label var l_banking_duration    "L1 years the banking crisis had already lasted (predetermined) - COMMON CORE"
 label var l_banking_duration_total "L1 total banking-crisis length (robustness alt., not in core)"
