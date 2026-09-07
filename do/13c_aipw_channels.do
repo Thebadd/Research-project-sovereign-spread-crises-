@@ -114,7 +114,7 @@ local core_aipw l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_
 * claimsgov_assets and claimpriv_assets are shares of BANK ASSETS, not of GDP, so
 * the denominator problem does not arise for them either.
 foreach v in credit claims_govt inv govexp pb fdi ///
-             claimsgov_assets claimpriv_assets ca {
+             claimsgov_assets claimpriv_assets ca real_lending {
     local src `v'
     if inlist("`v'","credit","inv","govexp") local src ln_r_`v'
     capture drop `v'_base
@@ -390,7 +390,7 @@ postfile `Rd' str24 channel byte horizon double dhl bdef bnd se lo hi nd ///
 * aggregate coefficient.
 * ══════════════════════════════════════════════════════════════════════════
 di as result _n "=== DIAGNOSTIC: extreme def-arm channel outcomes (candidates for outlier-driven ATEs) ==="
-foreach ch in credit inv claims_govt claimsgov_assets claimpriv_assets {
+foreach ch in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending {
     foreach h in 0 3 {
         capture confirm variable ch_`ch'_`h'
         if !_rc {
@@ -418,7 +418,7 @@ foreach ch in credit inv claims_govt claimsgov_assets claimpriv_assets {
 * construction (ch_v_h/pre_v/l_v) above still runs regardless, since it is
 * cheap and shared -- only the estimation loop below is skipped for them.
 foreach ch in credit claims_govt inv ///
-              claimsgov_assets claimpriv_assets {
+              claimsgov_assets claimpriv_assets real_lending {
 
     * channel-specific OUTCOME-model controls (pre-lagged plain columns)
     * AIPW outcome core ($core_aipw = the common core, depth term l_credit_bank) +
@@ -602,8 +602,8 @@ forvalues i = 1/5 {
 * both solid, markers match line color, no legend.
 local c_nd  "blue"
 local c_def "red"
-local channels_ord   credit claims_govt inv claimsgov_assets claimpriv_assets
-local titlelabels_ch `" "Bank credit" "Bank claims on government" "Investment" "Bank claims on government / assets" "Bank claims on private sector / assets" "'
+local channels_ord   credit claims_govt inv claimsgov_assets claimpriv_assets real_lending
+local titlelabels_ch `" "Bank credit" "Bank claims on government" "Investment" "Bank claims on government / assets" "Bank claims on private sector / assets" "Real lending rate" "'
 local i = 1
 foreach ch of local channels_ord {
     local tlab : word `i' of `titlelabels_ch'
@@ -625,14 +625,14 @@ foreach ch of local channels_ord {
         name(aipwch2_`i', replace)
     local ++i
 }
-capture graph combine aipwch2_1 aipwch2_2 aipwch2_3 aipwch2_4 aipwch2_5, ///
+capture graph combine aipwch2_1 aipwch2_2 aipwch2_3 aipwch2_4 aipwch2_5 aipwch2_6, ///
     cols(3) rows(2) graphregion(color(white)) xsize(10) ysize(7)
 if _rc == 0 {
     graph export "$figs/fig_aipw_ch_act2.pdf", replace
     di as result "Figure saved: fig_aipw_ch_act2.pdf"
 }
 else di as error "  ** fig_aipw_ch_act2 failed (rc=" _rc ")"
-forvalues i = 1/5 {
+forvalues i = 1/6 {
     capture graph drop aipwch2_`i'
 }
 
