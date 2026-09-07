@@ -557,60 +557,76 @@ order channel series horizon b se lo hi
 export delimited "$tabs/aipw_channels.csv", replace
 di as result _n "AIPW channel results CSV saved: $tabs/aipw_channels.csv"
 
-* UNIFORM IRF STYLE (project-wide onset-tier convention): by()'s per-panel
-* title comes from chid's value label -- built here by EXPLICIT string
-* match (not encode()'s alphabetical numbering, which would silently
-* mismatch the labels below if it ever reordered) so each panel's title is
-* the plain variable name, not the raw channel string.
-gen byte chid = .
-replace chid = 1 if channel=="credit"
-replace chid = 2 if channel=="claims_govt"
-replace chid = 3 if channel=="inv"
-replace chid = 4 if channel=="claimsgov_assets"
-replace chid = 5 if channel=="claimpriv_assets"
-label define chidlbl 1 "Bank credit" 2 "Bank claims on government" ///
-    3 "Investment" 4 "Bank claims on government / assets" ///
-    5 "Bank claims on private sector / assets", replace
-label values chid chidlbl
-
 * ── Figure A: Act 1 all-crises AIPW per channel — SILENCED, see header. ─────
 /*
 local c1 "blue"
-capture twoway ///
-    (rarea lo hi horizon if series=="all", color("`c1'%18") lwidth(none)) ///
-    (connected b horizon if series=="all", lcolor("`c1'") lwidth(medthick) msymbol(circle)), ///
-    by(chid, yrescale legend(off)) ///
-    yline(0, lpattern(dash) lcolor(gs8)) ///
-    xlabel(0(1)5) xtitle("Year", size(small)) ///
-    ytitle("Cumulative percent change", size(small)) ///
-    graphregion(color(white)) plotregion(color(white))
+local channels_ord   credit claims_govt inv claimsgov_assets claimpriv_assets
+local titlelabels_ch `" "Bank credit" "Bank claims on government" "Investment" "Bank claims on government / assets" "Bank claims on private sector / assets" "'
+local i = 1
+foreach ch of local channels_ord {
+    local tlab : word `i' of `titlelabels_ch'
+    capture twoway ///
+        (rarea lo hi horizon if series=="all" & channel=="`ch'", color("`c1'%18") lwidth(none)) ///
+        (connected b horizon if series=="all" & channel=="`ch'", lcolor("`c1'") lwidth(medthick) msymbol(circle)), ///
+        yline(0, lpattern(dash) lcolor(gs8)) ///
+        xlabel(0(1)5, labsize(small)) ylabel(, labsize(small)) ///
+        xtitle("Year", size(small)) ///
+        ytitle("Cumulative percent change", size(small)) ///
+        title(`tlab', size(medsmall) color(navy)) legend(off) ///
+        graphregion(color(white)) plotregion(color(white)) ///
+        name(aipwch_`i', replace)
+    local ++i
+}
+capture graph combine aipwch_1 aipwch_2 aipwch_3 aipwch_4 aipwch_5, ///
+    cols(3) rows(2) graphregion(color(white)) xsize(10) ysize(7)
 if _rc == 0 {
     graph export "$figs/fig_aipw_ch_act1.pdf", replace
     di as result "Figure saved: fig_aipw_ch_act1.pdf"
 }
 else di as error "  ** fig_aipw_ch_act1 failed (rc=" _rc ")"
+forvalues i = 1/5 {
+    capture graph drop aipwch_`i'
+}
 */
 
 * ── Figure B: Act 2 resolution split per channel ─────────────────────────
-* UNIFORM IRF STYLE: non-default = blue, default-linked = red, both solid,
-* markers match line color, no legend.
+* Same construction pattern as 12_channels_resolution.do's multi-panel
+* figure: each channel is its own named twoway, combined via graph combine,
+* rather than Stata's by() faceting (which gives less control over per-
+* panel spacing/sizing and reads differently from the rest of the project's
+* figures). UNIFORM IRF STYLE: non-default = blue, default-linked = red,
+* both solid, markers match line color, no legend.
 local c_nd  "blue"
 local c_def "red"
-capture twoway ///
-    (rarea lo hi horizon if series=="nd",  color("`c_nd'%16")  lwidth(none)) ///
-    (rarea lo hi horizon if series=="def", color("`c_def'%16") lwidth(none)) ///
-    (connected b horizon if series=="nd",  lcolor("`c_nd'")  lwidth(medthick) msymbol(circle)) ///
-    (connected b horizon if series=="def", lcolor("`c_def'") lwidth(medthick) msymbol(square)), ///
-    by(chid, yrescale legend(off)) ///
-    yline(0, lpattern(dash) lcolor(gs8)) ///
-    xlabel(0(1)5) xtitle("Year", size(small)) ///
-    ytitle("Cumulative percent change", size(small)) ///
-    graphregion(color(white)) plotregion(color(white))
+local channels_ord   credit claims_govt inv claimsgov_assets claimpriv_assets
+local titlelabels_ch `" "Bank credit" "Bank claims on government" "Investment" "Bank claims on government / assets" "Bank claims on private sector / assets" "'
+local i = 1
+foreach ch of local channels_ord {
+    local tlab : word `i' of `titlelabels_ch'
+    capture twoway ///
+        (rarea lo hi horizon if series=="nd"  & channel=="`ch'", color("`c_nd'%16")  lwidth(none)) ///
+        (rarea lo hi horizon if series=="def" & channel=="`ch'", color("`c_def'%16") lwidth(none)) ///
+        (connected b horizon if series=="nd"  & channel=="`ch'", lcolor("`c_nd'")  lwidth(medthick) msymbol(circle)) ///
+        (connected b horizon if series=="def" & channel=="`ch'", lcolor("`c_def'") lwidth(medthick) msymbol(square)), ///
+        yline(0, lpattern(dash) lcolor(gs8)) ///
+        xlabel(0(1)5, labsize(small)) ylabel(, labsize(small)) ///
+        xtitle("Year", size(small)) ///
+        ytitle("Cumulative percent change", size(small)) ///
+        title(`tlab', size(medsmall) color(navy)) legend(off) ///
+        graphregion(color(white)) plotregion(color(white)) ///
+        name(aipwch2_`i', replace)
+    local ++i
+}
+capture graph combine aipwch2_1 aipwch2_2 aipwch2_3 aipwch2_4 aipwch2_5, ///
+    cols(3) rows(2) graphregion(color(white)) xsize(10) ysize(7)
 if _rc == 0 {
     graph export "$figs/fig_aipw_ch_act2.pdf", replace
     di as result "Figure saved: fig_aipw_ch_act2.pdf"
 }
 else di as error "  ** fig_aipw_ch_act2 failed (rc=" _rc ")"
+forvalues i = 1/5 {
+    capture graph drop aipwch2_`i'
+}
 
 di as result _n "13c_aipw_channels.do complete."
 di as result "Compare the AIPW channel IRFs to the OLS/IPW versions in 11/12 (same"
