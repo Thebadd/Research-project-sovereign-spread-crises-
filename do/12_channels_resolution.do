@@ -419,8 +419,8 @@ foreach cv of local combo_vars {
             lwidth(medthick) msize(small)) ///
         , ///
         yline(0, lcolor(gs10) lpattern(dash) lwidth(thin)) ///
-        xlabel(0(1)5, labsize(medium)) ///
-        ylabel(, format(%9.0f) labsize(medium) angle(horizontal)) ///
+        xlabel(0(1)5, labsize(large)) ///
+        ylabel(, format(%9.0f) labsize(large) angle(horizontal)) ///
         xtitle("Year", size(large)) ///
         ytitle("`ytit'", size(large)) ///
         title("`clab'", size(medlarge) color(navy)) ///

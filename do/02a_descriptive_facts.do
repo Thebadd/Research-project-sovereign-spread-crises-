@@ -423,7 +423,7 @@ preserve
             (connected `bser_nd' horizon, lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
             (connected `bser_def' horizon, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
-            xlabel(-3(1)5, labsize(small)) ylabel(, format(%9.0f) labsize(small) angle(horizontal)) ///
+            xlabel(-3(1)5, labsize(medlarge)) ylabel(, format(%9.0f) labsize(medlarge) angle(horizontal)) ///
             xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
             title("`clab'", size(medium)) ///
             legend(off) ///
@@ -451,7 +451,7 @@ preserve
             (connected `bser_nd' horizon if horizon>=0, lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
             (connected `bser_def' horizon if horizon>=0, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
-            xlabel(0(1)5, labsize(small)) ylabel(, format(%9.0f) labsize(small) angle(horizontal)) ///
+            xlabel(0(1)5, labsize(medlarge)) ylabel(, format(%9.0f) labsize(medlarge) angle(horizontal)) ///
             xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
             title("`clab'", size(medium)) ///
             legend(off) ///
