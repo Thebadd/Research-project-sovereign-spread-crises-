@@ -293,7 +293,7 @@ preserve
         xtitle("Year", size(small)) ///
         ytitle("Cumulative percent change", size(small)) ///
         title("GDP", size(medium) color(navy)) ///
-        legend(order(1 "Non-default" 2 "Default-linked") size(small)) ///
+        legend(off) ///
         graphregion(color(white)) plotregion(color(white))
     * Note text (kept as source comment, no longer rendered on the figure --
     * the legend, previously overlapping the plot at ring(0) pos(7), now
@@ -317,7 +317,7 @@ preserve
         xtitle("Year", size(small)) ///
         ytitle("Cumulative percent change", size(small)) ///
         title("GDP", size(medium) color(navy)) ///
-        legend(order(1 "Non-default" 2 "Default-linked") size(small)) ///
+        legend(off) ///
         graphregion(color(white)) plotregion(color(white))
     graph export "$figs/fig0_descriptive_paths_post.pdf", replace
     di as result "Figure saved: fig0_descriptive_paths_post.pdf (Years 0..5)"
@@ -366,7 +366,7 @@ preserve
             xlabel(-3(1)5, labsize(small)) ylabel(, format(%4.1f) labsize(small)) ///
             xtitle("Year") ytitle("Cumulative percent change", size(small)) ///
             title("`panellab_`v''", size(medium)) ///
-            legend(order(1 "Non-default" 2 "Default-linked") pos(6) size(small) rows(1)) ///
+            legend(off) ///
             name(gk_`v', replace) graphregion(color(white)) plotregion(color(white))
         graph export "$figs/fig0_descriptive_`v'.pdf", replace name(gk_`v')
         graph drop gk_`v'
@@ -378,7 +378,7 @@ preserve
             xlabel(0(1)5, labsize(small)) ylabel(, format(%4.1f) labsize(small)) ///
             xtitle("Year") ytitle("Cumulative percent change", size(small)) ///
             title("`panellab_`v''", size(medium)) ///
-            legend(order(1 "Non-default" 2 "Default-linked") pos(6) size(small) rows(1)) ///
+            legend(off) ///
             name(gk_`v'_post, replace) graphregion(color(white)) plotregion(color(white))
         graph export "$figs/fig0_descriptive_`v'_post.pdf", replace name(gk_`v'_post)
         graph drop gk_`v'_post
