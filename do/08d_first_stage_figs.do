@@ -206,30 +206,27 @@ foreach s in nd def {
     * r() is not yet populated at the point its own option string is built),
     * then reused as a literal string in the panel note below.
     quietly roccomp onset_`s' _p1_`s' _p2_`s' if !missing(_p1_`s',_p2_`s')
-    local rocnote = "H0: equal areas -- chi2(1)=" + string(r(chi2), "%4.2f") + ", p=" + string(r(p), "%5.3f")
     local rocp_`s' = r(p)
     if r(p) > `worstp_b' local worstp_b = r(p)
 
+    * No per-panel note() -- it printed too small to read once exported
+    * (vsmall against a full-page figure) and is dropped rather than kept
+    * as unreadable clutter; the roccomp chi2/p values are still reported
+    * in this file's own console output and in 08c's table, not lost.
     roccomp onset_`s' _p1_`s' _p2_`s' if !missing(_p1_`s',_p2_`s'), ///
         graph summary name(gr_`s', replace) graphregion(color(white)) nodraw ///
         plot1opts(lcolor(red) mcolor(red) msymbol(circle)) ///
         plot2opts(lcolor(green) mcolor(green) msymbol(diamond)) ///
-        title("`ttl'", size(medium)) ///
-        note("`rocnote'", size(vsmall)) ///
-        legend(position(5) region(lwidth(none)) size(vsmall) cols(1) ring(0) ///
+        title("`ttl'", size(medlarge)) ///
+        ytitle("Sensitivity", size(medium)) xtitle("1 - Specificity", size(medium)) ///
+        ylabel(0(.25)1, angle(horizontal)) xlabel(0(.25)1) ///
+        legend(position(5) region(lwidth(none)) size(medium) cols(1) ring(0) ///
             order(1 "Controls: `auc1_`s''" 2 "Controls+Predictors: `auc2_`s''"))
     local gnames_b `gnames_b' gr_`s'
 }
-local subtxt = cond(`worstp_b' < 0.05, ///
-    "ROC area under the curve; 0.50 = no classification power, 1.00 = perfect. No country-FE curve —" + ///
-        " see header. Both panels' gaps clear the conventional 5 pct level (roccomp chi2 test, see notes below" + ///
-        " each panel) -- an established, not merely suggestive, classification gain on this project's sample.", ///
-    "ROC area under the curve; 0.50 = no classification power, 1.00 = perfect. No country-FE curve —" + ///
-        " see header. At least one panel's gap does not clear the conventional 5 pct level (roccomp chi2 test," + ///
-        " see notes below each panel) -- modest, not absent, on this project's sample size.")
+* No combine-level title()/subtitle() -- paper-ready; the earlier subtitle
+* text was also wrapping/truncating illegibly once exported.
 graph combine `gnames_b', graphregion(color(white)) ///
-    title("First-Stage Classification: Controls vs Controls + Predictors", size(medsmall) color(navy)) ///
-    subtitle("`subtxt'", size(small)) ///
     xsize(6) ysize(3.2)
 capture graph export "$figs/fig_roc.pdf", replace
 if _rc di as error "  ** fig_roc.pdf export failed (rc=" _rc ") — is it open?"
