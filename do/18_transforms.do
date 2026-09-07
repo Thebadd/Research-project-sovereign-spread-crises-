@@ -304,6 +304,39 @@ if !_rc {
 }
 
 * ══════════════════════════════════════════════════════════════════════════
+* REAL LENDING INTEREST RATE CHANNEL (real_lending) — closes the last gap
+* vs. the reference paper's Figure 1, whose six panels are GDP, investment,
+* bank credit, two capital-flow measures (no source data in this project,
+* still out of scope), and real lending rates. This project now has WDI
+* lending rates (FR.INR.LEND, `lending') and GDP-deflator inflation
+* (NY.GDP.DEFL.KD.ZG, `infl_defl'), both merged in 12_wdi.do.
+*
+* Construction matches the reference paper's own replication code exactly
+* (their var6, confirmed from their pasted script):
+*     var6 = ln((lending - inflation)/100 + 1) * 100
+*     replace var6 = . if inflation > 50
+* -- already a LOG LEVEL (like ln_r_credit/ln_r_inv above), so real_lending
+* feeds the channel outcome construction (ch_real_lending_h = F h. - L.)
+* directly, with no further log transform in the channel files, the same
+* way ln_r_credit already does.
+*
+* "inflation" here is GDP-DEFLATOR inflation (`infl_defl'), NOT the CPI-
+* based `infl' already in $ctrl_core -- the reference paper's own
+* methodology text is explicit that this construction uses "actual
+* inflation rates (measured by the GDP deflator)", a different series from
+* the CPI inflation this project's core controls use elsewhere. The two are
+* not interchangeable and this file keeps them as two separate variables.
+capture drop real_lending
+capture confirm variable lending
+capture confirm variable infl_defl
+if !_rc {
+    gen double real_lending = ln(1 + (lending - infl_defl)/100) * 100 ///
+        if !missing(lending, infl_defl) & infl_defl <= 50
+    label var real_lending "Real lending interest rate (Asonuma var6 construction; log level, GDP-deflator inflation)"
+}
+else di as error "  ** lending/infl_defl not found — real_lending not built (add lendinginterestrate.xlsx/inflationgdpdeflator.xlsx to \$raw)."
+
+* ══════════════════════════════════════════════════════════════════════════
 * FLOW TREATMENT — "being in a spread crisis" (consumed by 20_lp_flow.do)
 *
 * The headline design treats an episode as a point event: onset_all is 1 in the

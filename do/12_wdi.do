@@ -17,6 +17,8 @@
     importofgoodservicesgdp.xlsx       -> imp_gdp  [NE.IMP.GNFS.ZS]
     termsoftrade.xlsx                  -> tot      [TT.PRI.MRCH.XD.WD] (robustness)
     officialexchangerate.xlsx          -> exch     [PA.NUS.FCRF]       (robustness)
+    inflationgdpdeflator.xlsx          -> infl_defl [NY.GDP.DEFL.KD.ZG] (CHANNEL input)
+    lendinginterestrate.xlsx           -> lending  [FR.INR.LEND]       (CHANNEL input)
   Then open = exp_gdp + imp_gdp (trade openness, % GDP; Asonuma control).
   REER (reer_chg) is also built here from REER_INDEX.xlsx. tot/exch feed the
   robustness controls (tot_chg, ex_dum bins) built in 18_transforms.
@@ -26,8 +28,16 @@
   (FD.AST.PRVT.GD.ZS) is kept as `credit_bank` for robustness / the bank-
   intermediation comparison.
 
-  Output: merges credit, fdi, claims_govt, exp_gdp, imp_gdp, open onto
-          $clean/panel_build.dta (iso3 x year).
+  infl_defl/lending feed the real lending interest rate channel
+  (real_lending, built in 18_transforms.do), the last of the reference
+  paper's Figure 1 panels this project previously had no source data for.
+  infl_defl is GDP-deflator inflation specifically (WDI NY.GDP.DEFL.KD.ZG),
+  a different series from the CPI-based `infl` already in $ctrl_core --
+  the reference paper's own methodology text defines "actual inflation
+  rates" for this construction as "measured by the GDP deflator", not CPI.
+
+  Output: merges credit, fdi, claims_govt, exp_gdp, imp_gdp, open, infl_defl,
+          lending onto $clean/panel_build.dta (iso3 x year).
 ===========================================================================*/
 
 tempfile wdi
@@ -40,7 +50,9 @@ foreach spec in "domesticcredittoprivatesector credit" ///
                 "exportofgoodservicesgdp exp_gdp" ///
                 "importofgoodservicesgdp imp_gdp" ///
                 "termsoftrade tot" ///
-                "officialexchangerate exch" {
+                "officialexchangerate exch" ///
+                "inflationgdpdeflator infl_defl" ///
+                "lendinginterestrate lending" {
     gettoken fn tv : spec
     capture confirm file "$raw/`fn'.xlsx"
     if _rc {

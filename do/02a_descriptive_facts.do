@@ -95,9 +95,12 @@ forvalues k = 3/4 {
     label var dy_m`k' "Pre-trend h=-`k' (same t-1 base as dy_h): GDP(t-`k') - GDP(t-1)"
 }
 
-foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
+foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending {
     local src `v'
     if inlist("`v'","credit","inv") local src ln_r_`v'
+    * real_lending is already a log level (built in 18_transforms.do), same
+    * as claimsgov_assets/claimpriv_assets/claims_govt -- no further
+    * transform needed, so it falls through to the `local src `v'' default.
     capture drop `v'_base
     gen double `v'_base = L.`src'
     forvalues h = 0/4 {
@@ -111,6 +114,19 @@ foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
         gen double ch_`v'_m`k' = L`k'.`src' - `v'_base
     }
 }
+
+* Coverage check for real_lending specifically: WDI lending-rate coverage is
+* often thin for exactly the EM countries this panel needs (managed/unified
+* rate regimes, underdeveloped bank-lending markets), so report the actual
+* onset-level count honestly rather than assuming it matches the other five
+* channels' ~55-58/61 coverage.
+quietly count if onset_all==1 & sample==1 & !missing(real_lending)
+local n_rl_all = r(N)
+quietly count if onset_nd==1 & sample==1 & !missing(real_lending)
+local n_rl_nd = r(N)
+quietly count if onset_def==1 & sample==1 & !missing(real_lending)
+local n_rl_def = r(N)
+di as result _n "  real_lending onset-level coverage: all=`n_rl_all'  nd=`n_rl_nd'  def=`n_rl_def' (of 61 onsets)"
 
 * ══════════════════════════════════════════════════════════════════════════
 * 1. COUNTRY-DEMEAN THE OUTCOMES
@@ -126,7 +142,7 @@ foreach h in m4 m3 m2 0 1 2 3 4 {
 }
 label var dd_0 "Country-demeaned cumulative GDP change, crisis year"
 
-foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
+foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending {
     foreach h in m4 m3 m2 0 1 2 3 4 {
         capture drop cmean_`v'_`h' dd_`v'_`h'
         quietly bysort cid: egen double cmean_`v'_`h' = mean(ch_`v'_`h') if sample==1
@@ -194,7 +210,7 @@ di as result "  reader and the data."
 *     applied to each active channel (credit, inv, claims_govt,
 *     claimsgov_assets, claimpriv_assets). No regression, no controls.
 * ══════════════════════════════════════════════════════════════════════════
-foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
+foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending {
     foreach g in all nd def {
         matrix descv_`v'_`g' = J(9, 1, .)
         matrix nobsv_`v'_`g' = J(9, 1, .)
@@ -252,7 +268,7 @@ preserve
         svmat nobs_`g', names(n_`g')
         rename n_`g'1 n_`g'
     }
-    foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
+    foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending {
         foreach g in all nd def {
             svmat descv_`v'_`g', names(b_`v'_`g')
             rename b_`v'_`g'1 b_`v'_`g'
@@ -358,7 +374,8 @@ preserve
     local panellab_claims_govt "Bank claims on government"
     local panellab_claimsgov_assets "Bank claims on government / assets"
     local panellab_claimpriv_assets "Bank claims on private sector / assets"
-    foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets {
+    local panellab_real_lending "Real lending interest rate"
+    foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending {
         twoway ///
             (connected b_`v'_nd horizon, lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
             (connected b_`v'_def horizon, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
