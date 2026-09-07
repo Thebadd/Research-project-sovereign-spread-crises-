@@ -23,14 +23,25 @@ capture xtset cid year
 sort cid year
 
 * ── Real GDP growth + its lags (Asonuma gdpg2 analog; controls cx) ──────────
+* SCALE, matching Asonuma et al.'s gdpg2 exactly: gdpg2 = ln(L.gdp_real) -
+* ln(L2.gdp_real), a raw log-difference with NO *100 factor (their code has
+* no rescaling here at all -- the paper's own footnote describing "the GDP
+* growth rate is re-scaled by dividing by 100" is describing exactly this
+* construction, i.e. their $convar term IS already on the un-multiplied
+* decimal scale). gdpg here previously carried an extra *100 (percentage-
+* point scale, e.g. 3.2 for 3.2% growth); removed so l1_gdpg/l2_gdpg sit on
+* the same decimal scale as gdpg2 (e.g. 0.032). This changes every
+* coefficient on l1_gdpg/l2_gdpg by a factor of 100 project-wide (every
+* p-value, star, and R-squared is unaffected, since this is a linear
+* rescaling of the regressor).
 capture drop gdpg l1_gdpg l2_gdpg
-gen double gdpg = 100*(ln(gdp_real) - ln(L.gdp_real)) ///
+gen double gdpg = (ln(gdp_real) - ln(L.gdp_real)) ///
     if gdp_real > 0 & L.gdp_real > 0 & !missing(gdp_real, L.gdp_real)
-label var gdpg "Real GDP growth, % (WEO NGDP_R, log-difference)"
+label var gdpg "Real GDP growth, log-difference (Asonuma gdpg2 scale, no *100)"
 gen double l1_gdpg = L.gdpg
 gen double l2_gdpg = L2.gdpg
-label var l1_gdpg "L1 real GDP growth"
-label var l2_gdpg "L2 real GDP growth"
+label var l1_gdpg "L1 real GDP growth (Asonuma gdpg2 scale)"
+label var l2_gdpg "L2 real GDP growth (Asonuma gdpg2 scale)"
 
 * ── HEADLINE LP outcome: cumulative % change in log TOTAL real GDP ──────────
 *   Aligned with Asonuma et al. (their g_h = F h.ln(gdp_real) - L.ln(gdp_real)),
@@ -52,10 +63,11 @@ forvalues h = 0/4 {
 * The first REAL pre-crisis horizon under this same base is h=-2:
 *   dy_m2 = F(-2).ln_gdp - L.ln_gdp = L2.ln_gdp - L.ln_gdp
 * i.e. the change from t-2 to the t-1 base — never touches the onset year t.
-* dy_m2 is algebraically -l1_gdpg (both are +/-100*(L.ln_gdp - L2.ln_gdp)), so the
-* pre-trend regressions in 02/03 must drop l1_gdpg from the RHS — see the
-* `controls_pre' local there. Controlling for the placebo outcome would guarantee
-* a null test.
+* dy_m2 is algebraically -100*l1_gdpg (dy_m2 = 100*(L2.ln_gdp-L.ln_gdp), l1_gdpg =
+* L.ln_gdp-L2.ln_gdp on its own un-multiplied decimal scale, see l1_gdpg's own
+* header note below), so the pre-trend regressions in 02/03 must still drop
+* l1_gdpg from the RHS — see the `controls_pre' local there. Controlling for the
+* placebo outcome would guarantee a null test regardless of either variable's scale.
 gen double dy_m2 = (L2.ln_gdp - L.ln_gdp) * 100
 label var dy_m2 "Pre-trend h=-2 (same base as dy_h): GDP(t-2) - GDP(t-1)"
 
@@ -118,9 +130,18 @@ gen byte   l_hyperinfl    = (L.infl > 50) if !missing(L.infl)
 * the -100% where ln(1+x) breaks.
 gen double l_infl         = L.infl
 gen double l_lninfl       = ln(1 + L.infl/100) if !missing(L.infl) & L.infl > -100
-gen double l_govexp       = L.govexp
-gen double l_open         = L.open
-gen double l_credit_bank  = L.credit_bank
+* SCALE, matching Asonuma et al.'s gov_exp2/open2/credit_bank2 exactly: each is
+* L.x/100 in their code, rescaling their raw percent-of-GDP source (e.g. 25.3)
+* to a decimal (0.253). l_govexp/l_open/l_credit_bank previously stayed on the
+* raw percent scale with no such division; the /100 below matches their
+* convention. This changes every coefficient on these three terms by a factor
+* of 100 project-wide (p-values, stars, and R-squared are unaffected, since
+* this is a linear rescaling of the regressor). l_credit (all financial
+* corporations, robustness-only, not in $ctrl_core) is left on its original
+* scale -- it has no Asonuma counterpart to match.
+gen double l_govexp       = L.govexp/100
+gen double l_open         = L.open/100
+gen double l_credit_bank  = L.credit_bank/100
 gen double l_credit       = L.credit
 * Exchange rate — robustness-tier, not in $ctrl_core. reer_chg (12_wdi.do) is
 * already a % change, so this is a plain lag, same pattern as every other
@@ -160,9 +181,9 @@ label var l_ust10y   "L1 US 10y Treasury yield (predetermined)"
 label var l_hyperinfl    "L1 hyperinflation dummy (L.infl > 50; predetermined) — common core"
 label var l_infl         "L1 CPI inflation, % (raw; robustness alternative, not in core)"
 label var l_lninfl       "L1 log gross inflation = ln(1+L.infl/100) (robustness alt., not in core)"
-label var l_govexp       "L1 govt expenditure, % GDP"
-label var l_open         "L1 trade openness, % GDP"
-label var l_credit_bank  "L1 bank credit to private / GDP (financial depth, by-banks; COMMON CORE)"
+label var l_govexp       "L1 govt expenditure / GDP, decimal (Asonuma gov_exp2 scale)"
+label var l_open         "L1 trade openness, decimal (Asonuma open2 scale)"
+label var l_credit_bank  "L1 bank credit to private / GDP, decimal (Asonuma credit_bank2 scale; COMMON CORE)"
 label var l_credit       "L1 private credit / GDP (all fin. corps; robustness alt., NOT in core)"
 label var l_debt         "L1 public debt, % GDP (predetermined)"
 label var l_ca           "L1 current account, % GDP (predetermined)"
