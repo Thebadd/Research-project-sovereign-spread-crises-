@@ -611,21 +611,22 @@ preserve
     di as result "Figure saved: fig_aipw.pdf"
     */
 
-    * ── Figure B: Act 2 resolution split (two lines + CI bands), fig8 palette ─
-    local c_nd  "0 84 166"
-    local c_def "157 36 73"
+    * ── Figure B: Act 2 resolution split (two lines + CI bands) ──────────────
+    * UNIFORM IRF STYLE (project-wide onset-tier convention): non-default =
+    * blue, default-linked = red, both solid, markers match line color.
+    local c_nd  "blue"
+    local c_def "red"
     twoway ///
         (rarea lo hi horizon if series=="nd",  color("`c_nd'%18")  lwidth(none)) ///
         (rarea lo hi horizon if series=="def", color("`c_def'%18") lwidth(none)) ///
         (connected b horizon if series=="nd",  lcolor("`c_nd'")  lwidth(medthick) msymbol(circle)) ///
-        (connected b horizon if series=="def", lcolor("`c_def'") lwidth(medthick) lpattern(dash) msymbol(square)), ///
+        (connected b horizon if series=="def", lcolor("`c_def'") lwidth(medthick) msymbol(square)), ///
         yline(0, lpattern(dash) lcolor(gs8)) ///
         xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%4.1f) labsize(medsmall)) ///
-        xtitle("Year (Year 1 = crisis year)", size(medsmall)) ///
-        ytitle("Cumulative change in log real GDP (pp)", size(medsmall)) ///
-        title("AIPW output cost by resolution", size(medium) color(navy)) ///
-        subtitle("Doubly-robust (Asonuma et al. Eq. 3), each vs tranquil.", size(small)) ///
-        legend(order(3 "Non-default" 4 "Default-linked") size(small)) ///
+        xtitle("Year", size(medsmall)) ///
+        ytitle("Cumulative percent change", size(medsmall)) ///
+        title("GDP", size(medium) color(navy)) ///
+        legend(off) ///
         graphregion(color(white)) plotregion(color(white))
     * Note text (kept as source comment, no longer rendered on the figure --
     * the legend, previously overlapping the plot at ring(0) pos(7), now
