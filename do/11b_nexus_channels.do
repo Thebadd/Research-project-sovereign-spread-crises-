@@ -111,8 +111,11 @@ foreach ch of local channels {
 }
 
 * ── Pooled figure (1x2) ───────────────────────────────────────────────────
-local c_main "23 55 94"
-local titles `" "Claims on Govt / Assets" "Claims on Private / Assets" "'
+* UNIFORM IRF STYLE (project-wide onset-tier convention): pooled/single-
+* series figures use blue, solid line, marker matching line color. Y-axis
+* "Cumulative percent change", x-axis "Year", title = plain variable name.
+local c_main "blue"
+local titles `" "Bank claims on government / assets" "Bank claims on private sector / assets" "'
 local i = 1
 foreach ch of local channels {
     local tlab : word `i' of `titles'
@@ -124,8 +127,8 @@ foreach ch of local channels {
             msymbol(circle) lwidth(medthick)), ///
         yline(0, lcolor(gs8) lpattern(dash) lwidth(thin)) ///
         xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%5.1f) labsize(medsmall)) ///
-        xtitle("Year (Year 1 = crisis year)", size(small)) ///
-        ytitle("Cumulative change (pp)", size(small)) ///
+        xtitle("Year", size(small)) ///
+        ytitle("Cumulative percent change", size(small)) ///
         title(`tlab', size(medsmall) color(navy)) legend(off) ///
         graphregion(color(white)) plotregion(color(white)) name(nx_`i', replace)
     local ++i
@@ -258,38 +261,31 @@ foreach ch of local channels {
 * ══════════════════════════════════════════════════════════════════════════
 * 5. RESOLUTION FIGURE (non-default vs default-linked)
 * ══════════════════════════════════════════════════════════════════════════
-local c_nd  "23 55 94"     // navy  — non-default
-local c_def "180 60 40"    // brick — default-linked
-local titles `" "Claims on Govt / Assets" "Claims on Private / Assets" "'
+* UNIFORM IRF STYLE (project-wide onset-tier convention): non-default =
+* blue, default-linked = red, both solid, markers match line color, no
+* legend (color already distinguishes the two lines).
+local c_nd  "blue"
+local c_def "red"
+local titles `" "Bank claims on government / assets" "Bank claims on private sector / assets" "'
 
 local i = 1
 foreach ch of local channels {
     local tlab : word `i' of `titles'
     use "$clean/irf_nx_nd_`ch'.dta", clear
     append using "$clean/irf_nx_def_`ch'.dta"
-    if `i' == 2 {
-        * Bottom-anchored (no ring(0)/pos()), matching the fix applied
-        * elsewhere in the project for nd/def legends that used to
-        * overlap the plotted lines.
-        local legopt legend(order(3 "Non-default" 4 "Default-linked") ///
-                     cols(2) size(vsmall))
-    }
-    else {
-        local legopt legend(off)
-    }
     twoway ///
         (rarea lo90 hi90 horizon if group=="nd",  color("`c_nd'%20")  lwidth(none)) ///
         (rarea lo90 hi90 horizon if group=="def", color("`c_def'%20") lwidth(none)) ///
         (connected b horizon if group=="nd",  lcolor("`c_nd'")  mcolor("`c_nd'") ///
             msymbol(circle) lwidth(medthick)) ///
         (connected b horizon if group=="def", lcolor("`c_def'") mcolor("`c_def'") ///
-            msymbol(square) lwidth(medthick) lpattern(dash)), ///
+            msymbol(square) lwidth(medthick)), ///
         yline(0, lcolor(gs10) lpattern(dash) lwidth(thin)) ///
         xlabel(0(1)5, labsize(small)) ylabel(, format(%5.1f) labsize(small)) ///
-        xtitle("Years after onset", size(vsmall)) ///
-        ytitle("Cumulative change (pp)", size(vsmall)) ///
+        xtitle("Year", size(vsmall)) ///
+        ytitle("Cumulative percent change", size(vsmall)) ///
         title(`tlab', size(small) color(navy)) ///
-        `legopt' graphregion(color(white)) plotregion(color(white)) ///
+        legend(off) graphregion(color(white)) plotregion(color(white)) ///
         name(nxr_`i', replace)
     local ++i
 }
