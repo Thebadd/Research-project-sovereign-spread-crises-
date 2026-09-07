@@ -12,9 +12,13 @@
   sovereign-bank nexus is tight (banks heavily exposed to the sovereign).
 
   Outcomes: GDP (dy_h, coherent with 08b) PLUS the transmission channels
-  credit, inv, claimpriv_assets, claims_govt — so we can watch each channel evolve
-  differently under high vs low nexus (which channel carries the non-default
-  cushion vs the default-linked doom-loop loss).
+  credit, inv, claims_govt — so we can watch each channel evolve differently
+  under high vs low nexus (which channel carries the non-default cushion vs
+  the default-linked doom-loop loss). claimpriv_assets was tested here
+  earlier and is no longer part of the active outcome list (scoped down to
+  GDP/credit/inv/claims_govt on request); its outcome construction
+  (ch_claimpriv_assets_h) still runs below since it's cheap and shared, it
+  is simply not estimated or plotted any more.
 
   Design (per outcome, coherent with 08b/13c):
     Amplifier a_nexus = pre-crisis claimsgov_assets (L.claimsgov_assets), filled
@@ -179,8 +183,8 @@ di as result "   result is not merely a development proxy.)"
 
 * ══════════════════════════════════════════════════════════════════════════
 * CHANNEL OUTCOMES — evolve each channel by high/low nexus (as in 13c)
-*   Outcomes: GDP (dy_h, already in panel) + credit, inv, claimpriv_assets,
-*   claims_govt (ch_v_h = F h.v - L.v). Every lagged control pre-generated as a
+*   Active outcomes: GDP (dy_h, already in panel) + credit, inv, claims_govt
+*   (ch_v_h = F h.v - L.v). Every lagged control pre-generated as a
 *   PLAIN column so the cluster bootstrap (bsample destroys time order) is valid.
 * ══════════════════════════════════════════════════════════════════════════
 * OUTCOME SCALE. Strictly-positive GDP-ratio channels use the LOG REAL LEVEL
@@ -369,8 +373,7 @@ postfile `D' str18 outcome str4 part byte horizon double dhl bhi blo se lo hi nd
 
 * Outcomes: label | outcome-variable stem (dy or ch_<v>) | channel-specific
 *   outcome-model controls (om), same specs as 13c. GDP uses cx (unchanged).
-foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" ///
-              "claimpriv_assets ch_claimpriv_assets" "claims_govt ch_claims_govt" {
+foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" "claims_govt ch_claims_govt" {
     gettoken ocl   oc : oc
     gettoken ystem oc : oc
 
@@ -528,7 +531,7 @@ label values partid pl
 * is kept rather than forced onto the nd/def convention used elsewhere.
 local c_hi "157 36 73"    // high nexus = red (the doom-loop)
 local c_lo "0 84 166"     // low  nexus = blue
-foreach oc in gdp credit inv claimpriv_assets claims_govt {
+foreach oc in gdp credit inv claims_govt {
     if "`oc'" == "gdp" {
         local ptit "GDP"
         local fnm  "fig_aipw_nexus_split"       // unchanged filename for GDP
@@ -539,10 +542,6 @@ foreach oc in gdp credit inv claimpriv_assets claims_govt {
     }
     else if "`oc'" == "inv" {
         local ptit "Investment"
-        local fnm  "fig_nexus_`oc'"
-    }
-    else if "`oc'" == "claimpriv_assets" {
-        local ptit "Bank claims on private sector / assets"
         local fnm  "fig_nexus_`oc'"
     }
     else if "`oc'" == "claims_govt" {
