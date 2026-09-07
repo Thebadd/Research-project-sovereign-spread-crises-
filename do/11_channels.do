@@ -429,10 +429,13 @@ restore
 * 6. FIGURE — 2×3 MULTI-PANEL IRF
 * ══════════════════════════════════════════════════════════════════════════
 
-local c_main "23 55 94"
+* UNIFORM IRF STYLE (project-wide onset-tier convention): pooled/single-
+* series figures use blue, solid line, marker matching line color. Y-axis
+* "Cumulative percent change", x-axis "Year", title = plain variable name.
+local c_main "blue"
 
 local channels    credit claims_govt inv govexp pb fdi
-local titlelabels `" "Private Credit/GDP" "Bank Claims on Govt/GDP" "Investment/GDP" "Govt Expenditure/GDP" "Primary Balance/GDP" "FDI/GDP" "'
+local titlelabels `" "Bank credit" "Bank claims on government" "Investment" "Government expenditure" "Primary balance" "FDI" "'
 local fignames    fig11a fig11b fig11c fig11d fig11e fig11f
 
 local i = 1
@@ -454,8 +457,8 @@ foreach ch of local channels {
         yline(0, lcolor(gs8) lpattern(dash) lwidth(thin)) ///
         xlabel(0(1)5, labsize(medsmall)) ///
         ylabel(, format(%5.2f) labsize(medsmall)) ///
-        xtitle("Year (Year 1 = crisis year)", size(small)) ///
-        ytitle("Cumulative change (% or pp — see note)", size(small)) ///
+        xtitle("Year", size(small)) ///
+        ytitle("Cumulative percent change", size(small)) ///
         title(`tlab', size(medsmall) color(navy)) ///
         legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
