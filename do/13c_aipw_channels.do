@@ -680,8 +680,8 @@ preserve
             (connected b horizon if series=="def" & channel=="`cv'", lcolor("`c_def'") lwidth(medthick) msymbol(square)), ///
             yline(0, lpattern(dash) lcolor(gs8)) ///
             xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
-            xtitle("Year", size(medium)) ///
-            ytitle("`ytit'", size(medsmall)) ///
+            xtitle("Year", size(large)) ///
+            ytitle("`ytit'", size(large)) ///
             title("`clab'", size(medlarge) color(navy)) legend(off) ///
             graphregion(color(white)) plotregion(color(white)) ///
             name(combA_`i', replace)

@@ -424,7 +424,7 @@ preserve
             (connected `bser_def' horizon, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
             xlabel(-3(1)5, labsize(small)) ylabel(, format(%9.0f) labsize(small) angle(horizontal)) ///
-            xtitle("Year", size(small)) ytitle("`ytit'", size(small)) ///
+            xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
             title("`clab'", size(medium)) ///
             legend(off) ///
             name(combo_`i', replace) graphregion(color(white)) plotregion(color(white))
@@ -452,7 +452,7 @@ preserve
             (connected `bser_def' horizon if horizon>=0, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
             xlabel(0(1)5, labsize(small)) ylabel(, format(%9.0f) labsize(small) angle(horizontal)) ///
-            xtitle("Year", size(small)) ytitle("`ytit'", size(small)) ///
+            xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
             title("`clab'", size(medium)) ///
             legend(off) ///
             name(combo_post_`i', replace) graphregion(color(white)) plotregion(color(white))

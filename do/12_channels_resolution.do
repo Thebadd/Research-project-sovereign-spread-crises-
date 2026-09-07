@@ -421,8 +421,8 @@ foreach cv of local combo_vars {
         yline(0, lcolor(gs10) lpattern(dash) lwidth(thin)) ///
         xlabel(0(1)5, labsize(medium)) ///
         ylabel(, format(%9.0f) labsize(medium) angle(horizontal)) ///
-        xtitle("Year", size(medium)) ///
-        ytitle("`ytit'", size(medsmall)) ///
+        xtitle("Year", size(large)) ///
+        ytitle("`ytit'", size(large)) ///
         title("`clab'", size(medlarge) color(navy)) ///
         legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
