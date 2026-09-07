@@ -437,6 +437,34 @@ preserve
     forvalues i = 1/6 {
         capture graph drop combo_`i'
     }
+
+    * Post-onset-only companion (Years 0..5), same construction, matching
+    * every standalone channel figure's own full/_post pair above.
+    local i = 1
+    foreach cv of local combo_vars {
+        local clab : word `i' of `combo_labels'
+        local ytit ""
+        if inlist(`i', 1, 4) local ytit "Cumulative percent change"
+        local bser_nd  = cond("`cv'"=="gdp", "b_nd", "b_`cv'_nd")
+        local bser_def = cond("`cv'"=="gdp", "b_def", "b_`cv'_def")
+        twoway ///
+            (connected `bser_nd' horizon if horizon>=0, lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
+            (connected `bser_def' horizon if horizon>=0, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
+            yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
+            xlabel(0(1)5, labsize(small)) ylabel(, format(%9.0f) labsize(small) angle(horizontal)) ///
+            xtitle("Year", size(small)) ytitle("`ytit'", size(small)) ///
+            title("`clab'", size(medium)) ///
+            legend(off) ///
+            name(combo_post_`i', replace) graphregion(color(white)) plotregion(color(white))
+        local ++i
+    }
+    graph combine combo_post_1 combo_post_2 combo_post_3 combo_post_4 combo_post_5 combo_post_6, ///
+        cols(3) rows(2) graphregion(color(white)) xsize(10) ysize(7)
+    graph export "$figs/fig0_descriptive_combined_post.pdf", replace
+    di as result "Figure saved: fig0_descriptive_combined_post.pdf (Years 0..5, Panel A-F)"
+    forvalues i = 1/6 {
+        capture graph drop combo_post_`i'
+    }
 restore
 
 * ══════════════════════════════════════════════════════════════════════════
