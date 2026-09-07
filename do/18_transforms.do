@@ -155,7 +155,13 @@ else di as error "  ** reer_chg not found — skipping l_reer_chg (add REER_INDE
 * debt, current account, and the banking-crisis flag lagged to t-1 so the ENTIRE
 * common core is predetermined (t-1) — internally coherent and matching the
 * reference paper's pre-crisis controls (avoids onset-year simultaneity/bad-control).
-gen double l_debt         = L.debt
+* SCALE: debt has no counterpart in Asonuma et al.'s own $convar to match --
+* debtgdp2 is generated in their code but never used in either the probit or
+* the LP regression. The /100 here is for INTERNAL consistency only, so
+* l_debt sits on the same decimal scale as l_govexp/l_open/l_credit_bank/
+* l_fedfunds now do, rather than being the one $ctrl_core term left on a raw
+* 0-100 percent scale. Source is raw percent-of-GDP (IMF WEO GGXWDG_NGDP).
+gen double l_debt         = L.debt/100
 gen double l_ca           = L.ca
 gen byte   l_banking_crisis = L.banking_crisis
 * DURATION, not a flag — the reference paper's banking_duration_lv2018 analog.
@@ -191,7 +197,7 @@ label var l_govexp       "L1 govt expenditure / GDP, decimal (Asonuma gov_exp2 s
 label var l_open         "L1 trade openness, decimal (Asonuma open2 scale)"
 label var l_credit_bank  "L1 bank credit to private / GDP, decimal (Asonuma credit_bank2 scale; COMMON CORE)"
 label var l_credit       "L1 private credit / GDP (all fin. corps; robustness alt., NOT in core)"
-label var l_debt         "L1 public debt, % GDP (predetermined)"
+label var l_debt         "L1 public debt / GDP, decimal (predetermined; internal-consistency scale, no Asonuma counterpart)"
 label var l_ca           "L1 current account, % GDP (predetermined)"
 label var l_banking_crisis      "L1 systemic banking-crisis dummy (robustness alt., not in core)"
 label var l_banking_duration    "L1 years the banking crisis had already lasted (predetermined) - COMMON CORE"
