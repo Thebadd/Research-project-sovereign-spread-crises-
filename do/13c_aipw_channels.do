@@ -569,9 +569,9 @@ foreach ch of local channels_ord {
         (rarea lo hi horizon if series=="all" & channel=="`ch'", color("`c1'%18") lwidth(none)) ///
         (connected b horizon if series=="all" & channel=="`ch'", lcolor("`c1'") lwidth(medthick) msymbol(circle)), ///
         yline(0, lpattern(dash) lcolor(gs8)) ///
-        xlabel(0(1)5, labsize(small)) ylabel(, labsize(small)) ///
-        xtitle("Year", size(small)) ///
-        ytitle("Cumulative percent change", size(small)) ///
+        xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium)) ///
+        xtitle("Year", size(medium)) ///
+        ytitle("Cumulative percent change", size(medsmall)) ///
         title("{bf:`tlab'}", size(medium) color(navy)) legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
         name(aipwch_`i', replace)
@@ -609,9 +609,9 @@ foreach ch of local channels_ord {
         (connected b horizon if series=="nd"  & channel=="`ch'", lcolor("`c_nd'")  lwidth(medthick) msymbol(circle)) ///
         (connected b horizon if series=="def" & channel=="`ch'", lcolor("`c_def'") lwidth(medthick) msymbol(square)), ///
         yline(0, lpattern(dash) lcolor(gs8)) ///
-        xlabel(0(1)5, labsize(small)) ylabel(, labsize(small)) ///
-        xtitle("Year", size(small)) ///
-        ytitle("Cumulative percent change", size(small)) ///
+        xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium)) ///
+        xtitle("Year", size(medium)) ///
+        ytitle("Cumulative percent change", size(medsmall)) ///
         title("{bf:`tlab'}", size(medium) color(navy)) legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
         name(aipwch2_`i', replace)

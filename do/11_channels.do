@@ -455,10 +455,10 @@ foreach ch of local channels {
             msymbol(circle) lwidth(medthick) msize(medium)) ///
         , ///
         yline(0, lcolor(gs8) lpattern(dash) lwidth(thin)) ///
-        xlabel(0(1)5, labsize(medsmall)) ///
-        ylabel(, format(%5.2f) labsize(medsmall)) ///
-        xtitle("Year", size(small)) ///
-        ytitle("Cumulative percent change", size(small)) ///
+        xlabel(0(1)5, labsize(medium)) ///
+        ylabel(, format(%5.2f) labsize(medium)) ///
+        xtitle("Year", size(medium)) ///
+        ytitle("Cumulative percent change", size(medsmall)) ///
         title("{bf:`tlab'}", size(medium) color(navy)) ///
         legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
@@ -467,13 +467,13 @@ foreach ch of local channels {
     local ++i
 }
 
-* No note() -- paper-ready, so the figure reads cleanly if copy-pasted
-* directly into a manuscript.
+* No note() and no overall combine title() -- paper-ready. Each panel's own
+* {bf:...} title already names the channel, so a combine-level title would
+* only repeat what the panel titles already say once several are merged
+* into one figure; dropped rather than kept as redundant text.
 * Combine into 2×3 grid
 graph combine fig11a fig11b fig11c fig11d fig11e fig11f, ///
     cols(3) rows(2) ///
-    title("Transmission Channels of Sovereign Spread Crises", ///
-          size(medlarge) color(navy)) ///
     graphregion(color(white)) xsize(10) ysize(7)
 
 graph export "$figs/fig11_channels.pdf", replace

@@ -126,17 +126,18 @@ foreach ch of local channels {
         (connected b horizon, lcolor("`c_main'") mcolor("`c_main'") ///
             msymbol(circle) lwidth(medthick)), ///
         yline(0, lcolor(gs8) lpattern(dash) lwidth(thin)) ///
-        xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%5.1f) labsize(medsmall)) ///
-        xtitle("Year", size(small)) ///
-        ytitle("Cumulative percent change", size(small)) ///
+        xlabel(0(1)5, labsize(medium)) ylabel(, format(%5.1f) labsize(medium)) ///
+        xtitle("Year", size(medium)) ///
+        ytitle("Cumulative percent change", size(medsmall)) ///
         title("{bf:`tlab'}", size(medium) color(navy)) legend(off) ///
         graphregion(color(white)) plotregion(color(white)) name(nx_`i', replace)
     local ++i
 }
-* No note() -- paper-ready, so the figure reads cleanly if copy-pasted
-* directly into a manuscript.
+* No note() and no overall combine title() -- paper-ready. Each panel's own
+* {bf:...} title already names the channel, so a combine-level title would
+* only repeat what the panel titles already say once several are merged
+* into one figure; dropped rather than kept as redundant text.
 graph combine nx_1 nx_2, cols(2) ///
-    title("Sovereign-Bank Nexus Channels (pooled)", size(medlarge) color(navy)) ///
     graphregion(color(white)) xsize(10) ysize(4)
 graph export "$figs/fig11b_nexus_pooled.pdf", replace
 forvalues i = 1/2 {
@@ -282,18 +283,19 @@ foreach ch of local channels {
         (connected b horizon if group=="def", lcolor("`c_def'") mcolor("`c_def'") ///
             msymbol(square) lwidth(medthick)), ///
         yline(0, lcolor(gs10) lpattern(dash) lwidth(thin)) ///
-        xlabel(0(1)5, labsize(small)) ylabel(, format(%5.1f) labsize(small)) ///
-        xtitle("Year", size(vsmall)) ///
-        ytitle("Cumulative percent change", size(vsmall)) ///
+        xlabel(0(1)5, labsize(medium)) ylabel(, format(%5.1f) labsize(medium)) ///
+        xtitle("Year", size(medium)) ///
+        ytitle("Cumulative percent change", size(medsmall)) ///
         title("{bf:`tlab'}", size(medium) color(navy)) ///
         legend(off) graphregion(color(white)) plotregion(color(white)) ///
         name(nxr_`i', replace)
     local ++i
 }
-* No note() -- paper-ready, so the figure reads cleanly if copy-pasted
-* directly into a manuscript.
+* No note() and no overall combine title() -- paper-ready. Each panel's own
+* {bf:...} title already names the channel, so a combine-level title would
+* only repeat what the panel titles already say once several are merged
+* into one figure; dropped rather than kept as redundant text.
 graph combine nxr_1 nxr_2, cols(2) ///
-    title("Nexus Channels by Resolution", size(medlarge) color(navy)) ///
     graphregion(color(white)) xsize(10) ysize(4)
 graph export "$figs/fig11b_nexus_resolution.pdf", replace
 forvalues i = 1/2 {
