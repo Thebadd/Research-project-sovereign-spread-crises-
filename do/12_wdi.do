@@ -60,8 +60,26 @@ foreach spec in "domesticcredittoprivatesector credit" ///
         continue
     }
     preserve
-        import excel "$raw/`fn'.xlsx", firstrow allstring clear
+        * Most WDI exports in this project have their header on row 1. The
+        * GDP-deflator-inflation/lending-rate files are World Bank DataBank
+        * exports, not the plain API download the others are, and carry 3
+        * metadata rows first (Data Source / Last Updated Date / blank), so
+        * their real header is row 4 -- confirmed directly against the raw
+        * files, not assumed.
+        local cellopt
+        if inlist("`fn'","inflationgdpdeflator","lendinginterestrate") ///
+            local cellopt cellrange(A4)
+        import excel "$raw/`fn'.xlsx", `cellopt' firstrow allstring clear
         capture rename CountryCode iso3
+        capture confirm variable iso3
+        if _rc {
+            di as error "  ** `fn'.xlsx: no CountryCode column found after import (row-1"
+            di as error "     header assumed) -- check whether this file needs cellrange(A4)"
+            di as error "     like inflationgdpdeflator/lendinginterestrate, or has some other"
+            di as error "     layout. `tv' will be missing."
+            restore
+            continue
+        }
         * year columns = everything except the 4 text metadata columns; they are
         * laid out in ascending year order -> rename positionally to yr1960..
         local yrvars
