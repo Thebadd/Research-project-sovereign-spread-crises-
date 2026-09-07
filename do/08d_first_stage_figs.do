@@ -115,20 +115,46 @@ foreach s in nd def {
 * figure's use of its single richest probit. Trimmed to [0.01,0.6] for the
 * plot only, matching their axis.
 * ══════════════════════════════════════════════════════════════════════════
+* UNIFORM TREATMENT/CONTROL COLOR CODE (matches the reference kdensity
+* figure): treatment group = blue, solid; control group = red, dashed --
+* same convention in both panels, unlike the earlier version where color
+* varied by resolution type (nd/def) and only the dash pattern separated
+* treatment from control. Labels are placed directly next to each curve
+* (text(), color-matched) rather than in a legend box, also matching the
+* reference figure -- the label position is found from each curve's own
+* peak so it works regardless of how the two densities happen to fall.
 local gnames_a
 foreach s in nd def {
     local ttl = cond("`s'"=="nd", "Non-default", "Default-linked")
-    local clr = cond("`s'"=="nd", "`c_nd'", "`c_def'")
+
+    capture drop _xt_`s' _dt_`s' _xc_`s' _dc_`s'
+    quietly kdensity _p2_`s' if onset_`s'==1 & inrange(_p2_`s', 0.01, 0.6), ///
+        generate(_xt_`s' _dt_`s') n(200) nograph
+    quietly kdensity _p2_`s' if onset_`s'==0 & inrange(_p2_`s', 0.01, 0.6), ///
+        generate(_xc_`s' _dc_`s') n(200) nograph
+    quietly summarize _dt_`s'
+    local dtmax = r(max)
+    quietly summarize _xt_`s' if _dt_`s'==`dtmax'
+    local xt_lab = r(mean) + 0.08
+    local yt_lab = `dtmax' * 0.85
+    quietly summarize _dc_`s'
+    local dcmax = r(max)
+    quietly summarize _xc_`s' if _dc_`s'==`dcmax'
+    local xc_lab = r(mean) + 0.10
+    local yc_lab = `dcmax' * 0.85
+    capture drop _xt_`s' _dt_`s' _xc_`s' _dc_`s'
 
     twoway ///
         (kdensity _p2_`s' if onset_`s'==1 & inrange(_p2_`s', 0.01, 0.6), ///
-            lwidth(thick) lcolor("`clr'")) ///
+            lwidth(thick) lcolor(blue)) ///
         (kdensity _p2_`s' if onset_`s'==0 & inrange(_p2_`s', 0.01, 0.6), ///
-            lwidth(thick) lcolor("`clr'") lpattern(dash)), ///
+            lwidth(thick) lcolor(red) lpattern(dash)), ///
         graphregion(color(white)) plotregion(color(white)) ///
-        legend(order(1 "Treatment group" 2 "Control group") ring(0) pos(1) size(small)) ///
+        legend(off) ///
+        text(`yt_lab' `xt_lab' "Treatment group", color(blue) size(small) place(e)) ///
+        text(`yc_lab' `xc_lab' "Control group", color(red) size(small) place(e)) ///
         ytitle("Probability density", size(small)) xtitle("Predicted probability", size(small)) ///
-        title("`ttl'", size(medium) color("`clr'")) ///
+        title("`ttl'", size(medium) color(black)) ///
         name(gk_`s', replace) nodraw
     local gnames_a `gnames_a' gk_`s'
 }
