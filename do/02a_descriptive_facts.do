@@ -630,7 +630,7 @@ preserve
         }
     }
     local lir_vars   lending infl_defl real_lending
-    local lir_labels `" "Panel A: Nominal lending rate" "Panel B: Inflation rate" "Panel C: Real lending rate" "'
+    local lir_labels `" "Panel A: Nominal lending rates" "Panel B: Inflation rates" "Panel C: Real lending rates" "'
     local i = 1
     foreach lv of local lir_vars {
         local llab : word `i' of `lir_labels'
