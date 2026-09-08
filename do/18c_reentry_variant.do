@@ -28,10 +28,12 @@
   "has this year's spread recovered," not predicting next year's.
 
   STANDALONE: reads panel_lp.dta, builds NEW columns under distinct names
-  (pre_ref, in_crisis_reentry) -- does NOT modify 18_transforms.do,
-  in_crisis, onset_all, continuation, or any existing baseline column.
-  Does NOT re-estimate any LP/AIPW file in this pass -- diagnostic/
-  column-construction only.
+  (pre_ref, in_crisis_reentry, sample_reentry) -- does NOT modify
+  18_transforms.do, in_crisis, onset_all, continuation, sample, or any
+  other existing baseline column. Saves $clean/panel_lp_reentry.dta (does
+  NOT overwrite panel_lp.dta). Does NOT re-estimate any LP/AIPW file in
+  this pass -- diagnostic/column-construction only; wiring sample_reentry
+  into an Act 2 re-estimation is a follow-up (see companion files).
 
   Run AFTER 18_transforms.do. Not wired into 00_master.do.
 ===========================================================================*/
@@ -110,7 +112,46 @@ di as result "Episodes UNCHANGED in length:                                     
 di as result _n "Per-onset comparison (baseline episode length vs re-entry episode length):"
 list country year pre_ref _len_baseline _len_reentry if onset_all==1, noobs sepby(country)
 
+* ── sample_reentry: the onset-tier estimation SAMPLE under the re-entry
+* episode definition ────────────────────────────────────────────────────
+* CORRECTION (this session): re-entry was earlier claimed to have "no
+* effect" on the onset-tier LP/AIPW design, on the reasoning that
+* onset_nd/onset_def are 1 only at the single onset row and the outcome
+* (F h.dy - L.dy) is measured forward from that row regardless of how
+* long the crisis lasts -- both true, but incomplete. `sample' (18_
+* transforms.do: (continuation==0) & !missing(ln_gdp_base) & carryin==0 &
+* atonly_country==0) excludes bridged continuation years from the
+* regression ENTIRELY, using the BASELINE bridging rule -- so every year
+* the baseline currently treats as a TRANQUIL CONTROL year (because its
+* own rule says the episode already ended) but the re-entry rule still
+* counts as "in crisis" (spread still above 1.2x pre-crisis reference)
+* contaminates the comparison group under the baseline sample; symmetrically
+* a year the baseline still excludes as continuation==1 might have already
+* recovered under re-entry and could validly join the tranquil pool. THIS
+* is the real, non-trivial channel through which re-entry changes the
+* onset-tier regression: not the treatment coding or the outcome, but the
+* CONTROL-POOL COMPOSITION `sample' selects. sample_reentry keeps every
+* onset row (still the treated row, in_crisis_reentry==1 there by
+* construction) and every year NOT still "in crisis" under the re-entry
+* rule; drops any post-onset year re-entry still counts as ongoing crisis,
+* regardless of what the baseline's own continuation flag said about it.
+capture drop sample_reentry
+gen byte sample_reentry = ((in_crisis_reentry==0) | (onset_all==1)) & ///
+    !missing(ln_gdp_base) & carryin==0 & atonly_country==0
+label var sample_reentry "Onset-tier estimation sample under the re-entry episode definition (robustness)"
+
+quietly count if sample==1 & sample_reentry==0
+di as result _n "Rows in baseline sample but EXCLUDED under sample_reentry (still 'in crisis' per re-entry rule): " r(N)
+quietly count if sample==0 & sample_reentry==1
+di as result "Rows EXCLUDED from baseline sample but INCLUDED under sample_reentry (recovered earlier per re-entry rule): " r(N)
+quietly count if sample==1 & sample_reentry==1
+di as result "Rows in BOTH samples (unaffected by the swap): " r(N)
+
 capture drop _ep_seq_gap _local_mean _local_n _fullref _fullref_fill _above _cum_above _len_reentry _len_baseline
 
+sort cid year
+save "$clean/panel_lp_reentry.dta", replace
+di as result _n "Saved: $clean/panel_lp_reentry.dta (panel_lp.dta + pre_ref, in_crisis_reentry, sample_reentry)"
+
 di as result _n "18c_reentry_variant.do complete."
-di as result "New columns: pre_ref, in_crisis_reentry (not wired into any estimation file yet)."
+di as result "New columns: pre_ref, in_crisis_reentry, sample_reentry."
