@@ -590,6 +590,54 @@ foreach oc in gdp credit inv claims_govt {
     else di as error "  ** `fnm' failed (rc=" _rc ")"
 }
 
+* ══════════════════════════════════════════════════════════════════════════
+* TRANSPOSED FIGURE (this duplicate): panels = {High nexus, Low nexus},
+* lines = {non-default, default-linked} -- mirrors 13d_aipw_nexus_split.do's
+* own transposed figure, same reasoning (see that file's header), applied
+* here to the analytic-SE estimates already in memory from `resf' above.
+* ══════════════════════════════════════════════════════════════════════════
+gen byte bankid = 1 if bank=="high"
+replace bankid = 2 if bank=="low"
+label define bl 1 "High nexus" 2 "Low nexus"
+label values bankid bl
+
+local c_nd  "blue"
+local c_def "red"
+foreach oc in gdp credit inv claims_govt {
+    if "`oc'" == "gdp" {
+        local ptit "GDP"
+        local fnm  "fig_aipw_nexus_split_byexposure_analyticSE"
+    }
+    else if "`oc'" == "credit" {
+        local ptit "Bank credit"
+        local fnm  "fig_nexus_`oc'_byexposure_analyticSE"
+    }
+    else if "`oc'" == "inv" {
+        local ptit "Investment"
+        local fnm  "fig_nexus_`oc'_byexposure_analyticSE"
+    }
+    else if "`oc'" == "claims_govt" {
+        local ptit "Bank claims on government"
+        local fnm  "fig_nexus_`oc'_byexposure_analyticSE"
+    }
+    capture twoway ///
+        (rarea lo hi horizon if part=="nd"  & outcome=="`oc'", color("`c_nd'%16")  lwidth(none)) ///
+        (rarea lo hi horizon if part=="def" & outcome=="`oc'", color("`c_def'%16") lwidth(none)) ///
+        (connected b horizon if part=="nd"  & outcome=="`oc'", lcolor("`c_nd'")  lwidth(medthick) msymbol(circle)) ///
+        (connected b horizon if part=="def" & outcome=="`oc'", lcolor("`c_def'") lwidth(medthick) msymbol(square)), ///
+        by(bankid, yrescale legend(off) title("`ptit'", size(medlarge) color(navy))) ///
+        yline(0, lpattern(dash) lcolor(gs8)) ///
+        xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
+        xtitle("Year", size(medium)) ///
+        ytitle("Cumulative percent change", size(medsmall)) ///
+        graphregion(color(white)) plotregion(color(white))
+    if _rc == 0 {
+        graph export "$figs/`fnm'.pdf", replace
+        di as result "Figure saved: `fnm'.pdf"
+    }
+    else di as error "  ** `fnm' failed (rc=" _rc ")"
+}
+
 di as result _n "13d_aipw_nexus_split_analyticSE.do complete (paper-aligned SE duplicate)."
 di as result "Compare aipw_nexus_split_analyticSE.csv / fig_nexus_*_analyticSE.pdf against"
 di as result "13d_aipw_nexus_split.do's own aipw_nexus_split.csv / fig_nexus_*.pdf directly:"

@@ -72,7 +72,14 @@
 
   Output: $tabs/aipw_nexus_split.csv (outcome x part x bank x horizon, levels) ;
           $tabs/aipw_nexus_diff.csv  (outcome x part x horizon, high-low gap + CI) ;
-          $figs/fig_aipw_nexus_split.pdf (GDP) + $figs/fig_nexus_<channel>.pdf.
+          $figs/fig_aipw_nexus_split.pdf (GDP) + $figs/fig_nexus_<channel>.pdf
+          (panels = resolution type, lines = nexus level, orange/green) ;
+          $figs/fig_aipw_nexus_split_byexposure.pdf (GDP) +
+          $figs/fig_nexus_<channel>_byexposure.pdf (the TRANSPOSED figure:
+          panels = nexus level, lines = resolution type, standard nd=blue/
+          def=red -- same estimates as the figures above, re-organized, the
+          project's analog of Asonuma et al.'s own "High/Low bank credit
+          ratio" panel figure).
   Run AFTER 17_predictors.do (needs fedfunds, past_onsets, l_contagion_dist_def,
   years_since_def_onset, nexus vars).
 ===========================================================================*/
@@ -566,6 +573,62 @@ foreach oc in gdp credit inv claims_govt {
         (connected b horizon if bank=="high" & outcome=="`oc'", lcolor("`c_hi'") lwidth(medthick) msymbol(square)) ///
         (connected b horizon if bank=="low"  & outcome=="`oc'", lcolor("`c_lo'") lwidth(medthick) msymbol(circle)), ///
         by(partid, yrescale legend(off) title("`ptit'", size(medlarge) color(navy))) ///
+        yline(0, lpattern(dash) lcolor(gs8)) ///
+        xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
+        xtitle("Year", size(medium)) ///
+        ytitle("Cumulative percent change", size(medsmall)) ///
+        graphregion(color(white)) plotregion(color(white))
+    if _rc == 0 {
+        graph export "$figs/`fnm'.pdf", replace
+        di as result "Figure saved: `fnm'.pdf"
+    }
+    else di as error "  ** `fnm' failed (rc=" _rc ")"
+}
+
+* ══════════════════════════════════════════════════════════════════════════
+* TRANSPOSED FIGURE: panels = {High nexus, Low nexus}, lines = {non-default,
+* default-linked} -- the mirror image of the figure above (which panels by
+* resolution type, lines by nexus level). Same underlying estimates (still
+* in memory from `resf' above), re-organized, not re-estimated. This is the
+* project's analog of Asonuma et al.'s own "High/Low bank credit ratio"
+* panel figure (their Fig 6 supplementary script: panels = exposure level,
+* lines = resolution type -- post-default/weakly/strictly preemptive),
+* adapted to this project's two-way nd/def split instead of their
+* three-way one. Uses the project's STANDARD nd=blue/def=red convention --
+* correct here since resolution type is now the COLOR axis and nexus level
+* is the PANEL axis, the reverse of the figure above, so there is no
+* confusion with its orange/green palette.
+* ══════════════════════════════════════════════════════════════════════════
+gen byte bankid = 1 if bank=="high"
+replace bankid = 2 if bank=="low"
+label define bl 1 "High nexus" 2 "Low nexus"
+label values bankid bl
+
+local c_nd  "blue"
+local c_def "red"
+foreach oc in gdp credit inv claims_govt {
+    if "`oc'" == "gdp" {
+        local ptit "GDP"
+        local fnm  "fig_aipw_nexus_split_byexposure"
+    }
+    else if "`oc'" == "credit" {
+        local ptit "Bank credit"
+        local fnm  "fig_nexus_`oc'_byexposure"
+    }
+    else if "`oc'" == "inv" {
+        local ptit "Investment"
+        local fnm  "fig_nexus_`oc'_byexposure"
+    }
+    else if "`oc'" == "claims_govt" {
+        local ptit "Bank claims on government"
+        local fnm  "fig_nexus_`oc'_byexposure"
+    }
+    capture twoway ///
+        (rarea lo hi horizon if part=="nd"  & outcome=="`oc'", color("`c_nd'%16")  lwidth(none)) ///
+        (rarea lo hi horizon if part=="def" & outcome=="`oc'", color("`c_def'%16") lwidth(none)) ///
+        (connected b horizon if part=="nd"  & outcome=="`oc'", lcolor("`c_nd'")  lwidth(medthick) msymbol(circle)) ///
+        (connected b horizon if part=="def" & outcome=="`oc'", lcolor("`c_def'") lwidth(medthick) msymbol(square)), ///
+        by(bankid, yrescale legend(off) title("`ptit'", size(medlarge) color(navy))) ///
         yline(0, lpattern(dash) lcolor(gs8)) ///
         xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
         xtitle("Year", size(medium)) ///
