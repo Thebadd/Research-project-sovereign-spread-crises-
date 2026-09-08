@@ -78,8 +78,8 @@
           half of Asonuma et al.'s own Table 3 difference block, added
           alongside aipw_nexus_diff.csv rather than replacing it) ;
           $tabs/table3_nexus_split_<outcome>.rtf (one per outcome, stacked
-          coefficient/SE/Episodes layout matching Asonuma et al.'s own
-          Table 3, with BOTH difference blocks) ;
+          coefficient/SE/Observations-Countries-Episodes layout matching
+          Asonuma et al.'s own Table 3, with BOTH difference blocks) ;
           $figs/fig_aipw_nexus_split.pdf (GDP) + $figs/fig_nexus_<channel>.pdf
           (panels = resolution type, lines = nexus level, orange/green) ;
           $figs/fig_aipw_nexus_split_byexposure.pdf (GDP) +
@@ -271,6 +271,15 @@ program define _aipw, rclass
     local th = r(mean)
     local nn = r(N)
 
+    * Country count in this cell's regression sample -- surfaced (with N,
+    * already computed above) so the Table 3 export can print a full
+    * Observations/Countries/Episodes triple per level row, matching the
+    * reference paper's own layout, instead of Episodes alone.
+    tempvar _tagcty
+    quietly egen byte `_tagcty' = tag(cid) if `touse'
+    quietly count if `_tagcty'==1
+    local nctry = r(N)
+
     * Analytic (unclustered) influence-function SE -- matches 08b_aipw.do /
     * 13c_aipw_channels.do / 21_aipw_flow.do's _aipw exactly: this is what
     * bands the LEVEL estimates below (no bootstrap on levels).
@@ -281,6 +290,7 @@ program define _aipw, rclass
 
     return scalar theta  = `th'
     return scalar N      = `nn'
+    return scalar nctry  = `nctry'
     return scalar se     = `sean'
 end
 
@@ -307,6 +317,8 @@ program define _aipwdiff, rclass
     }
     local bh = r(theta)
     local ah = r(se)
+    local nh = r(N)
+    local nctryh = r(nctry)
     capture _aipw `yv' `Dv' if `ifcl', omodel(`omod') pmodel(`pz') fe(cid)
     if _rc {
         return scalar ok = 0
@@ -314,6 +326,8 @@ program define _aipwdiff, rclass
     }
     local bl = r(theta)
     local al = r(se)
+    local nl = r(N)
+    local nctryl = r(nctry)
     local dh = `bh' - `bl'
 
     * Row-level pools: 0 = control (either cell's tranquil rows), 1 = treated
@@ -370,6 +384,10 @@ program define _aipwdiff, rclass
     return scalar bl = `bl'
     return scalar ah = `ah'
     return scalar al = `al'
+    return scalar nh = `nh'
+    return scalar nl = `nl'
+    return scalar nctryh = `nctryh'
+    return scalar nctryl = `nctryl'
     return scalar bseh = `bseh'
     return scalar bsel = `bsel'
     return scalar se = `se'
@@ -480,6 +498,7 @@ end
 tempname R
 tempfile resf
 postfile `R' str18 outcome str4 part str4 bank byte horizon double b se lo hi ntreat nd ///
+    long nobs byte nctry ///
     using "`resf'", replace
 
 * (b) second results file: the HIGH - LOW nexus difference per outcome x part x h
@@ -531,8 +550,8 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" "claims_govt ch_claims_go
         di as result "        LOW/HIGH stars are the conventional t-test vs zero (b/se_boot): * p<.10 ** p<.05 *** p<.01."
         di as result "        Clogg z matches their own replication script exactly (confirmed, not inferred);"
         di as result "        its p-value is this project's own addition (their script never computes one)."
-        post `R' ("`ocl'") ("`part'") ("low")  (0) (0) (0) (0) (0) (0) (0)   // explicit baseline (h=0)
-        post `R' ("`ocl'") ("`part'") ("high") (0) (0) (0) (0) (0) (0) (0)
+        post `R' ("`ocl'") ("`part'") ("low")  (0) (0) (0) (0) (0) (0) (0) (0) (0)   // explicit baseline (h=0)
+        post `R' ("`ocl'") ("`part'") ("high") (0) (0) (0) (0) (0) (0) (0) (0) (0)
         post `D' ("`ocl'") ("`part'") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)   // explicit baseline (h=0)
 
         forvalues h = 0/4 {
@@ -567,8 +586,16 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" "claims_govt ch_claims_go
                 * ADOPTED: level CIs = theta +/- 1.96*BOOTSTRAP SE (not
                 * analytic -- see 08b_aipw.do's header for the diagnostic
                 * that motivated this switch across all three AIPW files).
-                post `R' ("`ocl'") ("`part'") ("low")  (`h'+1) (`BL') (`BSEL') (`BL'-1.96*`BSEL') (`BL'+1.96*`BSEL') (`ntrl') (.)
-                post `R' ("`ocl'") ("`part'") ("high") (`h'+1) (`BH') (`BSEH') (`BH'-1.96*`BSEH') (`BH'+1.96*`BSEH') (`ntrh') (.)
+                * nobs/nctry: the regression sample (obs, countries) behind
+                * this cell's own outcome model, from _aipw's own e(sample)
+                * -- lets the Table 3 export print a full Observations/
+                * Countries/Episodes triple per level row, not Episodes alone.
+                local NL = r(nl)
+                local NH = r(nh)
+                local NCL = r(nctryl)
+                local NCH = r(nctryh)
+                post `R' ("`ocl'") ("`part'") ("low")  (`h'+1) (`BL') (`BSEL') (`BL'-1.96*`BSEL') (`BL'+1.96*`BSEL') (`ntrl') (.) (`NL') (`NCL')
+                post `R' ("`ocl'") ("`part'") ("high") (`h'+1) (`BH') (`BSEH') (`BH'-1.96*`BSEH') (`BH'+1.96*`BSEH') (`ntrh') (.) (`NH') (`NCH')
 
                 * Clogg z: STILL analytic SEs -- confirmed to match a line
                 * literally in their own replication script (see file header).
@@ -708,9 +735,11 @@ label var b  "AIPW ATE on outcome (pp)"
 label var se "Row-bootstrap SE (ADOPTED; not the paper's analytic formula, see header)"
 label var lo "95% CI lower = b - 1.96*se (bootstrap)"
 label var hi "95% CI upper = b + 1.96*se (bootstrap)"
-label var ntreat "Treated onsets in cell"
+label var ntreat "Treated onsets in cell (Episodes)"
+label var nobs "Observations in this cell's own AIPW outcome-regression sample"
+label var nctry "Countries in this cell's own AIPW outcome-regression sample"
 drop nd
-order outcome part bank horizon b se lo hi ntreat
+order outcome part bank horizon b se lo hi ntreat nobs nctry
 export delimited "$tabs/aipw_nexus_split.csv", replace
 di as result _n "Nexus-split AIPW results CSV saved: $tabs/aipw_nexus_split.csv"
 
@@ -839,10 +868,11 @@ foreach oc in gdp credit inv claims_govt {
 * row below each difference DOES use 3-tier stars (matching
 * 03_lp_resolution.do's own _starstr2 convention), since it is a
 * conventional two-sided p-value, not a CI-excludes-zero flag.
-* Observations/Countries (Table 3's own third row per arm) are NOT
-* reported here -- this file's AIPW programs do not track per-cell
-* regression N/countries the way the OLS files do; only Episodes (treated
-* onsets, `ntreat') is tracked and shown.
+* Observations/Countries/Episodes (Table 3's own third row per arm) are
+* printed as one combined triple beneath each level's SE row, matching the
+* reference paper's own layout -- Observations/Countries come from this
+* cell's own AIPW outcome-regression sample (_aipw's e(sample)), Episodes
+* is the treated-onset count already tracked (`ntreat').
 * ══════════════════════════════════════════════════════════════════════════
 capture program drop _starstr3
 program define _starstr3, rclass
@@ -885,7 +915,8 @@ foreach oc in gdp credit inv claims_govt {
     file open t3tab using "$tabs/table3_nexus_split_`oc'.rtf", write replace
     file write t3tab "{\rtf1\ansi\deff0" _n
     file write t3tab "{\b Table 3, reference-paper layout: AIPW results with high or low sovereign-bank nexus, `otit'\par}" _n
-    file write t3tab "{\i Episodes reported beneath each arm's row-bootstrap standard error. Level stars: single-tier," _n
+    file write t3tab "{\i Observations/Countries/Episodes reported beneath each arm's row-bootstrap standard error" _n
+    file write t3tab " (Obs./Countries from that cell's own AIPW outcome-regression sample). Level stars: single-tier," _n
     file write t3tab " bootstrap 95% CI excludes 0 (this project's own convention throughout 08b/13c/13d, not the" _n
     file write t3tab " reference paper's 3-tier scheme). Differences reported both ways: HIGH-LOW within resolution" _n
     file write t3tab " type, and DEF-ND within exposure level. Bracket row = bootstrap 95% CI (single-tier *);" _n
@@ -907,7 +938,7 @@ foreach oc in gdp credit inv claims_govt {
         file write t3tab "{\b `lbl'}\par" _n
         local coefline ""
         local seline ""
-        local epline ""
+        local ocline ""
         forvalues h = 1/5 {
             quietly summarize b if part=="`pt'" & bank=="`bk'" & horizon==`h', meanonly
             local bb = r(mean)
@@ -919,17 +950,23 @@ foreach oc in gdp credit inv claims_govt {
             local hh = r(mean)
             quietly summarize ntreat if part=="`pt'" & bank=="`bk'" & horizon==`h', meanonly
             local ee = r(mean)
+            quietly summarize nobs if part=="`pt'" & bank=="`bk'" & horizon==`h', meanonly
+            local oo = r(mean)
+            quietly summarize nctry if part=="`pt'" & bank=="`bk'" & horizon==`h', meanonly
+            local cc = r(mean)
             local st = cond(!missing(`ll') & !missing(`hh') & (`ll'>0 | `hh'<0), "*", "")
             local bstr : display %5.2f `bb'
             local sestr : display %5.2f `ss'
             local estr : display %4.0f `ee'
+            local ostr : display %5.0f `oo'
+            local cstr : display %3.0f `cc'
             local coefline "`coefline'\tab `bstr'`st'"
             local seline   "`seline'\tab (`sestr')"
-            local epline   "`epline'\tab `estr'"
+            local ocline   "`ocline'\tab `ostr'/`cstr'/`estr'"
         }
         file write t3tab "`coefline'\par" _n
         file write t3tab "`seline'\par" _n
-        file write t3tab "Episodes`epline'\par" _n
+        file write t3tab "Observations/Countries/Episodes`ocline'\par" _n
         file write t3tab "\par" _n
     }
 
