@@ -516,7 +516,7 @@ preserve
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
             xlabel(-3(1)5, labsize(medlarge)) ylabel(, format(%9.1f) labsize(medium) angle(horizontal)) ///
             xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
-            title("`clab'", size(medium)) ///
+            title("`clab'", size(medlarge)) ///
             legend(off) ///
             name(combo_`i', replace) graphregion(color(white)) plotregion(color(white))
         local ++i
@@ -543,7 +543,7 @@ preserve
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
             xlabel(-3(1)5, labsize(medlarge)) ylabel(, format(%9.1f) labsize(medium) angle(horizontal)) ///
             xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
-            title("`clab'", size(medium)) ///
+            title("`clab'", size(medlarge)) ///
             legend(off) ///
             name(combomed_`i', replace) graphregion(color(white)) plotregion(color(white))
         local ++i
@@ -571,7 +571,7 @@ preserve
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
             xlabel(0(1)5, labsize(medlarge)) ylabel(, format(%9.1f) labsize(medium) angle(horizontal)) ///
             xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
-            title("`clab'", size(medium)) ///
+            title("`clab'", size(medlarge)) ///
             legend(off) ///
             name(combo_post_`i', replace) graphregion(color(white)) plotregion(color(white))
         local ++i
@@ -598,7 +598,7 @@ preserve
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
             xlabel(0(1)5, labsize(medlarge)) ylabel(, format(%9.1f) labsize(medium) angle(horizontal)) ///
             xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
-            title("`clab'", size(medium)) ///
+            title("`clab'", size(medlarge)) ///
             legend(off) ///
             name(combomed_post_`i', replace) graphregion(color(white)) plotregion(color(white))
         local ++i
@@ -643,7 +643,7 @@ preserve
             xlabel(0(1)5, labsize(medlarge)) ///
             ylabel(, format(%9.1f) labsize(medium) angle(horizontal)) ///
             xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
-            title("`llab'", size(medium) color(navy)) ///
+            title("`llab'", size(medlarge) color(navy)) ///
             legend(off) ///
             name(lir_`i', replace) graphregion(color(white)) plotregion(color(white))
         local ++i
