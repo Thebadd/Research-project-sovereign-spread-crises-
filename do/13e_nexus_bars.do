@@ -67,18 +67,20 @@ foreach t in "nd" "def" {
         keep if onset_`t' == 1
         gsort -a_nexus
         local medstr : display %4.1f `medall'
-        * text() x-position: a bit left of the last bar, matching the
-        * reference figure's own label placement (sits beside the line,
-        * over the right-hand bars, not off the plot).
+        * text() x-position: roughly a third of the way in from the left,
+        * where bars have already dropped near/below the median line, so
+        * the label sits in open space to the RIGHT of that point (place(e))
+        * and stays fully inside the plot -- not spanning left across the
+        * tall bars/into the y-axis title, which is what clipped it before.
         quietly count
-        local xtxt = max(1, `r(N)' - 3)
-        local ytxt = `medall' + 4
+        local xtxt = max(1, round(`r(N)' * 0.30))
+        local ytxt = `medall' + 5
         capture noisily graph bar a_nexus, ///
             over(iso_year, sort(a_nexus) descending label(angle(45) labsize(vsmall))) ///
-            bar(1, color("173 216 230") lcolor(gs8)) ///
+            bar(1, color("121 168 208") lcolor(gs8)) ///
             yline(`medall', lcolor(navy)) ///
             text(`ytxt' `xtxt' "Median of all spread crises = `medstr'%", ///
-                place(w) size(small) color(black)) ///
+                place(e) size(small) color(black) justification(left)) ///
             ytitle("Bank claims on government-to-total asset", size(small)) ///
             title("`tlab'", size(medium) color(navy)) ///
             graphregion(color(white)) bgcolor(white) ///
