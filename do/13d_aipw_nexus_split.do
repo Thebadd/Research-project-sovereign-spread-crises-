@@ -535,11 +535,14 @@ label values partid pl
 * UNIFORM IRF STYLE (project-wide onset-tier convention): solid lines,
 * markers match line color, y-axis "Cumulative percent change", x-axis
 * "Year", title = plain variable name, no legend. This split is by
-* pre-crisis bank exposure (high/low), not by resolution type, so its own
-* established high=red/low=blue convention (the "doom-loop" color coding)
-* is kept rather than forced onto the nd/def convention used elsewhere.
-local c_hi "157 36 73"    // high nexus = red (the doom-loop)
-local c_lo "0 84 166"     // low  nexus = blue
+* pre-crisis bank exposure (high/low), not by resolution type -- ORANGE
+* (high) / GREEN (low) here, deliberately distinct from the nd/def RED/BLUE
+* convention used everywhere else in this project, so a reader cannot
+* mistake a high/low-nexus panel for a default/non-default one at a
+* glance. Everything else (rarea CI bands, connected lines, marker-matches-
+* line-color, no legend) matches the OLS/AIPW IRF style exactly.
+local c_hi "230 126 34"   // high nexus = orange
+local c_lo "34 139 34"    // low  nexus = green
 foreach oc in gdp credit inv claims_govt {
     if "`oc'" == "gdp" {
         local ptit "GDP"
