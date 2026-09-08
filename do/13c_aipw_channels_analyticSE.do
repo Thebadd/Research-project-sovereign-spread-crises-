@@ -90,8 +90,8 @@
           rate). Leaves 11/11b/12/13 (OLS+IPW) untouched.
   Runtime note: heavy (7 active channels x ~15 fits x nboot; 2 more channels'
   outcome construction runs but their estimation is silenced, see above).
-  nboot=300 for a practical
-  run; raise to 500 for the final.  Run AFTER 17_predictors.do and 08b_aipw.do
+  nboot=1000, matching the reference paper's own G=1000 (their bootstrap
+  scripts) and 13d_aipw_nexus_split.do's own setting. Run AFTER 17_predictors.do and 08b_aipw.do
   (the combined figure reads 08b's saved aipw_results.csv for GDP).
 ===========================================================================*/
 
@@ -111,7 +111,7 @@ xtset cid year
 * is arbitrary and was not chosen by inspecting results.
 set seed 20260819
 
-local nboot  = 300      // bootstrap reps per (channel, series, horizon)
+local nboot  = 1000     // matches the reference paper's own G=1000 (their bootstrap scripts)
 local cx     $ctrl_core   // retained for reference; propensity baseline now passes `om' (strict parity)
 local cz     l_fedfunds l_reg_crisis_share past_onsets       // Act 1 predictors Z1
 * Act 2 predictors Z2 (resolution-type): both terms are DEFAULT-LINKED-

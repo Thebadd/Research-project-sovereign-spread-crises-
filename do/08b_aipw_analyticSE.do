@@ -138,7 +138,7 @@ local cz_def l_fedfunds l_contagion_dist_def years_since_def_onset
 * is arbitrary and was not chosen by inspecting results.
 set seed 20260819
 
-local nboot = 500      // bootstrap reps; raise to 1000+ for the final run
+local nboot = 1000     // matches the reference paper's own G=1000 (their bootstrap scripts)
 
 * Storage: rows h=0..4
 * Act 1 (pooled, all onsets) SILENCED below -- only Act 2 is of interest now.
