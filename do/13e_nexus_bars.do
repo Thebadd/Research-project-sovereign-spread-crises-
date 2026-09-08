@@ -67,20 +67,19 @@ foreach t in "nd" "def" {
         keep if onset_`t' == 1
         gsort -a_nexus
         local medstr : display %4.1f `medall'
-        * text() x-position: roughly a third of the way in from the left,
-        * where bars have already dropped near/below the median line, so
-        * the label sits in open space to the RIGHT of that point (place(e))
-        * and stays fully inside the plot -- not spanning left across the
-        * tall bars/into the y-axis title, which is what clipped it before.
+        * text() x-position: anchored near the far-right bar, place(w) so
+        * the label extends LEFTWARD from that anchor and ends right at the
+        * right edge -- "just above the line, far right", as requested.
+        * y-position: just above the line itself, not floating well above it.
         quietly count
-        local xtxt = max(1, round(`r(N)' * 0.30))
-        local ytxt = `medall' + 5
+        local xtxt = max(1, `r(N)' - 1)
+        local ytxt = `medall' + 1.5
         capture noisily graph bar a_nexus, ///
             over(iso_year, sort(a_nexus) descending label(angle(45) labsize(vsmall))) ///
-            bar(1, color("121 168 208") lcolor(gs8)) ///
+            bar(1, color("142 163 181") lcolor(gs8)) ///
             yline(`medall', lcolor(navy)) ///
             text(`ytxt' `xtxt' "Median of all spread crises = `medstr'%", ///
-                place(e) size(small) color(black) justification(left)) ///
+                place(w) size(small) color(black) justification(right)) ///
             ytitle("Bank claims on government-to-total asset", size(small)) ///
             title("`tlab'", size(medium) color(navy)) ///
             graphregion(color(white)) bgcolor(white) ///
