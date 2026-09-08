@@ -630,7 +630,7 @@ preserve
         }
     }
     local lir_vars   lending infl_defl real_lending
-    local lir_labels `" "Panel B: Nominal lending rate" "Panel C: Inflation rate" "Panel D: Real lending rate" "'
+    local lir_labels `" "Panel A: Nominal lending rate" "Panel B: Inflation rate" "Panel C: Real lending rate" "'
     local i = 1
     foreach lv of local lir_vars {
         local llab : word `i' of `lir_labels'
@@ -640,9 +640,9 @@ preserve
             (connected lir_`lv'_nd  horizon, lcolor("`c_nd'")  mcolor("`c_nd'")  msymbol(circle) lwidth(medthick)) ///
             (connected lir_`lv'_def horizon, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
-            xlabel(0(1)5, labsize(medium)) ///
+            xlabel(0(1)5, labsize(medlarge)) ///
             ylabel(, format(%9.1f) labsize(medium) angle(horizontal)) ///
-            xtitle("Year", size(medium)) ytitle("`ytit'", size(medium)) ///
+            xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
             title("`llab'", size(medium) color(navy)) ///
             legend(off) ///
             name(lir_`i', replace) graphregion(color(white)) plotregion(color(white))
