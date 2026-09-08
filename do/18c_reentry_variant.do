@@ -79,9 +79,9 @@ di as result "Onsets falling back to the country FULL-SAMPLE tranquil reference:
 * same ep_seq group stays out too, until the NEXT onset starts a new group).
 capture drop _above _cum_above
 gen byte _above = (spr_mean > 1.2*pre_ref) if ep_seq>=1 & !missing(pre_ref)
-by cid ep_seq (year): replace _above = 1 if onset_all==1   // onset itself always starts the episode
-by cid ep_seq (year): gen byte _cum_above = _above[1]
-by cid ep_seq (year): replace _cum_above = min(_cum_above[_n-1], _above) if _n>1
+bysort cid ep_seq (year): replace _above = 1 if onset_all==1   // onset itself always starts the episode
+bysort cid ep_seq (year): gen byte _cum_above = _above[1]
+bysort cid ep_seq (year): replace _cum_above = min(_cum_above[_n-1], _above) if _n>1
 
 capture drop in_crisis_reentry
 gen byte in_crisis_reentry = (_cum_above==1) & carryin==0
