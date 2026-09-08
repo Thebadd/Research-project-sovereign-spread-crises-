@@ -637,8 +637,8 @@ preserve
         local ytit ""
         if `i' == 1 local ytit "Cumulative percent change"
         twoway ///
-            (connected lir_`lv'_nd  horizon, lcolor("`c_nd'")  mcolor("`c_nd'")  msymbol(circle) lwidth(medthick)) ///
-            (connected lir_`lv'_def horizon, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
+            (line lir_`lv'_nd  horizon, lcolor("`c_nd'")  lwidth(thick)) ///
+            (line lir_`lv'_def horizon, lcolor("`c_def'") lwidth(thick)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
             xlabel(0(1)5, labsize(medlarge)) ///
             ylabel(, format(%9.1f) labsize(medium) angle(horizontal)) ///
