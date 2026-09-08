@@ -643,7 +643,7 @@ preserve
             xlabel(0(1)5, labsize(medlarge)) ///
             ylabel(, format(%9.1f) labsize(medium) angle(horizontal)) ///
             xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
-            title("`llab'", size(medlarge) color(navy)) ///
+            title("`llab'", size(medlarge)) ///
             legend(off) ///
             name(lir_`i', replace) graphregion(color(white)) plotregion(color(white))
         local ++i
