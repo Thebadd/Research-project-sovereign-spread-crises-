@@ -75,12 +75,14 @@ foreach t in "nd" "def" {
         local xtxt = max(1, `r(N)' - 1)
         local ytxt = `medall' + 1.5
         capture noisily graph bar a_nexus, ///
-            over(iso_year, sort(a_nexus) descending label(angle(45) labsize(vsmall))) ///
+            over(iso_year, sort(a_nexus) descending label(angle(45) labsize(vsmall) labcolor(black))) ///
             bar(1, color("142 163 181") lcolor(gs8)) ///
             yline(`medall', lcolor(navy)) ///
+            ylabel(, labsize(vsmall) labcolor(black) angle(horizontal)) ///
+            yscale(lcolor(black)) xscale(lcolor(black)) ///
             text(`ytxt' `xtxt' "Median of all spread crises = `medstr'%", ///
                 place(w) size(small) color(black) justification(right)) ///
-            ytitle("Bank claims on government-to-total asset", size(small)) ///
+            ytitle("Bank claims on government-to-total asset", size(small) color(black)) ///
             title("`tlab'", size(medium) color(navy)) ///
             graphregion(color(white)) bgcolor(white) ///
             ysize(3) xsize(5)
