@@ -150,6 +150,42 @@ foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lendi
     }
 }
 
+* ── Nominal lending rate / inflation / real lending rate: evolution figure
+* (mean only, pooled across all onsets, Years 0-5) ─────────────────────────
+* ch_v_h = F h.v - L.v (plain difference; neither lending nor infl_defl is
+* a GDP-ratio needing log-real-level treatment, they are already rates,
+* matching real_lending's own fallthrough-branch construction above).
+* Restricted to !missing(real_lending) at the SAME row -- not just lending/
+* infl_defl individually -- since real_lending itself also drops rows
+* where infl_defl>50 (18_transforms.do's own hyperinflation-truncation
+* rule), so this is the correct way to get "the same country-year sample
+* real_lending is built from" for all three series.
+foreach v in lending infl_defl {
+    capture drop `v'_base
+    gen double `v'_base = L.`v'
+    forvalues h = 0/4 {
+        capture drop ch_`v'_`h'
+        gen double ch_`v'_`h' = (F`h'.`v' - `v'_base) if !missing(real_lending)
+    }
+}
+foreach v in lending infl_defl real_lending {
+    forvalues h = 0/4 {
+        capture drop cmean_lir_`v'_`h' dd_lir_`v'_`h'
+        quietly bysort cid: egen double cmean_lir_`v'_`h' = ///
+            mean(ch_`v'_`h') if sample==1 & !missing(real_lending)
+        quietly gen double dd_lir_`v'_`h' = ///
+            ch_`v'_`h' - cmean_lir_`v'_`h' if sample==1 & !missing(real_lending)
+    }
+}
+foreach v in lending infl_defl real_lending {
+    matrix lir_`v' = J(6, 1, .)
+    matrix lir_`v'[1,1] = 0        // Year 0 baseline, zero by construction
+    forvalues h = 0/4 {
+        quietly summarize dd_lir_`v'_`h' if onset_all==1 & sample==1, meanonly
+        matrix lir_`v'[`h'+2,1] = r(mean)
+    }
+}
+
 * ══════════════════════════════════════════════════════════════════════════
 * 2. GROUP MEANS BY HORIZON  (rows: 1 = Year -3, 2 = Year -2, 3 = Year -1,
 *    4 = Year 0, 5..9 = Years 1-5)
@@ -570,6 +606,36 @@ preserve
     forvalues i = 1/6 {
         capture graph drop combomed_post_`i'
     }
+
+    * ── Nominal lending / inflation / real lending rate: evolution figure ──
+    * Mean only, pooled across all onsets, Years 0-5, restricted to the
+    * real_lending-coverage sample (see the lir_* matrix construction
+    * above). lir_* matrices are 6 rows (Year 0..5), NOT the 9-row (Year
+    * -3..5) convention the rest of this preserve block uses -- rebuilt as
+    * its own small dataset here (clear + set obs 6) rather than svmat-ing
+    * into the existing 9-obs `horizon' dataset, which would misalign rows.
+    clear
+    set obs 6
+    gen horizon = _n - 1
+    foreach v in lending infl_defl real_lending {
+        svmat lir_`v', names(lir_`v')
+        rename lir_`v'1 lir_`v'
+    }
+    twoway ///
+        (connected lir_lending      horizon, lcolor("orange") mcolor("orange") msymbol(circle)  lwidth(medthick)) ///
+        (connected lir_infl_defl    horizon, lcolor("green")  mcolor("green")  msymbol(triangle) lwidth(medthick)) ///
+        (connected lir_real_lending horizon, lcolor("purple") mcolor("purple") msymbol(square)   lwidth(medthick)), ///
+        yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
+        xlabel(0(1)5, labsize(medsmall)) ///
+        ylabel(, format(%9.1f) labsize(medsmall) angle(horizontal)) ///
+        xtitle("Year", size(small)) ///
+        ytitle("Cumulative percentage-point change", size(small)) ///
+        title("Nominal lending, inflation, and real lending rate", size(medium) color(navy)) ///
+        legend(order(1 "Nominal lending rate" 2 "Inflation (GDP deflator)" 3 "Real lending rate") ///
+               position(6) rows(1) size(small)) ///
+        graphregion(color(white)) plotregion(color(white))
+    graph export "$figs/fig0_lending_inflation_real.pdf", replace
+    di as result "Figure saved: fig0_lending_inflation_real.pdf (Years 0..5, mean, real-lending-coverage sample, n=`n_rl_all' onsets)"
 restore
 
 * ══════════════════════════════════════════════════════════════════════════
