@@ -67,12 +67,20 @@ foreach t in "nd" "def" {
         keep if onset_`t' == 1
         gsort -a_nexus
         local medstr : display %4.1f `medall'
+        * text() x-position: a bit left of the last bar, matching the
+        * reference figure's own label placement (sits beside the line,
+        * over the right-hand bars, not off the plot).
+        quietly count
+        local xtxt = max(1, `r(N)' - 3)
+        local ytxt = `medall' + 4
         capture noisily graph bar a_nexus, ///
             over(iso_year, sort(a_nexus) descending label(angle(45) labsize(vsmall))) ///
+            bar(1, color("173 216 230") lcolor(gs8)) ///
             yline(`medall', lcolor(navy)) ///
-            ytitle("Pre-crisis sovereign-bank nexus (bank claims on govt / assets)", size(small)) ///
+            text(`ytxt' `xtxt' "Median of all spread crises = `medstr'%", ///
+                place(w) size(small) color(black)) ///
+            ytitle("Bank claims on government-to-total asset", size(small)) ///
             title("`tlab'", size(medium) color(navy)) ///
-            note("Navy line = median across all `npooled' onsets pooled = `medstr'", size(vsmall)) ///
             graphregion(color(white)) bgcolor(white) ///
             ysize(3) xsize(5)
         if _rc == 0 {
