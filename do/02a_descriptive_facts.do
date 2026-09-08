@@ -389,41 +389,6 @@ preserve
     graph export "$figs/fig0_descriptive_paths_post.pdf", replace
     di as result "Figure saved: fig0_descriptive_paths_post.pdf (Years 0..5)"
 
-    * ── Figure 0, MEDIAN version: same construction, median instead of mean,
-    * separate figure file (not overlaid on the mean panel above). ─────────
-    twoway ///
-        (connected bmed_nd horizon, ///
-            lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
-        (connected bmed_def horizon, ///
-            lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
-        yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
-        xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
-        xlabel(-3(1)5, labsize(medsmall)) ///
-        ylabel(, format(%9.0f) labsize(medsmall) angle(horizontal)) ///
-        xtitle("Year", size(small)) ///
-        ytitle("Cumulative percent change", size(small)) ///
-        title("GDP (median)", size(medium) color(navy)) ///
-        legend(off) ///
-        graphregion(color(white)) plotregion(color(white))
-    graph export "$figs/fig0_descriptive_paths_median.pdf", replace
-    di as result "Figure saved: fig0_descriptive_paths_median.pdf (Years -3..5, median)"
-
-    twoway ///
-        (connected bmed_nd horizon if horizon>=0, ///
-            lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
-        (connected bmed_def horizon if horizon>=0, ///
-            lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
-        yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
-        xlabel(0(1)5, labsize(medsmall)) ///
-        ylabel(, format(%9.0f) labsize(medsmall) angle(horizontal)) ///
-        xtitle("Year", size(small)) ///
-        ytitle("Cumulative percent change", size(small)) ///
-        title("GDP (median)", size(medium) color(navy)) ///
-        legend(off) ///
-        graphregion(color(white)) plotregion(color(white))
-    graph export "$figs/fig0_descriptive_paths_median_post.pdf", replace
-    di as result "Figure saved: fig0_descriptive_paths_median_post.pdf (Years 0..5, median)"
-
     * ── Figure 0a: pooled, for the motivating paragraph ───────────────────
     twoway (connected b_all horizon, ///
             lcolor("`c_all'") mcolor("`c_all'") msymbol(circle) lwidth(medthick)), ///
@@ -449,32 +414,6 @@ preserve
         graphregion(color(white)) plotregion(color(white))
     graph export "$figs/fig0a_descriptive_all_post.pdf", replace
     di as result "Figure saved: fig0a_descriptive_all_post.pdf (Years 0..5)"
-
-    * ── Figure 0a, MEDIAN version ───────────────────────────────────────────
-    twoway (connected bmed_all horizon, ///
-            lcolor("`c_all'") mcolor("`c_all'") msymbol(circle) lwidth(medthick)), ///
-        yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
-        xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
-        xlabel(-3(1)5, labsize(medsmall)) ylabel(, format(%9.0f) labsize(medsmall) angle(horizontal)) ///
-        xtitle("Year", size(small)) ///
-        ytitle("Cumulative percent change", size(small)) ///
-        title("GDP (median)", size(medium) color(navy)) ///
-        legend(off) ///
-        graphregion(color(white)) plotregion(color(white))
-    graph export "$figs/fig0a_descriptive_all_median.pdf", replace
-    di as result "Figure saved: fig0a_descriptive_all_median.pdf (Years -3..5, median)"
-
-    twoway (connected bmed_all horizon if horizon>=0, ///
-            lcolor("`c_all'") mcolor("`c_all'") msymbol(circle) lwidth(medthick)), ///
-        yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
-        xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%9.0f) labsize(medsmall) angle(horizontal)) ///
-        xtitle("Year", size(small)) ///
-        ytitle("Cumulative percent change", size(small)) ///
-        title("GDP (median)", size(medium) color(navy)) ///
-        legend(off) ///
-        graphregion(color(white)) plotregion(color(white))
-    graph export "$figs/fig0a_descriptive_all_median_post.pdf", replace
-    di as result "Figure saved: fig0a_descriptive_all_median_post.pdf (Years 0..5, median)"
 
     * ── Figures 0b-0f: channel descriptive paths, same construction as
     * Figure 0, one standalone figure per active channel (GDP already has
@@ -512,35 +451,9 @@ preserve
             name(gk_`v'_post, replace) graphregion(color(white)) plotregion(color(white))
         graph export "$figs/fig0_descriptive_`v'_post.pdf", replace name(gk_`v'_post)
         graph drop gk_`v'_post
-
-        * MEDIAN versions, same construction ───────────────────────────────
-        twoway ///
-            (connected bmed_`v'_nd horizon, lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
-            (connected bmed_`v'_def horizon, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
-            yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
-            xlabel(-3(1)5, labsize(small)) ylabel(, format(%9.0f) labsize(small) angle(horizontal)) ///
-            xtitle("Year") ytitle("Cumulative percent change", size(small)) ///
-            title("`panellab_`v'' (median)", size(medium)) ///
-            legend(off) ///
-            name(gkmed_`v', replace) graphregion(color(white)) plotregion(color(white))
-        graph export "$figs/fig0_descriptive_`v'_median.pdf", replace name(gkmed_`v')
-        graph drop gkmed_`v'
-
-        twoway ///
-            (connected bmed_`v'_nd horizon if horizon>=0, lcolor("`c_nd'") mcolor("`c_nd'") msymbol(circle) lwidth(medthick)) ///
-            (connected bmed_`v'_def horizon if horizon>=0, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
-            yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
-            xlabel(0(1)5, labsize(small)) ylabel(, format(%9.0f) labsize(small) angle(horizontal)) ///
-            xtitle("Year") ytitle("Cumulative percent change", size(small)) ///
-            title("`panellab_`v'' (median)", size(medium)) ///
-            legend(off) ///
-            name(gkmed_`v'_post, replace) graphregion(color(white)) plotregion(color(white))
-        graph export "$figs/fig0_descriptive_`v'_median_post.pdf", replace name(gkmed_`v'_post)
-        graph drop gkmed_`v'_post
     }
     di as result "Figures saved: fig0_descriptive_<channel>.pdf (Years -3..5) and"
     di as result "               fig0_descriptive_<channel>_post.pdf (Years 0..5)"
-    di as result "               fig0_descriptive_<channel>_median(_post).pdf (median versions)"
 
     * ── Combined 6-panel figure: Panel A GDP, B Investment, C Bank credit,
     * D Claims on government, E FDI, F Real lending rate -- same nd/def
