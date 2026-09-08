@@ -678,7 +678,7 @@ preserve
         xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%9.0f) labsize(medsmall) angle(horizontal)) ///
         xtitle("Year", size(medsmall)) ///
         ytitle("Cumulative percent change", size(medsmall)) ///
-        title("GDP (paper-aligned analytic SE)", size(medium) color(navy)) ///
+        title("GDP", size(medium) color(navy)) ///
         legend(off) ///
         graphregion(color(white)) plotregion(color(white))
     * Note text (kept as source comment, no longer rendered on the figure):

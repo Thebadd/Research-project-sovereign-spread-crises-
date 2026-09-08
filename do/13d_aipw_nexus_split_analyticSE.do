@@ -554,7 +554,7 @@ local c_hi "157 36 73"    // high nexus = red (the doom-loop)
 local c_lo "0 84 166"     // low  nexus = blue
 foreach oc in gdp credit inv claims_govt {
     if "`oc'" == "gdp" {
-        local ptit "GDP (paper-aligned analytic SE)"
+        local ptit "GDP"
         local fnm  "fig_aipw_nexus_split_analyticSE"
     }
     else if "`oc'" == "credit" {
