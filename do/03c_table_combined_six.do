@@ -50,7 +50,30 @@
 
 use "$clean/panel_lp.dta", clear
 if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
+sort cid year
+xtset cid year
 local controls $ctrl_core
+
+* ── Channel outcomes ch_v_h = F h.v - L.v (h=0..4), same construction as
+* 12_channels_resolution.do -- log real level for credit/inv, ratio for
+* claims_govt/fdi/real_lending. This was MISSING in an earlier version of
+* this file (it copied the estimation loop but not the outcome-variable
+* construction that precedes it in 12_channels_resolution.do, causing
+* every channel regression to fail with rc=111, "variable not found").
+* Also builds pre_<v>, the pre-crisis-change control each channel's own
+* ctrl_<v> local references below.
+foreach v in credit inv claims_govt fdi real_lending {
+    local src `v'
+    if inlist("`v'","credit","inv") local src ln_r_`v'
+    capture drop `v'_base
+    gen double `v'_base = L.`src'
+    forvalues h = 0/4 {
+        capture drop ch_`v'_`h'
+        gen double ch_`v'_`h' = F`h'.`src' - `v'_base
+    }
+    capture drop pre_`v'
+    gen double pre_`v' = L.`src' - L2.`src'
+}
 
 * ── Helper: episode/country counts inside e(sample), matching
 * 03_lp_resolution.do's own _nepcount (used for the GDP panel only, to
