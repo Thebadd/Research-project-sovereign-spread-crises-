@@ -390,9 +390,9 @@ preserve
     * ── Figure 0: the Data-section figure — nd vs def, raw ────────────────
     twoway ///
         (line b_nd horizon, ///
-            lcolor("`c_nd'") lwidth(thick)) ///
+            lcolor("`c_nd'") lwidth(thick) lpattern(solid)) ///
         (line b_def horizon, ///
-            lcolor("`c_def'") lwidth(thick)), ///
+            lcolor("`c_def'") lwidth(thick) lpattern(solid)), ///
         yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
         xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
         xlabel(-3(1)5, labsize(medsmall)) ///
@@ -415,9 +415,9 @@ preserve
 
     twoway ///
         (line b_nd horizon if horizon>=0, ///
-            lcolor("`c_nd'") lwidth(thick)) ///
+            lcolor("`c_nd'") lwidth(thick) lpattern(solid)) ///
         (line b_def horizon if horizon>=0, ///
-            lcolor("`c_def'") lwidth(thick)), ///
+            lcolor("`c_def'") lwidth(thick) lpattern(solid)), ///
         yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
         xlabel(0(1)5, labsize(medsmall)) ///
         ylabel(, format(%9.0f) labsize(medsmall) angle(horizontal)) ///
@@ -431,7 +431,7 @@ preserve
 
     * ── Figure 0a: pooled, for the motivating paragraph ───────────────────
     twoway (line b_all horizon, ///
-            lcolor("`c_all'") lwidth(thick)), ///
+            lcolor("`c_all'") lwidth(thick) lpattern(solid)), ///
         yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
         xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
         xlabel(-3(1)5, labsize(medsmall)) ylabel(, format(%9.0f) labsize(medsmall) angle(horizontal)) ///
@@ -444,7 +444,7 @@ preserve
     di as result "Figure saved: fig0a_descriptive_all.pdf (Years -3..5)"
 
     twoway (line b_all horizon if horizon>=0, ///
-            lcolor("`c_all'") lwidth(thick)), ///
+            lcolor("`c_all'") lwidth(thick) lpattern(solid)), ///
         yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
         xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%9.0f) labsize(medsmall) angle(horizontal)) ///
         xtitle("Year", size(small)) ///
@@ -469,8 +469,8 @@ preserve
     local panellab_fdi "FDI"
     foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending fdi {
         twoway ///
-            (line b_`v'_nd horizon, lcolor("`c_nd'") lwidth(thick)) ///
-            (line b_`v'_def horizon, lcolor("`c_def'") lwidth(thick)), ///
+            (line b_`v'_nd horizon, lcolor("`c_nd'") lwidth(thick) lpattern(solid)) ///
+            (line b_`v'_def horizon, lcolor("`c_def'") lwidth(thick) lpattern(solid)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
             xlabel(-3(1)5, labsize(small)) ylabel(, format(%9.0f) labsize(small) angle(horizontal)) ///
             xtitle("Year") ytitle("Cumulative percent change", size(small)) ///
@@ -481,8 +481,8 @@ preserve
         graph drop gk_`v'
 
         twoway ///
-            (line b_`v'_nd horizon if horizon>=0, lcolor("`c_nd'") lwidth(thick)) ///
-            (line b_`v'_def horizon if horizon>=0, lcolor("`c_def'") lwidth(thick)), ///
+            (line b_`v'_nd horizon if horizon>=0, lcolor("`c_nd'") lwidth(thick) lpattern(solid)) ///
+            (line b_`v'_def horizon if horizon>=0, lcolor("`c_def'") lwidth(thick) lpattern(solid)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
             xlabel(0(1)5, labsize(small)) ylabel(, format(%9.0f) labsize(small) angle(horizontal)) ///
             xtitle("Year") ytitle("Cumulative percent change", size(small)) ///
@@ -511,8 +511,8 @@ preserve
         local bser_nd  = cond("`cv'"=="gdp", "b_nd", "b_`cv'_nd")
         local bser_def = cond("`cv'"=="gdp", "b_def", "b_`cv'_def")
         twoway ///
-            (line `bser_nd' horizon, lcolor("`c_nd'") lwidth(thick)) ///
-            (line `bser_def' horizon, lcolor("`c_def'") lwidth(thick)), ///
+            (line `bser_nd' horizon, lcolor("`c_nd'") lwidth(thick) lpattern(solid)) ///
+            (line `bser_def' horizon, lcolor("`c_def'") lwidth(thick) lpattern(solid)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
             xlabel(-3(1)5, labsize(medlarge)) ylabel(, format(%9.1f) labsize(medium) angle(horizontal)) ///
             xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
@@ -538,8 +538,8 @@ preserve
         local bmser_nd  = cond("`cv'"=="gdp", "bmed_nd", "bmed_`cv'_nd")
         local bmser_def = cond("`cv'"=="gdp", "bmed_def", "bmed_`cv'_def")
         twoway ///
-            (line `bmser_nd' horizon, lcolor("`c_nd'") lwidth(thick)) ///
-            (line `bmser_def' horizon, lcolor("`c_def'") lwidth(thick)), ///
+            (line `bmser_nd' horizon, lcolor("`c_nd'") lwidth(thick) lpattern(solid)) ///
+            (line `bmser_def' horizon, lcolor("`c_def'") lwidth(thick) lpattern(solid)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
             xlabel(-3(1)5, labsize(medlarge)) ylabel(, format(%9.1f) labsize(medium) angle(horizontal)) ///
             xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
@@ -566,8 +566,8 @@ preserve
         local bser_nd  = cond("`cv'"=="gdp", "b_nd", "b_`cv'_nd")
         local bser_def = cond("`cv'"=="gdp", "b_def", "b_`cv'_def")
         twoway ///
-            (line `bser_nd' horizon if horizon>=0, lcolor("`c_nd'") lwidth(thick)) ///
-            (line `bser_def' horizon if horizon>=0, lcolor("`c_def'") lwidth(thick)), ///
+            (line `bser_nd' horizon if horizon>=0, lcolor("`c_nd'") lwidth(thick) lpattern(solid)) ///
+            (line `bser_def' horizon if horizon>=0, lcolor("`c_def'") lwidth(thick) lpattern(solid)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
             xlabel(0(1)5, labsize(medlarge)) ylabel(, format(%9.1f) labsize(medium) angle(horizontal)) ///
             xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
@@ -593,8 +593,8 @@ preserve
         local bmser_nd  = cond("`cv'"=="gdp", "bmed_nd", "bmed_`cv'_nd")
         local bmser_def = cond("`cv'"=="gdp", "bmed_def", "bmed_`cv'_def")
         twoway ///
-            (line `bmser_nd' horizon if horizon>=0, lcolor("`c_nd'") lwidth(thick)) ///
-            (line `bmser_def' horizon if horizon>=0, lcolor("`c_def'") lwidth(thick)), ///
+            (line `bmser_nd' horizon if horizon>=0, lcolor("`c_nd'") lwidth(thick) lpattern(solid)) ///
+            (line `bmser_def' horizon if horizon>=0, lcolor("`c_def'") lwidth(thick) lpattern(solid)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
             xlabel(0(1)5, labsize(medlarge)) ylabel(, format(%9.1f) labsize(medium) angle(horizontal)) ///
             xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
@@ -637,8 +637,8 @@ preserve
         local ytit ""
         if `i' == 1 local ytit "Cumulative percent change"
         twoway ///
-            (line lir_`lv'_nd  horizon, lcolor("`c_nd'")  lwidth(thick)) ///
-            (line lir_`lv'_def horizon, lcolor("`c_def'") lwidth(thick)), ///
+            (line lir_`lv'_nd  horizon, lcolor("`c_nd'")  lwidth(thick) lpattern(solid)) ///
+            (line lir_`lv'_def horizon, lcolor("`c_def'") lwidth(thick) lpattern(solid)), ///
             yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
             xlabel(0(1)5, labsize(medlarge)) ///
             ylabel(, format(%9.1f) labsize(medium) angle(horizontal)) ///
