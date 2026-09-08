@@ -15,7 +15,9 @@
 
   Everything else is UNCHANGED from 08b_aipw.do: the point estimates (b1/b2),
   the difference (def-nd) bootstrap and its CI, and the Clogg z (which was
-  ALREADY analytic-SE-based in the original -- see below). Only the level
+  ALREADY analytic-SE-based in the original, and is CONFIRMED to match a
+  line literally in the paper's own replication script -- see 08b_aipw.do's
+  header for the citation). Only the level
   CIs, the level t-tests/stars, and the console SE labels switch from
   bootstrap to analytic. Outputs are written to DIFFERENT filenames so
   running this file never overwrites 08b_aipw.do's own results.
@@ -469,7 +471,7 @@ di as result "    uncertainty by 3.75-5.5x on this project's ~20-episode default
 di as result "    file exists to show that paper-aligned number directly, side by side."
 di as result "    ND/DEF stars are the conventional t-test vs zero (b/se_analytic): * p<.10 ** p<.05 *** p<.01."
 di as result "    def-nd's own * marks the bootstrap CI excluding 0 -- the conservative, governing test for the difference."
-di as result "    Clogg z still uses the analytic SEs (its own literature definition), so it is a permissive"
+di as result "    Clogg z still uses the analytic SEs, confirmed to match a line literally in their own replication script; permissive"
 di as result "    companion statistic on a different SE basis than the level display -- read it as that, not as"
 di as result "    directly comparable to the level stars."
 

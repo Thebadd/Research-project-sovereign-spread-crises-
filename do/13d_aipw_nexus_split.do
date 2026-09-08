@@ -58,10 +58,16 @@
   difference within each part is
   bootstrapped directly with ROW-LEVEL resampling within control/high/low
   pools -- the paper's own bootstrap device, a natural fit since an onset
-  row already is one episode. Clogg et al. (1995)'s z keeps the analytic
-  SEs (its own literature definition) and is reported as the permissive
-  companion statistic on a different SE basis than the (now
-  bootstrap-based) level display. See 08b_aipw.do's header for the full
+  row already is one episode; their own script runs the same G=1000
+  stratified percentile bootstrap in parallel with an analytic-SE Clogg z,
+  matching this file's two-track design. Clogg et al. (1995)'s z --
+  CONFIRMED, not inferred, from a line literally in their replication
+  script (`clogg`v'_12 = (irf`v'1-irf`v'2)/(se`v'1^2+se`v'2^2)^0.5`, their
+  own analytic SE) -- keeps the analytic SEs and is reported as the
+  permissive companion statistic on a different SE basis than the (now
+  bootstrap-based) level display. Their script never derives a p-value
+  from the z; the p-value here is this project's own addition.
+  See 08b_aipw.do's header for the full
   argument.
 
   Output: $tabs/aipw_nexus_split.csv (outcome x part x bank x horizon, levels) ;
@@ -412,6 +418,8 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" "claims_govt ch_claims_go
         di as result "    h   LOW (se_boot)     HIGH (se_boot)    high-low  [95% boot CI]   Clogg z    p"
         di as result "        se_boot = ROW-BOOTSTRAP SE (ADOPTED, not the paper's analytic formula -- see 08b_aipw.do's header)."
         di as result "        LOW/HIGH stars are the conventional t-test vs zero (b/se_boot): * p<.10 ** p<.05 *** p<.01."
+        di as result "        Clogg z matches their own replication script exactly (confirmed, not inferred);"
+        di as result "        its p-value is this project's own addition (their script never computes one)."
         post `R' ("`ocl'") ("`part'") ("low")  (0) (0) (0) (0) (0) (0) (0)   // explicit baseline (h=0)
         post `R' ("`ocl'") ("`part'") ("high") (0) (0) (0) (0) (0) (0) (0)
         post `D' ("`ocl'") ("`part'") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)   // explicit baseline (h=0)
@@ -451,7 +459,8 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" "claims_govt ch_claims_go
                 post `R' ("`ocl'") ("`part'") ("low")  (`h'+1) (`BL') (`BSEL') (`BL'-1.96*`BSEL') (`BL'+1.96*`BSEL') (`ntrl') (.)
                 post `R' ("`ocl'") ("`part'") ("high") (`h'+1) (`BH') (`BSEH') (`BH'-1.96*`BSEH') (`BH'+1.96*`BSEH') (`ntrh') (.)
 
-                * Clogg z: STILL analytic SEs (its own literature definition).
+                * Clogg z: STILL analytic SEs -- confirmed to match a line
+                * literally in their own replication script (see file header).
                 local zz = .
                 local pz2 = .
                 if !missing(`AH') & !missing(`AL') & (`AH'^2 + `AL'^2) > 0 {

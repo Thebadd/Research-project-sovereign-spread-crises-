@@ -53,11 +53,31 @@
       per treatment type, `bsample` each, stack) -- a NATURAL fit here (not
       merely matched for parity): an onset row already IS one episode, so
       row resampling does not face the flow tier's own caveat about a
-      single chronic country contributing many non-independent rows. Clogg
-      et al. (1995)'s z keeps the analytic SEs, its own literature
-      definition, and is reported as the permissive companion statistic on
-      a different SE basis than the (now bootstrap-based) level display --
-      the bootstrap CI on the difference is the governing test throughout.
+      single chronic country contributing many non-independent rows.
+
+      CLOGG ET AL. (1995)'S Z -- CONFIRMED, NOT INFERRED, FROM THEIR OWN
+      REPLICATION SCRIPT: their code computes it directly, e.g.
+      `gen clogg`v'_12 = (irf`v'1 - irf`v'2)/(se`v'1^2 + se`v'2^2)^0.5`,
+      with se`v'`s' their own analytic SE (sqrt(mean(Isq)/N), Isq the
+      squared influence-function residual -- identical construction to
+      this file's `sean` in _aipw). This project's Clogg z (A1/A2 analytic
+      SEs, same formula) is therefore an exact match to a line that is
+      literally in their code, not an outside statistical convention
+      applied on top of their design. Two things their script does NOT do,
+      worth stating precisely: it never computes a p-value from the z (this
+      project's `pz` is an addition beyond their own output, a standard
+      derivation); and it runs this Clogg z only on the SEPARATE-regression
+      setup (their sample_for1/2/3, rival types dropped -- matching this
+      project's Spec A in 03_lp_resolution.do, not the joint spec). Their
+      own script ALSO runs a full G=1000 percentile bootstrap on the
+      difference in parallel (a separate do-file, `bsample, strata(dum`s')`
+      per treatment stratum, `centile(..., centile(2.5 97.5))`) -- the exact
+      two-track design (analytic-SE Clogg z + stratified bootstrap CI)
+      this project adopts here, not an invention. It is reported as the
+      permissive companion statistic on a different SE basis than the
+      (now bootstrap-based) level display -- the bootstrap CI on the
+      difference is the governing test throughout, matching how their own
+      published results lean on the bootstrap CI for formal inference.
 
   SAMPLE: restriction to ever-treated countries is mechanical — the probit drops
   countries with no variation in D. Act 1 = onset vs tranquil. Act 2 = the
@@ -424,11 +444,15 @@ forvalues h = 0/4 {
 *     control/nd/def pools -- the paper's own device, see _aipwpair's
 *     header) so it gets a proper percentile CI, the quantity the paper
 *     actually tests rather than eyeballing the two level bands.
-*   - Clogg et al. (1995)'s z, built from the SAME analytic SEs as the
-*     level bands, is reported alongside the bootstrap CI as the
-*     PERMISSIVE companion statistic (assumes independence, which does not
-*     hold since both cells share the tranquil control pool) -- the
-*     bootstrap CI governs where the two disagree.
+*   - Clogg et al. (1995)'s z -- CONFIRMED directly from their own
+*     replication script (`clogg`v'_12 = (irf`v'1-irf`v'2)/(se`v'1^2+se`v'2^2)^0.5`,
+*     their own analytic SE), not an outside convention -- built from the
+*     ANALYTIC SEs (a different basis than the level bands above, which
+*     use the adopted bootstrap SE), reported alongside the bootstrap CI as
+*     the PERMISSIVE companion statistic (assumes independence, which does
+*     not hold since both cells share the tranquil control pool) -- the
+*     bootstrap CI governs where the two disagree, matching how their own
+*     script runs a parallel G=1000 percentile bootstrap for this contrast.
 *   - BALANCED A-D SAMPLE (common_abcd, built in 18_transforms.do): this is
 *     now the ACTUAL AIPW headline sample for GDP, not an added robustness
 *     check -- restricted to onsets where GDP, Investment, Bank credit, and
@@ -443,10 +467,11 @@ di as result "    se_boot = ROW-BOOTSTRAP SE (ADOPTED), not the paper's own anal
 di as result "    after direct diagnostic evidence that the analytic SE understated the def arm's true"
 di as result "    uncertainty by 3.75-5.5x on this project's ~20-episode default arm (see _aipw's header)."
 di as result "    ND/DEF stars are the conventional t-test vs zero (b/se_boot): * p<.10 ** p<.05 *** p<.01."
+di as result "    Clogg z matches their own replication script exactly (clogg = (irf1-irf2)/sqrt(se1^2+se2^2),"
+di as result "    their own analytic SE) -- confirmed, not inferred; the p-value here is this project's own addition."
 di as result "    def-nd's own * marks the bootstrap CI excluding 0 -- the conservative, governing test for the difference."
-di as result "    Clogg z still uses the analytic SEs (its own literature definition), so it is a permissive"
-di as result "    companion statistic on a different SE basis than the level display -- read it as that, not as"
-di as result "    directly comparable to the level stars."
+di as result "    Clogg z still uses the analytic SEs, a permissive companion statistic on a different SE"
+di as result "    basis than the level display -- read it as that, not as directly comparable to the level stars."
 
 * BALANCED A-D SAMPLE (common_abcd, built in 18_transforms.do): this is now
 * the ACTUAL AIPW headline sample for GDP, not an added robustness check --
@@ -513,11 +538,14 @@ forvalues h = 0/4 {
     matrix A2def_hi[`row',1] = `B1' + 1.96*`BSE1'
 
     * Clogg et al. (1995) z: (irf1 - irf2)/sqrt(se1^2+se2^2), STILL the
-    * analytic SEs (A1/A2) -- this is the statistic's own definition in the
-    * literature; switching its inputs would no longer be "the Clogg z", so
-    * it stays analytic even though the level bands above do not. Read it
-    * as the permissive companion it always was, now against a level display
-    * that itself uses the more honest (wider) bootstrap SE.
+    * analytic SEs (A1/A2) -- this line is confirmed to match a line
+    * literally in their own replication script (clogg`v'_12 =
+    * (irf`v'1-irf`v'2)/(se`v'1^2+se`v'2^2)^0.5, their own analytic SE), not
+    * this project's adaptation of an outside statistical convention;
+    * switching its inputs would no longer be "the Clogg z", so it stays
+    * analytic even though the level bands above do not. Read it as the
+    * permissive companion it always was, now against a level display that
+    * itself uses the more honest (wider) bootstrap SE.
     local zz = .
     local pz = .
     if !missing(`A1') & !missing(`A2') & (`A1'^2 + `A2'^2) > 0 {

@@ -74,7 +74,7 @@
   bootstrapped directly with ROW-LEVEL resampling within control/nd/def
   pools -- the paper's own bootstrap device, a natural fit here since an
   onset row already is one episode; Clogg et al. (1995)'s z keeps the
-  analytic SEs (its own literature definition) and is reported as the
+  analytic SEs -- confirmed to match a line literally in their own replication script, not an outside convention -- and is reported as the
   permissive companion statistic on a different SE basis than the level
   display.
 
@@ -546,7 +546,7 @@ foreach ch in credit claims_govt inv ///
             post `R' ("`ch'") ("nd")  (`h'+1) (`B2') (`A2') (`B2'-1.96*`A2') (`B2'+1.96*`A2')
             post `R' ("`ch'") ("def") (`h'+1) (`B1') (`A1') (`B1'-1.96*`A1') (`B1'+1.96*`A1')
 
-            * Clogg z: analytic SEs (its own literature definition; unchanged
+            * Clogg z: analytic SEs -- confirmed to match a line literally in their own replication script (see header); unchanged
             * from the headline -- it was already analytic-SE-based there).
             local zz = .
             local pz = .

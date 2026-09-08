@@ -59,10 +59,15 @@
   are no longer printed each run). The def-nd DIFFERENCE is
   bootstrapped directly with ROW-LEVEL resampling within control/nd/def
   pools -- the paper's own bootstrap device, a natural fit here since an
-  onset row already is one episode; Clogg et al. (1995)'s z keeps the
-  analytic SEs (its own literature definition) and is reported as the
-  permissive companion statistic on a different SE basis than the level
-  display.
+  onset row already is one episode; their own script runs the same G=1000
+  stratified percentile bootstrap for this contrast, in parallel with an
+  analytic-SE Clogg z, exactly mirroring this file's two-track design.
+  Clogg et al. (1995)'s z -- CONFIRMED, not inferred, from a line literally
+  in their replication script (`clogg`v'_12 = (irf`v'1-irf`v'2)/
+  (se`v'1^2+se`v'2^2)^0.5`, their own analytic SE) -- keeps the analytic
+  SEs and is reported as the permissive companion statistic on a different
+  SE basis than the level display. Their script never derives a p-value
+  from the z; the p-value here is this project's own addition.
 
   CRITICAL: bsample (cluster bootstrap) destroys the panel time order, so nothing
   re-estimated inside the bootstrap may use L./F. operators. The outcome ch_*_h is
@@ -501,6 +506,8 @@ foreach ch in credit claims_govt inv ///
     di as result "  Act 2:  h   ND (se_boot)     DEF (se_boot)     def-nd   [95% boot CI]   Clogg z    p"
     di as result "           se_boot = ROW-BOOTSTRAP SE (ADOPTED, not the paper's analytic formula -- see 08b_aipw.do's header)."
     di as result "           ND/DEF stars are the conventional t-test vs zero (b/se_boot): * p<.10 ** p<.05 *** p<.01."
+    di as result "           Clogg z matches their own replication script exactly (confirmed, not inferred);"
+    di as result "           its p-value is this project's own addition (their script never computes one)."
     post `R' ("`ch'") ("nd")  (0) (0) (0) (0) (0)   // explicit baseline (h=0)
     post `R' ("`ch'") ("def") (0) (0) (0) (0) (0)
     post `Rd' ("`ch'") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)   // explicit baseline (h=0)
@@ -529,7 +536,8 @@ foreach ch in credit claims_govt inv ///
             post `R' ("`ch'") ("nd")  (`h'+1) (`B2') (`BSE2') (`B2'-1.96*`BSE2') (`B2'+1.96*`BSE2')
             post `R' ("`ch'") ("def") (`h'+1) (`B1') (`BSE1') (`B1'-1.96*`BSE1') (`B1'+1.96*`BSE1')
 
-            * Clogg z: STILL analytic SEs (its own literature definition).
+            * Clogg z: STILL analytic SEs -- confirmed to match a line
+            * literally in their own replication script (see file header).
             local zz = .
             local pz = .
             if !missing(`A1') & !missing(`A2') & (`A1'^2 + `A2'^2) > 0 {

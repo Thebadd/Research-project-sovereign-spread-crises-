@@ -74,7 +74,7 @@
   bootstrapped directly with ROW-LEVEL resampling within control/high/low
   pools -- the paper's own bootstrap device, a natural fit since an onset
   row already is one episode. Clogg et al. (1995)'s z keeps the analytic
-  SEs (its own literature definition) and is reported as the permissive
+  SEs -- confirmed to match a line literally in their own replication script, not an outside convention -- and is reported as the permissive
   companion statistic on a different SE basis than the (now
   bootstrap-based) level display. See 08b_aipw.do's header for the full
   argument.
@@ -470,7 +470,7 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" "claims_govt ch_claims_go
                 post `R' ("`ocl'") ("`part'") ("low")  (`h'+1) (`BL') (`AL') (`BL'-1.96*`AL') (`BL'+1.96*`AL') (`ntrl') (.)
                 post `R' ("`ocl'") ("`part'") ("high") (`h'+1) (`BH') (`AH') (`BH'-1.96*`AH') (`BH'+1.96*`AH') (`ntrh') (.)
 
-                * Clogg z: analytic SEs (its own literature definition;
+                * Clogg z: analytic SEs -- confirmed to match a line literally in their own replication script (see header);
                 * unchanged from the headline -- already analytic-SE-based).
                 local zz = .
                 local pz2 = .
