@@ -373,6 +373,96 @@ program define _aipwdiff, rclass
 end
 
 * ══════════════════════════════════════════════════════════════════════════
+* PROGRAM — DEFAULT - NON-DEFAULT difference WITHIN one fixed exposure level
+*   (the OTHER half of Asonuma et al.'s own Table 3 difference block --
+*   identical to 13d_aipw_nexus_split.do's own _aipwpair, copied unchanged:
+*   this comparison's difference bootstrap and Clogg z (analytic SEs) are
+*   IDENTICAL between the headline file and this duplicate, since neither
+*   depends on the level-SE convention this duplicate changes -- only the
+*   per-cell LEVEL bands differ between the two files, and this program
+*   does not compute per-cell level bands at all, just the difference.
+*   _aipwpair, y() d1() if1() d2() if2() omod() pz() reps()
+*   returns r(ok) r(dh) r(b1) r(b2) r(a1) r(a2) r(bse1) r(bse2)
+*           r(se) r(lo) r(hi) r(nd)
+* ══════════════════════════════════════════════════════════════════════════
+capture program drop _aipwpair
+program define _aipwpair, rclass
+    syntax , Y(string) D1(string) IF1(string) D2(string) IF2(string) ///
+             OMOD(string) PZ(string) REPS(integer)
+    capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(cid)
+    if _rc {
+        return scalar ok = 0
+        exit
+    }
+    local b1 = r(theta)
+    local a1 = r(se)
+    capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(cid)
+    if _rc {
+        return scalar ok = 0
+        exit
+    }
+    local b2 = r(theta)
+    local a2 = r(se)
+    local dh = `b1' - `b2'
+
+    capture drop _pool
+    quietly gen byte _pool = 0 if (`if1') | (`if2')
+    quietly replace _pool = 1 if `d1' == 1
+    quietly replace _pool = 2 if `d2' == 1
+
+    tempname pf
+    tempfile bf
+    quietly postfile `pf' double t1 double t2 double diff using "`bf'", replace
+    forvalues b = 1/`reps' {
+        preserve
+            quietly keep if !missing(_pool)
+            quietly bsample, strata(_pool)
+            capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(cid)
+            local t1 = cond(_rc==0, r(theta), .)
+            capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(cid)
+            local t2 = cond(_rc==0, r(theta), .)
+            if !missing(`t1') & !missing(`t2') quietly post `pf' (`t1') (`t2') (`t1' - `t2')
+        restore
+    }
+    quietly postclose `pf'
+    capture drop _pool
+    local se = .
+    local lo = .
+    local hi = .
+    local nd = 0
+    local bse1 = .
+    local bse2 = .
+    preserve
+        quietly use "`bf'", clear
+        quietly count if !missing(diff)
+        local nd = r(N)
+        if `nd' >= 50 {
+            quietly summarize diff
+            local se = r(sd)
+            _pctile diff, p(2.5 97.5)
+            local lo = r(r1)
+            local hi = r(r2)
+            quietly summarize t1
+            local bse1 = r(sd)
+            quietly summarize t2
+            local bse2 = r(sd)
+        }
+    restore
+    return scalar ok = 1
+    return scalar dh = `dh'
+    return scalar b1 = `b1'
+    return scalar b2 = `b2'
+    return scalar a1 = `a1'
+    return scalar a2 = `a2'
+    return scalar bse1 = `bse1'
+    return scalar bse2 = `bse2'
+    return scalar se = `se'
+    return scalar lo = `lo'
+    return scalar hi = `hi'
+    return scalar nd = `nd'
+end
+
+* ══════════════════════════════════════════════════════════════════════════
 * ESTIMATE — high/low nexus subsamples, all + resolution split; post results
 * ══════════════════════════════════════════════════════════════════════════
 tempname R
@@ -501,6 +591,84 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" "claims_govt ch_claims_go
 }
 postclose `R'
 postclose `D'
+
+* ══════════════════════════════════════════════════════════════════════════
+* ESTIMATE #2 — DEFAULT - NON-DEFAULT difference WITHIN each fixed exposure
+*   level (high, low). Identical to 13d_aipw_nexus_split.do's own block --
+*   this difference's own bootstrap/Clogg z do not depend on the level-SE
+*   convention this duplicate changes.
+* ══════════════════════════════════════════════════════════════════════════
+tempname D2
+tempfile diff2_resf
+postfile `D2' str18 outcome str4 bank byte horizon double ddef bdef bnd se lo hi nd ///
+    double cloggz double cloggp using "`diff2_resf'", replace
+
+foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" "claims_govt ch_claims_govt" {
+    gettoken ocl   oc : oc
+    gettoken ystem oc : oc
+
+    if      "`ocl'" == "gdp"              local om `core_aipw'
+    else if "`ocl'" == "credit"           local om l1_gdpg l_debt l_banking_crisis l_govexp l_open l_lninfl exchange2 pre_credit
+    else                                  local om `core_aipw' pre_`ocl'
+
+    di as result _n "############### OUTCOME: `ocl' -- def-nd WITHIN exposure level ###############"
+    di as result "  bank    h   DEF (se_boot)     NON-DEF (se_boot)   def-nd   [95% boot CI]   Clogg z    p"
+
+    foreach bk in "high 1" "low 0" {
+        gettoken bnk hbval : bk
+        post `D2' ("`ocl'") ("`bnk'") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)   // explicit baseline (h=0)
+
+        forvalues h = 0/4 {
+            _aipwpair, y(`ystem'_`h') ///
+                d1(onset_def) if1(sample==1 & onset_nd==0 & highbank==`hbval') ///
+                d2(onset_nd)  if2(sample==1 & onset_def==0 & highbank==`hbval') ///
+                omod(`om') pz(`om' `cz_def') reps(`nboot')
+            if r(ok) {
+                local B1 = r(b1)     // default-linked ATE, this exposure level
+                local B2 = r(b2)     // non-default ATE, this exposure level
+                local A1 = r(a1)     // analytic SE (Clogg z only)
+                local A2 = r(a2)
+                local DH = r(dh)
+                local SE = r(se)
+                local LO = r(lo)
+                local HI = r(hi)
+                local ND = r(nd)
+
+                local zz = .
+                local pz2 = .
+                if !missing(`A1') & !missing(`A2') & (`A1'^2 + `A2'^2) > 0 {
+                    local zz  = `DH' / sqrt(`A1'^2 + `A2'^2)
+                    local pz2 = 2*(1 - normal(abs(`zz')))
+                }
+                post `D2' ("`ocl'") ("`bnk'") (`h'+1) (`DH') (`B1') (`B2') (`SE') (`LO') (`HI') (`ND') (`zz') (`pz2')
+
+                local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
+                di "  `bnk'" _col(9) `h'+1 "  " %8.3f `B1' "  " %8.3f `B2' "  " %8.3f `DH' ///
+                   " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
+                   " " %7.3f `zz' " " %5.3f `pz2'
+            }
+            else di as error "  `bnk' h=" `h'+1 ": estimate failed (too thin)."
+        }
+    }
+}
+postclose `D2'
+
+preserve
+    use "`diff2_resf'", clear
+    label var ddef "AIPW (default - non-default) difference, within this exposure level (pp)"
+    label var bdef "Default-linked ATE, this exposure level"
+    label var bnd  "Non-default ATE, this exposure level"
+    label var lo   "95% CI lower (row bootstrap)"
+    label var hi   "95% CI upper (row bootstrap)"
+    label var nd   "Valid bootstrap draws"
+    label var cloggz "Clogg et al. (1995) z (permissive; assumes independence)"
+    label var cloggp "p-value of the Clogg z"
+    gen byte sig95 = (nd>=50 & (lo>0 | hi<0))
+    label var sig95 "Bootstrap CI excludes 0 (governing test)"
+    order outcome bank horizon ddef bdef bnd se lo hi nd sig95 cloggz cloggp
+    export delimited "$tabs/aipw_nexus_restype_diff_analyticSE.csv", replace
+    di as result _n "AIPW def-nd (within exposure level) DIFFERENCE CSV saved: $tabs/aipw_nexus_restype_diff_analyticSE.csv"
+restore
 
 * ══════════════════════════════════════════════════════════════════════════
 * EXPORT — CSV + figure (panels by resolution part; high vs low nexus lines)

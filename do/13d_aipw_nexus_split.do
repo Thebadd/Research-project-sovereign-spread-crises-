@@ -71,7 +71,15 @@
   argument.
 
   Output: $tabs/aipw_nexus_split.csv (outcome x part x bank x horizon, levels) ;
-          $tabs/aipw_nexus_diff.csv  (outcome x part x horizon, high-low gap + CI) ;
+          $tabs/aipw_nexus_diff.csv  (outcome x part x horizon, HIGH-LOW gap
+          within each resolution type + CI, Clogg z) ;
+          $tabs/aipw_nexus_restype_diff.csv (outcome x bank x horizon,
+          DEF-ND gap within each exposure level + CI, Clogg z -- the OTHER
+          half of Asonuma et al.'s own Table 3 difference block, added
+          alongside aipw_nexus_diff.csv rather than replacing it) ;
+          $tabs/table3_nexus_split_<outcome>.rtf (one per outcome, stacked
+          coefficient/SE/Episodes layout matching Asonuma et al.'s own
+          Table 3, with BOTH difference blocks) ;
           $figs/fig_aipw_nexus_split.pdf (GDP) + $figs/fig_nexus_<channel>.pdf
           (panels = resolution type, lines = nexus level, orange/green) ;
           $figs/fig_aipw_nexus_split_byexposure.pdf (GDP) +
@@ -371,6 +379,102 @@ program define _aipwdiff, rclass
 end
 
 * ══════════════════════════════════════════════════════════════════════════
+* PROGRAM — DEFAULT - NON-DEFAULT difference WITHIN one fixed exposure level
+*   (the OTHER half of Asonuma et al.'s own Table 3 difference block, which
+*   this file did not compute until now: their table reports BOTH "High -
+*   Low, within type" [already covered by _aipwdiff above] AND "type A -
+*   type B, within exposure level" -- e.g. their "Post-default,High -
+*   Weakly,High". This project's two-way nd/def split needs only the
+*   two-way analog: def-nd WITHIN high, and def-nd WITHIN low. Identical in
+*   spirit to 08b_aipw.do/13c_aipw_channels.do's own _aipwpair (the general
+*   two-cell AIPW difference program), copied here unchanged rather than
+*   invented fresh, since this IS that same comparison -- just with the
+*   treated arm additionally restricted to one nexus level. The control
+*   (tranquil) pool is left UNRESTRICTED by nexus level, matching how the
+*   high-low comparison above and Asonuma's own script both leave the
+*   control pool unrestricted by the OTHER split dimension.
+*   _aipwpair, y() d1() if1() d2() if2() omod() pz() reps()
+*   returns r(ok) r(dh) r(b1) r(b2) r(a1) r(a2) r(bse1) r(bse2)
+*           r(se) r(lo) r(hi) r(nd)
+* ══════════════════════════════════════════════════════════════════════════
+capture program drop _aipwpair
+program define _aipwpair, rclass
+    syntax , Y(string) D1(string) IF1(string) D2(string) IF2(string) ///
+             OMOD(string) PZ(string) REPS(integer)
+    capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(cid)
+    if _rc {
+        return scalar ok = 0
+        exit
+    }
+    local b1 = r(theta)
+    local a1 = r(se)
+    capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(cid)
+    if _rc {
+        return scalar ok = 0
+        exit
+    }
+    local b2 = r(theta)
+    local a2 = r(se)
+    local dh = `b1' - `b2'
+
+    capture drop _pool
+    quietly gen byte _pool = 0 if (`if1') | (`if2')
+    quietly replace _pool = 1 if `d1' == 1
+    quietly replace _pool = 2 if `d2' == 1
+
+    tempname pf
+    tempfile bf
+    quietly postfile `pf' double t1 double t2 double diff using "`bf'", replace
+    forvalues b = 1/`reps' {
+        preserve
+            quietly keep if !missing(_pool)
+            quietly bsample, strata(_pool)
+            capture _aipw `y' `d1' if `if1', omodel(`omod') pmodel(`pz') fe(cid)
+            local t1 = cond(_rc==0, r(theta), .)
+            capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(cid)
+            local t2 = cond(_rc==0, r(theta), .)
+            if !missing(`t1') & !missing(`t2') quietly post `pf' (`t1') (`t2') (`t1' - `t2')
+        restore
+    }
+    quietly postclose `pf'
+    capture drop _pool
+    local se = .
+    local lo = .
+    local hi = .
+    local nd = 0
+    local bse1 = .
+    local bse2 = .
+    preserve
+        quietly use "`bf'", clear
+        quietly count if !missing(diff)
+        local nd = r(N)
+        if `nd' >= 50 {
+            quietly summarize diff
+            local se = r(sd)
+            _pctile diff, p(2.5 97.5)
+            local lo = r(r1)
+            local hi = r(r2)
+            quietly summarize t1
+            local bse1 = r(sd)
+            quietly summarize t2
+            local bse2 = r(sd)
+        }
+    restore
+    return scalar ok = 1
+    return scalar dh = `dh'
+    return scalar b1 = `b1'
+    return scalar b2 = `b2'
+    return scalar a1 = `a1'
+    return scalar a2 = `a2'
+    return scalar bse1 = `bse1'
+    return scalar bse2 = `bse2'
+    return scalar se = `se'
+    return scalar lo = `lo'
+    return scalar hi = `hi'
+    return scalar nd = `nd'
+end
+
+* ══════════════════════════════════════════════════════════════════════════
 * ESTIMATE — high/low nexus subsamples, all + resolution split; post results
 * ══════════════════════════════════════════════════════════════════════════
 tempname R
@@ -498,6 +602,86 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" "claims_govt ch_claims_go
 }
 postclose `R'
 postclose `D'
+
+* ══════════════════════════════════════════════════════════════════════════
+* ESTIMATE #2 — DEFAULT - NON-DEFAULT difference WITHIN each fixed exposure
+*   level (high, low). This is new: the loop above only ever compared
+*   {high vs low} within a resolution type; this compares {def vs nd}
+*   within a nexus level -- the OTHER half of Asonuma et al.'s own Table 3
+*   difference block (see _aipwpair's header above). Same outcomes, same
+*   controls/predictors as the main loop.
+* ══════════════════════════════════════════════════════════════════════════
+tempname D2
+tempfile diff2_resf
+postfile `D2' str18 outcome str4 bank byte horizon double ddef bdef bnd se lo hi nd ///
+    double cloggz double cloggp using "`diff2_resf'", replace
+
+foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" "claims_govt ch_claims_govt" {
+    gettoken ocl   oc : oc
+    gettoken ystem oc : oc
+
+    if      "`ocl'" == "gdp"              local om `core_aipw'
+    else if "`ocl'" == "credit"           local om l1_gdpg l_debt l_banking_crisis l_govexp l_open l_lninfl exchange2 pre_credit
+    else                                  local om `core_aipw' pre_`ocl'
+
+    di as result _n "############### OUTCOME: `ocl' -- def-nd WITHIN exposure level ###############"
+    di as result "  bank    h   DEF (se_boot)     NON-DEF (se_boot)   def-nd   [95% boot CI]   Clogg z    p"
+
+    foreach bk in "high 1" "low 0" {
+        gettoken bnk hbval : bk
+        post `D2' ("`ocl'") ("`bnk'") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)   // explicit baseline (h=0)
+
+        forvalues h = 0/4 {
+            _aipwpair, y(`ystem'_`h') ///
+                d1(onset_def) if1(sample==1 & onset_nd==0 & highbank==`hbval') ///
+                d2(onset_nd)  if2(sample==1 & onset_def==0 & highbank==`hbval') ///
+                omod(`om') pz(`om' `cz_def') reps(`nboot')
+            if r(ok) {
+                local B1 = r(b1)     // default-linked ATE, this exposure level
+                local B2 = r(b2)     // non-default ATE, this exposure level
+                local A1 = r(a1)     // analytic SE (Clogg z only)
+                local A2 = r(a2)
+                local DH = r(dh)
+                local SE = r(se)
+                local LO = r(lo)
+                local HI = r(hi)
+                local ND = r(nd)
+
+                local zz = .
+                local pz2 = .
+                if !missing(`A1') & !missing(`A2') & (`A1'^2 + `A2'^2) > 0 {
+                    local zz  = `DH' / sqrt(`A1'^2 + `A2'^2)
+                    local pz2 = 2*(1 - normal(abs(`zz')))
+                }
+                post `D2' ("`ocl'") ("`bnk'") (`h'+1) (`DH') (`B1') (`B2') (`SE') (`LO') (`HI') (`ND') (`zz') (`pz2')
+
+                local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
+                di "  `bnk'" _col(9) `h'+1 "  " %8.3f `B1' "  " %8.3f `B2' "  " %8.3f `DH' ///
+                   " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
+                   " " %7.3f `zz' " " %5.3f `pz2'
+            }
+            else di as error "  `bnk' h=" `h'+1 ": estimate failed (too thin)."
+        }
+    }
+}
+postclose `D2'
+
+preserve
+    use "`diff2_resf'", clear
+    label var ddef "AIPW (default - non-default) difference, within this exposure level (pp)"
+    label var bdef "Default-linked ATE, this exposure level"
+    label var bnd  "Non-default ATE, this exposure level"
+    label var lo   "95% CI lower (row bootstrap)"
+    label var hi   "95% CI upper (row bootstrap)"
+    label var nd   "Valid bootstrap draws"
+    label var cloggz "Clogg et al. (1995) z (permissive; assumes independence)"
+    label var cloggp "p-value of the Clogg z"
+    gen byte sig95 = (nd>=50 & (lo>0 | hi<0))
+    label var sig95 "Bootstrap CI excludes 0 (governing test)"
+    order outcome bank horizon ddef bdef bnd se lo hi nd sig95 cloggz cloggp
+    export delimited "$tabs/aipw_nexus_restype_diff.csv", replace
+    di as result _n "AIPW def-nd (within exposure level) DIFFERENCE CSV saved: $tabs/aipw_nexus_restype_diff.csv"
+restore
 
 * ══════════════════════════════════════════════════════════════════════════
 * EXPORT — CSV + figure (panels by resolution part; high vs low nexus lines)
@@ -639,6 +823,185 @@ foreach oc in gdp credit inv claims_govt {
         di as result "Figure saved: `fnm'.pdf"
     }
     else di as error "  ** `fnm' failed (rc=" _rc ")"
+}
+
+* ══════════════════════════════════════════════════════════════════════════
+* TABLE 3-STYLE EXPORT (one RTF per outcome) — matches Asonuma et al.'s own
+* Table 3 layout: coefficient(star)/SE/Episodes stacked per (part, bank)
+* combination, then a "Differences between the estimated coefficients"
+* section covering BOTH difference dimensions this file computes:
+*   - HIGH - LOW, within each resolution type (aipw_nexus_diff.csv)
+*   - DEF - ND, within each exposure level (aipw_nexus_restype_diff.csv)
+* Level significance uses a SINGLE-TIER star (bootstrap 95% CI excludes 0),
+* matching this project's own established convention throughout 08b/13c/13d
+* -- NOT the reference paper's 3-tier ***/**/* scheme, stated here rather
+* than silently deviating from Table 3's own star convention. The Clogg z
+* row below each difference DOES use 3-tier stars (matching
+* 03_lp_resolution.do's own _starstr2 convention), since it is a
+* conventional two-sided p-value, not a CI-excludes-zero flag.
+* Observations/Countries (Table 3's own third row per arm) are NOT
+* reported here -- this file's AIPW programs do not track per-cell
+* regression N/countries the way the OLS files do; only Episodes (treated
+* onsets, `ntreat') is tracked and shown.
+* ══════════════════════════════════════════════════════════════════════════
+capture program drop _starstr3
+program define _starstr3, rclass
+    args pval
+    local s ""
+    if !missing(`pval') {
+        if `pval' < .01       local s "***"
+        else if `pval' < .05  local s "**"
+        else if `pval' < .10  local s "*"
+    }
+    return local stars "`s'"
+end
+
+foreach oc in gdp credit inv claims_govt {
+    if      "`oc'" == "gdp"          local otit "GDP"
+    else if "`oc'" == "credit"       local otit "Bank credit"
+    else if "`oc'" == "inv"          local otit "Investment"
+    else if "`oc'" == "claims_govt"  local otit "Bank claims on government"
+
+    preserve
+        use "`resf'", clear
+        keep if outcome=="`oc'" & horizon>0
+        tempfile t3lev
+        save `t3lev'
+    restore
+    preserve
+        use "`diff_resf'", clear
+        keep if outcome=="`oc'" & horizon>0
+        tempfile t3hl
+        save `t3hl'
+    restore
+    preserve
+        use "`diff2_resf'", clear
+        keep if outcome=="`oc'" & horizon>0
+        tempfile t3dn
+        save `t3dn'
+    restore
+
+    capture file close t3tab
+    file open t3tab using "$tabs/table3_nexus_split_`oc'.rtf", write replace
+    file write t3tab "{\rtf1\ansi\deff0" _n
+    file write t3tab "{\b Table 3, reference-paper layout: AIPW results with high or low sovereign-bank nexus, `otit'\par}" _n
+    file write t3tab "{\i Episodes reported beneath each arm's row-bootstrap standard error. Level stars: single-tier," _n
+    file write t3tab " bootstrap 95% CI excludes 0 (this project's own convention throughout 08b/13c/13d, not the" _n
+    file write t3tab " reference paper's 3-tier scheme). Differences reported both ways: HIGH-LOW within resolution" _n
+    file write t3tab " type, and DEF-ND within exposure level. Bracket row = bootstrap 95% CI (single-tier *);" _n
+    file write t3tab " parenthesis row below = Clogg et al. (1995) z, 3-tier stars (permissive companion statistic," _n
+    file write t3tab " assumes independence).\par}" _n
+    file write t3tab "\par" _n
+    file write t3tab "\tab h = 1\tab h = 2\tab h = 3\tab h = 4\tab h = 5\par" _n
+    file write t3tab "\par" _n
+
+    * ── Level rows: def,high / def,low / nd,high / nd,low ──────────────────
+    foreach key in "def high Default-linked, High nexus" ///
+                   "def low  Default-linked, Low nexus" ///
+                   "nd  high Non-default, High nexus" ///
+                   "nd  low  Non-default, Low nexus" {
+        gettoken pt key : key
+        gettoken bk  key : key
+        local lbl `key'
+        use `t3lev', clear
+        file write t3tab "{\b `lbl'}\par" _n
+        local coefline ""
+        local seline ""
+        local epline ""
+        forvalues h = 1/5 {
+            quietly summarize b if part=="`pt'" & bank=="`bk'" & horizon==`h', meanonly
+            local bb = r(mean)
+            quietly summarize se if part=="`pt'" & bank=="`bk'" & horizon==`h', meanonly
+            local ss = r(mean)
+            quietly summarize lo if part=="`pt'" & bank=="`bk'" & horizon==`h', meanonly
+            local ll = r(mean)
+            quietly summarize hi if part=="`pt'" & bank=="`bk'" & horizon==`h', meanonly
+            local hh = r(mean)
+            quietly summarize ntreat if part=="`pt'" & bank=="`bk'" & horizon==`h', meanonly
+            local ee = r(mean)
+            local st = cond(!missing(`ll') & !missing(`hh') & (`ll'>0 | `hh'<0), "*", "")
+            local bstr : display %5.2f `bb'
+            local sestr : display %5.2f `ss'
+            local estr : display %4.0f `ee'
+            local coefline "`coefline'\tab `bstr'`st'"
+            local seline   "`seline'\tab (`sestr')"
+            local epline   "`epline'\tab `estr'"
+        }
+        file write t3tab "`coefline'\par" _n
+        file write t3tab "`seline'\par" _n
+        file write t3tab "Episodes`epline'\par" _n
+        file write t3tab "\par" _n
+    }
+
+    * ── Differences: HIGH - LOW within each resolution type ────────────────
+    file write t3tab "Differences between the estimated coefficients, [bootstrap 95% CI] (Clogg et al.'s z)\par" _n
+    foreach pt in def nd {
+        local lbl = cond("`pt'"=="def", "Default-linked: High - Low", "Non-default: High - Low")
+        use `t3hl', clear
+        local ciline ""
+        local zline ""
+        forvalues h = 1/5 {
+            quietly summarize lo if part=="`pt'" & horizon==`h', meanonly
+            local ll = r(mean)
+            quietly summarize hi if part=="`pt'" & horizon==`h', meanonly
+            local hh = r(mean)
+            quietly summarize nd if part=="`pt'" & horizon==`h', meanonly
+            local ndn = r(mean)
+            quietly summarize cloggz if part=="`pt'" & horizon==`h', meanonly
+            local zz = r(mean)
+            quietly summarize cloggp if part=="`pt'" & horizon==`h', meanonly
+            local pz = r(mean)
+            local cist = cond(`ndn'>=50 & !missing(`ll') & (`ll'>0 | `hh'<0), "*", "")
+            _starstr3 `pz'
+            local zst = r(stars)
+            local lls : display %5.1f `ll'
+            local hhs : display %5.1f `hh'
+            local zzs : display %6.2f `zz'
+            local ciline "`ciline'\tab [`lls', `hhs']`cist'"
+            local zline  "`zline'\tab (`zzs')`zst'"
+        }
+        file write t3tab "{\i `lbl'}\par" _n
+        file write t3tab "`ciline'\par" _n
+        file write t3tab "`zline'\par" _n
+        file write t3tab "\par" _n
+    }
+
+    * ── Differences: DEF - ND within each exposure level ────────────────────
+    foreach bk in high low {
+        local lbl = cond("`bk'"=="high", "High nexus: Default-linked - Non-default", "Low nexus: Default-linked - Non-default")
+        use `t3dn', clear
+        local ciline ""
+        local zline ""
+        forvalues h = 1/5 {
+            quietly summarize lo if bank=="`bk'" & horizon==`h', meanonly
+            local ll = r(mean)
+            quietly summarize hi if bank=="`bk'" & horizon==`h', meanonly
+            local hh = r(mean)
+            quietly summarize nd if bank=="`bk'" & horizon==`h', meanonly
+            local ndn = r(mean)
+            quietly summarize cloggz if bank=="`bk'" & horizon==`h', meanonly
+            local zz = r(mean)
+            quietly summarize cloggp if bank=="`bk'" & horizon==`h', meanonly
+            local pz = r(mean)
+            local cist = cond(`ndn'>=50 & !missing(`ll') & (`ll'>0 | `hh'<0), "*", "")
+            _starstr3 `pz'
+            local zst = r(stars)
+            local lls : display %5.1f `ll'
+            local hhs : display %5.1f `hh'
+            local zzs : display %6.2f `zz'
+            local ciline "`ciline'\tab [`lls', `hhs']`cist'"
+            local zline  "`zline'\tab (`zzs')`zst'"
+        }
+        file write t3tab "{\i `lbl'}\par" _n
+        file write t3tab "`ciline'\par" _n
+        file write t3tab "`zline'\par" _n
+        file write t3tab "\par" _n
+    }
+
+    file write t3tab "{\i * bootstrap 95% CI excludes 0. Clogg z stars: * p<0.10, ** p<0.05, *** p<0.01.\par}" _n
+    file write t3tab "}" _n
+    file close t3tab
+    di as result "Table 3-style layout saved: $tabs/table3_nexus_split_`oc'.rtf"
 }
 
 di as result _n "13d_aipw_nexus_split.do complete."
