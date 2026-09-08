@@ -67,23 +67,40 @@ foreach t in "nd" "def" {
         keep if onset_`t' == 1
         gsort -a_nexus
         local medstr : display %4.1f `medall'
-        * text() x-position: anchored near the far-right bar, place(w) so
-        * the label extends LEFTWARD from that anchor and ends right at the
-        * right edge -- "just above the line, far right", as requested.
-        * y-position: just above the line itself, not floating well above it.
+
+        * graph bar's text() coordinates do NOT reliably track the sorted
+        * display order of over() categories (confirmed: an anchor set at
+        * "second-to-last bar" rendered near the far LEFT instead) -- so
+        * this is built as a twoway bar instead, with an explicit integer
+        * x-position per bar (xpos = 1..N in the already-sorted order) and
+        * a matching xlabel() built from those exact positions. text()
+        * coordinates on a twoway plot are then exact, not guesswork.
+        gen long xpos = _n
         quietly count
-        local xtxt = max(1, `r(N)' - 1)
+        local N = r(N)
+        local xlabopts ""
+        forvalues i = 1/`N' {
+            local lab = iso_year[`i']
+            local xlabopts `"`xlabopts' `i' "`lab'""'
+        }
+        * text() anchored at the far-right bar, place(w) so the label reads
+        * leftward from that anchor and ends at the right edge, just above
+        * the median line.
+        local xtxt = `N'
         local ytxt = `medall' + 1.5
-        capture noisily graph bar a_nexus, ///
-            over(iso_year, sort(a_nexus) descending label(angle(45) labsize(vsmall) labcolor(black))) ///
-            bar(1, color("142 163 181") lcolor(gs8)) ///
+
+        capture noisily twoway ///
+            (bar a_nexus xpos, color("142 163 181") lcolor(gs8) barwidth(0.7)), ///
             yline(`medall', lcolor(navy)) ///
             ylabel(, labsize(vsmall) labcolor(black) angle(horizontal)) ///
-            yscale(lcolor(black)) ///
+            xlabel(`xlabopts', angle(45) labsize(vsmall) labcolor(black)) ///
+            xscale(range(0.5 `=`N'+0.5') lcolor(black)) ///
+            xtitle("") ///
             text(`ytxt' `xtxt' "Median of all spread crises = `medstr'%", ///
                 place(w) size(small) color(black) justification(right)) ///
             ytitle("Bank claims on government-to-total asset", size(small) color(black)) ///
             title("`tlab'", size(medium) color(navy)) ///
+            legend(off) ///
             graphregion(color(white)) bgcolor(white) ///
             ysize(3) xsize(5)
         if _rc == 0 {
