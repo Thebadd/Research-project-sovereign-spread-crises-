@@ -29,6 +29,8 @@
 
 use "$clean/panel_lp_mindur.dta", clear
 if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
+sort cid year
+xtset cid year
 local controls $ctrl_core
 local cc         $ctrl_core
 local dropgdpg   l1_gdpg
@@ -148,6 +150,27 @@ restore
 * CHANNELS — mirrors 12_channels_resolution.do's own headline loop
 * ══════════════════════════════════════════════════════════════════════════
 local channels credit claims_govt inv fdi real_lending
+
+* Channel outcomes ch_v_h = F h.v - L.v (h=0..4), same construction as
+* 12_channels_resolution.do -- log real level for credit/inv, ratio for
+* claims_govt/fdi/real_lending. panel_lp.dta/panel_lp_mindur.dta do NOT
+* carry ch_<v>_h persistently (18_transforms.do only builds a TEMPORARY
+* copy to compute common_abcd, then drops it) -- this was missing here
+* originally (same bug independently found and fixed in
+* 03c_table_combined_six.do) and would have failed every channel
+* regression with rc=111, "variable not found."
+foreach v of local channels {
+    local src `v'
+    if inlist("`v'","credit","inv") local src ln_r_`v'
+    capture drop `v'_base
+    gen double `v'_base = L.`src'
+    forvalues h = 0/4 {
+        capture drop ch_`v'_`h'
+        gen double ch_`v'_`h' = F`h'.`src' - `v'_base
+    }
+    capture drop pre_`v'
+    gen double pre_`v' = L.`src' - L2.`src'
+}
 
 local ctrl_credit      l1_gdpg l_debt l_banking_crisis l_govexp l_open l_lninfl exchange2 pre_credit
 local ctrl_claims_govt $ctrl_core pre_claims_govt
