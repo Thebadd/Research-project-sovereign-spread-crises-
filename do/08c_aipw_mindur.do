@@ -4,22 +4,33 @@
   (18b_mindur_variant.do): combines 08b_aipw.do's own Act 2 GDP loop AND
   13c_aipw_channels.do's own Act 2 channel loop (credit, inv, claims_govt,
   fdi, real_lending) into ONE file, swapping d1(onset_def)/d2(onset_nd) for
-  d1(onset_def_mindur)/d2(onset_nd_mindur) in every _aipwpair call. The
-  _aipw/_aipwpair programs, propensity predictors (cx/cz_def), outcome-model
-  control sets, and the ADOPTED row-bootstrap level-SE convention (this
-  project's own headline choice -- see 08b_aipw.do's header for the
-  diagnostic that motivated it over the paper's analytic-SE formula) are
-  copied verbatim from those two files; nothing about the ESTIMATOR itself
-  changes here, only which onset rows count as treated.
+  d1(onset_def_mindur)/d2(onset_nd_mindur) in every _aipwpair call.
+
+  LEVEL SE: uses the paper's own ANALYTIC (unclustered influence-function)
+  SE (`A1'/`A2', returned by _aipwpair) for every level (nd/def) confidence
+  interval -- matching 08b_aipw_analyticSE.do's own construction, not this
+  project's separately-adopted row-bootstrap convention (08b_aipw.do's own
+  headline). Per the user's explicit choice: only the analytic-SE version
+  is built for this robustness variant, not both conventions. See
+  08b_aipw_analyticSE.do's header for the full rationale behind the
+  analytic-SE formula itself.
+
+  The _aipw/_aipwpair programs, propensity predictors (cx/cz_def), and
+  outcome-model control sets are copied verbatim from 08b_aipw.do/
+  13c_aipw_channels.do; nothing about the ESTIMATOR itself changes here,
+  only which onset rows count as treated (the mindur reclassification) and
+  which SE convention bands the levels (analytic, per the above).
 
   STANDALONE: reads $clean/panel_lp_mindur.dta (built by
   18b_mindur_variant.do). Does not modify 08b_aipw.do, 13c_aipw_channels.do,
-  or any baseline column. Does not build Act 1, the def-nd difference
-  bootstrap, Clogg z, RTF tables, or the Bulgaria leave-one-out diagnostic
-  -- only the Act 2 level bands needed for the combined 6-panel figure.
+  08b_aipw_analyticSE.do, or any baseline column. Does not build Act 1, the
+  def-nd difference bootstrap, Clogg z, RTF tables, or the Bulgaria
+  leave-one-out diagnostic -- only the Act 2 level bands needed for the
+  combined 6-panel figure.
 
-  Output: $tabs/aipw_results_mindur.csv (GDP), $tabs/aipw_channels_mindur.csv
-          (channels), $figs/fig_aipw_combined_mindur.pdf (Panel A-F).
+  Output: $tabs/aipw_results_mindur_analyticSE.csv (GDP),
+          $tabs/aipw_channels_mindur_analyticSE.csv (channels),
+          $figs/fig_aipw_combined_mindur_analyticSE.pdf (Panel A-F).
   Run AFTER 18b_mindur_variant.do. Not wired into 00_master.do.
 ===========================================================================*/
 
@@ -51,8 +62,7 @@ foreach v in credit claims_govt inv fdi real_lending {
 }
 
 * ══════════════════════════════════════════════════════════════════════════
-* PROGRAMS — identical to 08b_aipw.do / 13c_aipw_channels.do (see those
-* files' own headers for the full rationale of every design choice here).
+* PROGRAMS — identical to 08b_aipw.do / 13c_aipw_channels.do
 * ══════════════════════════════════════════════════════════════════════════
 capture program drop _aipw
 program define _aipw, rclass
@@ -169,13 +179,13 @@ program define _aipwpair, rclass
 end
 
 * ══════════════════════════════════════════════════════════════════════════
-* ACT 2 — GDP (mirrors 08b_aipw.do's own Act 2 loop, treatment swapped)
+* ACT 2 — GDP (PAPER-ALIGNED SE: A1/A2 for the level bands)
 * ══════════════════════════════════════════════════════════════════════════
 tempname Rg
 tempfile resfg
 postfile `Rg' str3 series byte horizon double b se lo hi using "`resfg'", replace
 
-di as result _n "=== ACT 2 (MINIMUM-DURATION ROBUSTNESS) — AIPW, GDP ==="
+di as result _n "=== ACT 2 (MINIMUM-DURATION ROBUSTNESS, PAPER-ALIGNED SE) — AIPW, GDP ==="
 foreach s in nd def {
     post `Rg' ("`s'") (0) (0) (0) (0) (0)
 }
@@ -185,13 +195,13 @@ forvalues h = 0/4 {
         d2(onset_nd_mindur)  if2(sample==1 & onset_def_mindur==0 & common_abcd==1) ///
         omod(`core_aipw') pz(`cx' `cz_def') reps(`nboot')
     if r(ok) {
-        local B1 = r(b1)     // default-linked
-        local B2 = r(b2)     // non-default
-        local BSE1 = r(bse1) // ADOPTED: row-bootstrap SE, level bands
-        local BSE2 = r(bse2)
-        post `Rg' ("nd")  (`h'+1) (`B2') (`BSE2') (`B2'-1.96*`BSE2') (`B2'+1.96*`BSE2')
-        post `Rg' ("def") (`h'+1) (`B1') (`BSE1') (`B1'-1.96*`BSE1') (`B1'+1.96*`BSE1')
-        di "  h=" `h'+1 "  nd=" %8.3f `B2' " (" %5.3f `BSE2' ")   def=" %8.3f `B1' " (" %5.3f `BSE1' ")"
+        local B1 = r(b1)   // default-linked
+        local B2 = r(b2)   // non-default
+        local A1 = r(a1)   // PAPER-ALIGNED: analytic SE, level bands
+        local A2 = r(a2)
+        post `Rg' ("nd")  (`h'+1) (`B2') (`A2') (`B2'-1.96*`A2') (`B2'+1.96*`A2')
+        post `Rg' ("def") (`h'+1) (`B1') (`A1') (`B1'-1.96*`A1') (`B1'+1.96*`A1')
+        di "  h=" `h'+1 "  nd=" %8.3f `B2' " (" %5.3f `A2' ")   def=" %8.3f `B1' " (" %5.3f `A1' ")"
     }
     else di as error "  h=" `h'+1 ": GDP estimate failed (cell too thin)."
 }
@@ -200,16 +210,16 @@ postclose `Rg'
 preserve
     use "`resfg'", clear
     label var b  "AIPW ATE (pp)"
-    label var se "Row-bootstrap SE (level bands, adopted convention)"
-    label var lo "95% CI lower = b - 1.96*se"
-    label var hi "95% CI upper = b + 1.96*se"
+    label var se "Analytic (unclustered influence-function) SE, matching the paper's own formula"
+    label var lo "95% CI lower = b - 1.96*se (analytic)"
+    label var hi "95% CI upper = b + 1.96*se (analytic)"
     order series horizon b se lo hi
-    export delimited "$tabs/aipw_results_mindur.csv", replace
-    di as result "Saved: $tabs/aipw_results_mindur.csv"
+    export delimited "$tabs/aipw_results_mindur_analyticSE.csv", replace
+    di as result "Saved: $tabs/aipw_results_mindur_analyticSE.csv"
 restore
 
 * ══════════════════════════════════════════════════════════════════════════
-* ACT 2 — CHANNELS (mirrors 13c_aipw_channels.do's own Act 2 loop)
+* ACT 2 — CHANNELS (PAPER-ALIGNED SE)
 * ══════════════════════════════════════════════════════════════════════════
 tempname Rc
 tempfile resfc
@@ -222,7 +232,7 @@ foreach ch in credit claims_govt inv fdi real_lending {
     local balflag
     if inlist("`ch'","credit","inv","claims_govt") local balflag " & common_abcd==1"
 
-    di as result _n "=== CHANNEL (MINIMUM-DURATION ROBUSTNESS): `ch' ==="
+    di as result _n "=== CHANNEL (MINIMUM-DURATION ROBUSTNESS, PAPER-ALIGNED SE): `ch' ==="
     post `Rc' ("`ch'") ("nd")  (0) (0) (0) (0) (0)
     post `Rc' ("`ch'") ("def") (0) (0) (0) (0) (0)
     forvalues h = 0/4 {
@@ -233,10 +243,10 @@ foreach ch in credit claims_govt inv fdi real_lending {
         if r(ok) {
             local B1 = r(b1)
             local B2 = r(b2)
-            local BSE1 = r(bse1)
-            local BSE2 = r(bse2)
-            post `Rc' ("`ch'") ("nd")  (`h'+1) (`B2') (`BSE2') (`B2'-1.96*`BSE2') (`B2'+1.96*`BSE2')
-            post `Rc' ("`ch'") ("def") (`h'+1) (`B1') (`BSE1') (`B1'-1.96*`BSE1') (`B1'+1.96*`BSE1')
+            local A1 = r(a1)
+            local A2 = r(a2)
+            post `Rc' ("`ch'") ("nd")  (`h'+1) (`B2') (`A2') (`B2'-1.96*`A2') (`B2'+1.96*`A2')
+            post `Rc' ("`ch'") ("def") (`h'+1) (`B1') (`A1') (`B1'-1.96*`A1') (`B1'+1.96*`A1')
             di "  h=" `h'+1 "  nd=" %8.3f `B2' "   def=" %8.3f `B1'
         }
         else di as error "  h=" `h'+1 ": `ch' estimate failed (cell too thin)."
@@ -246,25 +256,24 @@ postclose `Rc'
 
 use "`resfc'", clear
 label var b  "AIPW ATE (pp)"
-label var se "Row-bootstrap SE (level bands, adopted convention)"
-label var lo "95% CI lower = b - 1.96*se"
-label var hi "95% CI upper = b + 1.96*se"
+label var se "Analytic (unclustered influence-function) SE, matching the paper's own formula"
+label var lo "95% CI lower = b - 1.96*se (analytic)"
+label var hi "95% CI upper = b + 1.96*se (analytic)"
 order channel series horizon b se lo hi
-export delimited "$tabs/aipw_channels_mindur.csv", replace
-di as result _n "Saved: $tabs/aipw_channels_mindur.csv"
+export delimited "$tabs/aipw_channels_mindur_analyticSE.csv", replace
+di as result _n "Saved: $tabs/aipw_channels_mindur_analyticSE.csv"
 
 tempfile _chanres
 save `_chanres'
 
 * ══════════════════════════════════════════════════════════════════════════
-* COMBINED 6-PANEL FIGURE (mirrors 13c_aipw_channels.do's own combined
-* figure block): Panel A GDP, B Investment, C Bank credit, D Claims on
-* government, E FDI, F Real lending rate.
+* COMBINED 6-PANEL FIGURE (PAPER-ALIGNED SE): Panel A GDP, B Investment,
+* C Bank credit, D Claims on government, E FDI, F Real lending rate.
 * ══════════════════════════════════════════════════════════════════════════
 local c_nd  "blue"
 local c_def "red"
 
-import delimited "$tabs/aipw_results_mindur.csv", clear varnames(1) case(preserve)
+import delimited "$tabs/aipw_results_mindur_analyticSE.csv", clear varnames(1) case(preserve)
 keep if inlist(series, "nd", "def")
 gen str24 channel = "gdp"
 keep channel series horizon b se lo hi
@@ -288,18 +297,21 @@ foreach cv of local combo_vars {
         ytitle("`ytit'", size(large)) ///
         title("`clab'", size(medlarge) color(navy)) legend(off) ///
         graphregion(color(white)) plotregion(color(white)) ///
-        name(combam_`i', replace)
+        name(combams_`i', replace)
     local ++i
 }
-capture graph combine combam_1 combam_2 combam_3 combam_4 combam_5 combam_6, ///
+capture graph combine combams_1 combams_2 combams_3 combams_4 combams_5 combams_6, ///
     cols(3) rows(2) graphregion(color(white)) xsize(10) ysize(7)
 if _rc == 0 {
-    graph export "$figs/fig_aipw_combined_mindur.pdf", replace
-    di as result "Figure saved: fig_aipw_combined_mindur.pdf (minimum-duration robustness, Panel A-F)"
+    graph export "$figs/fig_aipw_combined_mindur_analyticSE.pdf", replace
+    di as result "Figure saved: fig_aipw_combined_mindur_analyticSE.pdf (minimum-duration robustness, paper-aligned SE, Panel A-F)"
 }
-else di as error "  ** fig_aipw_combined_mindur failed (rc=" _rc ")"
+else di as error "  ** fig_aipw_combined_mindur_analyticSE failed (rc=" _rc ")"
 forvalues i = 1/6 {
-    capture graph drop combam_`i'
+    capture graph drop combams_`i'
 }
 
 di as result _n "08c_aipw_mindur.do complete."
+di as result "Compare against 08b_aipw_analyticSE.do/13c_aipw_channels_analyticSE.do's"
+di as result "own baseline outputs: same estimator and SE convention (analytic), only"
+di as result "the treatment definition (minimum-duration) differs."
