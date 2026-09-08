@@ -79,7 +79,7 @@ foreach t in "nd" "def" {
             bar(1, color("142 163 181") lcolor(gs8)) ///
             yline(`medall', lcolor(navy)) ///
             ylabel(, labsize(vsmall) labcolor(black) angle(horizontal)) ///
-            yscale(lcolor(black)) xscale(lcolor(black)) ///
+            yscale(lcolor(black)) ///
             text(`ytxt' `xtxt' "Median of all spread crises = `medstr'%", ///
                 place(w) size(small) color(black) justification(right)) ///
             ytitle("Bank claims on government-to-total asset", size(small) color(black)) ///
