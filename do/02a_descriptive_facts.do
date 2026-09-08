@@ -635,7 +635,7 @@ preserve
     foreach lv of local lir_vars {
         local llab : word `i' of `lir_labels'
         local ytit ""
-        if `i' == 1 local ytit "Cumulative percentage-point change"
+        if `i' == 1 local ytit "Cumulative percent change"
         twoway ///
             (connected lir_`lv'_nd  horizon, lcolor("`c_nd'")  mcolor("`c_nd'")  msymbol(circle) lwidth(medthick)) ///
             (connected lir_`lv'_def horizon, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
