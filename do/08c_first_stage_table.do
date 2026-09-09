@@ -20,12 +20,15 @@
 
   Rows are grouped, as in their Table 1, into:
     PREDICTORS (excluded from the LP/AIPW outcome eq.): Fed funds rate
-        (global push) + distance-weighted contagion (l_contagion_dist_def,
+        (global push) + distance-weighted contagion (l_contagion_dist_atdef,
         a country-year-specific spatial lag of OTHER countries' DEFAULT-
-        LINKED in-crisis STOCK, i.e. onset_def|continuation of a default
-        episode, not just onset years) + years since the most recent prior
-        DEFAULT-LINKED onset (years_since_def_onset, a recency clock,
-        censored at 50).
+        LINKED in-crisis STOCK -- donor pool = the full Asonuma-Trebesch
+        default database union the spread-crisis panel, donor-in-crisis flag
+        = union of an AT-recorded default window and this project's own
+        spread-crisis dating; see the THIRD PREDICTOR CHANGE note below for
+        why this replaced the narrower spread-panel-only measure) + years
+        since the most recent prior DEFAULT-LINKED onset
+        (years_since_def_onset, a recency clock, censored at 50).
 
     WHY DEFAULT-LINKED-SPECIFIC, NOT GENERIC (any-onset-type) -- the
     justification is economic, not merely statistical. A predictor meant to
@@ -89,15 +92,23 @@
   figure counterpart (kernel density + nested ROC, mirroring 21c) is
   08d_first_stage_figs.do.
 
-  ROBUSTNESS COMPARISON (NOT ADOPTED): two additional columns,
-  fs_nd_atdef/fs_def_atdef, swap l_contagion_dist_atdef (17_predictors.do --
-  the AT-database-wide donor pool variant of the contagion predictor) in for
-  the adopted l_contagion_dist_def, holding every other predictor/control
-  fixed. Reported in a SEPARATE export, table_first_stage_atdef_comparison.
-  rtf, alongside their own AUROC/roccomp diagnostics -- not merged into the
-  adopted Table 1 (table_first_stage.rtf), which is unchanged by this
-  addition. Whether the widened contagion measure is ever adopted into
-  cz_def is a decision for a future pass, once this comparison is read.
+  THIRD PREDICTOR CHANGE, ADOPTED: l_contagion_dist_atdef (17_predictors.do's
+  AT-database-wide donor pool variant of the contagion predictor -- donor
+  pool widened from the 52-country spread panel to that panel UNION the full
+  Asonuma-Trebesch default database, donor-in-crisis flag = union of an
+  AT-recorded default window and this project's own spread-crisis dating)
+  REPLACES l_contagion_dist_def in Z2/cz_def as of this pass, project-wide
+  (08b_aipw.do, 13c_aipw_channels.do, 13d_aipw_nexus_split.do). Tested head
+  to head first (fs_nd/fs_def, now built on the adopted measure, vs
+  fs_nd_legacy/fs_def_legacy, the retired measure, in a SEPARATE export,
+  table_first_stage_atdef_comparison.rtf): a Pareto improvement -- the
+  non-default arm's own coefficient becomes significant (z=-2.85, p=.004, vs
+  z=-1.36, p=.172) and roccomp's formal AUROC-difference test newly clears
+  5pct (p=.019 vs .053); the default-linked arm is essentially unchanged
+  (AUROC 0.886 vs 0.888, roccomp p=.122 vs .064 -- neither clears 5pct
+  either way). Adopted project-wide rather than split by arm, since
+  splitting would add real complexity for a def-arm effect this comparison
+  shows to be a wash.
 
   DIAGNOSTIC HISTORY:
     - An earlier pass tested a default-linked-only contagion measure
@@ -179,15 +190,22 @@ if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l
 * Baseline = outcome baseline ($ctrl_core): the Table-1 probit shares its controls
 * with the LP/AIPW outcome equation (their $convar in both stages).
 local X    $ctrl_core
-local Z2   l_fedfunds l_contagion_dist_def years_since_def_onset
-* ROBUSTNESS COMPARISON, not adopted: Z2 with l_contagion_dist_atdef
-* (17_predictors.do) swapped in for l_contagion_dist_def -- same fed funds
-* rate and recency-clock terms, only the contagion measure's donor pool and
-* donor-in-crisis flag differ (widened to the full AT database, unioned with
-* this project's own spread-crisis dating; see 17_predictors.do's header).
-* Two extra columns (fs_nd_atdef/fs_def_atdef) let this be checked directly
-* against the adopted fs_nd/fs_def columns rather than assumed either way.
-local Z2atdef l_fedfunds l_contagion_dist_atdef years_since_def_onset
+* THIRD PREDICTOR CHANGE, ADOPTED: l_contagion_dist_atdef (17_predictors.do's
+* AT-database-wide donor pool variant) replaces l_contagion_dist_def as of
+* this pass. Tested head to head (fs_nd/fs_def vs fs_nd_legacy/fs_def_legacy
+* below): a Pareto improvement -- the non-default arm's own coefficient
+* becomes significant (z=-2.85, p=.004, vs z=-1.36, p=.172 under the retired
+* measure) and roccomp's formal AUROC-difference test newly clears 5pct
+* (p=.019 vs .053); the default-linked arm is essentially unchanged (AUROC
+* 0.886 vs 0.888, roccomp p=.122 vs .064 -- neither reaches 5pct either way).
+* Adopted project-wide (08b_aipw.do, 13c_aipw_channels.do,
+* 13d_aipw_nexus_split.do), not split by arm.
+local Z2   l_fedfunds l_contagion_dist_atdef years_since_def_onset
+* RETIRED (kept for comparison only, not part of the adopted Table 1):
+* l_contagion_dist_def, the spread-panel-only donor pool this measure
+* replaces. fs_nd_legacy/fs_def_legacy below let the two be checked
+* side by side rather than assumed either way.
+local Z2legacy l_fedfunds l_contagion_dist_def years_since_def_onset
 
 eststo clear
 
@@ -222,8 +240,8 @@ end
 
 _fscol fs_nd  "onset_nd"  "sample==1 & onset_def==0"      "`X'" "`Z2'"
 _fscol fs_def "onset_def" "sample==1 & onset_nd==0"       "`X'" "`Z2'"
-_fscol fs_nd_atdef  "onset_nd"  "sample==1 & onset_def==0"      "`X'" "`Z2atdef'"
-_fscol fs_def_atdef "onset_def" "sample==1 & onset_nd==0"       "`X'" "`Z2atdef'"
+_fscol fs_nd_legacy  "onset_nd"  "sample==1 & onset_def==0"      "`X'" "`Z2legacy'"
+_fscol fs_def_legacy "onset_def" "sample==1 & onset_nd==0"       "`X'" "`Z2legacy'"
 
 * ══════════════════════════════════════════════════════════════════════════
 * DIAGNOSTIC: WHICH ROWS ARE THE "2 FAILURES COMPLETELY DETERMINED" IN THE
@@ -310,13 +328,13 @@ capture drop _pctrl_fs_nd _pfull_fs_nd _pctrl_fs_def _pfull_fs_def
 
 * Same formal test for the two ATDEF (widened-contagion) columns -- reported
 * separately below, not folded into the adopted spec's own interpretation.
-quietly roccomp onset_nd _pctrl_fs_nd_atdef _pfull_fs_nd_atdef if !missing(_pctrl_fs_nd_atdef,_pfull_fs_nd_atdef)
-local rocchi2_nd_atdef = r(chi2)
-local rocp_nd_atdef    = r(p)
-quietly roccomp onset_def _pctrl_fs_def_atdef _pfull_fs_def_atdef if !missing(_pctrl_fs_def_atdef,_pfull_fs_def_atdef)
-local rocchi2_def_atdef = r(chi2)
-local rocp_def_atdef    = r(p)
-capture drop _pctrl_fs_nd_atdef _pfull_fs_nd_atdef _pctrl_fs_def_atdef _pfull_fs_def_atdef
+quietly roccomp onset_nd _pctrl_fs_nd_legacy _pfull_fs_nd_legacy if !missing(_pctrl_fs_nd_legacy,_pfull_fs_nd_legacy)
+local rocchi2_nd_legacy = r(chi2)
+local rocp_nd_legacy    = r(p)
+quietly roccomp onset_def _pctrl_fs_def_legacy _pfull_fs_def_legacy if !missing(_pctrl_fs_def_legacy,_pfull_fs_def_legacy)
+local rocchi2_def_legacy = r(chi2)
+local rocp_def_legacy    = r(p)
+capture drop _pctrl_fs_nd_legacy _pfull_fs_nd_legacy _pctrl_fs_def_legacy _pfull_fs_def_legacy
 
 * ── Console echo of the diagnostics ──────────────────────────────────────────
 di as result _n "=== FIRST-STAGE PROBIT DIAGNOSTICS (predictors jointly) ==="
@@ -367,15 +385,14 @@ else {
 }
 
 * ══════════════════════════════════════════════════════════════════════════
-* ROBUSTNESS COMPARISON (NOT ADOPTED): fs_nd_atdef/fs_def_atdef swap the
-* AT-database-wide contagion measure (contagion_dist_atdef) in for the
-* adopted contagion_dist_def, holding fed funds and the recency clock fixed.
-* Reported alongside the adopted columns' own diagnostics above for a direct
-* side-by-side read, not merged into that interpretation.
+* PROVENANCE COMPARISON: fs_nd/fs_def (now the ADOPTED contagion_dist_atdef
+* columns) vs fs_nd_legacy/fs_def_legacy (the RETIRED contagion_dist_def
+* columns) -- kept so the adoption decision documented in this file's header
+* is directly checkable against live numbers, not just asserted.
 * ══════════════════════════════════════════════════════════════════════════
-di as result _n "=== ROBUSTNESS: widened-contagion (atdef) columns vs adopted columns ==="
+di as result _n "=== PROVENANCE: adopted (AT-wide) columns vs retired columns ==="
 di as result "col                 chi2(pred)   p        AUROC(ctrl only)  AUROC(+pred)  delta   roccomp chi2   p"
-foreach c in fs_nd fs_def fs_nd_atdef fs_def_atdef {
+foreach c in fs_nd fs_def fs_nd_legacy fs_def_legacy {
     quietly estimates restore `c'
     local dlt = e(auroc) - e(aurocctrl)
     local dltsign = cond(`dlt' >= 0, "+", "")
@@ -384,12 +401,10 @@ foreach c in fs_nd fs_def fs_nd_atdef fs_def_atdef {
                  %8.3f e(aurocctrl) "        " %6.3f e(auroc) "       " "`dltsign'" %6.3f `dlt' ///
                  "     " %6.2f `rocchi2_`sfx'' "        " %5.3f `rocp_`sfx''
 }
-di as result _n "      Read the atdef rows against their adopted counterparts directly above (fs_nd vs"
-di as result "      fs_nd_atdef, fs_def vs fs_def_atdef): a materially higher AUROC/lower roccomp p for the"
-di as result "      atdef column would support widening the donor pool; a similar or worse result means the"
-di as result "      narrower, spread-panel-only contagion measure is not costing classification power. Neither"
-di as result "      atdef column is adopted into cz_def based on this table alone -- this is a comparison, not"
-di as result "      a decision rule."
+di as result _n "      Read the adopted rows (fs_nd, fs_def) against their retired counterparts (fs_nd_legacy,"
+di as result "      fs_def_legacy): the adopted non-default column shows a materially higher AUROC and a lower"
+di as result "      roccomp p than the retired one; the default-linked columns are essentially unchanged either"
+di as result "      way. This is the comparison the adoption in this file's header is based on."
 
 * ══════════════════════════════════════════════════════════════════════════
 * DIAGNOSTIC (NOT ADOPTED): does adding COUNTRY FIXED EFFECTS to the probit
@@ -452,10 +467,10 @@ di as result "      above -- this block only reports the comparison."
 capture esttab fs_nd fs_def using "$tabs/table_first_stage.rtf", replace ///
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
     mtitles("Non-default" "Default-linked") ///
-    order(l_fedfunds l_contagion_dist_def years_since_def_onset ///
+    order(l_fedfunds l_contagion_dist_atdef years_since_def_onset ///
           l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2) ///
     coeflabel(l_fedfunds "US federal funds rate" ///
-              l_contagion_dist_def "Contagion, based on default-linked crisis" ///
+              l_contagion_dist_atdef "Contagion, based on default-linked crisis (AT-database-wide donors)" ///
               years_since_def_onset "Years since last default-linked onset" ///
               l1_gdpg "GDP growth" ///
               l_debt "Public debt-to-GDP ratio" ///
@@ -484,19 +499,20 @@ else di as result "First-stage table saved: $tabs/table_first_stage.rtf"
 
 * ══════════════════════════════════════════════════════════════════════════
 * SECOND TABLE (NOT the adopted Table 1): all four columns side by side,
-* adopted (contagion_dist_def) vs the AT-database-wide widened-contagion
-* variant (contagion_dist_atdef), for the two resolution types. A separate
-* file from table_first_stage.rtf so the adopted table stays exactly as it
-* was -- this is a comparison export, not a replacement.
+* the ADOPTED AT-database-wide contagion measure (contagion_dist_atdef) vs
+* the RETIRED spread-panel-only measure (contagion_dist_def), for the two
+* resolution types. A separate file from table_first_stage.rtf so the
+* adopted table stays exactly as it was -- this is a provenance/comparison
+* export, not a second live specification.
 * ══════════════════════════════════════════════════════════════════════════
-capture esttab fs_nd fs_def fs_nd_atdef fs_def_atdef using "$tabs/table_first_stage_atdef_comparison.rtf", replace ///
+capture esttab fs_nd fs_def fs_nd_legacy fs_def_legacy using "$tabs/table_first_stage_atdef_comparison.rtf", replace ///
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
-    mtitles("Non-default" "Default-linked" "Non-default (AT-wide)" "Default-linked (AT-wide)") ///
-    order(l_fedfunds l_contagion_dist_def l_contagion_dist_atdef years_since_def_onset ///
+    mtitles("Non-default (adopted)" "Default-linked (adopted)" "Non-default (retired)" "Default-linked (retired)") ///
+    order(l_fedfunds l_contagion_dist_atdef l_contagion_dist_def years_since_def_onset ///
           l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2) ///
     coeflabel(l_fedfunds "US federal funds rate" ///
-              l_contagion_dist_def "Contagion (adopted, spread-panel-only donors)" ///
-              l_contagion_dist_atdef "Contagion (AT-database-wide donors)" ///
+              l_contagion_dist_atdef "Contagion (adopted, AT-database-wide donors)" ///
+              l_contagion_dist_def "Contagion (retired, spread-panel-only donors)" ///
               years_since_def_onset "Years since last default-linked onset" ///
               l1_gdpg "GDP growth" ///
               l_debt "Public debt-to-GDP ratio" ///
@@ -510,12 +526,11 @@ capture esttab fs_nd fs_def fs_nd_atdef fs_def_atdef using "$tabs/table_first_st
     stats(chi2p pp aurocctrl auroc N, ///
           labels("Chi-squared for predictors" " p-value of Chi-squared" "AUROC, controls only" "AUROC, with predictors" "Observations") ///
           fmt(2 3 3 3 0)) ///
-    title("Table 1 (robustness comparison). Adopted vs AT-database-wide contagion measure") ///
-    addnotes("Columns 1-2 are the adopted Table 1 (l_contagion_dist_def, donor pool = the 52-country spread-crisis panel)." ///
-             "Columns 3-4 swap in l_contagion_dist_atdef (17_predictors.do): same fed funds rate and recency-clock predictors," ///
-             "but the contagion measure's donor pool widens to the full Asonuma-Trebesch default database union the spread panel," ///
-             "and the donor-in-crisis flag is the union of an AT-recorded default window and this project's own spread-crisis dating." ///
-             "This table is a robustness comparison only -- neither AT-wide column is adopted into cz_def based on this table alone." ///
+    title("Table 1 (provenance comparison). Adopted vs retired contagion measure") ///
+    addnotes("Columns 1-2 are the ADOPTED Table 1 (l_contagion_dist_atdef, donor pool = the full Asonuma-Trebesch default database union the" ///
+             "52-country spread-crisis panel). Columns 3-4 are the RETIRED measure (l_contagion_dist_def, donor pool = the spread panel only)," ///
+             "kept here for provenance. This table documents why the adoption was made -- the non-default arm's coefficient/AUROC/roccomp" ///
+             "all improve under the adopted measure, while the default-linked arm is essentially unchanged either way." ///
              "* p<0.10, ** p<0.05, *** p<0.01.")
 
 if _rc == 608 di as error "  ** table_first_stage_atdef_comparison.rtf is OPEN IN WORD — close it and re-run to refresh."

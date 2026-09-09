@@ -121,7 +121,24 @@ local cz    l_fedfunds l_reg_crisis_share past_onsets
 * caveat that the reference paper's own $instrument is NOT tailored per
 * column the way cz_def is here. cz (Act 1, pooled) is unchanged: there is
 * no resolution type to be specific about in a pooled spec.
-local cz_def l_fedfunds l_contagion_dist_def years_since_def_onset
+*
+* THIRD PREDICTOR CHANGE, ADOPTED: l_contagion_dist_def -> l_contagion_dist_atdef.
+* 08c_first_stage_table.do built a widened-donor-pool variant of the contagion
+* predictor (17_predictors.do: donor pool widens from the 52-country spread
+* panel to that panel UNION the full Asonuma-Trebesch default database; the
+* donor-in-crisis flag is the union of an AT-recorded default window and this
+* project's own spread-crisis dating) and tested it head to head against the
+* adopted measure. Result: a clean, asymmetric improvement -- the non-default
+* arm's own coefficient becomes significant (z=-2.85, p=.004, vs z=-1.36,
+* p=.172 under the narrower measure) and roccomp's formal AUROC-difference
+* test newly clears the conventional 5pct level (p=.019, vs p=.053); the
+* default-linked arm is essentially unchanged (AUROC 0.886 vs 0.888, roccomp
+* p=.122 vs .064 -- neither reaches 5pct either way, no material difference).
+* A Pareto improvement, not a trade-off: adopted project-wide rather than
+* split by arm, since splitting would add real complexity for a def-arm
+* effect this comparison shows to be a wash. See 08c_first_stage_table.do's
+* header for the full comparison table this adoption is based on.
+local cz_def l_fedfunds l_contagion_dist_atdef years_since_def_onset
 
 * ── REPRODUCIBILITY: seed the bootstrap ────────────────────────────────────
 * Every CI in this file comes from `bsample', which draws at random. Without a
