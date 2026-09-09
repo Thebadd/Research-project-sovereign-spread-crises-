@@ -48,7 +48,33 @@
     l_credit_bank    Bank credit-to-GDP ratio
     l_lninfl         Log inflation
     exchange2        Log change in the nominal exchange rate
-  No new variables are built here -- all eight already exist on panel_lp.dta.
+
+  SCALE, matching Asonuma et al.'s OWN Table H1 replication script exactly:
+  their balance-table dependent variables carry a distinct "b" suffix from
+  the $convar terms used inside their LP/AIPW model (gdpg2 vs gdpg2b, etc.),
+  and the two are not on the same scale. Confirmed directly from their
+  pasted script: gdpg2b, exchange2b, and lninflation2b are each built WITH
+  an explicit *100 (e.g. `gdpg2b = (ln(L.gdp_real)-ln(L2.gdp_real))*100`),
+  while gov_exp2b/open2b/credit_bank2b carry NO *100 (their L.gov_exp/L.open/
+  L.credit_bank source is already on a raw percent-of-GDP scale, e.g. 25.3,
+  not this project's internal decimal convention). This project's own
+  $ctrl_core, by contrast, is uniformly decimal (l1_gdpg has no *100 at all;
+  l_debt/l_govexp/l_open/l_credit_bank are each /100'd from their raw
+  percent source; l_lninfl and exchange2 are decimal log terms) -- built
+  that way to match Asonuma's $convar (LP-model) scale, NOT their Table H1
+  "b"-suffix scale. To report coefficients directly comparable to their
+  Table H1's own numbers, this file rescales seven of the eight terms by
+  *100 here, display/regression-only, exactly undoing this project's own
+  $ctrl_core /100 convention for those five ratio terms and applying the
+  same *100 Asonuma give gdpg2b/exchange2b/lninflation2b directly:
+    l1_gdpg, l_debt, l_govexp, l_open, l_credit_bank, l_lninfl, exchange2
+        -> `v'_b = `v' * 100
+  l_banking_crisis is a 0/1 dummy and is used as-is, unscaled -- Asonuma's
+  own Table H1 has no banking-duration/crisis analog to match, and a 0/1
+  dummy has no scale ambiguity to begin with.
+  No underlying $ctrl_core column is modified -- every other file in this
+  project keeps reading the original, unscaled terms; the `_b' copies exist
+  only inside this file's own working dataset.
 
   Output: $tabs/table_balance_regressions.rtf
 ===========================================================================*/
@@ -59,11 +85,12 @@ xtset cid year
 
 if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 local balvars $ctrl_core
+local rescale100 l1_gdpg l_debt l_govexp l_open l_credit_bank l_lninfl exchange2
 
 eststo clear
 
 di as result _n "════════════════════════════════════════════════════════════"
-di as result "BALANCE REGRESSIONS -- each control on onset_nd/onset_def, country FE, cluster(cid)"
+di as result "BALANCE REGRESSIONS -- each control (Table H1 'b'-suffix scale) on onset_nd/onset_def, country FE, cluster(cid)"
 di as result "════════════════════════════════════════════════════════════"
 
 foreach v of local balvars {
@@ -72,7 +99,13 @@ foreach v of local balvars {
         di as error "  ** `v' not found -- skipping."
         continue
     }
-    quietly xtreg `v' onset_nd onset_def if sample==1, fe vce(cluster cid)
+    local dv `v'
+    if strpos(" `rescale100' ", " `v' ") {
+        capture drop `v'_b
+        quietly gen double `v'_b = `v' * 100
+        local dv `v'_b
+    }
+    quietly xtreg `dv' onset_nd onset_def if sample==1, fe vce(cluster cid)
     eststo col_`v'
     di as result %-18s "`v'" "  coef(onset_nd)=" %8.3f _b[onset_nd] "  coef(onset_def)=" %8.3f _b[onset_def] ///
         "  N=" %5.0f e(N) "  N_g=" %3.0f e(N_g) "  r2=" %5.3f e(r2)
@@ -90,8 +123,10 @@ esttab col_l1_gdpg col_l_debt col_l_banking_crisis col_l_govexp col_l_open ///
     stats(N N_g r2, labels("Observations" "Countries" "R-squared") fmt(0 0 3)) ///
     title("Table [X]. Regression of onset type on control variables") ///
     addnotes("Dependent variable: the indicated control (measured at t-1, matching \$ctrl_core), regressed on the onset dummies with country fixed" ///
-             "effects. Sample: onset + tranquil years (sample==1), the same estimation universe as every LP/AIPW outcome regression in this project." ///
-             "Standard errors clustered by country in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
+             "effects. GDP growth, debt/GDP, govt. exp./GDP, openness, bank credit/GDP, log inflation, and the nominal exchange rate are shown x100," ///
+             "matching Asonuma et al. (2024)'s own Table H1 'b'-suffix scale (gdpg2b, exchange2b, lninflation2b, etc.); the banking crisis dummy is" ///
+             "unscaled (0/1). Sample: onset + tranquil years (sample==1), the same estimation universe as every LP/AIPW outcome regression in this" ///
+             "project. Standard errors clustered by country in parentheses. * p<0.10, ** p<0.05, *** p<0.01.")
 
 if _rc == 608 di as error "  ** table_balance_regressions.rtf is OPEN IN WORD -- close it and re-run to refresh."
 else if _rc  di as error "  ** Table (balance regressions): esttab failed (rc=" _rc ")"
