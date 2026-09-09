@@ -58,8 +58,8 @@
                                Table H1; this table reports this project's
                                own numbers as they actually are in the code).
 
-  Output: $tabs/table_summary_statistics.rtf (via `estpost summarize`+esttab)
-          and console echo of every `summarize' call.
+  Output: $tabs/table_summary_statistics.xlsx (native Excel, via `export
+          excel'), plus a console echo of every `summarize' call.
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -108,49 +108,62 @@ di as result "reported -- no additional-control, predictor, or auxiliary-outcome
 di as result "for variables not part of the headline design, and no display rescaling."
 
 * ══════════════════════════════════════════════════════════════════════════
-* TABLE EXPORT (estpost summarize -> esttab, one block at a time so section
-* headers can be preserved via separate title() rows rather than one flat
-* table with no grouping)
+* TABLE EXPORT -- native Excel (.xlsx), one sheet per block, built directly
+* from `summarize' (no esttab/RTF involved).
 * ══════════════════════════════════════════════════════════════════════════
-local cellspec "count(fmt(0) label(Obs.)) mean(fmt(3) label(Mean)) sd(fmt(3) label(Std. Dev.)) min(fmt(3) label(Min)) max(fmt(3) label(Max))"
+local depvars    dy_0 ch0_inv ch0_credit ch0_claims_govt ch0_claimsgov_assets ch0_claimpriv_assets ch0_real_lending
+local depvarlab  `" "GDP" "Investment" "Bank credit" "Claims on govt / GDP" "Bank claims on govt / assets" "Bank claims on private / assets" "Real lending interest rate" "'
+local ctrlvars   l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2
+local ctrlvarlab `" "GDP growth rate" "Debt-to-GDP ratio" "Banking crisis dummy" "Govt. expenditure-to-GDP ratio" "Openness" "Bank credit-to-GDP ratio" "Log inflation" "Nominal exchange rate change" "'
 
-estpost summarize dy_0 ch0_inv ch0_credit ch0_claims_govt ch0_claimsgov_assets ch0_claimpriv_assets ch0_real_lending if sample==1
-esttab using "$tabs/table_summary_statistics.rtf", replace cells("`cellspec'") ///
-    noobs nonumber varwidth(28) msign(none) label ///
-    title("Table [X]. Summary statistics -- Dependent variables (h=1, native scale)") ///
-    coeflabel(dy_0 "GDP" ch0_inv "Investment" ///
-              ch0_credit "Bank credit" ch0_claims_govt "Claims on govt / GDP" ///
-              ch0_claimsgov_assets "Bank claims on govt / assets" ch0_claimpriv_assets "Bank claims on private / assets" ///
-              ch0_real_lending "Real lending interest rate")
+tempname S
+tempfile sumf
+postfile `S' str48 variable long obs double mean double sd double min double max byte blockn using "`sumf'", replace
 
-estpost summarize l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2 if sample==1
-esttab using "$tabs/table_summary_statistics.rtf", append cells("`cellspec'") ///
-    noobs nonumber varwidth(28) msign(none) label ///
-    title("Baseline control variables (\$ctrl_core, native scale)") ///
-    addnotes("Sample: onset + tranquil years. Every variable is reported on its own native scale, exactly as used in this project's regressions.") ///
-    coeflabel(l1_gdpg "GDP growth rate" l_debt "Debt-to-GDP ratio" l_banking_crisis "Banking crisis dummy" ///
-              l_govexp "Govt. expenditure-to-GDP ratio" l_open "Openness" ///
-              l_credit_bank "Bank credit-to-GDP ratio" l_lninfl "Log inflation" exchange2 "Nominal exchange rate change")
+local i = 1
+foreach v of local depvars {
+    local lab : word `i' of `depvarlab'
+    quietly summarize `v' if sample==1
+    post `S' ("`lab'") (r(N)) (r(mean)) (r(sd)) (r(min)) (r(max)) (1)
+    local ++i
+}
+local i = 1
+foreach v of local ctrlvars {
+    local lab : word `i' of `ctrlvarlab'
+    quietly summarize `v' if sample==1
+    post `S' ("`lab'") (r(N)) (r(mean)) (r(sd)) (r(min)) (r(max)) (2)
+    local ++i
+}
+postclose `S'
 
-* Plain CSV alongside the RTF -- easier to reformat cleanly in Excel/Word
-* than relying on esttab's own RTF rendering.
 preserve
-    tempname C
-    tempfile csvf
-    postfile `C' str32 variable long n double mean double sd double min double max using "`csvf'", replace
-    foreach v in dy_0 ch0_inv ch0_credit ch0_claims_govt ch0_claimsgov_assets ch0_claimpriv_assets ch0_real_lending ///
-                 l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2 {
-        quietly summarize `v' if sample==1
-        post `C' ("`v'") (r(N)) (r(mean)) (r(sd)) (r(min)) (r(max))
-    }
-    postclose `C'
-    use "`csvf'", clear
-    export delimited "$tabs/summary_statistics.csv", replace
-restore
-di as result "Plain CSV also saved: $tabs/summary_statistics.csv"
+    use "`sumf'", clear
+    label var variable "Variable"
+    label var obs      "Obs."
+    label var mean      "Mean"
+    label var sd        "Std. Dev."
+    label var min        "Min"
+    label var max        "Max"
 
-if _rc == 608 di as error "  ** table_summary_statistics.rtf is OPEN IN WORD -- close it and re-run to refresh."
-else if _rc  di as error "  ** Table (summary statistics): esttab failed (rc=" _rc ")"
-else di as result _n "Summary statistics table saved: $tabs/table_summary_statistics.rtf"
+    keep if blockn==1
+    drop blockn
+    export excel "$tabs/table_summary_statistics.xlsx", replace firstrow(varlabels) sheet("Dependent variables")
+restore
+preserve
+    use "`sumf'", clear
+    keep if blockn==2
+    drop blockn
+    label var variable "Variable"
+    label var obs      "Obs."
+    label var mean      "Mean"
+    label var sd        "Std. Dev."
+    label var min        "Min"
+    label var max        "Max"
+    export excel "$tabs/table_summary_statistics.xlsx", sheetreplace firstrow(varlabels) sheet("Baseline controls")
+restore
+
+di as result _n "Summary statistics table saved: $tabs/table_summary_statistics.xlsx"
+di as result "  Sheet 1 = Dependent variables (h=1, native scale), Sheet 2 = Baseline control variables (\$ctrl_core, native scale)."
+di as result "  Sample: onset + tranquil years (sample==1). Every variable is on its own native scale, exactly as used in this project's regressions."
 
 di as result _n "03d_summary_statistics.do complete."
