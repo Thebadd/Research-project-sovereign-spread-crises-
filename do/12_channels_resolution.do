@@ -38,6 +38,18 @@
   come from the original, non-resampled fit of each arm's own regression;
   only the difference's uncertainty is bootstrapped.
 
+  `_lpdiffboot' also returns a Clogg et al. (1995) z as a COMPANION to the
+  paired-bootstrap difference, mirroring how 21_aipw_flow.do already reports
+  a Clogg z alongside its own bootstrap difference. It is built from the two
+  arms' own analytic (non-bootstrapped) SEs -- `r(send)'/`r(sedef)', already
+  computed by the original `xtreg ..., fe vce(robust)' fits `_lpdiffboot' runs
+  before it ever bootstraps -- as clogg = (bdef-bnd)/sqrt(send^2+sedef^2). It
+  assumes the two arms are independent, which is a simplification: they share
+  the tranquil control pool, the same reason the paired bootstrap was adopted
+  as the headline test above. The bootstrap remains the governing, adopted
+  statistic for the difference; Clogg z is reported alongside it, not in
+  place of it, and where the two disagree the bootstrap governs.
+
   IPW REMOVED: this file used to carry a parallel IPW-weighted (Spec B)
   comparison, dropped project-wide once 08b_aipw.do's doubly-robust AIPW
   estimator superseded plain IPW as the estimator this project reports --
@@ -203,6 +215,23 @@ program define _lpdiffboot, rclass
     local pdiff = .
     if !missing(`se') & `se' > 0 local pdiff = 2*(1 - normal(abs(`dh'/`se')))
 
+    * Clogg et al. (1995) z, COMPANION to the paired-bootstrap difference above
+    * -- not a replacement. Built from the two arms' own ANALYTIC (non-
+    * bootstrapped) SEs, exactly as 21_aipw_flow.do's own Clogg z is built from
+    * its two arms' analytic influence-function SEs:
+    *     clogg = (irf1 - irf2)/(se1^2 + se2^2)^0.5
+    * It is the PERMISSIVE statistic: it treats the two arms as independent,
+    * and they are not, since they share the tranquil control pool -- the
+    * paired bootstrap above is built precisely to capture that shared-pool
+    * covariance the Clogg z assumes away. Where the two disagree, the
+    * bootstrap governs.
+    local cloggz = .
+    local cloggp = .
+    if !missing(`send') & !missing(`sedef') & (`send'^2 + `sedef'^2) > 0 {
+        local cloggz = `dh' / sqrt(`send'^2 + `sedef'^2)
+        local cloggp = 2*(1 - normal(abs(`cloggz')))
+    }
+
     return scalar ok    = 1
     return scalar bnd   = `bnd'
     return scalar send  = `send'
@@ -218,6 +247,8 @@ program define _lpdiffboot, rclass
     return scalar hi    = `hi'
     return scalar nboot = `nd'
     return scalar p     = `pdiff'
+    return scalar cloggz = `cloggz'
+    return scalar cloggp = `cloggp'
 end
 
 * Initialize storage matrices
@@ -228,6 +259,8 @@ foreach ch of local channels {
         }
     }
     matrix pval_`ch' = J(6, 1, .)
+    matrix cloggz_`ch' = J(6, 1, .)   // Clogg et al. (1995) z -- companion to pval_`ch', not a replacement
+    matrix cloggp_`ch' = J(6, 1, .)
 }
 
 * ── Loop over channels ───────────────────────────────────────────────────
@@ -253,7 +286,7 @@ foreach ch of local channels {
     di as result _n "========================================"
     di as result "CHANNEL: `ch'"
     di as result "========================================"
-    di "h   b_nd     b_def    p(nd=def)"
+    di "h   b_nd     b_def    p(nd=def)   Clogg z (p)"
 
     forvalues h = 0/4 {
         local row = `h' + 2
@@ -291,7 +324,11 @@ foreach ch of local channels {
             local lodiff = r(lo)
             local hidiff = r(hi)
             local pdiff_ = r(p)
+            local cloggz = r(cloggz)
+            local cloggp = r(cloggp)
             matrix pval_`ch'[`row',1] = `pdiff_'
+            matrix cloggz_`ch'[`row',1] = `cloggz'
+            matrix cloggp_`ch'[`row',1] = `cloggp'
             local pd_`ch'_`h' = `pdiff_'   // store before eststo (which can reset r())
             quietly count if onset_nd  == 1 & sample == 1 & !missing(ch_`ch'_`h')
             local nepnd = r(N)
@@ -318,6 +355,8 @@ foreach ch of local channels {
             estadd scalar lodiff = `lodiff'
             estadd scalar hidiff = `hidiff'
             estadd scalar pdiff  = `pdiff_'
+            estadd scalar cloggz = `cloggz'
+            estadd scalar cloggp = `cloggp'
             estadd scalar nepnd  = `nepnd'
             estadd scalar nepdef = `nepdef'
             estadd scalar nnd    = `nnd_'
@@ -326,15 +365,20 @@ foreach ch of local channels {
             local b_nd_o  = `bnd'
             local b_def_o = `bdef'
             local p_o     = `pd_`ch'_`h''
+            local cloggz_o = `cloggz'
+            local cloggp_o = `cloggp'
         }
         else {
             local b_nd_o  = .
             local b_def_o = .
             local p_o     = .
+            local cloggz_o = .
+            local cloggp_o = .
             di as error "regression failed for `ch' h=`=`h'+1'"
         }
 
-        di "h=" `h'+1 "  " %7.3f `b_nd_o'  "  " %7.3f `b_def_o' "  " %5.3f `p_o'
+        di "h=" `h'+1 "  " %7.3f `b_nd_o'  "  " %7.3f `b_def_o' "  " %5.3f `p_o' ///
+           "  Clogg z=" %6.3f `cloggz_o' " (p=" %5.3f `cloggp_o' ")"
     }
 }
 
@@ -390,7 +434,7 @@ di as result "  zero, most of the def-arm signal was one country's crisis."
 *   Requires: ssc install estout
 * ══════════════════════════════════════════════════════════════════════════
 
-local t4note "Dependent variable: cumulative change in the channel variable (pp) from t-1 to t+h. Non-default and default-linked onsets are each estimated in a SEPARATE regression vs tranquil years, with the rival resolution type dropped from that regression's own sample (matching this project's AIPW design, 08b_aipw.do); the coefficient/SE shown for each arm come from that arm's own regression. Jorda (2005) local projections; country fixed effects only (no year FE); common-core controls plus the channel's own pre-crisis change; continuation years excluded. Robust (heteroskedasticity-only) standard errors in parentheses, from each arm's own regression. Difference = beta(default) - beta(non-default); its SE, 95% CI, and p-value come from a PAIRED ROW-BOOTSTRAP (1000 replications, seed 20260819): each replication resamples rows once, stratified so the tranquil pool and each arm's treated-row count are held fixed, and refits BOTH arm regressions on that same resampled data -- preserving the covariance the two arms inherit from their shared tranquil control pool, unlike treating them as independent. * p<0.10, ** p<0.05, *** p<0.01."
+local t4note "Dependent variable: cumulative change in the channel variable (pp) from t-1 to t+h. Non-default and default-linked onsets are each estimated in a SEPARATE regression vs tranquil years, with the rival resolution type dropped from that regression's own sample (matching this project's AIPW design, 08b_aipw.do); the coefficient/SE shown for each arm come from that arm's own regression. Jorda (2005) local projections; country fixed effects only (no year FE); common-core controls plus the channel's own pre-crisis change; continuation years excluded. Robust (heteroskedasticity-only) standard errors in parentheses, from each arm's own regression. Difference = beta(default) - beta(non-default); its SE, 95% CI, and p-value come from a PAIRED ROW-BOOTSTRAP (1000 replications, seed 20260819): each replication resamples rows once, stratified so the tranquil pool and each arm's treated-row count are held fixed, and refits BOTH arm regressions on that same resampled data -- preserving the covariance the two arms inherit from their shared tranquil control pool, unlike treating them as independent. Clogg z is a COMPANION statistic to the bootstrap, not a replacement: clogg = (bdef-bnd)/sqrt(send^2+sedef^2), using each arm's own analytic robust SE. It is the PERMISSIVE statistic -- it assumes the two arms are independent, which they are not, since they share the tranquil control pool. The bootstrap is the governing, adopted statistic for the difference; where the two disagree, the bootstrap governs. * p<0.10, ** p<0.05, *** p<0.01."
 
 * Per-channel panel titles (Panel A carries the overall table caption)
 local ptitle_credit      "Table 4. Channels by resolution (nd vs. def, joint) -- Panel A: Private credit/GDP"
@@ -424,13 +468,14 @@ foreach ch in credit claims_govt inv govexp pb fdi real_lending {
         keep(onset_nd onset_def) order(onset_nd onset_def) ///
         coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
         mtitles nonumber ///
-        stats(bdiff sediff lodiff hidiff pdiff nepnd nepdef nnd ndef, ///
+        stats(bdiff sediff lodiff hidiff pdiff cloggz cloggp nepnd nepdef nnd ndef, ///
               labels("Difference (default - non-default)" "  Bootstrap SE (paired, def-nd)" ///
                      "  95% bootstrap CI, lower" "  95% bootstrap CI, upper" ///
                      "  p-value (paired row bootstrap)" ///
+                     "  Clogg et al. (1995) z" "  p-value of Clogg z" ///
                      "Episodes (non-default)" "Episodes (default)" ///
                      "Observations (non-default regression)" "Observations (default regression)") ///
-              fmt(3 3 3 3 3 0 0 0 0)) ///
+              fmt(3 3 3 3 3 3 3 0 0 0 0)) ///
         title("`ptitle_`ch''") `t4extra'
 
     if _rc == 608 {
