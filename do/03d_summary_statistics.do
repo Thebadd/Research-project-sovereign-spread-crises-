@@ -22,12 +22,33 @@
   direct analog (dy_0, ch_v_0 = F0.src - L.src = src - L.src) -- same
   horizon, this project's own naming.
 
-  CATEGORIES, mapped from Table B3 to what this project actually has:
+  SCOPE, PER THE PROJECT OWNER'S EXPLICIT INSTRUCTION: only variables this
+  project actually defines AND uses in its own estimation are reported --
+  the six headline outcomes (GDP + the five channels the LP/AIPW files
+  estimate) and the eight $ctrl_core controls (every regression's own
+  control set). Asonuma's Table B3 also reports an "Additional control
+  variables" block (debt, terms of trade, Freedom House indices, Paris
+  Club/IMF dummies), a "Predictors" block (fed funds, contagion, past
+  preemptive cases), an "Additional dependent variables" block (nominal
+  lending rate, inflation rate, total credit), and "Additional macro
+  controls" (oil prices, fed-funds direction dummies, decade dummies) --
+  NONE of those are reproduced here: debt is already inside $ctrl_core (no
+  separate row needed), and the rest (tot_chg, l_imf, the first-stage
+  probit's own predictors, the raw lending/inflation series real_lending is
+  built from, and every "Additional macro controls" item) are either
+  robustness-only variables never used in a headline regression, or simply
+  not built in this project at all -- reporting them here would describe
+  objects this project's own analysis does not actually use.
+
+  CATEGORIES:
 
     Dependent variables       GDP, investment, bank credit (all log-real,
                                *100), claims on govt/GDP and the two nexus
                                shares (level-change, *100 where a ratio),
-                               real lending rate (log level, *100).
+                               real lending rate (log level, *100) -- the
+                               six outcomes 03_lp_resolution.do/12_channels_
+                               resolution.do/08b_aipw.do/13c_aipw_channels.do
+                               actually estimate.
     Baseline control variables $ctrl_core (8 terms) -- reported on the SAME
                                "b"-suffix x100 scale as 05b_balance_
                                regressions.do, for readability and for direct
@@ -35,24 +56,6 @@
                                block (their gdpg2/gov_exp2/open2/credit_bank2
                                are also x100-style percent scales, not raw
                                decimals).
-    Additional control variables debt/GDP (l_debt, x100), terms of trade
-                               (tot_chg), IMF-supported program dummy (l_imf).
-                               Freedom House indices and the Paris Club dummy
-                               are NOT built in this project (no source data)
-                               and are omitted, not fabricated.
-    Predictors                 Federal funds rate, contagion (default-linked,
-                               distance-weighted), years since the most
-                               recent prior default-linked onset (this
-                               project's recency-clock analog of Asonuma's
-                               "number of past preemptive cases" count).
-    Additional dependent vars  Nominal lending rate change, inflation rate
-                               change (both *100) -- the two series real
-                               lending rate is built from. This project has
-                               no separate "total credit" series distinct
-                               from bank credit and does not report that row.
-    Additional macro controls  NOT built in this project (oil prices, fed
-                               funds rise/decline dummies, decade dummies) --
-                               omitted, not fabricated.
 
   Output: $tabs/table_summary_statistics.rtf (via `estpost summarize`+esttab)
           and console echo of every `summarize' call.
@@ -97,21 +100,6 @@ foreach v of local rescale100 {
     }
 }
 
-* Nominal lending rate / inflation change at h=0 (same construction as
-* 02a_descriptive_facts.do's lending/infl_defl block), *100 not needed since
-* these are already plain percentage-point series (lending/infl_defl are
-* WDI rates in percent already).
-capture confirm variable lending
-capture confirm variable infl_defl
-if !_rc {
-    foreach v in lending infl_defl {
-        capture drop `v'_sbase
-        quietly gen double `v'_sbase = L.`v'
-        capture drop ch0_`v'
-        quietly gen double ch0_`v' = F0.`v' - `v'_sbase
-    }
-}
-
 di as result _n "════════════════════════════════════════════════════════════"
 di as result "TABLE [X]: SUMMARY STATISTICS (sample==1, onset + tranquil years)"
 di as result "════════════════════════════════════════════════════════════"
@@ -119,69 +107,38 @@ di as result "══════════════════════
 di as result _n "-- Dependent variables --"
 summarize dy_0 ch0_inv ch0_credit ch0_claims_govt ch0_claimsgov_assets ch0_claimpriv_assets ch0_real_lending if sample==1
 
-di as result _n "-- Baseline control variables ($ctrl_core, x100 scale) --"
-summarize l1_gdpg_b l_govexp_b l_open_b l_banking_crisis l_credit_bank_b l_lninfl_b exchange2_b if sample==1
+di as result _n "-- Baseline control variables (\$ctrl_core, x100 scale) --"
+summarize l1_gdpg_b l_debt_b l_banking_crisis l_govexp_b l_open_b l_credit_bank_b l_lninfl_b exchange2_b if sample==1
 
-di as result _n "-- Additional control variables --"
-summarize l_debt_b tot_chg l_imf if sample==1
-
-di as result _n "-- Predictors --"
-summarize l_fedfunds l_contagion_dist_def years_since_def_onset if sample==1
-
-di as result _n "-- Additional dependent variables --"
-capture confirm variable ch0_lending
-if !_rc summarize ch0_lending ch0_infl_defl if sample==1
-else di as error "  ** lending/infl_defl not built -- add lendinginterestrate.xlsx/inflationgdpdeflator.xlsx to \$raw."
-
-di as result _n "NOT INCLUDED (no source data in this project, not fabricated):"
-di as result "  Freedom House civil-liberties/political-rights indices, Paris Club dummy,"
-di as result "  oil prices, fed-funds rise/decline dummies, decade dummies, a separate"
-di as result "  'total credit' series distinct from bank credit."
+di as result _n "NOT INCLUDED: only the outcomes actually estimated by the LP/AIPW files"
+di as result "and the controls in \$ctrl_core (every regression's own control set) are"
+di as result "reported -- no additional-control, predictor, or auxiliary-outcome rows"
+di as result "for variables not part of the headline design."
 
 * ══════════════════════════════════════════════════════════════════════════
 * TABLE EXPORT (estpost summarize -> esttab, one block at a time so section
-* headers can be preserved via separate `title()' rows rather than one flat
+* headers can be preserved via separate title() rows rather than one flat
 * table with no grouping)
 * ══════════════════════════════════════════════════════════════════════════
 estpost summarize dy_0 ch0_inv ch0_credit ch0_claims_govt ch0_claimsgov_assets ch0_claimpriv_assets ch0_real_lending if sample==1
 esttab using "$tabs/table_summary_statistics.rtf", replace cells("count(fmt(0) label(Obs.)) mean(fmt(2) label(Mean)) sd(fmt(2) label(Std. Dev.)) min(fmt(2) label(Min)) max(fmt(2) label(Max))") ///
-    noobs nonumber title("Table [X]. Summary statistics -- Dependent variables") ///
+    noobs nonumber title("Table [X]. Summary statistics") ///
     coeflabel(dy_0 "GDP (log real, x100 change, h=1)" ch0_inv "Investment (log real, x100 change, h=1)" ///
               ch0_credit "Bank credit (log real, x100 change, h=1)" ch0_claims_govt "Claims on government / GDP (pp change, h=1)" ///
               ch0_claimsgov_assets "Bank claims on govt / assets (pp change, h=1)" ch0_claimpriv_assets "Bank claims on private / assets (pp change, h=1)" ///
               ch0_real_lending "Real lending interest rate (log level, x100 change, h=1)")
 
-estpost summarize l1_gdpg_b l_govexp_b l_open_b l_banking_crisis l_credit_bank_b l_lninfl_b exchange2_b if sample==1
+estpost summarize l1_gdpg_b l_debt_b l_banking_crisis l_govexp_b l_open_b l_credit_bank_b l_lninfl_b exchange2_b if sample==1
 esttab using "$tabs/table_summary_statistics.rtf", append cells("count(fmt(0) label(Obs.)) mean(fmt(2) label(Mean)) sd(fmt(2) label(Std. Dev.)) min(fmt(2) label(Min)) max(fmt(2) label(Max))") ///
     noobs nonumber title("Baseline control variables") ///
-    coeflabel(l1_gdpg_b "GDP growth rate" l_govexp_b "Government expenditure-to-GDP ratio" l_open_b "Openness" ///
-              l_banking_crisis "Banking crisis dummy" l_credit_bank_b "Bank credit-to-GDP ratio" ///
-              l_lninfl_b "Log inflation" exchange2_b "Nominal exchange rate change")
-
-estpost summarize l_debt_b tot_chg l_imf if sample==1
-esttab using "$tabs/table_summary_statistics.rtf", append cells("count(fmt(0) label(Obs.)) mean(fmt(2) label(Mean)) sd(fmt(2) label(Std. Dev.)) min(fmt(2) label(Min)) max(fmt(2) label(Max))") ///
-    noobs nonumber title("Additional control variables") ///
-    coeflabel(l_debt_b "Debt-to-GDP ratio" tot_chg "Terms of trade (rate of change)" l_imf "IMF-supported program dummy")
-
-estpost summarize l_fedfunds l_contagion_dist_def years_since_def_onset if sample==1
-esttab using "$tabs/table_summary_statistics.rtf", append cells("count(fmt(0) label(Obs.)) mean(fmt(2) label(Mean)) sd(fmt(2) label(Std. Dev.)) min(fmt(2) label(Min)) max(fmt(2) label(Max))") ///
-    noobs nonumber title("Predictors") ///
-    coeflabel(l_fedfunds "Federal funds rate" l_contagion_dist_def "Contagion, based on default-linked crises" ///
-              years_since_def_onset "Years since last default-linked onset")
-
-capture confirm variable ch0_lending
-if !_rc {
-    estpost summarize ch0_lending ch0_infl_defl if sample==1
-    esttab using "$tabs/table_summary_statistics.rtf", append cells("count(fmt(0) label(Obs.)) mean(fmt(2) label(Mean)) sd(fmt(2) label(Std. Dev.)) min(fmt(2) label(Min)) max(fmt(2) label(Max))") ///
-        noobs nonumber title("Additional dependent variables") ///
-        addnotes("Freedom House indices, Paris Club dummy, oil prices, fed-funds rise/decline dummies, decade dummies, and a separate" ///
-                 "total-credit series are not built in this project (no source data) and are not reported." ///
-                 "Sample: onset + tranquil years (sample==1). GDP/investment/bank credit/real lending rate are log-differenced, x100." ///
-                 "Claims-on-government and the two bank-asset shares are percentage-point changes. Baseline/additional controls marked" ///
-                 "'_b' or listed as debt/govexp/openness/credit_bank/log inflation/exchange rate are shown x100, matching Asonuma et al." ///
-                 "(2024)'s own Table B3 scale; the banking crisis and IMF-program dummies are unscaled (0/1).") ///
-        coeflabel(ch0_lending "Nominal lending rate (pp change, h=1)" ch0_infl_defl "Inflation rate, GDP deflator (pp change, h=1)")
-}
+    addnotes("Sample: onset + tranquil years (sample==1), the estimation universe every LP/AIPW file in this project uses. GDP," ///
+             "investment, bank credit, and the real lending interest rate are log-differenced, x100. Claims-on-government and the" ///
+             "two bank-asset exposure shares are percentage-point changes. All eight controls are the project's own core control" ///
+             "set (ctrl_core), each measured at t-1; seven are shown x100 to match Asonuma et al. (2024)'s own Table B3 scale, and" ///
+             "the banking crisis dummy is unscaled (0/1).") ///
+    coeflabel(l1_gdpg_b "GDP growth rate" l_debt_b "Debt-to-GDP ratio" l_banking_crisis "Banking crisis dummy" ///
+              l_govexp_b "Government expenditure-to-GDP ratio" l_open_b "Openness" ///
+              l_credit_bank_b "Bank credit-to-GDP ratio" l_lninfl_b "Log inflation" exchange2_b "Nominal exchange rate change")
 
 if _rc == 608 di as error "  ** table_summary_statistics.rtf is OPEN IN WORD -- close it and re-run to refresh."
 else if _rc  di as error "  ** Table (summary statistics): esttab failed (rc=" _rc ")"
