@@ -41,6 +41,19 @@
     same reason. The former F-statistic (Wald test within the joint
     regression) is retired along with the joint regression it depended on —
     there is no longer a single regression whose VCE that test could use.
+
+    `_lpdiffboot' also returns a Clogg et al. (1995) z as a COMPANION to the
+    paired-bootstrap difference, mirroring how 21_aipw_flow.do already reports
+    a Clogg z alongside its own bootstrap difference. It is built from the two
+    arms' own analytic (non-bootstrapped) SEs -- `r(send)'/`r(sedef)', already
+    computed by the original `xtreg ..., fe vce(robust)' fits `_lpdiffboot'
+    runs before it ever bootstraps -- as clogg = (bdef-bnd)/sqrt(send^2+sedef^2).
+    It assumes the two arms are independent, which is a simplification: they
+    share the tranquil control pool, the same reason the paired bootstrap was
+    adopted as the headline test above. The bootstrap remains the governing,
+    adopted statistic for the difference; Clogg z is reported alongside it,
+    not in place of it, and where the two disagree the bootstrap governs.
+
     Per-arm episode/country counts reported throughout (`_nepcount'); N now
     differs by arm (each arm's own regression sample excludes the rival
     type's episodes), and both are reported separately. Table 2 is exported
@@ -270,6 +283,23 @@ program define _lpdiffboot, rclass
     local pdiff = .
     if !missing(`se') & `se' > 0 local pdiff = 2*(1 - normal(abs(`dh'/`se')))
 
+    * Clogg et al. (1995) z, COMPANION to the paired-bootstrap difference above
+    * -- not a replacement. Built from the two arms' own ANALYTIC (non-
+    * bootstrapped) SEs, exactly as 21_aipw_flow.do's own Clogg z is built from
+    * its two arms' analytic influence-function SEs:
+    *     clogg = (irf1 - irf2)/(se1^2 + se2^2)^0.5
+    * It is the PERMISSIVE statistic: it treats the two arms as independent,
+    * and they are not, since they share the tranquil control pool -- the
+    * paired bootstrap above is built precisely to capture that shared-pool
+    * covariance the Clogg z assumes away. Where the two disagree, the
+    * bootstrap governs.
+    local cloggz = .
+    local cloggp = .
+    if !missing(`send') & !missing(`sedef') & (`send'^2 + `sedef'^2) > 0 {
+        local cloggz = `dh' / sqrt(`send'^2 + `sedef'^2)
+        local cloggp = 2*(1 - normal(abs(`cloggz')))
+    }
+
     return scalar ok    = 1
     return scalar bnd   = `bnd'
     return scalar send  = `send'
@@ -285,6 +315,8 @@ program define _lpdiffboot, rclass
     return scalar hi    = `hi'
     return scalar nboot = `nd'
     return scalar p     = `pdiff'
+    return scalar cloggz = `cloggz'
+    return scalar cloggp = `cloggp'
 end
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -489,6 +521,8 @@ matrix diff_se = J(5, 1, .)
 matrix diff_lo = J(5, 1, .)
 matrix diff_hi = J(5, 1, .)
 matrix diff_p  = J(5, 1, .)
+matrix diff_cloggz = J(5, 1, .)   // Clogg et al. (1995) z -- companion to diff_b/diff_p, not a replacement
+matrix diff_cloggp = J(5, 1, .)
 
 * Headline matrices — these feed irf_nd/irf_def and every Act-2 figure.
 foreach m in b se lo90 hi90 lo95 hi95 {
@@ -582,6 +616,8 @@ forvalues h = 0/4 {
     local hidiff = r(hi)
     local pd      = r(p)
     local ndrawn  = r(nboot)
+    local cloggz  = r(cloggz)
+    local cloggp  = r(cloggp)
 
     * Each arm's OWN regression sample/countries -- no longer a single shared
     * block, since the two arms are now two different regressions (rival type
@@ -613,6 +649,8 @@ forvalues h = 0/4 {
     matrix diff_lo[`h'+1, 1] = `lodiff'
     matrix diff_hi[`h'+1, 1] = `hidiff'
     matrix diff_p[`h'+1, 1]  = `pd'
+    matrix diff_cloggz[`h'+1, 1] = `cloggz'
+    matrix diff_cloggp[`h'+1, 1] = `cloggp'
 
     * Episode/country counts contributing at this horizon. These must be
     * counted inside e(sample): an onset with a non-missing outcome but a
@@ -662,6 +700,8 @@ forvalues h = 0/4 {
     estadd scalar lodiff  = `lodiff'
     estadd scalar hidiff  = `hidiff'
     estadd scalar pdiff   = `pd'
+    estadd scalar cloggz  = `cloggz'
+    estadd scalar cloggp  = `cloggp'
     estadd scalar nepnd   = `nepnd'
     estadd scalar nepdef  = `nepdef'
     estadd scalar nctynd  = `nctynd'
@@ -675,7 +715,8 @@ forvalues h = 0/4 {
                "  boot SE=" %6.3f `sediff' ///
                "  [" %6.3f `lodiff' ", " %6.3f `hidiff' "]" ///
                "  p=" %5.3f `pd' ///
-               "  (" `ndrawn' "/`nboot' draws)"
+               "  (" `ndrawn' "/`nboot' draws)" ///
+               "  Clogg z=" %6.3f `cloggz' " (p=" %5.3f `cloggp' ")"
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -996,14 +1037,15 @@ capture esttab t2_h0 t2_h1 t2_h2 t2_h3 t2_h4 using "$tabs/table2_output_resoluti
     keep(onset_nd onset_def) order(onset_nd onset_def) ///
     coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
     mtitles("h=1" "h=2" "h=3" "h=4" "h=5") nonumber ///
-    stats(bdiff sediff lodiff hidiff pdiff nepnd nepdef nctynd nctydef nnd ndef, ///
+    stats(bdiff sediff lodiff hidiff pdiff cloggz cloggp nepnd nepdef nctynd nctydef nnd ndef, ///
           labels("Difference (default - non-default)" "  Bootstrap SE (paired, def-nd)" ///
                  "  95% bootstrap CI, lower" "  95% bootstrap CI, upper" ///
                  "  p-value (paired row bootstrap)" ///
+                 "  Clogg et al. (1995) z" "  p-value of Clogg z" ///
                  "Episodes (non-default, in estimation sample)" "Episodes (default, in estimation sample)" ///
                  "Countries (non-default arm)" "Countries (default arm)" ///
                  "Observations (non-default regression)" "Observations (default regression)") ///
-          fmt(3 3 3 3 3 0 0 0 0 0 0)) ///
+          fmt(3 3 3 3 3 3 3 0 0 0 0 0 0)) ///
     title("Table 2. Output cost by crisis resolution: non-default vs. default-linked") ///
     addnotes("Dependent variable: cumulative change in log real GDP (pp) from t-1 to t+h." ///
              "Non-default and default-linked onsets are each estimated in a SEPARATE regression vs tranquil years, with the" ///
@@ -1019,6 +1061,10 @@ capture esttab t2_h0 t2_h1 t2_h2 t2_h3 t2_h4 using "$tabs/table2_output_resoluti
              " between the two arms coming from their shared tranquil control pool is preserved in the bootstrap" ///
              " distribution of the difference -- unlike treating the two arms as independent (sqrt(se_nd^2+se_def^2))." ///
              " Identical mechanism to 08b_aipw.do's own def-nd contrast." ///
+             "Clogg z is a COMPANION statistic to the bootstrap, not a replacement: clogg = (bdef-bnd)/sqrt(send^2+sedef^2)," ///
+             " using each arm's own analytic robust SE. It is the PERMISSIVE statistic -- it assumes the two arms are" ///
+             " independent, which they are not, since they share the tranquil control pool. The bootstrap above is the" ///
+             " governing, adopted statistic for the difference; where the two disagree, the bootstrap governs." ///
              "Episode/country counts are onsets/countries surviving listwise deletion on each arm's own control set." ///
              "* p<0.10, ** p<0.05, *** p<0.01.")
 
@@ -1182,6 +1228,7 @@ forvalues h = 0/4 {
     local hd = `h' + 1
     di "h=" `hd' ":  diff = " %6.3f diff_b[`h'+1, 1] ///
        "  [" %6.3f diff_lo[`h'+1, 1] ", " %6.3f diff_hi[`h'+1, 1] "]" ///
-       "  p = " %5.3f diff_p[`h'+1, 1]
+       "  p = " %5.3f diff_p[`h'+1, 1] ///
+       "  Clogg z = " %6.3f diff_cloggz[`h'+1, 1] " (p = " %5.3f diff_cloggp[`h'+1, 1] ")"
 }
 
