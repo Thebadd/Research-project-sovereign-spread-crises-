@@ -7,20 +7,36 @@
 
   STRATEGY:
   ---------
-  For each of the 6 channels from 11_channels.do: JOINT LP with onset_nd and
-  onset_def entered simultaneously on the FULL sample, tranquil the omitted
-  category (the reference paper's baseline):
-    ch_var(h) = αi + β_nd(h)·onset_nd + β_def(h)·onset_def
-               + X_core (common core + pre_<v>)·δ + ε
+  For each of the 7 channels from 11_channels.do: TWO SEPARATE LPs per
+  horizon, one per resolution type, EACH vs tranquil with the RIVAL type
+  dropped from that regression's own sample:
+    ch_var(h) = αi + β_nd(h)·onset_nd  + X·δ + ε      [if sample & onset_def==0]
+    ch_var(h) = αi + β_def(h)·onset_def + X·δ + ε     [if sample & onset_nd==0]
   Country FE only, no year FE, plain robust SE -- the Stata-idiomatic
   equivalent of the reference paper's own reg ..., vce(robust) noconstant
-  with explicit country dummies (see 02_lp_all.do's header). Since both
-  type dummies are estimated in ONE regression, their covariance is
-  exactly estimable and the difference test below uses the Wald
-  F-statistic (test onset_nd = onset_def) directly -- the reference
-  paper's own difference-test convention (Table I1) -- not Clogg z or a
-  bootstrap, which would only approximate what the F-test already gives
-  exactly.
+  with explicit country dummies (see 02_lp_all.do's header).
+
+  This REPLACES the previous headline, which entered onset_nd and onset_def
+  in ONE joint regression on the full sample -- the same change made to
+  03_lp_resolution.do's Table 2, for the same reason: matching this
+  project's AIPW design (08b_aipw.do's `_aipwpair', each arm's own
+  regression restricted to `if1'/`if2' excluding the rival type), and
+  avoiding a joint regression in which one arm's own onset years contribute
+  to identifying the other. Since the two arms no longer share one
+  regression's VCE, the difference (def - nd) and its SE/CI/p-value now
+  come from a PAIRED ROW-BOOTSTRAP (`_lpdiffboot' below, copied verbatim
+  from 03_lp_resolution.do, mirroring how the AIPW files already share
+  `_aipw'/`_aipwpair' program bodies across files): each of `nboot'
+  replications resamples rows ONCE (stratified so the tranquil pool and
+  each arm's treated-row count are held fixed) and refits BOTH arm
+  regressions on that same resampled data, so the covariance the two arms
+  inherit from their shared tranquil control pool is preserved in the
+  bootstrap distribution of the difference -- unlike the retired Wald
+  F-test's replacement candidate, treating the two arms as independent
+  (sqrt(se_nd^2+se_def^2)), which would understate or misstate that
+  covariance. Point estimates (b_nd, b_def) and their own robust SEs still
+  come from the original, non-resampled fit of each arm's own regression;
+  only the difference's uncertainty is bootstrapped.
 
   IPW REMOVED: this file used to carry a parallel IPW-weighted (Spec B)
   comparison, dropped project-wide once 08b_aipw.do's doubly-robust AIPW
@@ -106,6 +122,104 @@ local ctrl_pb          $ctrl_core pre_pb
 local ctrl_fdi         $ctrl_core pre_fdi
 local ctrl_real_lending $ctrl_core pre_real_lending
 
+* ── REPRODUCIBILITY: seed the bootstrap (matches 03_lp_resolution.do / 08b_aipw.do) ──
+set seed 20260819
+local nboot = 1000     // matches 08b_aipw.do's own G=1000
+
+* ══════════════════════════════════════════════════════════════════════════
+* PROGRAM — paired row-bootstrap of the def-nd DIFFERENCE, copied verbatim
+*   from 03_lp_resolution.do's `_lpdiffboot' (see that file's header for the
+*   full argument; mirrors how 08b_aipw.do/13c_aipw_channels.do already
+*   share `_aipw'/`_aipwpair' program bodies across files). Point estimates
+*   come from each arm's own original `xtreg ..., fe vce(robust)' fit; only
+*   the difference's SE/CI/p come from the bootstrap.
+* ══════════════════════════════════════════════════════════════════════════
+capture program drop _lpdiffboot
+program define _lpdiffboot, rclass
+    syntax , Y(string) DND(string) IFND(string) DDEF(string) IFDEF(string) ///
+             CTRLND(string) CTRLDEF(string) REPS(integer)
+
+    capture xtreg `y' `dnd' `ctrlnd' if `ifnd', fe vce(robust)
+    if _rc {
+        return scalar ok = 0
+        exit
+    }
+    local bnd   = _b[`dnd']
+    local send  = _se[`dnd']
+    local nnd   = e(N)
+    local ngnd  = e(N_g)
+
+    capture xtreg `y' `ddef' `ctrldef' if `ifdef', fe vce(robust)
+    if _rc {
+        return scalar ok = 0
+        exit
+    }
+    local bdef  = _b[`ddef']
+    local sedef = _se[`ddef']
+    local ndef  = e(N)
+    local ngdef = e(N_g)
+
+    local dh = `bdef' - `bnd'
+
+    capture drop _pool
+    quietly gen byte _pool = 0 if (`ifnd') | (`ifdef')
+    quietly replace _pool = 1 if `dnd' == 1
+    quietly replace _pool = 2 if `ddef' == 1
+
+    tempname pf
+    tempfile bf
+    quietly postfile `pf' double diff using "`bf'", replace
+    forvalues b = 1/`reps' {
+        preserve
+            quietly keep if !missing(_pool)
+            quietly bsample, strata(_pool)
+            capture regress `y' `dnd' `ctrlnd' i.cid if `ifnd', vce(robust)
+            local t1 = cond(_rc==0, _b[`dnd'], .)
+            capture regress `y' `ddef' `ctrldef' i.cid if `ifdef', vce(robust)
+            local t2 = cond(_rc==0, _b[`ddef'], .)
+            if !missing(`t1') & !missing(`t2') quietly post `pf' (`t2' - `t1')
+        restore
+    }
+    quietly postclose `pf'
+    capture drop _pool
+
+    local se = .
+    local lo = .
+    local hi = .
+    local nd = 0
+    preserve
+        quietly use "`bf'", clear
+        quietly count if !missing(diff)
+        local nd = r(N)
+        if `nd' >= 50 {
+            quietly summarize diff
+            local se = r(sd)
+            _pctile diff, p(2.5 97.5)
+            local lo = r(r1)
+            local hi = r(r2)
+        }
+    restore
+
+    local pdiff = .
+    if !missing(`se') & `se' > 0 local pdiff = 2*(1 - normal(abs(`dh'/`se')))
+
+    return scalar ok    = 1
+    return scalar bnd   = `bnd'
+    return scalar send  = `send'
+    return scalar nnd   = `nnd'
+    return scalar ngnd  = `ngnd'
+    return scalar bdef  = `bdef'
+    return scalar sedef = `sedef'
+    return scalar ndef  = `ndef'
+    return scalar ngdef = `ngdef'
+    return scalar dh    = `dh'
+    return scalar se    = `se'
+    return scalar lo    = `lo'
+    return scalar hi    = `hi'
+    return scalar nboot = `nd'
+    return scalar p     = `pdiff'
+end
+
 * Initialize storage matrices
 foreach ch of local channels {
     foreach grp in nd def {
@@ -144,51 +258,73 @@ foreach ch of local channels {
     forvalues h = 0/4 {
         local row = `h' + 2
 
-        * JOINT LP, both type dummies, FULL sample. The reference paper's
-        * baseline is a single joint regression with all type dummies,
-        * country dummies, vce(robust), no year FE, and tranquil as the
-        * omitted category (reg g_h dum1 dum2 dum3 g_0 $convar, vce(robust),
-        * noconstant).
-        capture xtreg ch_`ch'_`h' onset_nd onset_def `ctrl' ///
-            if sample == 1`balflag', fe vce(robust)
+        * SEPARATE regressions per arm (rival type dropped from each), then
+        * a paired row-bootstrap for the difference -- see this file's header
+        * and `_lpdiffboot' above.
+        _lpdiffboot, y(ch_`ch'_`h') ///
+            dnd(onset_nd)  ifnd(sample==1 & onset_def==0`balflag') ///
+            ddef(onset_def) ifdef(sample==1 & onset_nd==0`balflag') ///
+            ctrlnd(`ctrl') ctrldef(`ctrl') reps(`nboot')
 
-        if _rc == 0 {
-            matrix b_nd_`ch'[`row',1]    = _b[onset_nd]
-            matrix lo90_nd_`ch'[`row',1] = _b[onset_nd]  - 1.645*_se[onset_nd]
-            matrix hi90_nd_`ch'[`row',1] = _b[onset_nd]  + 1.645*_se[onset_nd]
-            matrix lo95_nd_`ch'[`row',1] = _b[onset_nd]  - 1.960*_se[onset_nd]
-            matrix hi95_nd_`ch'[`row',1] = _b[onset_nd]  + 1.960*_se[onset_nd]
-            matrix b_def_`ch'[`row',1]   = _b[onset_def]
-            matrix lo90_def_`ch'[`row',1]= _b[onset_def] - 1.645*_se[onset_def]
-            matrix hi90_def_`ch'[`row',1]= _b[onset_def] + 1.645*_se[onset_def]
-            matrix lo95_def_`ch'[`row',1]= _b[onset_def] - 1.960*_se[onset_def]
-            matrix hi95_def_`ch'[`row',1]= _b[onset_def] + 1.960*_se[onset_def]
-            test onset_nd = onset_def
-            matrix pval_`ch'[`row',1] = r(p)
-            local pd_`ch'_`h' = r(p)   // store before eststo (which can reset r())
-            local pf_`ch'_`h' = r(F)   // F-statistic itself, Table I1's own convention
+        if r(ok) {
+            local bnd  = r(bnd)
+            local bdef = r(bdef)
+            local snd  = r(send)
+            local sdef = r(sedef)
 
-            * Difference block: point estimate + the exact, covariance-correct
-            * Wald F-test (not Clogg z/bootstrap -- see header) + episode counts.
-            local bnd  = _b[onset_nd]
-            local bdef = _b[onset_def]
-            local bdiff = `bdef' - `bnd'
+            matrix b_nd_`ch'[`row',1]    = `bnd'
+            matrix lo90_nd_`ch'[`row',1] = `bnd'  - 1.645*`snd'
+            matrix hi90_nd_`ch'[`row',1] = `bnd'  + 1.645*`snd'
+            matrix lo95_nd_`ch'[`row',1] = `bnd'  - 1.960*`snd'
+            matrix hi95_nd_`ch'[`row',1] = `bnd'  + 1.960*`snd'
+            matrix b_def_`ch'[`row',1]   = `bdef'
+            matrix lo90_def_`ch'[`row',1]= `bdef' - 1.645*`sdef'
+            matrix hi90_def_`ch'[`row',1]= `bdef' + 1.645*`sdef'
+            matrix lo95_def_`ch'[`row',1]= `bdef' - 1.960*`sdef'
+            matrix hi95_def_`ch'[`row',1]= `bdef' + 1.960*`sdef'
+
+            * Difference block: paired row-bootstrap SE/CI/p-value (NOT the
+            * retired Wald F-test -- the two arms no longer share one
+            * regression's VCE) + episode counts.
+            local bdiff  = r(dh)
+            local sediff = r(se)
+            local lodiff = r(lo)
+            local hidiff = r(hi)
+            local pdiff_ = r(p)
+            matrix pval_`ch'[`row',1] = `pdiff_'
+            local pd_`ch'_`h' = `pdiff_'   // store before eststo (which can reset r())
             quietly count if onset_nd  == 1 & sample == 1 & !missing(ch_`ch'_`h')
             local nepnd = r(N)
             quietly count if onset_def == 1 & sample == 1 & !missing(ch_`ch'_`h')
             local nepdef = r(N)
+            local nnd_  = r(nnd)
+            local ndef_ = r(ndef)
+
+            * Synthesize a two-coefficient "model" via `ereturn post' from the
+            * ORIGINAL (non-bootstrapped) per-arm point estimates and their
+            * own robust SEs -- `_lpdiffboot' leaves e() holding the last
+            * bootstrap-loop regression, not either arm's own fit. See
+            * 03_lp_resolution.do's identical block for the full argument.
+            matrix b_combo = (`bnd', `bdef')
+            matrix colnames b_combo = onset_nd onset_def
+            matrix V_combo = diag((`snd'^2, `sdef'^2))
+            matrix colnames V_combo = onset_nd onset_def
+            matrix rownames V_combo = onset_nd onset_def
+            ereturn post b_combo V_combo
 
             eststo t4_`ch'_`h', title("h=`=`h'+1'")
             estadd scalar bdiff  = `bdiff'
-            estadd scalar fdiff  = `pf_`ch'_`h''
-            estadd scalar pdiff  = `pd_`ch'_`h''
+            estadd scalar sediff = `sediff'
+            estadd scalar lodiff = `lodiff'
+            estadd scalar hidiff = `hidiff'
+            estadd scalar pdiff  = `pdiff_'
             estadd scalar nepnd  = `nepnd'
             estadd scalar nepdef = `nepdef'
+            estadd scalar nnd    = `nnd_'
+            estadd scalar ndef   = `ndef_'
             local elist_`ch' `elist_`ch'' t4_`ch'_`h'
             local b_nd_o  = `bnd'
             local b_def_o = `bdef'
-            * NOT r(p): eststo/estadd above clear r(), so r(p) is empty by this
-            * point and the console column printed "." for every row.
             local p_o     = `pd_`ch'_`h''
         }
         else {
@@ -254,7 +390,7 @@ di as result "  zero, most of the def-arm signal was one country's crisis."
 *   Requires: ssc install estout
 * ══════════════════════════════════════════════════════════════════════════
 
-local t4note "Dependent variable: cumulative change in the channel variable (pp) from t-1 to t+h. Both onset dummies enter jointly with tranquil years as the omitted category, matching the reference paper's baseline. Jorda (2005) local projections; country fixed effects only (no year FE); common-core controls plus the channel's own pre-crisis change; continuation years excluded. Robust (heteroskedasticity-only) standard errors in parentheses. F(nd=def) and p(nd=def) are the Wald equality test. * p<0.10, ** p<0.05, *** p<0.01."
+local t4note "Dependent variable: cumulative change in the channel variable (pp) from t-1 to t+h. Non-default and default-linked onsets are each estimated in a SEPARATE regression vs tranquil years, with the rival resolution type dropped from that regression's own sample (matching this project's AIPW design, 08b_aipw.do); the coefficient/SE shown for each arm come from that arm's own regression. Jorda (2005) local projections; country fixed effects only (no year FE); common-core controls plus the channel's own pre-crisis change; continuation years excluded. Robust (heteroskedasticity-only) standard errors in parentheses, from each arm's own regression. Difference = beta(default) - beta(non-default); its SE, 95% CI, and p-value come from a PAIRED ROW-BOOTSTRAP (1000 replications, seed 20260819): each replication resamples rows once, stratified so the tranquil pool and each arm's treated-row count are held fixed, and refits BOTH arm regressions on that same resampled data -- preserving the covariance the two arms inherit from their shared tranquil control pool, unlike treating them as independent. * p<0.10, ** p<0.05, *** p<0.01."
 
 * Per-channel panel titles (Panel A carries the overall table caption)
 local ptitle_credit      "Table 4. Channels by resolution (nd vs. def, joint) -- Panel A: Private credit/GDP"
@@ -288,12 +424,13 @@ foreach ch in credit claims_govt inv govexp pb fdi real_lending {
         keep(onset_nd onset_def) order(onset_nd onset_def) ///
         coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
         mtitles nonumber ///
-        stats(bdiff fdiff pdiff nepnd nepdef N N_g, ///
-              labels("Difference (default - non-default)" "  F (Wald, nd = def)" ///
-                     "  p (Wald, nd = def)" ///
+        stats(bdiff sediff lodiff hidiff pdiff nepnd nepdef nnd ndef, ///
+              labels("Difference (default - non-default)" "  Bootstrap SE (paired, def-nd)" ///
+                     "  95% bootstrap CI, lower" "  95% bootstrap CI, upper" ///
+                     "  p-value (paired row bootstrap)" ///
                      "Episodes (non-default)" "Episodes (default)" ///
-                     "Observations" "Countries") ///
-              fmt(3 2 3 0 0 0 0)) ///
+                     "Observations (non-default regression)" "Observations (default regression)") ///
+              fmt(3 3 3 3 3 0 0 0 0)) ///
         title("`ptitle_`ch''") `t4extra'
 
     if _rc == 608 {

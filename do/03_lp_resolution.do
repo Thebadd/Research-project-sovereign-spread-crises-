@@ -2,36 +2,54 @@
   03_LP_RESOLUTION.DO
   ACT 2 — Local Projections: Non-Default vs. Default-Linked Episodes
 
-  Specification B (HEADLINE): JOINT regression, both type dummies entered
-    simultaneously on the FULL sample with tranquil as the omitted category.
-    This is the reference paper's OLS baseline exactly — Asonuma et al. run
-    `reg g_h dum1 dum2 dum3 g_0 $convar, noconstant' with their sample_for*
-    restriction defined but NOT applied to it, with COUNTRY dummies only
-    (`c1-c74', no year dummies), and plain heteroskedasticity-robust SEs
-    (`vce(robust)', not Driscoll-Kraay). This file matches all three:
-    `xtreg dy_h onset_nd onset_def $ctrl_core, fe vce(robust)' with NO
-    `i.year' term (country FE only, plain robust SE — see "COUNTRY FE ONLY,
-    MATCHING TABLE I1" at the headline loop below for why year FE and
-    Driscoll-Kraay, both previously this project's own deliberate additions,
-    are dropped here). Feeds the IRF datasets and figures.
+  Specification B (HEADLINE): as of this version, TWO SEPARATE regressions
+    per horizon, one per resolution type, EACH vs tranquil with the RIVAL
+    type dropped from that regression's own sample — matching the design
+    this project already uses for its AIPW estimator (08b_aipw.do's
+    `_aipwpair': `_aipw' called once per arm, each restricted to `if1'/`if2'
+    excluding the rival type). This REPLACES the previous headline, which
+    entered both onset_nd and onset_def in ONE joint regression on the full
+    sample. The change is deliberate, not cosmetic, and is made for the same
+    reason the AIPW file already works this way: pooling the two arms in one
+    regression lets the default-linked coefficient be estimated partly off
+    non-default onset years (they enter as an implicit control in that
+    regression, not as excluded observations), and forces a single set of
+    country fixed effects and a single residual variance across two
+    populations this project otherwise treats as economically distinct
+    resolution paths. Separating them means each arm's point estimate and
+    its own robust SE come only from "this type vs tranquil," exactly the
+    quantity Spec A below already estimates — Spec B and Spec A are now the
+    SAME regression design, differing only in that Spec B applies the
+    common_abcd balanced sample (see below) as its actual headline
+    restriction and Spec A does not (Spec A remains the best-available-
+    sample robustness partner for the AIPW lines, per its own header).
 
-    Difference tested via an F-STATISTIC (Wald test of `onset_nd = onset_def'),
-    NOT a Clogg et al. (1995) z or a bootstrap: since both coefficients come
-    from the SAME joint regression, their covariance is directly estimable
-    and `test' uses it exactly — Table I1's own "Differences between the
-    estimated coefficients" section reports exactly this, an F-statistic
-    (p-value), confirming the match. A Clogg z (which assumes independence,
-    false for two coefficients from one regression) and a bootstrap (which
-    would just add resampling noise to what `test' already gets in closed
-    form) were both tried in an earlier version of this file's headline block
-    and removed for this reason — see the headline loop's own comment for
-    the full argument. Per-arm episode counts reported throughout
-    (`_nepcount'). Table 2 is exported in TWO forms: the original plain
-    esttab (`table2_output_resolution.rtf') and a reference-paper-style
-    stacked layout (`table2_output_resolution_layout.rtf', coefficient/SE/
-    Episodes per arm, ONE shared Observations/Countries/R-squared block at
-    the bottom, plus the F-statistic difference row — matching Table I1's
-    own OLS layout exactly).
+    The nd/def coefficients no longer share one regression, so their
+    difference no longer has a directly estimable covariance from a single
+    `test' command. The difference (def − nd) and its SE/CI/p-value are
+    therefore obtained by a PAIRED ROW-BOOTSTRAP: on each of `nboot'
+    replications, the SAME resampled rows (stratified so the tranquil pool
+    and each arm's treated-row count are held fixed, `bsample, strata()')
+    are used to refit BOTH arm regressions, and the difference of the two
+    refits is recorded. This is the identical mechanism 08b_aipw.do already
+    uses for its own def−nd contrast (see that file's header and its
+    `_aipwpair' program) — it captures the covariance between the two arm
+    estimates that comes from their shared tranquil control pool, which
+    treating the two SEs as independent (`sqrt(se_nd^2+se_def^2)', a Clogg
+    et al. 1995 z) would miss. The shared program `_lpdiffboot' below does
+    this; it is the OLS analog of `_aipwpair', built the same way for the
+    same reason. The former F-statistic (Wald test within the joint
+    regression) is retired along with the joint regression it depended on —
+    there is no longer a single regression whose VCE that test could use.
+    Per-arm episode/country counts reported throughout (`_nepcount'); N now
+    differs by arm (each arm's own regression sample excludes the rival
+    type's episodes), and both are reported separately. Table 2 is exported
+    in TWO forms: the original plain esttab (`table2_output_resolution.rtf')
+    and a reference-paper-style stacked layout
+    (`table2_output_resolution_layout.rtf', coefficient/SE/Episodes per arm,
+    each arm's own Observations/Countries block, plus the bootstrap
+    difference row — the layout otherwise matches Table I1's own OLS
+    presentation).
 
     BALANCED A-D SAMPLE (common_abcd, built in 18_transforms.do): the
     headline h=0..4 loop and its h=-1 pre-trend row are now estimated on
@@ -149,6 +167,124 @@ program define _nepcount, rclass
     quietly egen byte `tagcty' = tag(cid) if `varlist'==1 & `esmp'==1
     quietly count if `tagcty'==1
     return scalar ncty = r(N)
+end
+
+* ── REPRODUCIBILITY: seed the bootstrap ────────────────────────────────────
+* Matches 08b_aipw.do's own convention exactly (same seed, same rationale):
+* every CI below comes from `bsample', which draws at random, and an
+* unseeded draw makes the reported interval a property of the run rather
+* than of the estimator. Arbitrary value, not chosen by inspecting results.
+set seed 20260819
+
+local nboot = 1000     // matches 08b_aipw.do's own G=1000 (the reference paper's own bootstrap scripts)
+
+* ══════════════════════════════════════════════════════════════════════════
+* PROGRAM — paired row-bootstrap of the OLS def-nd DIFFERENCE, the OLS analog
+*   of 08b_aipw.do's `_aipwpair'. Point estimates (bnd, bdef) and their own
+*   SEs come from the ORIGINAL (non-resampled) `xtreg ..., fe vce(robust)'
+*   fits, exactly as before; only the DIFFERENCE's uncertainty is bootstrapped.
+*
+*   Resampling: row-level `bsample, strata(_pool)' with _pool = 0 (tranquil,
+*   i.e. in the union of the two arms' own samples but treated by neither),
+*   1 (onset_nd==1) or 2 (onset_def==1) -- IDENTICAL device to `_aipwpair',
+*   so each stratum's row count (and hence each arm's treated-episode count)
+*   is held fixed across draws, avoiding an unusable thin-cell draw.
+*
+*   Each bootstrap refit uses `regress ... i.cid, vce(robust)' rather than
+*   `xtreg ..., fe' -- `bsample' produces duplicate (cid,year) rows, which
+*   breaks the panel structure `xtreg' expects; `regress' with country
+*   dummies has no such requirement and is algebraically the same FE
+*   estimator. This mirrors why 08b_aipw.do's own outcome regression is
+*   `reg y D omodel i.fe [pweight]', not `xtreg', for exactly this reason.
+*   _lpdiffboot , y() dnd() ifnd() ddef() ifdef() ctrlnd() ctrldef() reps()
+* ══════════════════════════════════════════════════════════════════════════
+capture program drop _lpdiffboot
+program define _lpdiffboot, rclass
+    syntax , Y(string) DND(string) IFND(string) DDEF(string) IFDEF(string) ///
+             CTRLND(string) CTRLDEF(string) REPS(integer)
+
+    * --- Original (non-bootstrapped) point estimates: each arm's own FE
+    *     regression vs tranquil (rival type dropped), own robust SE ---
+    capture xtreg `y' `dnd' `ctrlnd' if `ifnd', fe vce(robust)
+    if _rc {
+        return scalar ok = 0
+        exit
+    }
+    local bnd   = _b[`dnd']
+    local send  = _se[`dnd']
+    local nnd   = e(N)
+    local ngnd  = e(N_g)
+
+    capture xtreg `y' `ddef' `ctrldef' if `ifdef', fe vce(robust)
+    if _rc {
+        return scalar ok = 0
+        exit
+    }
+    local bdef  = _b[`ddef']
+    local sedef = _se[`ddef']
+    local ndef  = e(N)
+    local ngdef = e(N_g)
+
+    local dh = `bdef' - `bnd'
+
+    * --- Paired row-bootstrap of the difference (08b_aipw.do's own device) ---
+    capture drop _pool
+    quietly gen byte _pool = 0 if (`ifnd') | (`ifdef')
+    quietly replace _pool = 1 if `dnd' == 1
+    quietly replace _pool = 2 if `ddef' == 1
+
+    tempname pf
+    tempfile bf
+    quietly postfile `pf' double diff using "`bf'", replace
+    forvalues b = 1/`reps' {
+        preserve
+            quietly keep if !missing(_pool)
+            quietly bsample, strata(_pool)
+            capture regress `y' `dnd' `ctrlnd' i.cid if `ifnd', vce(robust)
+            local t1 = cond(_rc==0, _b[`dnd'], .)
+            capture regress `y' `ddef' `ctrldef' i.cid if `ifdef', vce(robust)
+            local t2 = cond(_rc==0, _b[`ddef'], .)
+            if !missing(`t1') & !missing(`t2') quietly post `pf' (`t2' - `t1')
+        restore
+    }
+    quietly postclose `pf'
+    capture drop _pool
+
+    local se = .
+    local lo = .
+    local hi = .
+    local nd = 0
+    preserve
+        quietly use "`bf'", clear
+        quietly count if !missing(diff)
+        local nd = r(N)
+        if `nd' >= 50 {
+            quietly summarize diff
+            local se = r(sd)
+            _pctile diff, p(2.5 97.5)
+            local lo = r(r1)
+            local hi = r(r2)
+        }
+    restore
+
+    local pdiff = .
+    if !missing(`se') & `se' > 0 local pdiff = 2*(1 - normal(abs(`dh'/`se')))
+
+    return scalar ok    = 1
+    return scalar bnd   = `bnd'
+    return scalar send  = `send'
+    return scalar nnd   = `nnd'
+    return scalar ngnd  = `ngnd'
+    return scalar bdef  = `bdef'
+    return scalar sedef = `sedef'
+    return scalar ndef  = `ndef'
+    return scalar ngdef = `ngdef'
+    return scalar dh    = `dh'
+    return scalar se    = `se'
+    return scalar lo    = `lo'
+    return scalar hi    = `hi'
+    return scalar nboot = `nd'
+    return scalar p     = `pdiff'
 end
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -345,9 +481,14 @@ forvalues row = 1/7 {
 * carries country FE alone with plain robust SEs.
 * ══════════════════════════════════════════════════════════════════════════
 
-di as result _n "=== HEADLINE: JOINT REGRESSION (both dummies, full sample) ==="
+di as result _n "=== HEADLINE: SEPARATE REGRESSIONS PER ARM + PAIRED ROW-BOOTSTRAP DIFFERENCE ==="
+di as result "    (see this file's header for why the joint regression / Wald F-test was retired)"
 
-matrix pval_diff = J(5, 1, .)   // h=0..4 only (not pre-trend)
+matrix diff_b  = J(5, 1, .)   // h=0..4 only (not pre-trend); bootstrap difference
+matrix diff_se = J(5, 1, .)
+matrix diff_lo = J(5, 1, .)
+matrix diff_hi = J(5, 1, .)
+matrix diff_p  = J(5, 1, .)
 
 * Headline matrices — these feed irf_nd/irf_def and every Act-2 figure.
 foreach m in b se lo90 hi90 lo95 hi95 {
@@ -355,30 +496,43 @@ foreach m in b se lo90 hi90 lo95 hi95 {
     matrix `m'_def = J(7, 1, .)
 }
 
-* Pre-trend placebo, same joint spec (l1_gdpg dropped — it IS -1 times the dy_m2
-* outcome), displayed as h=-1. Restricted to the same balanced A-D sample as
-* the h=0..4 rows below (common_abcd), so Table 2's own placebo row reports
-* the same episode count as the horizons it is meant to check -- an
-* inconsistent n between the placebo and the main rows of the same table
-* would be confusing on its own terms, independent of the balancing choice.
+* Pre-trend placebo, SAME separate-regression design (l1_gdpg dropped — it IS
+* -1 times the dy_m2 outcome), displayed as h=-1. Restricted to the same
+* balanced A-D sample as the h=0..4 rows below (common_abcd), so Table 2's
+* own placebo row reports the same episode set as the horizons it is meant
+* to check. Each arm vs tranquil, rival dropped — own robust SE (no bootstrap
+* needed for this diagnostic row; it is not part of the headline difference
+* Table 2 reports, which starts at h=0).
 foreach h_neg in 2 {
     local row = 3 - `h_neg'
-    xtreg dy_m`h_neg' onset_nd onset_def `controls_pre' if sample==1 & common_abcd==1, fe vce(robust)
     _critvals
     local c90 = r(c90)
     local c95 = r(c95)
-    foreach g in nd def {
-        local bb = _b[onset_`g']
-        local ss = _se[onset_`g']
+    capture xtreg dy_m`h_neg' onset_nd `controls_pre' if sample==1 & onset_def==0 & common_abcd==1, fe vce(robust)
+    if _rc == 0 {
+        local bb = _b[onset_nd]
+        local ss = _se[onset_nd]
         _pval `bb' `ss'
-        local pp = r(p)
-        matrix b_`g'[`row',1]    = `bb'
-        matrix se_`g'[`row',1]   = `ss'
-        matrix lo90_`g'[`row',1] = `bb' - `c90'*`ss'
-        matrix hi90_`g'[`row',1] = `bb' + `c90'*`ss'
-        matrix lo95_`g'[`row',1] = `bb' - `c95'*`ss'
-        matrix hi95_`g'[`row',1] = `bb' + `c95'*`ss'
-        di "h=-1 (`g'): beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  p = " %5.3f `pp'
+        matrix b_nd[`row',1]    = `bb'
+        matrix se_nd[`row',1]   = `ss'
+        matrix lo90_nd[`row',1] = `bb' - `c90'*`ss'
+        matrix hi90_nd[`row',1] = `bb' + `c90'*`ss'
+        matrix lo95_nd[`row',1] = `bb' - `c95'*`ss'
+        matrix hi95_nd[`row',1] = `bb' + `c95'*`ss'
+        di "h=-1 (nd): beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  p = " %5.3f r(p)
+    }
+    capture xtreg dy_m`h_neg' onset_def `controls_pre' if sample==1 & onset_nd==0 & common_abcd==1, fe vce(robust)
+    if _rc == 0 {
+        local bb = _b[onset_def]
+        local ss = _se[onset_def]
+        _pval `bb' `ss'
+        matrix b_def[`row',1]    = `bb'
+        matrix se_def[`row',1]   = `ss'
+        matrix lo90_def[`row',1] = `bb' - `c90'*`ss'
+        matrix hi90_def[`row',1] = `bb' + `c90'*`ss'
+        matrix lo95_def[`row',1] = `bb' - `c95'*`ss'
+        matrix hi95_def[`row',1] = `bb' + `c95'*`ss'
+        di "h=-1 (def): beta = " %6.3f `bb' "  SE = " %6.3f `ss' "  p = " %5.3f r(p)
     }
 }
 
@@ -407,22 +561,35 @@ eststo clear   // clear any stored estimates before capturing for Table 2
 forvalues h = 0/4 {
     local hd  = `h' + 1
     local row = `h' + 3
-    xtreg dy_`h' onset_nd onset_def `controls' if sample==1 & common_abcd==1, fe vce(robust)
 
-    * Total regression sample/countries/R-squared -- shared across both arms
-    * (this is ONE joint regression), matching the reference paper's own
-    * Table I1 OLS convention (see 26_lp_debtcrisis_flow.do's table-layout
-    * header for the full argument): one shared Observations/Countries/
-    * R-squared block, not per-arm.
-    local totn_`hd'  = e(N)
-    local totng_`hd' = e(N_g)
-    local totr2_`hd' = e(r2)
+    _lpdiffboot, y(dy_`h') ///
+        dnd(onset_nd)  ifnd(sample==1 & onset_def==0 & common_abcd==1) ///
+        ddef(onset_def) ifdef(sample==1 & onset_nd==0 & common_abcd==1) ///
+        ctrlnd(`controls') ctrldef(`controls') reps(`nboot')
 
-    * Coefficients and SEs
-    local bnd  = _b[onset_nd]
-    local bdef = _b[onset_def]
-    local snd  = _se[onset_nd]
-    local sdef = _se[onset_def]
+    if !r(ok) {
+        di as error "h=" `hd' ": separate-regression estimate failed."
+        continue
+    }
+
+    local bnd  = r(bnd)
+    local bdef = r(bdef)
+    local snd  = r(send)
+    local sdef = r(sedef)
+    local bdiff = r(dh)
+    local sediff = r(se)
+    local lodiff = r(lo)
+    local hidiff = r(hi)
+    local pd      = r(p)
+    local ndrawn  = r(nboot)
+
+    * Each arm's OWN regression sample/countries -- no longer a single shared
+    * block, since the two arms are now two different regressions (rival type
+    * excluded from each). Both reported in Table 2 below.
+    local totn_nd_`hd'  = r(nnd)
+    local totng_nd_`hd' = r(ngnd)
+    local totn_def_`hd' = r(ndef)
+    local totng_def_`hd' = r(ngdef)
 
     * Store the headline IRF (these matrices drive the figures)
     _critvals
@@ -441,10 +608,11 @@ forvalues h = 0/4 {
     matrix lo95_def[`row',1] = `bdef' - `c95'*`sdef'
     matrix hi95_def[`row',1] = `bdef' + `c95'*`sdef'
 
-    * Wald equality test (kept for continuity)
-    test onset_nd = onset_def
-    matrix pval_diff[`h'+1, 1] = r(p)
-    local pd = r(p)   // store before eststo (which can reset r())
+    matrix diff_b[`h'+1, 1]  = `bdiff'
+    matrix diff_se[`h'+1, 1] = `sediff'
+    matrix diff_lo[`h'+1, 1] = `lodiff'
+    matrix diff_hi[`h'+1, 1] = `hidiff'
+    matrix diff_p[`h'+1, 1]  = `pd'
 
     * Episode/country counts contributing at this horizon. These must be
     * counted inside e(sample): an onset with a non-missing outcome but a
@@ -458,37 +626,56 @@ forvalues h = 0/4 {
     local nepdef = r(n)
     local nctydef = r(ncty)
 
-    * Difference statistic: the Wald F-test (`pd', already computed above)
-    * IS the covariance-correct test here, and matches the reference paper's
-    * own convention exactly -- Table I1's "Differences between the estimated
-    * coefficients" section reports an F-statistic (p-value), not a Clogg z.
-    * A Clogg z was used here in an earlier version of this file; that was a
-    * mistake for THIS block specifically (though not for Spec A above, where
-    * onset_nd/onset_def come from two SEPARATE regressions with no joint
-    * covariance to exploit, so Clogg's independence assumption is actually
-    * the right tool there). Here onset_nd/onset_def are estimated JOINTLY in
-    * one regression, so their covariance is directly estimable -- `test'
-    * uses it exactly; Clogg z's sqrt(se_nd^2+se_def^2) formula assumes
-    * independence, which is false for two coefficients from the same
-    * regression, and is therefore a strictly worse approximation of exactly
-    * the quantity `test' already computes exactly. A bootstrap of the same
-    * difference would only add resampling noise to what `test' already gets
-    * in closed form -- removed for the same reason.
-    local bdiff = `bdef' - `bnd'
+    * Difference statistic: PAIRED ROW-BOOTSTRAP (see this file's header and
+    * `_lpdiffboot' above), NOT the joint regression's Wald F-test -- there is
+    * no longer a single joint regression whose VCE a `test' could use, since
+    * onset_nd and onset_def now come from two separate regressions on
+    * disjoint treated samples. The bootstrap refits BOTH regressions on the
+    * same resampled rows each replication, so the two arms' shared tranquil
+    * control pool induces exactly the covariance in the bootstrap difference
+    * distribution that a naive sqrt(se_nd^2+se_def^2) (a Clogg z) would miss.
+    * Re-fit each of `nboot' times -- matches 08b_aipw.do's own G=1000.
 
-    * Capture estimates + difference block for the publication table (Table 2)
+    * Capture estimates + difference block for the publication table (Table 2).
+    * IMPORTANT: `_lpdiffboot' leaves e() holding the LAST bootstrap-loop
+    * regression, not either arm's own original fit -- `eststo' here must not
+    * rely on it. Instead synthesize a two-coefficient "model" via
+    * `ereturn post' from the ORIGINAL (non-bootstrapped) point estimates and
+    * their own robust SEs, so esttab's `keep(onset_nd onset_def)' still
+    * extracts both coefficients as if from one table row, exactly as before,
+    * even though they now come from two separate regressions. The posted
+    * covariance is block-diagonal (0 off-diagonal): esttab only reads the
+    * diagonal (each coefficient's own SE) for display, and the actual
+    * covariance the two arms share is what the paired bootstrap above
+    * already captures for the difference row -- this posted V is not used
+    * for any inference, only to make each coefficient's own SE display.
+    matrix b_combo = (`bnd', `bdef')
+    matrix colnames b_combo = onset_nd onset_def
+    matrix V_combo = diag((`snd'^2, `sdef'^2))
+    matrix colnames V_combo = onset_nd onset_def
+    matrix rownames V_combo = onset_nd onset_def
+    ereturn post b_combo V_combo
+
     eststo t2_h`h'
     estadd scalar bdiff   = `bdiff'
+    estadd scalar sediff  = `sediff'
+    estadd scalar lodiff  = `lodiff'
+    estadd scalar hidiff  = `hidiff'
     estadd scalar pdiff   = `pd'
     estadd scalar nepnd   = `nepnd'
     estadd scalar nepdef  = `nepdef'
     estadd scalar nctynd  = `nctynd'
     estadd scalar nctydef = `nctydef'
+    estadd scalar nnd     = r(nnd)
+    estadd scalar ndef    = r(ndef)
 
     di "h=" `hd' ":  beta_nd=" %6.3f `bnd' ///
                "  beta_def=" %6.3f `bdef' ///
                "  diff(def-nd)=" %6.3f `bdiff' ///
-               "  F-stat p="  %5.3f `pd'
+               "  boot SE=" %6.3f `sediff' ///
+               "  [" %6.3f `lodiff' ", " %6.3f `hidiff' "]" ///
+               "  p=" %5.3f `pd' ///
+               "  (" `ndrawn' "/`nboot' draws)"
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -809,23 +996,30 @@ capture esttab t2_h0 t2_h1 t2_h2 t2_h3 t2_h4 using "$tabs/table2_output_resoluti
     keep(onset_nd onset_def) order(onset_nd onset_def) ///
     coeflabel(onset_nd "Non-default onset" onset_def "Default-linked onset") ///
     mtitles("h=1" "h=2" "h=3" "h=4" "h=5") nonumber ///
-    stats(bdiff pdiff nepnd nepdef nctynd nctydef N N_g, ///
-          labels("Difference (default - non-default)" "  F-statistic p-value (nd = def)" ///
+    stats(bdiff sediff lodiff hidiff pdiff nepnd nepdef nctynd nctydef nnd ndef, ///
+          labels("Difference (default - non-default)" "  Bootstrap SE (paired, def-nd)" ///
+                 "  95% bootstrap CI, lower" "  95% bootstrap CI, upper" ///
+                 "  p-value (paired row bootstrap)" ///
                  "Episodes (non-default, in estimation sample)" "Episodes (default, in estimation sample)" ///
                  "Countries (non-default arm)" "Countries (default arm)" ///
-                 "Observations" "Countries (whole regression)") ///
-          fmt(3 3 0 0 0 0 0 0)) ///
+                 "Observations (non-default regression)" "Observations (default regression)") ///
+          fmt(3 3 3 3 3 0 0 0 0 0 0)) ///
     title("Table 2. Output cost by crisis resolution: non-default vs. default-linked") ///
     addnotes("Dependent variable: cumulative change in log real GDP (pp) from t-1 to t+h." ///
-             "Both onset dummies enter jointly. Jorda (2005) local projections; COUNTRY fixed effects only (no year FE," ///
-             " matching the reference paper's own Table I1 design exactly); continuation years excluded." ///
-             "Robust (heteroskedasticity-only) standard errors in parentheses." ///
-             "Difference = beta(default) - beta(non-default); negative means the default-linked loss is deeper. The" ///
-             "F-statistic p-value is a Wald test of equality (test onset_nd = onset_def), covariance-correct since both" ///
-             "coefficients come from the same joint regression -- matching Table I1's own difference-testing convention." ///
-             "Episode/country counts are onsets/countries surviving listwise deletion on the control set, i.e. those actually" ///
-             "identifying each arm's coefficient; the final N/Countries pair describes the whole fitted regression." ///
-             "p-values and confidence intervals use t critical values on the estimator's residual degrees of freedom." ///
+             "Non-default and default-linked onsets are each estimated in a SEPARATE regression vs tranquil years, with the" ///
+             " rival resolution type dropped from that regression's own sample -- matching this project's AIPW design" ///
+             " (08b_aipw.do); the coefficient/SE shown for each arm come from that arm's own regression. Jorda (2005)" ///
+             " local projections; COUNTRY fixed effects only (no year FE, matching the reference paper's own Table I1" ///
+             " design); continuation years excluded." ///
+             "Robust (heteroskedasticity-only) standard errors in parentheses, from each arm's own regression." ///
+             "Difference = beta(default) - beta(non-default); negative means the default-linked loss is deeper. Its" ///
+             " standard error, 95% CI, and p-value come from a PAIRED ROW-BOOTSTRAP (`nboot'=1000 replications, seed" ///
+             " 20260819): each replication resamples rows once (stratified so the tranquil pool and each arm's treated-row" ///
+             " count are held fixed) and refits BOTH arm regressions on that same resampled data, so the covariance" ///
+             " between the two arms coming from their shared tranquil control pool is preserved in the bootstrap" ///
+             " distribution of the difference -- unlike treating the two arms as independent (sqrt(se_nd^2+se_def^2))." ///
+             " Identical mechanism to 08b_aipw.do's own def-nd contrast." ///
+             "Episode/country counts are onsets/countries surviving listwise deletion on each arm's own control set." ///
              "* p<0.10, ** p<0.05, *** p<0.01.")
 
 if _rc == 608 di as error "  ** table2_output_resolution.rtf is OPEN IN WORD — close it and re-run to refresh."
@@ -864,11 +1058,13 @@ capture file close t2tab
 file open t2tab using "$tabs/table2_output_resolution_layout.rtf", write replace
 file write t2tab "{\rtf1\ansi\deff0" _n
 file write t2tab "{\b Table 2, reference-paper layout: output cost by crisis resolution\par}" _n
-file write t2tab "{\i Episodes reported beneath each arm's standard error (counted inside the estimation sample" _n
-file write t2tab " after listwise deletion). Observations, Countries and R-squared are for the WHOLE joint" _n
-file write t2tab " regression (shared across both arms), reported once at the bottom. Differences between the" _n
-file write t2tab " estimated coefficients are tested with an F-statistic (Wald test of equality within the joint" _n
-file write t2tab " regression) -- matching the reference paper's own Table I1 convention exactly.\par}" _n
+file write t2tab "{\i Non-default and default-linked onsets are each estimated in a SEPARATE regression vs" _n
+file write t2tab " tranquil years (rival type dropped), matching this project's AIPW design (08b_aipw.do) --" _n
+file write t2tab " Episodes and Observations/Countries below are therefore each arm's OWN regression sample," _n
+file write t2tab " not a shared block. Differences between the estimated coefficients are tested with a PAIRED" _n
+file write t2tab " ROW-BOOTSTRAP (each of 1000 replications resamples rows once, stratified by tranquil/nd/def," _n
+file write t2tab " and refits BOTH arm regressions on that same draw -- identical mechanism to 08b_aipw.do's own" _n
+file write t2tab " def-nd contrast), not a Wald F-test: the two arms no longer share one regression's VCE.\par}" _n
 file write t2tab "\par" _n
 file write t2tab "\tab h = 1\tab h = 2\tab h = 3\tab h = 4\tab h = 5\par" _n
 file write t2tab "\par" _n
@@ -904,37 +1100,39 @@ foreach key in nd def {
     file write t2tab "`coefline'\par" _n
     file write t2tab "`seline'\par" _n
     file write t2tab "Episodes`epline'\par" _n
+
+    * Each arm's OWN Observations/Countries -- no longer a shared block, since
+    * the two arms are two different regressions (rival type excluded from
+    * each one's own sample).
+    local obsline ""
+    local cntline ""
+    forvalues h = 1/5 {
+        estimates restore t2_h`=`h'-1'
+        local nn : display %5.0f cond("`key'"=="nd", e(nnd), e(ndef))
+        local cc : display %3.0f cond("`key'"=="nd", e(nctynd), e(nctydef))
+        local obsline "`obsline'\tab `nn'"
+        local cntline "`cntline'\tab `cc'"
+    }
+    file write t2tab "Observations`obsline'\par" _n
+    file write t2tab "Countries`cntline'\par" _n
     file write t2tab "\par" _n
 }
 
-* ── Shared block: total regression sample, once, not per arm ───────────────
-local obsline ""
-local cntline ""
-local r2line  ""
-forvalues h = 1/5 {
-    local nn : display %5.0f `totn_`h''
-    local cc : display %3.0f `totng_`h''
-    local rr : display %4.2f `totr2_`h''
-    local obsline "`obsline'\tab `nn'"
-    local cntline "`cntline'\tab `cc'"
-    local r2line  "`r2line'\tab `rr'"
-}
-file write t2tab "Observations`obsline'\par" _n
-file write t2tab "Countries`cntline'\par" _n
-file write t2tab "R-squared`r2line'\par" _n
-file write t2tab "\par" _n
-
-* ── Differences between the estimated coefficients (F-statistic, p-value) ──
-file write t2tab "Differences between the estimated coefficients\par" _n
-local fline ""
+* ── Differences between the estimated coefficients (paired row-bootstrap) ──
+file write t2tab "Differences between the estimated coefficients (def - nd)\par" _n
+local dline ""
+local pline ""
 forvalues h = 1/5 {
     estimates restore t2_h`=`h'-1'
-    local fstr : display %5.2f e(pdiff)
+    local dstr : display %5.2f e(bdiff)
     _starstr2 `=e(pdiff)'
     local st = r(stars)
-    local fline "`fline'\tab (`fstr')`st'"
+    local pstr : display %5.3f e(pdiff)
+    local dline "`dline'\tab `dstr'`st'"
+    local pline "`pline'\tab (p=`pstr')"
 }
-file write t2tab "F-statistic for nd = def`fline'\par" _n
+file write t2tab "Difference`dline'\par" _n
+file write t2tab "Bootstrap p-value`pline'\par" _n
 file write t2tab "\par" _n
 file write t2tab "{\i * p<0.10, ** p<0.05, *** p<0.01.\par}" _n
 file write t2tab "}" _n
@@ -978,10 +1176,12 @@ save "$clean/irf_joint.dta", replace
 
 di as result _n "All IRF datasets saved."
 
-* Print p-values for difference test
-di as result _n "=== P-VALUES: H0: beta_nd(h) = beta_def(h) ==="
+* Print p-values for difference test (paired row-bootstrap; see header)
+di as result _n "=== PAIRED ROW-BOOTSTRAP P-VALUES: H0: beta_nd(h) = beta_def(h) ==="
 forvalues h = 0/4 {
     local hd = `h' + 1
-    di "h=" `hd' ":  p = " %5.3f pval_diff[`h'+1, 1]
+    di "h=" `hd' ":  diff = " %6.3f diff_b[`h'+1, 1] ///
+       "  [" %6.3f diff_lo[`h'+1, 1] ", " %6.3f diff_hi[`h'+1, 1] "]" ///
+       "  p = " %5.3f diff_p[`h'+1, 1]
 }
 
