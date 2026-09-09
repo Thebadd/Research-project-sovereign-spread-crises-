@@ -120,25 +120,42 @@ di as result "for variables not part of the headline design."
 * headers can be preserved via separate title() rows rather than one flat
 * table with no grouping)
 * ══════════════════════════════════════════════════════════════════════════
+local cellspec "count(fmt(0) label(Obs.)) mean(fmt(2) label(Mean)) sd(fmt(2) label(Std. Dev.)) min(fmt(2) label(Min)) max(fmt(2) label(Max))"
+
 estpost summarize dy_0 ch0_inv ch0_credit ch0_claims_govt ch0_claimsgov_assets ch0_claimpriv_assets ch0_real_lending if sample==1
-esttab using "$tabs/table_summary_statistics.rtf", replace cells("count(fmt(0) label(Obs.)) mean(fmt(2) label(Mean)) sd(fmt(2) label(Std. Dev.)) min(fmt(2) label(Min)) max(fmt(2) label(Max))") ///
-    noobs nonumber title("Table [X]. Summary statistics") ///
-    coeflabel(dy_0 "GDP (log real, x100 change, h=1)" ch0_inv "Investment (log real, x100 change, h=1)" ///
-              ch0_credit "Bank credit (log real, x100 change, h=1)" ch0_claims_govt "Claims on government / GDP (pp change, h=1)" ///
-              ch0_claimsgov_assets "Bank claims on govt / assets (pp change, h=1)" ch0_claimpriv_assets "Bank claims on private / assets (pp change, h=1)" ///
-              ch0_real_lending "Real lending interest rate (log level, x100 change, h=1)")
+esttab using "$tabs/table_summary_statistics.rtf", replace cells("`cellspec'") ///
+    noobs nonumber varwidth(28) msign(none) label ///
+    title("Table [X]. Summary statistics -- Dependent variables (x100/pp change, h=1)") ///
+    coeflabel(dy_0 "GDP" ch0_inv "Investment" ///
+              ch0_credit "Bank credit" ch0_claims_govt "Claims on govt / GDP" ///
+              ch0_claimsgov_assets "Bank claims on govt / assets" ch0_claimpriv_assets "Bank claims on private / assets" ///
+              ch0_real_lending "Real lending interest rate")
 
 estpost summarize l1_gdpg_b l_debt_b l_banking_crisis l_govexp_b l_open_b l_credit_bank_b l_lninfl_b exchange2_b if sample==1
-esttab using "$tabs/table_summary_statistics.rtf", append cells("count(fmt(0) label(Obs.)) mean(fmt(2) label(Mean)) sd(fmt(2) label(Std. Dev.)) min(fmt(2) label(Min)) max(fmt(2) label(Max))") ///
-    noobs nonumber title("Baseline control variables") ///
-    addnotes("Sample: onset + tranquil years (sample==1), the estimation universe every LP/AIPW file in this project uses. GDP," ///
-             "investment, bank credit, and the real lending interest rate are log-differenced, x100. Claims-on-government and the" ///
-             "two bank-asset exposure shares are percentage-point changes. All eight controls are the project's own core control" ///
-             "set (ctrl_core), each measured at t-1; seven are shown x100 to match Asonuma et al. (2024)'s own Table B3 scale, and" ///
-             "the banking crisis dummy is unscaled (0/1).") ///
+esttab using "$tabs/table_summary_statistics.rtf", append cells("`cellspec'") ///
+    noobs nonumber varwidth(28) msign(none) label ///
+    title("Baseline control variables (\$ctrl_core, x100 scale)") ///
+    addnotes("Sample: onset + tranquil years. Banking crisis dummy is unscaled (0/1); all others x100, matching Asonuma et al. (2024)'s Table B3.") ///
     coeflabel(l1_gdpg_b "GDP growth rate" l_debt_b "Debt-to-GDP ratio" l_banking_crisis "Banking crisis dummy" ///
-              l_govexp_b "Government expenditure-to-GDP ratio" l_open_b "Openness" ///
+              l_govexp_b "Govt. expenditure-to-GDP ratio" l_open_b "Openness" ///
               l_credit_bank_b "Bank credit-to-GDP ratio" l_lninfl_b "Log inflation" exchange2_b "Nominal exchange rate change")
+
+* Plain CSV alongside the RTF -- easier to reformat cleanly in Excel/Word
+* than relying on esttab's own RTF rendering.
+preserve
+    tempname C
+    tempfile csvf
+    postfile `C' str32 variable long n double mean double sd double min double max using "`csvf'", replace
+    foreach v in dy_0 ch0_inv ch0_credit ch0_claims_govt ch0_claimsgov_assets ch0_claimpriv_assets ch0_real_lending ///
+                 l1_gdpg_b l_debt_b l_banking_crisis l_govexp_b l_open_b l_credit_bank_b l_lninfl_b exchange2_b {
+        quietly summarize `v' if sample==1
+        post `C' ("`v'") (r(N)) (r(mean)) (r(sd)) (r(min)) (r(max))
+    }
+    postclose `C'
+    use "`csvf'", clear
+    export delimited "$tabs/summary_statistics.csv", replace
+restore
+di as result "Plain CSV also saved: $tabs/summary_statistics.csv"
 
 if _rc == 608 di as error "  ** table_summary_statistics.rtf is OPEN IN WORD -- close it and re-run to refresh."
 else if _rc  di as error "  ** Table (summary statistics): esttab failed (rc=" _rc ")"
