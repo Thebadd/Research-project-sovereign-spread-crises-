@@ -40,7 +40,10 @@ set seed 20260819
 local nboot = 300
 
 local cx     $ctrl_core
-local cz_def l_fedfunds l_contagion_dist_def years_since_def_onset
+* THIRD PREDICTOR CHANGE, ADOPTED (matching 08b_aipw.do/13c_aipw_channels.do):
+* l_contagion_dist_def -> l_contagion_dist_atdef (AT-database-wide donor
+* pool; see 17_predictors.do and 08c_first_stage_table.do's comparison).
+local cz_def l_fedfunds l_contagion_dist_atdef years_since_def_onset
 local core_aipw l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2
 
 * ── Channel outcomes ch_v_h = F h.v - L.v (h=0..4), same construction as

@@ -126,7 +126,10 @@ local cz    l_fedfunds l_reg_crisis_share past_onsets
 * caveat that the reference paper's own $instrument is NOT tailored per
 * column the way cz_def is here. cz (Act 1, pooled) is unchanged: there is
 * no resolution type to be specific about in a pooled spec.
-local cz_def l_fedfunds l_contagion_dist_def years_since_def_onset
+* THIRD PREDICTOR CHANGE, ADOPTED (matching 08b_aipw.do): l_contagion_dist_def
+* -> l_contagion_dist_atdef (AT-database-wide donor pool; see 17_predictors.do
+* and 08c_first_stage_table.do's head-to-head comparison).
+local cz_def l_fedfunds l_contagion_dist_atdef years_since_def_onset
 
 * ── REPRODUCIBILITY: seed the bootstrap ────────────────────────────────────
 * Every CI in this file comes from `bsample', which draws at random. Without a

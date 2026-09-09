@@ -3,8 +3,10 @@
   First-stage probit table under the MINIMUM-DURATION episode definition
   (18b_mindur_variant.do) -- mirrors 08c_first_stage_table.do's own adopted
   probit EXACTLY (same baseline controls X = $ctrl_core, same predictors
-  Z2 = l_fedfunds l_contagion_dist_def years_since_def_onset, same pooled/
-  no-country-FE design, same clustered SEs), swapping onset_nd/onset_def
+  Z2 = l_fedfunds l_contagion_dist_atdef years_since_def_onset -- THIRD
+  PREDICTOR CHANGE, ADOPTED: l_contagion_dist_atdef (AT-database-wide donor
+  pool) replaces l_contagion_dist_def, matching 08c's own adoption -- same
+  pooled/no-country-FE design, same clustered SEs), swapping onset_nd/onset_def
   for onset_nd_mindur/onset_def_mindur -- i.e., re-fitting the two columns
   (Non-default vs tranquil, Default-linked vs tranquil) with the 18
   single-year-spike non-default onsets reclassified as tranquil (folded
@@ -33,7 +35,7 @@ use "$clean/panel_lp_mindur.dta", clear
 if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 
 local X    $ctrl_core
-local Z2   l_fedfunds l_contagion_dist_def years_since_def_onset
+local Z2   l_fedfunds l_contagion_dist_atdef years_since_def_onset
 
 eststo clear
 
@@ -98,10 +100,10 @@ di as result "      propensity model is not sensitive to the single-year-spike r
 capture esttab fs_nd_md fs_def_md using "$tabs/table_first_stage_mindur.rtf", replace ///
     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
     mtitles("Non-default (mindur)" "Default-linked (mindur)") ///
-    order(l_fedfunds l_contagion_dist_def years_since_def_onset ///
+    order(l_fedfunds l_contagion_dist_atdef years_since_def_onset ///
           l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2) ///
     coeflabel(l_fedfunds "US federal funds rate" ///
-              l_contagion_dist_def "Contagion, based on default-linked crisis" ///
+              l_contagion_dist_atdef "Contagion, based on default-linked crisis (AT-database-wide donors)" ///
               years_since_def_onset "Years since last default-linked onset" ///
               l1_gdpg "GDP growth" ///
               l_debt "Public debt-to-GDP ratio" ///

@@ -515,8 +515,10 @@ di as result "  the weighting models in 08b/13d are not modified):"
 * Matches 08b_aipw.do's own cz_def (see its header for the swap rationale,
 * citing 21_aipw_flow.do's "SECOND PREDICTOR CHANGE"; both terms are
 * DEFAULT-LINKED-SPECIFIC) -- kept in sync since this block exists only to
-* mirror 08b's first stage for comparability.
-local predictors_z2 l_fedfunds l_contagion_dist_def years_since_def_onset
+* mirror 08b's first stage for comparability. THIRD PREDICTOR CHANGE,
+* ADOPTED: l_contagion_dist_atdef (AT-database-wide donor pool) replaces
+* l_contagion_dist_def, matching 08b's own adoption.
+local predictors_z2 l_fedfunds l_contagion_dist_atdef years_since_def_onset
 foreach s in nd def {
     if "`s'" == "nd"  local rival onset_def
     else              local rival onset_nd

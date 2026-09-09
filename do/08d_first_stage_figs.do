@@ -38,11 +38,13 @@
   SAMPLE AND MODELS — IDENTICAL TO 08c
   -------------------------------------
   sample==1, rival type dropped, pooled probit, clustered SEs by country.
-  `X' = $ctrl_core. `Z2' = l_fedfunds, l_contagion_dist_def, years_since_def_onset --
+  `X' = $ctrl_core. `Z2' = l_fedfunds, l_contagion_dist_atdef, years_since_def_onset --
   both the contagion and recency terms are default-linked-specific, matching
-  08c's adopted predictor set (08c's diagnostic history: the generic versions
-  left the default arm's classification power indistinguishable from
-  controls-only). The kernel
+  08c's adopted predictor set (THIRD PREDICTOR CHANGE, ADOPTED:
+  l_contagion_dist_atdef, AT-database-wide donor pool, replaces
+  l_contagion_dist_def as of 08c's own head-to-head comparison; 08c's
+  diagnostic history: the generic versions left the default arm's
+  classification power indistinguishable from controls-only). The kernel
   density figure uses the FULL model's (controls+predictors) predicted
   probability, matching the reference paper's own kdensity figure, which is
   drawn from their single richest probit ($cf $convar $instrument), not a
@@ -75,7 +77,7 @@
 use "$clean/panel_lp.dta", clear
 if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 
-foreach v in onset_nd onset_def sample years_since_def_onset l_contagion_dist_def {
+foreach v in onset_nd onset_def sample years_since_def_onset l_contagion_dist_atdef {
     capture confirm variable `v', exact
     if _rc {
         di as error "  ** `v' not in panel_lp.dta — re-run 18_transforms.do first."
@@ -84,7 +86,7 @@ foreach v in onset_nd onset_def sample years_since_def_onset l_contagion_dist_de
 }
 
 local X  $ctrl_core
-local Z2 l_fedfunds l_contagion_dist_def years_since_def_onset
+local Z2 l_fedfunds l_contagion_dist_atdef years_since_def_onset
 
 local c_nd   "0 84 166"
 local c_def  "157 36 73"

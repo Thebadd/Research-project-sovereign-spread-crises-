@@ -154,7 +154,10 @@ local cz     l_fedfunds l_reg_crisis_share past_onsets       // Act 1 predictors
 * 08c_first_stage_table.do's diagnostics; see 08c's header for the full
 * argument and the caveat that the reference paper's own instrument is not
 * tailored per column.
-local cz_def l_fedfunds l_contagion_dist_def years_since_def_onset
+* THIRD PREDICTOR CHANGE, ADOPTED (matching 13d_aipw_nexus_split.do):
+* l_contagion_dist_def -> l_contagion_dist_atdef (AT-database-wide donor
+* pool; see 17_predictors.do and 08c_first_stage_table.do's comparison).
+local cz_def l_fedfunds l_contagion_dist_atdef years_since_def_onset
 
 * AIPW outcome-model core = the common core, unchanged. The depth term is
 * l_credit_bank (WDI FD.AST.PRVT.GD.ZS, credit by banks).
