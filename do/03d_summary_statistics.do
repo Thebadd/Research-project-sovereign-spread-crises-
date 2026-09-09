@@ -49,13 +49,14 @@
                                six outcomes 03_lp_resolution.do/12_channels_
                                resolution.do/08b_aipw.do/13c_aipw_channels.do
                                actually estimate.
-    Baseline control variables $ctrl_core (8 terms) -- reported on the SAME
-                               "b"-suffix x100 scale as 05b_balance_
-                               regressions.do, for readability and for direct
-                               comparability with Asonuma's own baseline
-                               block (their gdpg2/gov_exp2/open2/credit_bank2
-                               are also x100-style percent scales, not raw
-                               decimals).
+    Baseline control variables $ctrl_core (8 terms), reported on their own
+                               NATIVE scale exactly as used in every
+                               regression project-wide -- no display
+                               rescaling (unlike 05b_balance_regressions.do's
+                               own "b"-suffix x100 table, which exists
+                               specifically to compare against Asonuma's
+                               Table H1; this table reports this project's
+                               own numbers as they actually are in the code).
 
   Output: $tabs/table_summary_statistics.rtf (via `estpost summarize`+esttab)
           and console echo of every `summarize' call.
@@ -82,63 +83,54 @@ foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lendi
 }
 
 * GDP: dy_0 already exists on panel_lp.dta (18_transforms.do), no rebuild.
-
-* ── Rescale to the Asonuma-comparable x100 display scale ──────────────────
-* dy_0/ch0_credit/ch0_inv/ch0_real_lending are already log-differenced (need
-* no further *100 -- they are already on that scale from their own
-* construction). claims_govt/claimsgov_assets/claimpriv_assets are ratio-
-* point differences already in percentage-point units (no *100 needed
-* either, matching how 02a's own dd_* outputs are read directly). The
-* $ctrl_core "b"-suffix rescale below mirrors 05b_balance_regressions.do
-* exactly.
-local rescale100 l1_gdpg l_debt l_govexp l_open l_credit_bank l_lninfl exchange2
-foreach v of local rescale100 {
-    capture confirm variable `v'
-    if !_rc {
-        capture drop `v'_b
-        quietly gen double `v'_b = `v' * 100
-    }
-}
+* NO rescaling here: every variable below is reported on its OWN native
+* scale exactly as it sits in this project's code -- dy_0/ch0_* exactly as
+* 18_transforms.do/02a_descriptive_facts.do/03c_table_combined_six.do build
+* them, and every $ctrl_core term on its own native (decimal) scale exactly
+* as used in every regression project-wide. No display-only x100 rescale
+* (unlike 05b_balance_regressions.do's own "b"-suffix table, which exists
+* specifically to be compared against Asonuma's Table H1 on their scale --
+* this table is not that, and reports this project's own numbers as-is).
 
 di as result _n "════════════════════════════════════════════════════════════"
-di as result "TABLE [X]: SUMMARY STATISTICS (sample==1, onset + tranquil years)"
+di as result "TABLE [X]: SUMMARY STATISTICS (sample==1, onset + tranquil years, native scale)"
 di as result "════════════════════════════════════════════════════════════"
 
 di as result _n "-- Dependent variables --"
 summarize dy_0 ch0_inv ch0_credit ch0_claims_govt ch0_claimsgov_assets ch0_claimpriv_assets ch0_real_lending if sample==1
 
-di as result _n "-- Baseline control variables (\$ctrl_core, x100 scale) --"
-summarize l1_gdpg_b l_debt_b l_banking_crisis l_govexp_b l_open_b l_credit_bank_b l_lninfl_b exchange2_b if sample==1
+di as result _n "-- Baseline control variables (\$ctrl_core, native scale) --"
+summarize l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2 if sample==1
 
 di as result _n "NOT INCLUDED: only the outcomes actually estimated by the LP/AIPW files"
 di as result "and the controls in \$ctrl_core (every regression's own control set) are"
 di as result "reported -- no additional-control, predictor, or auxiliary-outcome rows"
-di as result "for variables not part of the headline design."
+di as result "for variables not part of the headline design, and no display rescaling."
 
 * ══════════════════════════════════════════════════════════════════════════
 * TABLE EXPORT (estpost summarize -> esttab, one block at a time so section
 * headers can be preserved via separate title() rows rather than one flat
 * table with no grouping)
 * ══════════════════════════════════════════════════════════════════════════
-local cellspec "count(fmt(0) label(Obs.)) mean(fmt(2) label(Mean)) sd(fmt(2) label(Std. Dev.)) min(fmt(2) label(Min)) max(fmt(2) label(Max))"
+local cellspec "count(fmt(0) label(Obs.)) mean(fmt(3) label(Mean)) sd(fmt(3) label(Std. Dev.)) min(fmt(3) label(Min)) max(fmt(3) label(Max))"
 
 estpost summarize dy_0 ch0_inv ch0_credit ch0_claims_govt ch0_claimsgov_assets ch0_claimpriv_assets ch0_real_lending if sample==1
 esttab using "$tabs/table_summary_statistics.rtf", replace cells("`cellspec'") ///
     noobs nonumber varwidth(28) msign(none) label ///
-    title("Table [X]. Summary statistics -- Dependent variables (x100/pp change, h=1)") ///
+    title("Table [X]. Summary statistics -- Dependent variables (h=1, native scale)") ///
     coeflabel(dy_0 "GDP" ch0_inv "Investment" ///
               ch0_credit "Bank credit" ch0_claims_govt "Claims on govt / GDP" ///
               ch0_claimsgov_assets "Bank claims on govt / assets" ch0_claimpriv_assets "Bank claims on private / assets" ///
               ch0_real_lending "Real lending interest rate")
 
-estpost summarize l1_gdpg_b l_debt_b l_banking_crisis l_govexp_b l_open_b l_credit_bank_b l_lninfl_b exchange2_b if sample==1
+estpost summarize l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2 if sample==1
 esttab using "$tabs/table_summary_statistics.rtf", append cells("`cellspec'") ///
     noobs nonumber varwidth(28) msign(none) label ///
-    title("Baseline control variables (\$ctrl_core, x100 scale)") ///
-    addnotes("Sample: onset + tranquil years. Banking crisis dummy is unscaled (0/1); all others x100, matching Asonuma et al. (2024)'s Table B3.") ///
-    coeflabel(l1_gdpg_b "GDP growth rate" l_debt_b "Debt-to-GDP ratio" l_banking_crisis "Banking crisis dummy" ///
-              l_govexp_b "Govt. expenditure-to-GDP ratio" l_open_b "Openness" ///
-              l_credit_bank_b "Bank credit-to-GDP ratio" l_lninfl_b "Log inflation" exchange2_b "Nominal exchange rate change")
+    title("Baseline control variables (\$ctrl_core, native scale)") ///
+    addnotes("Sample: onset + tranquil years. Every variable is reported on its own native scale, exactly as used in this project's regressions.") ///
+    coeflabel(l1_gdpg "GDP growth rate" l_debt "Debt-to-GDP ratio" l_banking_crisis "Banking crisis dummy" ///
+              l_govexp "Govt. expenditure-to-GDP ratio" l_open "Openness" ///
+              l_credit_bank "Bank credit-to-GDP ratio" l_lninfl "Log inflation" exchange2 "Nominal exchange rate change")
 
 * Plain CSV alongside the RTF -- easier to reformat cleanly in Excel/Word
 * than relying on esttab's own RTF rendering.
@@ -147,7 +139,7 @@ preserve
     tempfile csvf
     postfile `C' str32 variable long n double mean double sd double min double max using "`csvf'", replace
     foreach v in dy_0 ch0_inv ch0_credit ch0_claims_govt ch0_claimsgov_assets ch0_claimpriv_assets ch0_real_lending ///
-                 l1_gdpg_b l_debt_b l_banking_crisis l_govexp_b l_open_b l_credit_bank_b l_lninfl_b exchange2_b {
+                 l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2 {
         quietly summarize `v' if sample==1
         post `C' ("`v'") (r(N)) (r(mean)) (r(sd)) (r(min)) (r(max))
     }
