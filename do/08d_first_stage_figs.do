@@ -165,8 +165,8 @@ foreach s in nd def {
     * elsewhere for a label that would otherwise just repeat.
     local txtopt
     if "`s'" == "nd" {
-        local txtopt text(`yt_lab' `xt_lab' "Treatment group", color(blue) size(medlarge) place(e)) ///
-                     text(`yc_lab' `xc_lab' "Control group", color(red) size(medlarge) place(e))
+        local txtopt text(`yt_lab' `xt_lab' "Treatment group", color(blue) size(large) place(e)) ///
+                     text(`yc_lab' `xc_lab' "Control group", color(red) size(large) place(e))
     }
 
     twoway ///
@@ -177,16 +177,16 @@ foreach s in nd def {
         graphregion(color(white)) plotregion(color(white)) ///
         legend(off) ///
         `txtopt' ///
-        xlabel(, labsize(medlarge)) ///
-        ylabel(, angle(horizontal) labsize(medlarge)) ///
-        ytitle("`ytit'", size(large)) xtitle("Predicted probability", size(large)) ///
-        title("`ttl'", size(large) color(black)) ///
+        xlabel(, labsize(large)) ///
+        ylabel(, angle(horizontal) labsize(large)) ///
+        ytitle("`ytit'", size(vlarge)) xtitle("Predicted probability", size(vlarge)) ///
+        title("`ttl'", size(vlarge) color(black)) ///
         name(gk_`s', replace) nodraw
     local gnames_a `gnames_a' gk_`s'
 }
 * No combine-level title() -- paper-ready.
 graph combine `gnames_a', rows(1) graphregion(color(white)) ///
-    xsize(9) ysize(4)
+    xsize(12) ysize(5.5)
 capture graph export "$figs/fig_kdensity.pdf", replace
 if _rc di as error "  ** fig_kdensity.pdf export failed (rc=" _rc ") — is it open?"
 else {
@@ -230,17 +230,17 @@ foreach s in nd def {
         graph summary name(gr_`s', replace) graphregion(color(white)) nodraw ///
         plot1opts(lcolor(red) mcolor(red) msymbol(circle)) ///
         plot2opts(lcolor(green) mcolor(green) msymbol(diamond)) ///
-        title("`ttl'", size(large)) ///
-        ytitle("`ytit'", size(large)) xtitle("1 - Specificity", size(large)) ///
-        ylabel(0(.25)1, angle(horizontal) labsize(medlarge)) xlabel(0(.25)1, labsize(medlarge)) ///
-        legend(position(5) region(lwidth(none)) size(medlarge) cols(1) ring(0) ///
+        title("`ttl'", size(vlarge)) ///
+        ytitle("`ytit'", size(vlarge)) xtitle("1 - Specificity", size(vlarge)) ///
+        ylabel(0(.25)1, angle(horizontal) labsize(large)) xlabel(0(.25)1, labsize(large)) ///
+        legend(position(5) region(lwidth(none)) size(large) cols(1) ring(0) ///
             order(1 "Controls: `auc1_`s''" 2 "Controls+Predictors: `auc2_`s''"))
     local gnames_b `gnames_b' gr_`s'
 }
 * No combine-level title()/subtitle() -- paper-ready; the earlier subtitle
 * text was also wrapping/truncating illegibly once exported.
 graph combine `gnames_b', graphregion(color(white)) ///
-    xsize(9) ysize(4.5)
+    xsize(12) ysize(6)
 capture graph export "$figs/fig_roc.pdf", replace
 if _rc di as error "  ** fig_roc.pdf export failed (rc=" _rc ") — is it open?"
 else {
