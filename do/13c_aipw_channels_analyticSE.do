@@ -10,6 +10,21 @@
   Everything else (point estimates, the def-nd difference bootstrap and its
   CI, Clogg z) is UNCHANGED. Outputs write to DIFFERENT filenames so this
   never overwrites 13c_aipw_channels.do's own results.
+
+  SELF-CONTAINED, mirroring 13c_aipw_channels.do's own addition: GDP is now
+  estimated IN THIS FILE too ("=== CHANNEL: gdp ===" block, pulling its
+  spec from 08b_aipw_analyticSE.do's own Act 2 GDP loop -- NOT the plain
+  08b_aipw.do -- so the level bands here stay analytic-SE throughout, this
+  file's one consistent convention). The combined 6-panel figure and the
+  merged six-variable table/CSV below
+  ($tabs/aipw_combined_six_resolution_analyticSE.rtf,
+  $tabs/aipw_combined_six_analyticSE.csv) are therefore produced entirely
+  from this file's own estimation, with no import of 08b_aipw_analyticSE.do's
+  saved aipw_results_analyticSE.csv. GDP is estimated redundantly across
+  THREE files project-wide as a result (08b_aipw.do, 08b_aipw_analyticSE.do,
+  and here) -- accepted for the same reason as the plain file: standalone
+  runnability over saving duplicate computation. 08b_aipw_analyticSE.do
+  itself is left completely unchanged.
 ===========================================================================*/
 
 /*===========================================================================
@@ -579,6 +594,80 @@ foreach ch in credit claims_govt inv ///
 }
 
 * ══════════════════════════════════════════════════════════════════════════
+* GDP — self-contained headline estimate (PAPER-ALIGNED SE), mirroring the
+* identical addition in 13c_aipw_channels.do. This is a SEPARATE BLOCK, not
+* one more iteration of the `foreach ch of local channels' loop above, for
+* the same reason as in the plain file: GDP's outcome is dy_`h' (built in
+* 18_transforms.do), not ch_`ch'_`h', so folding it into the loop would mean
+* special-casing the outcome-variable name inside every iteration for one
+* variable out of six.
+*
+* Pulled from 08b_aipw_analyticSE.do's OWN Act 2 GDP loop (NOT the plain
+* 08b_aipw.do) so this file's GDP block matches ITS OWN SE convention:
+* level CIs and t-test stars use the ANALYTIC SEs (`A1'/`A2'), matching the
+* channel loop above in this same duplicate file. Same omodel ($ctrl_core),
+* pz (`cx' `cz_def'), reps(`nboot'), common_abcd restriction, _aipwpair
+* signature, and Clogg z as both 08b_aipw_analyticSE.do and the channel
+* loop above. Posted into THIS file's own `R'/`Rd' postfiles under
+* channel=="gdp".
+*
+* REDUNDANCY, ACCEPTED DELIBERATELY (same reasoning as the plain file): GDP
+* is now estimated in three places project-wide (08b_aipw.do, 08b_aipw_
+* analyticSE.do, and here) -- accepted so this duplicate is runnable
+* standalone. 08b_aipw_analyticSE.do itself is untouched by this addition.
+* ══════════════════════════════════════════════════════════════════════════
+di as result _n "=== CHANNEL: gdp ==="
+di as result "  (Estimated redundantly with 08b_aipw_analyticSE.do's own Act 2 GDP loop, to keep"
+di as result "  this file self-contained -- see the block comment above. Same spec/seed/bootstrap"
+di as result "  mechanics and the same PAPER-ALIGNED analytic-SE level bands as the channel loop above.)"
+di as result "  Act 2 (PAPER-ALIGNED SE):  h   ND (se_analytic)   DEF (se_analytic)   def-nd   [95% boot CI]   Clogg z    p"
+post `R' ("gdp") ("nd")  (0) (0) (0) (0) (0)   // explicit baseline (h=0)
+post `R' ("gdp") ("def") (0) (0) (0) (0) (0)
+post `Rd' ("gdp") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)   // explicit baseline (h=0)
+forvalues h = 0/4 {
+    _aipwpair, y(dy_`h') ///
+        d1(onset_def) if1(sample==1 & onset_nd==0 & common_abcd==1) ///
+        d2(onset_nd)  if2(sample==1 & onset_def==0 & common_abcd==1) ///
+        omod($ctrl_core) pz(`cx' `cz_def') reps(`nboot')
+    if r(ok) {
+        local B1 = r(b1)     // default-linked ATE
+        local B2 = r(b2)     // non-default ATE
+        local A1 = r(a1)     // analytic SE, default-linked -- PAPER-ALIGNED: used for the level CI too
+        local A2 = r(a2)     // analytic SE, non-default -- PAPER-ALIGNED: used for the level CI too
+        local DH = r(dh)
+        local SE = r(se)
+        local LO = r(lo)
+        local HI = r(hi)
+        local ND = r(nd)
+
+        post `R' ("gdp") ("nd")  (`h'+1) (`B2') (`A2') (`B2'-1.96*`A2') (`B2'+1.96*`A2')
+        post `R' ("gdp") ("def") (`h'+1) (`B1') (`A1') (`B1'-1.96*`A1') (`B1'+1.96*`A1')
+
+        local zz = .
+        local pz = .
+        if !missing(`A1') & !missing(`A2') & (`A1'^2 + `A2'^2) > 0 {
+            local zz = `DH' / sqrt(`A1'^2 + `A2'^2)
+            local pz = 2*(1 - normal(abs(`zz')))
+        }
+        post `Rd' ("gdp") (`h'+1) (`DH') (`B1') (`B2') (`SE') (`LO') (`HI') (`ND') (`zz') (`pz')
+
+        local tnd  = cond(`A2'>0, `B2'/`A2', .)
+        local pnd  = cond(!missing(`tnd'), 2*(1-normal(abs(`tnd'))), .)
+        local sgnd = cond(missing(`pnd'), "", cond(`pnd'<.01,"***",cond(`pnd'<.05,"**",cond(`pnd'<.10,"*",""))))
+        local tdef  = cond(`A1'>0, `B1'/`A1', .)
+        local pdef  = cond(!missing(`tdef'), 2*(1-normal(abs(`tdef'))), .)
+        local sgdef = cond(missing(`pdef'), "", cond(`pdef'<.01,"***",cond(`pdef'<.05,"**",cond(`pdef'<.10,"*",""))))
+
+        local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
+        di "    " %1.0f `h'+1 "  " %8.3f `B2' "`sgnd'" " (" %5.3f `A2' ")  " ///
+           %8.3f `B1' "`sgdef'" " (" %5.3f `A1' ")  " %8.3f `DH' ///
+           " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
+           " " %7.3f `zz' " " %5.3f `pz'
+    }
+    else di as error "    h=" `h'+1 ": Act 2 estimate failed (thin sample)."
+}
+
+* ══════════════════════════════════════════════════════════════════════════
 * ROBUSTNESS: CREDIT CHANNEL AIPW, BULGARIA EXCLUDED (LEAVE-ONE-OUT)
 *
 * Same reasoning as 12_channels_resolution.do's own leave-one-out block:
@@ -732,21 +821,16 @@ forvalues i = 1/6 {
 * ══════════════════════════════════════════════════════════════════════════
 * Combined 6-panel figure (PAPER-ALIGNED SE): Panel A GDP, B Investment,
 * C Bank credit, D Claims on government, E FDI, F Real lending rate. GDP is
-* imported from 08b_aipw_analyticSE.do's OWN saved
-* $tabs/aipw_results_analyticSE.csv (NOT 08b_aipw.do's headline
-* aipw_results.csv) so every panel here is analytic-SE, not a mix of the
-* two conventions. Run 08b_aipw_analyticSE.do before this file, standalone.
+* now estimated IN THIS FILE (the GDP block above, analytic-SE bands), posted
+* into `resf' under channel=="gdp" -- no import of 08b_aipw_analyticSE.do's
+* aipw_results_analyticSE.csv, so this figure (and this file as a whole) no
+* longer depends on 08b_aipw_analyticSE.do having run first. Every panel is
+* still analytic-SE throughout, since the GDP block above uses the same
+* analytic-SE convention as the channel loop. 08b_aipw_analyticSE.do is
+* unchanged and keeps producing its own separate outputs.
 * ══════════════════════════════════════════════════════════════════════════
 preserve
     use "`resf'", clear
-    tempfile _chanres
-    save `_chanres'
-
-    import delimited "$tabs/aipw_results_analyticSE.csv", clear varnames(1) case(preserve)
-    keep if inlist(series, "nd", "def")
-    gen str24 channel = "gdp"
-    keep channel series horizon b se lo hi
-    append using `_chanres'
 
     local combo_vars   gdp inv credit claims_govt fdi real_lending
     local combo_labels `" "Panel A: GDP" "Panel B: Investment" "Panel C: Bank credit" "Panel D: Claims on govt" "Panel E: FDI" "Panel F: Real lending rate" "'
@@ -779,6 +863,146 @@ preserve
     forvalues i = 1/6 {
         capture graph drop combA_`i'
     }
+restore
+
+* ══════════════════════════════════════════════════════════════════════════
+* MERGED SIX-VARIABLE TABLE (PAPER-ALIGNED SE): GDP + the five channels, ONE
+* RTF/CSV, one panel per variable -- mirrors 13c_aipw_channels.do's own
+* merged table exactly (same hand-built `file write' mechanism, chosen there
+* over `ereturn post'+esttab because the level bands, the bootstrap-CI
+* difference row, and the Clogg z sit on different SE bases that do not
+* collapse into one synthesized (b,V) pair -- see that file's header for the
+* full reasoning), with the ONE substantive change: level rows report the
+* ANALYTIC SE (this duplicate's own convention throughout), not the adopted
+* row-bootstrap SE. The difference row (bootstrap CI) and the Clogg z are
+* unchanged either way, since both were already on their respective bases
+* in the plain file too.
+* ══════════════════════════════════════════════════════════════════════════
+preserve
+    use "`diffresf'", clear
+    tempfile _diffuse
+    save `_diffuse'
+    use "`resf'", clear
+    tempfile _resuse
+    save `_resuse'
+
+    capture file close aipwtab
+    file open aipwtab using "$tabs/aipw_combined_six_resolution_analyticSE.rtf", write replace
+    file write aipwtab "{\rtf1\ansi\deff0" _n
+    file write aipwtab "{\b Table: AIPW output/channel cost by crisis resolution, all six headline variables (PAPER-ALIGNED SE)\par}" _n
+    file write aipwtab "{\i Doubly-robust AIPW (Asonuma et al. 2024 Eq. 3 / Jorda-Taylor 2016), IPWRA. Each panel is one" _n
+    file write aipwtab " outcome (GDP + the five transmission channels), two level rows (non-default vs tranquil," _n
+    file write aipwtab " default-linked vs tranquil) and a difference row (def - nd). Level SEs and CIs here use the" _n
+    file write aipwtab " PAPER'S OWN ANALYTIC (unclustered influence-function) SE -- this file's one deliberate" _n
+    file write aipwtab " departure from 13c_aipw_channels.do's own aipw_combined_six_resolution.rtf, which instead" _n
+    file write aipwtab " ADOPTS a row-bootstrap SE for the level bands (see that file's header for the diagnostic that" _n
+    file write aipwtab " motivated the switch: the analytic formula understated the def arm's true uncertainty by" _n
+    file write aipwtab " 3.75-5.5x on this project's thin default arm). Level stars are the conventional t-test vs" _n
+    file write aipwtab " zero (b/se_analytic). The difference row's own CI is a paired row-level bootstrap (the" _n
+    file write aipwtab " reference paper's own device, UNCHANGED from the plain file); its * marks the CI excluding" _n
+    file write aipwtab " zero -- the governing test for the difference. Clogg et al. (1995)'s z (own analytic SEs," _n
+    file write aipwtab " confirmed from their replication script) is reported as the permissive companion statistic," _n
+    file write aipwtab " unchanged from the plain file since it was already analytic-SE-based there. GDP, Investment," _n
+    file write aipwtab " Bank credit and Claims on government are estimated on the balanced common_abcd sample; FDI" _n
+    file write aipwtab " and Real lending rate keep their own best-available sample.\par}" _n
+    file write aipwtab "\par" _n
+    file write aipwtab "\tab h = 1\tab h = 2\tab h = 3\tab h = 4\tab h = 5\par" _n
+    file write aipwtab "\par" _n
+
+    local combo_vars   gdp inv credit claims_govt fdi real_lending
+    local combo_labels `" "GDP" "Investment" "Bank credit" "Bank claims on government" "FDI" "Real lending rate" "'
+    local i = 1
+    foreach cv of local combo_vars {
+        local clab : word `i' of `combo_labels'
+        file write aipwtab "{\b `clab'}\par" _n
+
+        local ndline ""
+        local defline ""
+        local diffline ""
+        local cloggline ""
+        forvalues h = 1/5 {
+            use `_resuse', clear
+            quietly summarize b if channel=="`cv'" & series=="nd" & horizon==`h', meanonly
+            local bnd = r(mean)
+            quietly summarize se if channel=="`cv'" & series=="nd" & horizon==`h', meanonly
+            local send = r(mean)
+            quietly summarize b if channel=="`cv'" & series=="def" & horizon==`h', meanonly
+            local bdef = r(mean)
+            quietly summarize se if channel=="`cv'" & series=="def" & horizon==`h', meanonly
+            local sedef = r(mean)
+
+            local tnd = cond(`send'>0 & !missing(`send'), `bnd'/`send', .)
+            local pnd = cond(!missing(`tnd'), 2*(1-normal(abs(`tnd'))), .)
+            local sgnd = cond(missing(`pnd'), "", cond(`pnd'<.01,"***",cond(`pnd'<.05,"**",cond(`pnd'<.10,"*",""))))
+            local tdef = cond(`sedef'>0 & !missing(`sedef'), `bdef'/`sedef', .)
+            local pdef = cond(!missing(`tdef'), 2*(1-normal(abs(`tdef'))), .)
+            local sgdef = cond(missing(`pdef'), "", cond(`pdef'<.01,"***",cond(`pdef'<.05,"**",cond(`pdef'<.10,"*",""))))
+
+            local ndl : di %7.3f `bnd'
+            local defl : di %7.3f `bdef'
+            local ndline "`ndline'\tab `ndl'`sgnd' (`: di %5.3f `send'')"
+            local defline "`defline'\tab `defl'`sgdef' (`: di %5.3f `sedef'')"
+
+            use `_diffuse', clear
+            quietly summarize dhl if channel=="`cv'" & horizon==`h', meanonly
+            local dhl = r(mean)
+            quietly summarize lo if channel=="`cv'" & horizon==`h', meanonly
+            local dlo = r(mean)
+            quietly summarize hi if channel=="`cv'" & horizon==`h', meanonly
+            local dhi = r(mean)
+            quietly summarize nd if channel=="`cv'" & horizon==`h', meanonly
+            local dndraws = r(mean)
+            quietly summarize cloggz if channel=="`cv'" & horizon==`h', meanonly
+            local dzz = r(mean)
+            quietly summarize cloggp if channel=="`cv'" & horizon==`h', meanonly
+            local dpz = r(mean)
+
+            local dsig = cond(`dndraws'>=50 & !missing(`dlo') & (`dlo'>0 | `dhi'<0), "*", "")
+            local dl : di %7.3f `dhl'
+            local diffline "`diffline'\tab `dl'`dsig'"
+            local zl : di %6.2f `dzz'
+            local pl : di %5.3f `dpz'
+            local cloggline "`cloggline'\tab z=`zl' (p=`pl')"
+        }
+        file write aipwtab "Non-default`ndline'\par" _n
+        file write aipwtab "Default-linked`defline'\par" _n
+        file write aipwtab "Difference (def-nd)`diffline'\par" _n
+        file write aipwtab "Clogg z (permissive)`cloggline'\par" _n
+        file write aipwtab "\par" _n
+        local ++i
+    }
+    file write aipwtab "{\i * p<0.10, ** p<0.05, *** p<0.01 (levels: t-test vs zero on analytic SE;" _n
+    file write aipwtab " difference: row-bootstrap 95% percentile CI excludes zero, the governing test).\par}" _n
+    file write aipwtab "}" _n
+    file close aipwtab
+    di as result "AIPW combined six-variable table saved (paper-aligned SE): $tabs/aipw_combined_six_resolution_analyticSE.rtf"
+
+    * ── Plain merged dataset: levels (resf) + the matching difference-row
+    * columns broadcast onto both the nd/def rows of the same channel x
+    * horizon -- both objects were already in memory from the loop above.
+    use `_diffuse', clear
+    rename se dse
+    rename lo dlo
+    rename hi dhi
+    rename nd ndraws_diff
+    tempfile _diffmerge
+    save `_diffmerge'
+    use `_resuse', clear
+    merge m:1 channel horizon using `_diffmerge', nogenerate
+    label var b  "AIPW ATE (pp; GDP) or (pp of the channel ratio; channels)"
+    label var se "Analytic (unclustered influence-function) SE, matching the paper's own formula (this duplicate only)"
+    label var lo "95% CI lower = b - 1.96*se (analytic)"
+    label var hi "95% CI upper = b + 1.96*se (analytic)"
+    label var dhl "AIPW def - nd difference (pp), row bootstrap"
+    label var dse "Bootstrap SE of the difference"
+    label var dlo "95% percentile CI lower, difference (row bootstrap)"
+    label var dhi "95% percentile CI upper, difference (row bootstrap)"
+    label var ndraws_diff "Valid bootstrap draws, difference"
+    label var cloggz "Clogg et al. (1995) z (permissive; assumes independence)"
+    label var cloggp "p-value of the Clogg z"
+    order channel series horizon b se lo hi dhl dse dlo dhi ndraws_diff cloggz cloggp
+    export delimited "$tabs/aipw_combined_six_analyticSE.csv", replace
+    di as result "AIPW combined six-variable CSV saved (paper-aligned SE): $tabs/aipw_combined_six_analyticSE.csv"
 restore
 
 di as result _n "13c_aipw_channels_analyticSE.do complete (paper-aligned SE duplicate)."

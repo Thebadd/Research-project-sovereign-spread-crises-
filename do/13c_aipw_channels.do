@@ -74,16 +74,36 @@
   precomputed, and every lagged control is pre-generated as a PLAIN column
   (l_credit = L.credit, ...) before estimation. cx/cz are already plain columns.
 
+  SELF-CONTAINED: this file no longer depends on 08b_aipw.do having run
+  first. GDP is now estimated IN THIS FILE too, in its own clearly demarcated
+  block ("=== CHANNEL: gdp ===", mirroring 08b_aipw.do's Act 2 GDP loop
+  exactly -- same omodel/pz/reps/common_abcd restriction), so the combined
+  6-panel figure and the merged six-variable table below are both produced
+  entirely from this file's own estimation, with no import of 08b's saved
+  aipw_results.csv. GDP is therefore estimated REDUNDANTLY in two places:
+  here, and in 08b_aipw.do (left completely unchanged -- it still produces
+  its own standalone aipw_results.csv/fig_aipw_act2.pdf for whatever else in
+  the project reads them). That redundancy is accepted deliberately: the
+  user wants this file runnable standalone (after 18_transforms.do alone,
+  no cross-file ordering requirement) over saving the duplicate computation.
+  The cost is one more channel's worth of bootstrap: dy_`h''s own
+  _aipwpair call across h=0..4, each reps(`nboot')=1000 draws, on top of the
+  five channels already estimated below -- roughly a 6th more runtime.
+
   Output: $tabs/aipw_channels.csv ; $figs/fig_aipw_ch_act2.pdf (Act 1 and its
           fig_aipw_ch_act1.pdf are SILENCED, see below); $figs/fig_aipw_combined.pdf
-          (Panel A-F: GDP [imported from 08b_aipw.do's aipw_results.csv],
-          Investment, Bank credit, Claims on government, FDI, Real lending
-          rate). Leaves 11/11b/12/13 (OLS+IPW) untouched.
-  Runtime note: heavy (7 active channels x ~15 fits x nboot; 2 more channels'
-  outcome construction runs but their estimation is silenced, see above).
-  nboot=1000, matching the reference paper's own G=1000 (their bootstrap
-  scripts) and 13d_aipw_nexus_split.do's own setting. Run AFTER 17_predictors.do and 08b_aipw.do
-  (the combined figure reads 08b's saved aipw_results.csv for GDP).
+          (Panel A-F: GDP [estimated in this file, see above], Investment,
+          Bank credit, Claims on government, FDI, Real lending rate);
+          $tabs/aipw_combined_six_resolution.rtf and $tabs/aipw_combined_six.csv
+          (merged table/dataset, all six variables, one panel/block per
+          variable -- see the "MERGED SIX-VARIABLE TABLE" section near the
+          end of this file). Leaves 11/11b/12/13 (OLS+IPW) untouched.
+  Runtime note: heavy (6 active variables incl. GDP x ~15 fits x nboot; 2 more
+  channels' outcome construction runs but their estimation is silenced, see
+  above). nboot=1000, matching the reference paper's own G=1000 (their
+  bootstrap scripts) and 13d_aipw_nexus_split.do's own setting. Run AFTER
+  17_predictors.do / 18_transforms.do; no longer requires 08b_aipw.do to
+  have run first (see SELF-CONTAINED above).
 ===========================================================================*/
 
 use "$clean/panel_lp.dta", clear
@@ -579,6 +599,96 @@ foreach ch in credit claims_govt inv real_lending fdi {
 }
 
 * ══════════════════════════════════════════════════════════════════════════
+* GDP — self-contained headline estimate, so this file no longer depends on
+* 08b_aipw.do having run first.
+*
+* This is a SEPARATE BLOCK, not one more iteration of the `foreach ch of
+* local channels' loop above: GDP's outcome is dy_`h' (built in
+* 18_transforms.do directly on panel_lp.dta), not ch_`ch'_`h' (built at the
+* top of this file from a channel's own level series), so folding it into
+* the loop would require special-casing the outcome-variable name inside
+* every iteration for the sake of one channel out of six -- more error-prone
+* than a clearly labeled block that mirrors 08b_aipw.do's own Act 2 GDP loop
+* line for line. (Contrast 03c_table_combined_six.do, the OLS equivalent,
+* which DOES fold GDP into one shared eststo loop -- that works there
+* because eststo stores are keyed by name regardless of outcome variable,
+* and the OLS spec has no separate omodel/pmodel distinction to misalign.)
+*
+* MIRRORS 08b_aipw.do'S ACT 2 GDP LOOP EXACTLY: same omodel ($ctrl_core,
+* identical in value to this file's own core_aipw), same pz (`cx' `cz_def'),
+* same reps(`nboot'), same common_abcd balanced-sample restriction on both
+* onset_nd==0 and onset_def==0 arms, same _aipwpair call signature, same
+* Clogg z (analytic SEs a1/a2), same row-bootstrap level bands and t-test
+* stars. Posted into THIS file's own `R'/`Rd' postfiles under
+* channel=="gdp", the identical row shape (channel series horizon b se lo
+* hi; channel horizon dhl bdef bnd se lo hi nd cloggz cloggp) the channel
+* loop above already posts -- so GDP sits in `resf'/`diffresf' as one more
+* variable, not a separately-shaped export.
+*
+* REDUNDANCY, ACCEPTED DELIBERATELY: GDP is now estimated TWICE in this
+* project -- once here, once in 08b_aipw.do (unchanged, still the file's own
+* standalone GDP-only output: aipw_results.csv, fig_aipw_act2.pdf). That is
+* a real runtime cost (one more channel's worth of _aipwpair bootstrapping,
+* 5 horizons x reps(`nboot')=1000 draws each, on top of the five channels
+* already estimated above) accepted because the user wants `13c_aipw_
+* channels.do' runnable standalone (after 18_transforms.do only) rather than
+* saving that computation by keeping a cross-file dependency on 08b having
+* already run. 08b_aipw.do itself is untouched by this addition.
+* ══════════════════════════════════════════════════════════════════════════
+di as result _n "=== CHANNEL: gdp ==="
+di as result "  (Estimated redundantly with 08b_aipw.do's own Act 2 GDP loop, to keep this file"
+di as result "  self-contained -- see the block comment above. Same spec, same seed, same bootstrap"
+di as result "  mechanics; the two point estimates/CIs should match up to bootstrap-draw indexing.)"
+di as result "  Act 2:  h   ND (se_boot)     DEF (se_boot)     def-nd   [95% boot CI]   Clogg z    p"
+post `R' ("gdp") ("nd")  (0) (0) (0) (0) (0)   // explicit baseline (h=0)
+post `R' ("gdp") ("def") (0) (0) (0) (0) (0)
+post `Rd' ("gdp") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)   // explicit baseline (h=0)
+forvalues h = 0/4 {
+    _aipwpair, y(dy_`h') ///
+        d1(onset_def) if1(sample==1 & onset_nd==0 & common_abcd==1) ///
+        d2(onset_nd)  if2(sample==1 & onset_def==0 & common_abcd==1) ///
+        omod($ctrl_core) pz(`cx' `cz_def') reps(`nboot')
+    if r(ok) {
+        local B1 = r(b1)     // default-linked ATE
+        local B2 = r(b2)     // non-default ATE
+        local A1 = r(a1)     // analytic SE, default-linked (Clogg z only)
+        local A2 = r(a2)     // analytic SE, non-default (Clogg z only)
+        local BSE1 = r(bse1) // row-bootstrap SE, default-linked (ADOPTED)
+        local BSE2 = r(bse2) // row-bootstrap SE, non-default (ADOPTED)
+        local DH = r(dh)
+        local SE = r(se)
+        local LO = r(lo)
+        local HI = r(hi)
+        local ND = r(nd)
+
+        post `R' ("gdp") ("nd")  (`h'+1) (`B2') (`BSE2') (`B2'-1.96*`BSE2') (`B2'+1.96*`BSE2')
+        post `R' ("gdp") ("def") (`h'+1) (`B1') (`BSE1') (`B1'-1.96*`BSE1') (`B1'+1.96*`BSE1')
+
+        local zz = .
+        local pz = .
+        if !missing(`A1') & !missing(`A2') & (`A1'^2 + `A2'^2) > 0 {
+            local zz = `DH' / sqrt(`A1'^2 + `A2'^2)
+            local pz = 2*(1 - normal(abs(`zz')))
+        }
+        post `Rd' ("gdp") (`h'+1) (`DH') (`B1') (`B2') (`SE') (`LO') (`HI') (`ND') (`zz') (`pz')
+
+        local tnd  = cond(`BSE2'>0, `B2'/`BSE2', .)
+        local pnd  = cond(!missing(`tnd'), 2*(1-normal(abs(`tnd'))), .)
+        local sgnd = cond(missing(`pnd'), "", cond(`pnd'<.01,"***",cond(`pnd'<.05,"**",cond(`pnd'<.10,"*",""))))
+        local tdef  = cond(`BSE1'>0, `B1'/`BSE1', .)
+        local pdef  = cond(!missing(`tdef'), 2*(1-normal(abs(`tdef'))), .)
+        local sgdef = cond(missing(`pdef'), "", cond(`pdef'<.01,"***",cond(`pdef'<.05,"**",cond(`pdef'<.10,"*",""))))
+
+        local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
+        di "    " %1.0f `h'+1 "  " %8.3f `B2' "`sgnd'" " (" %5.3f `BSE2' ")  " ///
+           %8.3f `B1' "`sgdef'" " (" %5.3f `BSE1' ")  " %8.3f `DH' ///
+           " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
+           " " %7.3f `zz' " " %5.3f `pz'
+    }
+    else di as error "    h=" `h'+1 ": Act 2 estimate failed (thin sample)."
+}
+
+* ══════════════════════════════════════════════════════════════════════════
 * ROBUSTNESS: CREDIT CHANNEL AIPW, BULGARIA EXCLUDED (LEAVE-ONE-OUT)
 *
 * Same reasoning as 12_channels_resolution.do's own leave-one-out block:
@@ -732,22 +842,16 @@ forvalues i = 1/5 {
 
 * ══════════════════════════════════════════════════════════════════════════
 * Combined 6-panel figure: Panel A GDP, B Investment, C Bank credit, D Claims
-* on government, E FDI, F Real lending rate. GDP is not estimated in this
-* file (08b_aipw.do's own headline result) -- imported from its saved
-* $tabs/aipw_results.csv (columns series/horizon/b/se/lo/hi; 08b runs before
-* this file in 00_master.do, so that CSV already exists). Kept ALONGSIDE
-* Figure B above, not a replacement for it.
+* on government, E FDI, F Real lending rate. GDP is now estimated IN THIS
+* FILE (the GDP block above), posted into `resf' under channel=="gdp" --
+* no import of 08b_aipw.do's aipw_results.csv, so this figure (and this
+* file as a whole) no longer depends on 08b having run first. 08b_aipw.do
+* is unchanged and keeps producing its own separate aipw_results.csv /
+* fig_aipw_act2.pdf for anything else in the project that reads them.
+* Kept ALONGSIDE Figure B above, not a replacement for it.
 * ══════════════════════════════════════════════════════════════════════════
 preserve
     use "`resf'", clear
-    tempfile _chanres
-    save `_chanres'
-
-    import delimited "$tabs/aipw_results.csv", clear varnames(1) case(preserve)
-    keep if inlist(series, "nd", "def")
-    gen str24 channel = "gdp"
-    keep channel series horizon b se lo hi
-    append using `_chanres'
 
     local combo_vars   gdp inv credit claims_govt fdi real_lending
     local combo_labels `" "Panel A: GDP" "Panel B: Investment" "Panel C: Bank credit" "Panel D: Claims on govt" "Panel E: FDI" "Panel F: Real lending rate" "'
@@ -780,6 +884,157 @@ preserve
     forvalues i = 1/6 {
         capture graph drop combA_`i'
     }
+restore
+
+* ══════════════════════════════════════════════════════════════════════════
+* MERGED SIX-VARIABLE TABLE: GDP + the five channels, ONE RTF/CSV, one panel
+* per variable -- the AIPW analog of 03c_table_combined_six.do's own merged
+* OLS table (same panel-per-variable pattern: `replace' for the first panel,
+* `append' for the rest, one title per panel), adapted to AIPW's own
+* reporting convention rather than eststo/esttab: an AIPW ATE is not a
+* regression object (no single xtreg/regress `e()' holds it), so there is no
+* natural eststo store to fill here the way 03c's OLS panels do. Built by
+* HAND with `file write' instead, the same mechanism 03_lp_resolution.do
+* uses for its own "reference-paper layout" table (its t2tab block) --
+* chosen over `ereturn post' + esttab because the level bands, the
+* bootstrap-CI difference row, and the Clogg z companion are three
+* different objects on two different SE bases (row-bootstrap for the levels
+* and the difference CI, analytic for the Clogg z) that do not sit inside a
+* single synthesized (b,V) pair the way 03_lp_resolution.do's own bootstrap-
+* difference row does; hand-writing each panel's rows directly from `resf'/
+* `diffresf' (already in memory) is more transparent than forcing three
+* different-basis quantities through one ereturn post. Reports, per
+* variable and horizon: ND and DEF levels (row-bootstrap SE, conventional
+* t-test stars vs. zero), the def-nd difference (row-bootstrap 95%
+* percentile CI, its own significance marker), and the Clogg et al. (1995)
+* z/p as the permissive companion statistic -- exactly what each variable's
+* own console output above already reports, replicated as one panel per
+* variable in a single file instead of scattered across six separate runs.
+* ══════════════════════════════════════════════════════════════════════════
+preserve
+    use "`diffresf'", clear
+    tempfile _diffuse
+    save `_diffuse'
+    use "`resf'", clear
+    tempfile _resuse
+    save `_resuse'
+
+    capture file close aipwtab
+    file open aipwtab using "$tabs/aipw_combined_six_resolution.rtf", write replace
+    file write aipwtab "{\rtf1\ansi\deff0" _n
+    file write aipwtab "{\b Table: AIPW output/channel cost by crisis resolution, all six headline variables\par}" _n
+    file write aipwtab "{\i Doubly-robust AIPW (Asonuma et al. 2024 Eq. 3 / Jorda-Taylor 2016), IPWRA. Each panel is one" _n
+    file write aipwtab " outcome (GDP + the five transmission channels), two level rows (non-default vs tranquil," _n
+    file write aipwtab " default-linked vs tranquil) and a difference row (def - nd). Level SEs and CIs are the" _n
+    file write aipwtab " ROW-BOOTSTRAP SE (ADOPTED, not the reference paper's own analytic influence-function" _n
+    file write aipwtab " formula -- see this file's header and 08b_aipw.do's for the diagnostic that motivated the" _n
+    file write aipwtab " switch). Level stars are the conventional t-test vs zero (b/se_boot). The difference row's" _n
+    file write aipwtab " own CI is a paired row-level bootstrap (the reference paper's own device); its * marks the" _n
+    file write aipwtab " CI excluding zero -- the GOVERNING test for the difference. Clogg et al. (1995)'s z (own" _n
+    file write aipwtab " analytic SEs, confirmed from their replication script) is reported alongside as the" _n
+    file write aipwtab " permissive companion statistic on a different SE basis; where it and the bootstrap CI" _n
+    file write aipwtab " disagree, the bootstrap governs. GDP, Investment, Bank credit and Claims on government are" _n
+    file write aipwtab " estimated on the balanced common_abcd sample; FDI and Real lending rate keep their own" _n
+    file write aipwtab " best-available sample.\par}" _n
+    file write aipwtab "\par" _n
+    file write aipwtab "\tab h = 1\tab h = 2\tab h = 3\tab h = 4\tab h = 5\par" _n
+    file write aipwtab "\par" _n
+
+    local combo_vars   gdp inv credit claims_govt fdi real_lending
+    local combo_labels `" "GDP" "Investment" "Bank credit" "Bank claims on government" "FDI" "Real lending rate" "'
+    local i = 1
+    foreach cv of local combo_vars {
+        local clab : word `i' of `combo_labels'
+        file write aipwtab "{\b `clab'}\par" _n
+
+        local ndline ""
+        local defline ""
+        local diffline ""
+        local cloggline ""
+        forvalues h = 1/5 {
+            use `_resuse', clear
+            quietly summarize b if channel=="`cv'" & series=="nd" & horizon==`h', meanonly
+            local bnd = r(mean)
+            quietly summarize se if channel=="`cv'" & series=="nd" & horizon==`h', meanonly
+            local send = r(mean)
+            quietly summarize b if channel=="`cv'" & series=="def" & horizon==`h', meanonly
+            local bdef = r(mean)
+            quietly summarize se if channel=="`cv'" & series=="def" & horizon==`h', meanonly
+            local sedef = r(mean)
+
+            local tnd = cond(`send'>0 & !missing(`send'), `bnd'/`send', .)
+            local pnd = cond(!missing(`tnd'), 2*(1-normal(abs(`tnd'))), .)
+            local sgnd = cond(missing(`pnd'), "", cond(`pnd'<.01,"***",cond(`pnd'<.05,"**",cond(`pnd'<.10,"*",""))))
+            local tdef = cond(`sedef'>0 & !missing(`sedef'), `bdef'/`sedef', .)
+            local pdef = cond(!missing(`tdef'), 2*(1-normal(abs(`tdef'))), .)
+            local sgdef = cond(missing(`pdef'), "", cond(`pdef'<.01,"***",cond(`pdef'<.05,"**",cond(`pdef'<.10,"*",""))))
+
+            local ndl : di %7.3f `bnd'
+            local defl : di %7.3f `bdef'
+            local ndline "`ndline'\tab `ndl'`sgnd' (`: di %5.3f `send'')"
+            local defline "`defline'\tab `defl'`sgdef' (`: di %5.3f `sedef'')"
+
+            use `_diffuse', clear
+            quietly summarize dhl if channel=="`cv'" & horizon==`h', meanonly
+            local dhl = r(mean)
+            quietly summarize lo if channel=="`cv'" & horizon==`h', meanonly
+            local dlo = r(mean)
+            quietly summarize hi if channel=="`cv'" & horizon==`h', meanonly
+            local dhi = r(mean)
+            quietly summarize nd if channel=="`cv'" & horizon==`h', meanonly
+            local dndraws = r(mean)
+            quietly summarize cloggz if channel=="`cv'" & horizon==`h', meanonly
+            local dzz = r(mean)
+            quietly summarize cloggp if channel=="`cv'" & horizon==`h', meanonly
+            local dpz = r(mean)
+
+            local dsig = cond(`dndraws'>=50 & !missing(`dlo') & (`dlo'>0 | `dhi'<0), "*", "")
+            local dl : di %7.3f `dhl'
+            local diffline "`diffline'\tab `dl'`dsig'"
+            local zl : di %6.2f `dzz'
+            local pl : di %5.3f `dpz'
+            local cloggline "`cloggline'\tab z=`zl' (p=`pl')"
+        }
+        file write aipwtab "Non-default`ndline'\par" _n
+        file write aipwtab "Default-linked`defline'\par" _n
+        file write aipwtab "Difference (def-nd)`diffline'\par" _n
+        file write aipwtab "Clogg z (permissive)`cloggline'\par" _n
+        file write aipwtab "\par" _n
+        local ++i
+    }
+    file write aipwtab "{\i * p<0.10, ** p<0.05, *** p<0.01 (levels: t-test vs zero on row-bootstrap SE;" _n
+    file write aipwtab " difference: row-bootstrap 95% percentile CI excludes zero, the governing test).\par}" _n
+    file write aipwtab "}" _n
+    file close aipwtab
+    di as result "AIPW combined six-variable table saved: $tabs/aipw_combined_six_resolution.rtf"
+
+    * ── Plain merged dataset: levels (resf) + the matching difference-row
+    * columns broadcast onto both the nd/def rows of the same channel x
+    * horizon -- both objects were already in memory from the loop above,
+    * so this just merges them rather than re-deriving anything.
+    use `_diffuse', clear
+    rename se dse
+    rename lo dlo
+    rename hi dhi
+    rename nd ndraws_diff
+    tempfile _diffmerge
+    save `_diffmerge'
+    use `_resuse', clear
+    merge m:1 channel horizon using `_diffmerge', nogenerate
+    label var b  "AIPW ATE (pp; GDP) or (pp of the channel ratio; channels)"
+    label var se "Row-bootstrap SE (ADOPTED; not the paper's analytic formula, see header)"
+    label var lo "95% CI lower = b - 1.96*se (bootstrap)"
+    label var hi "95% CI upper = b + 1.96*se (bootstrap)"
+    label var dhl "AIPW def - nd difference (pp), row bootstrap"
+    label var dse "Bootstrap SE of the difference"
+    label var dlo "95% percentile CI lower, difference (row bootstrap)"
+    label var dhi "95% percentile CI upper, difference (row bootstrap)"
+    label var ndraws_diff "Valid bootstrap draws, difference"
+    label var cloggz "Clogg et al. (1995) z (permissive; assumes independence)"
+    label var cloggp "p-value of the Clogg z"
+    order channel series horizon b se lo hi dhl dse dlo dhi ndraws_diff cloggz cloggp
+    export delimited "$tabs/aipw_combined_six.csv", replace
+    di as result "AIPW combined six-variable CSV saved: $tabs/aipw_combined_six.csv"
 restore
 
 di as result _n "13c_aipw_channels.do complete."
