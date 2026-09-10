@@ -156,7 +156,7 @@ foreach s in nd def {
     local dcmax = r(max)
     quietly gen byte _tagc_`s' = abs(_dc_`s' - `dcmax') < 1e-6 if !missing(_dc_`s')
     quietly summarize _xc_`s' if _tagc_`s'==1
-    local xc_lab = cond(missing(r(mean)), 0.1, r(mean) + 0.10)
+    local xc_lab = cond(missing(r(mean)), 0.1, r(mean) + 0.04)
     local yc_lab = cond(missing(`dcmax'), 2, `dcmax' * 0.85)
     capture drop _xt_`s' _dt_`s' _xc_`s' _dc_`s' _tagt_`s' _tagc_`s'
 
