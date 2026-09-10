@@ -165,8 +165,8 @@ foreach s in nd def {
     * elsewhere for a label that would otherwise just repeat.
     local txtopt
     if "`s'" == "nd" {
-        local txtopt text(`yt_lab' `xt_lab' "Treatment group", color(blue) size(medium) place(e)) ///
-                     text(`yc_lab' `xc_lab' "Control group", color(red) size(medium) place(e))
+        local txtopt text(`yt_lab' `xt_lab' "Treatment group", color(blue) size(medlarge) place(e)) ///
+                     text(`yc_lab' `xc_lab' "Control group", color(red) size(medlarge) place(e))
     }
 
     twoway ///
@@ -177,15 +177,16 @@ foreach s in nd def {
         graphregion(color(white)) plotregion(color(white)) ///
         legend(off) ///
         `txtopt' ///
-        ylabel(, angle(horizontal)) ///
-        ytitle("`ytit'", size(medium)) xtitle("Predicted probability", size(medium)) ///
-        title("`ttl'", size(medium) color(black)) ///
+        xlabel(, labsize(medlarge)) ///
+        ylabel(, angle(horizontal) labsize(medlarge)) ///
+        ytitle("`ytit'", size(large)) xtitle("Predicted probability", size(large)) ///
+        title("`ttl'", size(large) color(black)) ///
         name(gk_`s', replace) nodraw
     local gnames_a `gnames_a' gk_`s'
 }
 * No combine-level title() -- paper-ready.
 graph combine `gnames_a', rows(1) graphregion(color(white)) ///
-    xsize(7) ysize(3.2)
+    xsize(9) ysize(4)
 capture graph export "$figs/fig_kdensity.pdf", replace
 if _rc di as error "  ** fig_kdensity.pdf export failed (rc=" _rc ") — is it open?"
 else {
