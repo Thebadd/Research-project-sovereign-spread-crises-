@@ -230,17 +230,17 @@ foreach s in nd def {
         graph summary name(gr_`s', replace) graphregion(color(white)) nodraw ///
         plot1opts(lcolor(red) mcolor(red) msymbol(circle)) ///
         plot2opts(lcolor(green) mcolor(green) msymbol(diamond)) ///
-        title("`ttl'", size(medlarge)) ///
-        ytitle("`ytit'", size(medium)) xtitle("1 - Specificity", size(medium)) ///
-        ylabel(0(.25)1, angle(horizontal)) xlabel(0(.25)1) ///
-        legend(position(5) region(lwidth(none)) size(medium) cols(1) ring(0) ///
+        title("`ttl'", size(large)) ///
+        ytitle("`ytit'", size(large)) xtitle("1 - Specificity", size(large)) ///
+        ylabel(0(.25)1, angle(horizontal) labsize(medlarge)) xlabel(0(.25)1, labsize(medlarge)) ///
+        legend(position(5) region(lwidth(none)) size(medlarge) cols(1) ring(0) ///
             order(1 "Controls: `auc1_`s''" 2 "Controls+Predictors: `auc2_`s''"))
     local gnames_b `gnames_b' gr_`s'
 }
 * No combine-level title()/subtitle() -- paper-ready; the earlier subtitle
 * text was also wrapping/truncating illegibly once exported.
 graph combine `gnames_b', graphregion(color(white)) ///
-    xsize(6) ysize(3.2)
+    xsize(9) ysize(4.5)
 capture graph export "$figs/fig_roc.pdf", replace
 if _rc di as error "  ** fig_roc.pdf export failed (rc=" _rc ") — is it open?"
 else {
