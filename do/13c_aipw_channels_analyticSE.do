@@ -248,6 +248,22 @@ program define _aipw, rclass
     local th = r(mean)
     local nn = r(N)
 
+    * Country count in this cell's regression sample -- ported from 13d_aipw_
+    * nexus_split.do's own _aipw (same tag(cid)-under-e(sample) mechanism, not
+    * invented fresh) so the merged table can print a full Observations/
+    * Countries/Episodes triple per level row, matching the reference paper's
+    * own Table 2 layout, instead of the coefficient/SE alone.
+    tempvar _tagcty
+    quietly egen byte `_tagcty' = tag(cid) if `touse'
+    quietly count if `_tagcty'==1
+    local nctry = r(N)
+
+    * Treated-episode count in this arm: one treated row is one episode under
+    * this project's onset-tier design, so it is simply the treated-dummy
+    * count within e(sample) -- no separate episode-counting logic needed.
+    quietly count if `touse' & `D'==1
+    local ntr = r(N)
+
     * Analytic (unclustered) influence-function SE -- matches 08b_aipw.do /
     * 21_aipw_flow.do's _aipw exactly: sqrt(mean((summand - theta)^2) / N).
     tempvar isq
@@ -257,6 +273,8 @@ program define _aipw, rclass
 
     return scalar theta  = `th'
     return scalar N      = `nn'
+    return scalar nctry  = `nctry'
+    return scalar ntreat = `ntr'
     return scalar se     = `sean'
 end
 
@@ -340,6 +358,9 @@ program define _aipwpair, rclass
     }
     local b1 = r(theta)
     local a1 = r(se)
+    local n1 = r(N)
+    local nctry1 = r(nctry)
+    local ntreat1 = r(ntreat)
     capture _aipw `y' `d2' if `if2', omodel(`omod') pmodel(`pz') fe(cid)
     if _rc {
         return scalar ok = 0
@@ -347,6 +368,9 @@ program define _aipwpair, rclass
     }
     local b2 = r(theta)
     local a2 = r(se)
+    local n2 = r(N)
+    local nctry2 = r(nctry)
+    local ntreat2 = r(ntreat)
     local dh = `b1' - `b2'
 
     capture drop _pool
@@ -403,6 +427,12 @@ program define _aipwpair, rclass
     return scalar a2 = `a2'
     return scalar bse1 = `bse1'
     return scalar bse2 = `bse2'
+    return scalar n1 = `n1'
+    return scalar n2 = `n2'
+    return scalar nctry1 = `nctry1'
+    return scalar nctry2 = `nctry2'
+    return scalar ntreat1 = `ntreat1'
+    return scalar ntreat2 = `ntreat2'
     return scalar se = `se'
     return scalar lo = `lo'
     return scalar hi = `hi'
@@ -415,6 +445,7 @@ end
 tempname R
 tempfile resf
 postfile `R' str24 channel str4 series byte horizon double b se lo hi ///
+    long nobs byte nctry ntreat ///
     using "`resf'", replace
 
 * second results file: the def - nd DIFFERENCE per channel x horizon (row boot)
@@ -539,8 +570,8 @@ foreach ch in credit claims_govt inv real_lending fdi {
     di as result "           headline instead ADOPTS a row-bootstrap SE here (see 08b_aipw.do's header) -- this"
     di as result "           duplicate shows the paper-aligned number directly, side by side."
     di as result "           ND/DEF stars are the conventional t-test vs zero (b/se_analytic): * p<.10 ** p<.05 *** p<.01."
-    post `R' ("`ch'") ("nd")  (0) (0) (0) (0) (0)   // explicit baseline (h=0)
-    post `R' ("`ch'") ("def") (0) (0) (0) (0) (0)
+    post `R' ("`ch'") ("nd")  (0) (0) (0) (0) (0) (0) (0) (0)   // explicit baseline (h=0)
+    post `R' ("`ch'") ("def") (0) (0) (0) (0) (0) (0) (0) (0)
     post `Rd' ("`ch'") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)   // explicit baseline (h=0)
     forvalues h = 0/4 {
         _aipwpair, y(ch_`ch'_`h') ///
@@ -558,6 +589,21 @@ foreach ch in credit claims_govt inv real_lending fdi {
             local HI = r(hi)
             local ND = r(nd)
 
+            * nobs/nctry/ntreat: the regression sample (obs, countries,
+            * treated episodes) behind THIS arm's own outcome model, from
+            * _aipw's own e(sample) via _aipwpair's n1/n2, nctry1/nctry2,
+            * ntreat1/ntreat2 -- ported from 13d_aipw_nexus_split.do's
+            * identical nctry mechanism, extended with the episode count so
+            * the merged table can print a full Observations/Countries/
+            * Episodes triple per level row (this file's d1=default-linked,
+            * d2=non-default, per the calling convention above).
+            local N1 = r(n1)
+            local N2 = r(n2)
+            local NC1 = r(nctry1)
+            local NC2 = r(nctry2)
+            local NT1 = r(ntreat1)
+            local NT2 = r(ntreat2)
+
             * PAPER-ALIGNED (this duplicate only): level CIs = theta +/-
             * 1.96*ANALYTIC SE, matching Asonuma et al.'s own construction
             * literally. 13c_aipw_channels.do's own headline departs from
@@ -565,8 +611,8 @@ foreach ch in credit claims_govt inv real_lending fdi {
             * formula understated the def arm's true uncertainty by
             * 3.75-5.5x on ~20-episode default arms -- unchanged finding;
             * this file exists only to show the alternative side by side.
-            post `R' ("`ch'") ("nd")  (`h'+1) (`B2') (`A2') (`B2'-1.96*`A2') (`B2'+1.96*`A2')
-            post `R' ("`ch'") ("def") (`h'+1) (`B1') (`A1') (`B1'-1.96*`A1') (`B1'+1.96*`A1')
+            post `R' ("`ch'") ("nd")  (`h'+1) (`B2') (`A2') (`B2'-1.96*`A2') (`B2'+1.96*`A2') (`N2') (`NC2') (`NT2')
+            post `R' ("`ch'") ("def") (`h'+1) (`B1') (`A1') (`B1'-1.96*`A1') (`B1'+1.96*`A1') (`N1') (`NC1') (`NT1')
 
             * Clogg z: analytic SEs -- confirmed to match a line literally in their own replication script (see header); unchanged
             * from the headline -- it was already analytic-SE-based there).
@@ -625,8 +671,8 @@ di as result "  (Estimated redundantly with 08b_aipw_analyticSE.do's own Act 2 G
 di as result "  this file self-contained -- see the block comment above. Same spec/seed/bootstrap"
 di as result "  mechanics and the same PAPER-ALIGNED analytic-SE level bands as the channel loop above.)"
 di as result "  Act 2 (PAPER-ALIGNED SE):  h   ND (se_analytic)   DEF (se_analytic)   def-nd   [95% boot CI]   Clogg z    p"
-post `R' ("gdp") ("nd")  (0) (0) (0) (0) (0)   // explicit baseline (h=0)
-post `R' ("gdp") ("def") (0) (0) (0) (0) (0)
+post `R' ("gdp") ("nd")  (0) (0) (0) (0) (0) (0) (0) (0)   // explicit baseline (h=0)
+post `R' ("gdp") ("def") (0) (0) (0) (0) (0) (0) (0) (0)
 post `Rd' ("gdp") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)   // explicit baseline (h=0)
 forvalues h = 0/4 {
     _aipwpair, y(dy_`h') ///
@@ -644,8 +690,17 @@ forvalues h = 0/4 {
         local HI = r(hi)
         local ND = r(nd)
 
-        post `R' ("gdp") ("nd")  (`h'+1) (`B2') (`A2') (`B2'-1.96*`A2') (`B2'+1.96*`A2')
-        post `R' ("gdp") ("def") (`h'+1) (`B1') (`A1') (`B1'-1.96*`A1') (`B1'+1.96*`A1')
+        * nobs/nctry/ntreat per arm -- see the channel loop's identical block
+        * above for the full rationale (same _aipwpair mechanism).
+        local N1 = r(n1)
+        local N2 = r(n2)
+        local NC1 = r(nctry1)
+        local NC2 = r(nctry2)
+        local NT1 = r(ntreat1)
+        local NT2 = r(ntreat2)
+
+        post `R' ("gdp") ("nd")  (`h'+1) (`B2') (`A2') (`B2'-1.96*`A2') (`B2'+1.96*`A2') (`N2') (`NC2') (`NT2')
+        post `R' ("gdp") ("def") (`h'+1) (`B1') (`A1') (`B1'-1.96*`A1') (`B1'+1.96*`A1') (`N1') (`NC1') (`NT1')
 
         local zz = .
         local pz = .
@@ -731,7 +786,10 @@ label var b  "AIPW ATE (pp of the channel ratio)"
 label var se "Analytic (unclustered influence-function) SE, matching the paper's own formula (this duplicate only)"
 label var lo "95% CI lower = theta-1.96*se (analytic)"
 label var hi "95% CI upper = theta+1.96*se (analytic)"
-order channel series horizon b se lo hi
+label var nobs   "Observations in this cell's own AIPW outcome-regression sample"
+label var nctry  "Countries in this cell's own AIPW outcome-regression sample"
+label var ntreat "Treated onsets in this cell's own AIPW outcome-regression sample (Episodes)"
+order channel series horizon b se lo hi nobs nctry ntreat
 export delimited "$tabs/aipw_channels_analyticSE.csv", replace
 di as result _n "AIPW channel results CSV saved: $tabs/aipw_channels_analyticSE.csv"
 
@@ -895,14 +953,17 @@ preserve
     file write aipwtab " departure from 13c_aipw_channels.do's own aipw_combined_six_resolution.rtf, which instead" _n
     file write aipwtab " ADOPTS a row-bootstrap SE for the level bands (see that file's header for the diagnostic that" _n
     file write aipwtab " motivated the switch: the analytic formula understated the def arm's true uncertainty by" _n
-    file write aipwtab " 3.75-5.5x on this project's thin default arm). Level stars are the conventional t-test vs" _n
-    file write aipwtab " zero (b/se_analytic). The difference row's own CI is a paired row-level bootstrap (the" _n
-    file write aipwtab " reference paper's own device, UNCHANGED from the plain file); its * marks the CI excluding" _n
-    file write aipwtab " zero -- the governing test for the difference. Clogg et al. (1995)'s z (own analytic SEs," _n
-    file write aipwtab " confirmed from their replication script) is reported as the permissive companion statistic," _n
-    file write aipwtab " unchanged from the plain file since it was already analytic-SE-based there. GDP, Investment," _n
-    file write aipwtab " Bank credit and Claims on government are estimated on the balanced common_abcd sample; FDI" _n
-    file write aipwtab " and Real lending rate keep their own best-available sample.\par}" _n
+    file write aipwtab " 3.75-5.5x on this project's thin default arm). Each level row is followed by its own" _n
+    file write aipwtab " Observations/Countries/Episodes line (obs./countries from that arm's own AIPW outcome-" _n
+    file write aipwtab " regression sample; episodes = treated onsets). Level stars are the conventional t-test vs" _n
+    file write aipwtab " zero (b/se_analytic). The difference row is shown as [bootstrap 95% CI] on one line (its *" _n
+    file write aipwtab " marks the CI excluding zero -- the governing test for the difference; the bootstrap itself" _n
+    file write aipwtab " is UNCHANGED from the plain file) and the coefficient with stars on the next, with Clogg et" _n
+    file write aipwtab " al. (1995)'s z (own analytic SEs, confirmed from their replication script) appended in" _n
+    file write aipwtab " parentheses as the permissive companion statistic, unchanged from the plain file since it" _n
+    file write aipwtab " was already analytic-SE-based there. GDP, Investment, Bank credit and Claims on government" _n
+    file write aipwtab " are estimated on the balanced common_abcd sample; FDI and Real lending rate keep their own" _n
+    file write aipwtab " best-available sample.\par}" _n
     file write aipwtab "\par" _n
     file write aipwtab "\tab h = 1\tab h = 2\tab h = 3\tab h = 4\tab h = 5\par" _n
     file write aipwtab "\par" _n
@@ -915,19 +976,31 @@ preserve
         file write aipwtab "{\b `clab'}\par" _n
 
         local ndline ""
+        local ndocline ""
         local defline ""
-        local diffline ""
-        local cloggline ""
+        local defocline ""
         forvalues h = 1/5 {
             use `_resuse', clear
             quietly summarize b if channel=="`cv'" & series=="nd" & horizon==`h', meanonly
             local bnd = r(mean)
             quietly summarize se if channel=="`cv'" & series=="nd" & horizon==`h', meanonly
             local send = r(mean)
+            quietly summarize nobs if channel=="`cv'" & series=="nd" & horizon==`h', meanonly
+            local ondn = r(mean)
+            quietly summarize nctry if channel=="`cv'" & series=="nd" & horizon==`h', meanonly
+            local cndn = r(mean)
+            quietly summarize ntreat if channel=="`cv'" & series=="nd" & horizon==`h', meanonly
+            local endn = r(mean)
             quietly summarize b if channel=="`cv'" & series=="def" & horizon==`h', meanonly
             local bdef = r(mean)
             quietly summarize se if channel=="`cv'" & series=="def" & horizon==`h', meanonly
             local sedef = r(mean)
+            quietly summarize nobs if channel=="`cv'" & series=="def" & horizon==`h', meanonly
+            local odef = r(mean)
+            quietly summarize nctry if channel=="`cv'" & series=="def" & horizon==`h', meanonly
+            local cdef = r(mean)
+            quietly summarize ntreat if channel=="`cv'" & series=="def" & horizon==`h', meanonly
+            local edef = r(mean)
 
             local tnd = cond(`send'>0 & !missing(`send'), `bnd'/`send', .)
             local pnd = cond(!missing(`tnd'), 2*(1-normal(abs(`tnd'))), .)
@@ -941,6 +1014,24 @@ preserve
             local ndline "`ndline'\tab `ndl'`sgnd' (`: di %5.3f `send'')"
             local defline "`defline'\tab `defl'`sgdef' (`: di %5.3f `sedef'')"
 
+            local ondns : di %5.0f `ondn'
+            local cndns : di %3.0f `cndn'
+            local endns : di %4.0f `endn'
+            local odefs : di %5.0f `odef'
+            local cdefs : di %3.0f `cdef'
+            local edefs : di %4.0f `edef'
+            local ndocline  "`ndocline'\tab `ondns'/`cndns'/`endns'"
+            local defocline "`defocline'\tab `odefs'/`cdefs'/`edefs'"
+        }
+        file write aipwtab "Non-default`ndline'\par" _n
+        file write aipwtab "Observations/Countries/Episodes`ndocline'\par" _n
+        file write aipwtab "Default-linked`defline'\par" _n
+        file write aipwtab "Observations/Countries/Episodes`defocline'\par" _n
+
+        file write aipwtab "{\i Differences between the estimated coefficients,\line [bootstrap 95% CI] (Clogg et al.'s z)}\par" _n
+        local ciline ""
+        local zline ""
+        forvalues h = 1/5 {
             use `_diffuse', clear
             quietly summarize dhl if channel=="`cv'" & horizon==`h', meanonly
             local dhl = r(mean)
@@ -957,20 +1048,23 @@ preserve
 
             local dsig = cond(`dndraws'>=50 & !missing(`dlo') & (`dlo'>0 | `dhi'<0), "*", "")
             local dl : di %7.3f `dhl'
-            local diffline "`diffline'\tab `dl'`dsig'"
+            local dlos : di %6.2f `dlo'
+            local dhis : di %5.2f `dhi'
             local zl : di %6.2f `dzz'
-            local pl : di %5.3f `dpz'
-            local cloggline "`cloggline'\tab z=`zl' (p=`pl')"
+            local zsg = cond(missing(`dpz'), "", cond(`dpz'<.01,"***",cond(`dpz'<.05,"**",cond(`dpz'<.10,"*",""))))
+            local ciline "`ciline'\tab [`dlos', `dhis']`dsig'"
+            local zline  "`zline'\tab `dl'`dsig' (`zl'`zsg')"
         }
-        file write aipwtab "Non-default`ndline'\par" _n
-        file write aipwtab "Default-linked`defline'\par" _n
-        file write aipwtab "Difference (def-nd)`diffline'\par" _n
-        file write aipwtab "Clogg z (permissive)`cloggline'\par" _n
+        file write aipwtab "`ciline'\par" _n
+        file write aipwtab "`zline'\par" _n
         file write aipwtab "\par" _n
         local ++i
     }
-    file write aipwtab "{\i * p<0.10, ** p<0.05, *** p<0.01 (levels: t-test vs zero on analytic SE;" _n
-    file write aipwtab " difference: row-bootstrap 95% percentile CI excludes zero, the governing test).\par}" _n
+    file write aipwtab "{\i Level rows: Observations/Countries/Episodes from that arm's own AIPW outcome-regression" _n
+    file write aipwtab " sample. * p<0.10, ** p<0.05, *** p<0.01 (levels: t-test vs zero on analytic SE;" _n
+    file write aipwtab " difference bracket: row-bootstrap 95% percentile CI excludes zero, the governing test;" _n
+    file write aipwtab " Clogg z stars, in parentheses on the coefficient line: permissive companion statistic," _n
+    file write aipwtab " assumes independence).\par}" _n
     file write aipwtab "}" _n
     file close aipwtab
     di as result "AIPW combined six-variable table saved (paper-aligned SE): $tabs/aipw_combined_six_resolution_analyticSE.rtf"
