@@ -673,20 +673,11 @@ forvalues h = 0/4 {
 
 * ══════════════════════════════════════════════════════════════════════════
 * ROBUSTNESS: CREDIT CHANNEL AIPW, BULGARIA EXCLUDED (LEAVE-ONE-OUT)
-*
-* Same reasoning as 12_channels_resolution.do's own leave-one-out block:
-* Bulgaria's 1994 default-linked onset is followed by a real, well-
-* documented banking-system collapse (WDI credit/GDP: 66% in 1993 -> 8.5%
-* in 1997), landing inside h=3/h=4 of this LP's own outcome window. With
-* only 13-14 default-linked episodes in the balanced A-D sample, one
-* country's real crisis can set the def-arm AIPW estimate almost by
-* itself -- a small-N generalizability question, not an omitted-variable
-* one (l_banking_crisis is lagged/predetermined and correctly does NOT
-* net out a post-onset banking collapse -- doing so would control away
-* part of the transmission channel itself). Uses the identical om/cz_def/
-* balflag as credit's own Act 2 loop above. Diagnostic only: does NOT
-* change the headline credit estimate, the exported CSVs, or Figure B.
-* ══════════════════════════════════════════════════════════════════════════
+* SILENCED -- costs its own 5-horizon x nboot bootstrap on top of the
+* headline six-variable estimation above, and is diagnostic-only (does not
+* feed any exported CSV/table/figure). Uncomment to restore. Matches
+* 13c_aipw_channels.do's own identical silencing.
+/*
 di as result _n "=== ROBUSTNESS: credit channel AIPW, Bulgaria excluded (leave-one-out) ==="
 di as result "  h   DEF, ex.Bulgaria (se_analytic)   DEF, full sample (se_analytic)"
 local om_credit_lo1 l1_gdpg l_debt l_banking_crisis l_govexp l_open l_lninfl exchange2 pre_credit
@@ -707,6 +698,7 @@ di as result "  above (same B1/A1, full sample, both now analytic SE in this dup
 di as result "  If ex.Bulgaria stays large and significant, the headline result is not"
 di as result "  just Bulgaria; if it collapses toward zero, most of the def-arm signal"
 di as result "  was one country's crisis."
+*/
 
 postclose `R'
 postclose `Rd'
