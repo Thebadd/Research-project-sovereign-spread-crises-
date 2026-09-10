@@ -458,18 +458,22 @@ foreach ch in credit inv claims_govt claimsgov_assets claimpriv_assets real_lend
     }
 }
 
-* govexp, pb, ca SILENCED below -- not important for now (no reliable
-* channel signal so far: govexp/pb/ca's bootstrap CI never excluded
-* zero at any horizon in the last full run). fdi is ACTIVE, added to
-* build the combined 6-panel Panel A-F figure (GDP/Investment/Bank credit/
-* Claims on government/FDI/Real lending rate) alongside the other channels
-* below. Left out of the active list, not deleted -- restore govexp/pb/ca
-* by adding them back: "credit claims_govt inv govexp pb fdi
-* claimsgov_assets claimpriv_assets ca". Their outcome construction
-* (ch_v_h/pre_v/l_v) above still runs regardless, since it is cheap and
-* shared -- only the estimation loop below is skipped for them.
-foreach ch in credit claims_govt inv ///
-              claimsgov_assets claimpriv_assets real_lending fdi {
+* govexp, pb, ca, claimsgov_assets, claimpriv_assets SILENCED below --
+* scoped to exactly the project's six headline dependent variables (GDP
+* [08b_aipw_analyticSE.do / the in-file gdp block below] + Investment, Bank
+* credit, Claims on government, FDI, Real lending rate here), matching
+* 13c_aipw_channels.do's own identical scoping. claimsgov_assets/
+* claimpriv_assets are the two sovereign-bank nexus shares -- estimated
+* separately in 13d_aipw_nexus_split_analyticSE.do for the exposure-
+* heterogeneity design, not part of this file's own six-variable scope.
+* Restore any of them by adding back to the active list below: "credit
+* claims_govt inv govexp pb fdi claimsgov_assets claimpriv_assets ca".
+* Their outcome construction (ch_v_h/pre_v/l_v) above still runs
+* regardless, since it is cheap and shared -- only the estimation loop
+* below is skipped for them.
+foreach ch in credit claims_govt inv real_lending fdi {
+* SILENCED (not part of the six headline variables -- uncomment to restore):
+*             claimsgov_assets claimpriv_assets
 
     * channel-specific OUTCOME-model controls (pre-lagged plain columns)
     * AIPW outcome core ($core_aipw = the common core, depth term l_credit_bank) +
@@ -784,8 +788,10 @@ forvalues i = 1/5 {
 * both solid, markers match line color, no legend.
 local c_nd  "blue"
 local c_def "red"
-local channels_ord   credit claims_govt inv claimsgov_assets claimpriv_assets real_lending
-local titlelabels_ch `" "Bank credit" "Bank claims on government" "Investment" "Bank claims on government / assets" "Bank claims on private sector / assets" "Real lending rate" "'
+* channels_ord scoped to the active estimation loop's five channels,
+* matching 13c_aipw_channels.do's own identical fix.
+local channels_ord   credit claims_govt inv real_lending fdi
+local titlelabels_ch `" "Bank credit" "Bank claims on government" "Investment" "Real lending rate" "FDI" "'
 local i = 1
 foreach ch of local channels_ord {
     local tlab : word `i' of `titlelabels_ch'
@@ -807,14 +813,14 @@ foreach ch of local channels_ord {
         name(aipwch2_`i', replace)
     local ++i
 }
-capture graph combine aipwch2_1 aipwch2_2 aipwch2_3 aipwch2_4 aipwch2_5 aipwch2_6, ///
+capture graph combine aipwch2_1 aipwch2_2 aipwch2_3 aipwch2_4 aipwch2_5, ///
     cols(3) rows(2) graphregion(color(white)) xsize(10) ysize(7)
 if _rc == 0 {
     graph export "$figs/fig_aipw_ch_act2_analyticSE.pdf", replace
     di as result "Figure saved: fig_aipw_ch_act2_analyticSE.pdf"
 }
 else di as error "  ** fig_aipw_ch_act2_analyticSE failed (rc=" _rc ")"
-forvalues i = 1/6 {
+forvalues i = 1/5 {
     capture graph drop aipwch2_`i'
 }
 
