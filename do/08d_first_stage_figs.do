@@ -101,12 +101,12 @@ foreach s in nd def {
     capture drop _p1_`s' _p2_`s'
     quietly probit onset_`s' `X' if `ifcond', vce(cluster cid)
     quietly lroc, nograph
-    local auc1_`s' : display %4.2f r(area)
+    local auc1_`s' = string(r(area), "%4.2f")
     quietly predict double _p1_`s' if `ifcond', pr
 
     quietly probit onset_`s' `X' `Z2' if `ifcond', vce(cluster cid)
     quietly lroc, nograph
-    local auc2_`s' : display %4.2f r(area)
+    local auc2_`s' = string(r(area), "%4.2f")
     quietly predict double _p2_`s' if `ifcond', pr
 }
 
