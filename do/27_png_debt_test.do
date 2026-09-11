@@ -18,74 +18,54 @@
 
   DATA: data/raw/PNGtoGNI.xlsx, sheet "Data" — World Bank IDS/WDI long
   (stacked-series) format, NOT this project's usual wide-by-indicator WDI
-  layout:
-    Country Name | Country Code | Counterpart-Area Name | Counterpart-Area
-    Code | Series Name | Series Code | 1970 [YR1970] ... (through 2032,
-    later years mostly forecast/missing)
-  Two series stacked per country:
+  layout. Two series stacked per country:
     DT.DOD.DPNG.CD  External debt stocks, PNG (DOD, current US$) — a STOCK
     NY.GNP.MKTP.CD  GNI (current US$)
-  Missing values are the literal string "..". Counterpart-Area Name is
-  confirmed to take exactly one non-missing value, "World" (the aggregate
-  row; a handful of fully-blank trailing footer/metadata rows also appear
-  and are dropped by the Country Code length filter below), so the
-  World-only filter is a no-op safety net, not a real restriction.
-  Country Code is already ISO3 (confirmed: AFG, ALB, DZA, ...), so this
-  merges directly onto the panel's own `iso3' key — no name crosswalk needed
-  (contrast 01d_merge_vulnerability.do, which builds one because its WDI
-  source uses country NAMES; PNGtoGNI.xlsx does not).
+  Country Code is already ISO3, so this merges directly onto the panel's own
+  `iso3' key — no name crosswalk needed.
 
   CHANNEL CONSTRUCTION CHOICE: plain ratio (png_gni = pngdebt/gni*100, ppt
-  of GNI), NOT a log-real-level (ln_r_* / ln(gdp_real*ratio)*100) transform.
-  18_transforms.do's own reasoning for keeping claims_govt on a plain ratio
-  applies here on similar (not identical) grounds: claims_govt is kept as a
-  ratio because it is a near-zero, sign-changing NET position, so log()
-  outright fails on part of the sample. PNG debt/GNI is different — it is a
-  stock that can be zero (never negative), so ln(gdp_real*png_gni/100)*100
-  is technically definable wherever png_gni>0. It was NOT used here anyway,
-  for a coverage reason specific to this variable: PNG debt is IDS-reported
-  and (like the IDS vulnerability variables in 01d) covers only debtor-
-  reporting low/middle-income economies, with many advanced-economy default
-  cases (Russia, Uruguay, and others of this panel's higher-income defaults)
-  expected to be missing outright, not just thin. Multiplying by gdp_real
-  and logging would only ever LOSE further observations relative to the
-  ratio (any zero PNG-debt year — a real, informative "no corporate external
-  borrowing" observation — drops out under a log, exactly the ln_r_
-  claims_govt problem 18_transforms.do already documents), on a variable
-  whose coverage is already the binding constraint. The ratio-to-GNI form
-  keeps every non-missing observation, including true zeros, and is directly
-  interpretable (ppt of GNI) the same way claims_govt is. This is a
-  denominator-of-GDP outcome exactly like claims_govt in one respect (X/Y
-  where Y can move independently of X during a crisis), so the same "ratio
-  confounds the numerator with what happened to the denominator" caveat
-  18_transforms.do raises for credit/inv applies here too, in the direction
-  that the read below tries not to overclaim past.
+  of GNI), NOT a log-real-level transform — see PART 0 below for the full
+  reasoning (coverage/zero-value tradeoff, same logic 18_transforms.do
+  already applies to claims_govt).
 
-  OUTCOME/CONTROL DESIGN: EXACT copies of 12_channels_resolution.do's
-  per-arm OLS design (_lpdiffboot, Clogg z companion, separate regressions
-  per resolution type with the rival type dropped, country FE, robust SE,
-  $ctrl_core + pre_pngdebt) and 13c_aipw_channels.do's per-channel AIPW
-  design (_aipw/_aipwpair/_mkstrat, ROW-BOOTSTRAP level SEs — the file's own
-  ADOPTED departure from the analytic-SE formula, not the plain/headline
-  choice — Clogg z as companion, cz_def as the Act 2 propensity predictor
-  set, confirmed current as of this file's writing to be l_fedfunds
-  l_contagion_dist_atdef years_since_def_onset). NEITHER file's own
-  common_abcd balanced-A-D-sample restriction is applied: that restriction
-  is specific to GDP/investment/bank credit/claims_govt (12_channels_
-  resolution.do's own stated scope), and png_gni is a new, separate test
-  variable that keeps its own best-available sample — the same treatment
-  FDI and real_lending already get in both reference files.
+  ══════════════════════════════════════════════════════════════════════════
+  HOW TO RUN THIS FILE ONE PART AT A TIME
+  ══════════════════════════════════════════════════════════════════════════
+  This file is split into FOUR independent parts, each separated by a
+  clearly marked "PART n" banner. Each part is fully self-contained: it
+  starts with its own `use', builds anything it needs from scratch, and does
+  not depend on any other part having just run in the same Stata session.
+  PART 0 must be run at least ONCE first (it builds and saves
+  $clean/panel_lp_png_test.dta, the checkpoint every later part reads from).
+  After that, PARTS 1-3 can each be run independently, in any order, any
+  number of times, by highlighting that part's block of code in the Stata
+  do-file editor and running the selection (or running this whole file and
+  just reading the console output section by section — both work).
 
-  OUTPUT: console diagnostics (coverage, descriptive, OLS, AIPW), plus
-    $tabs/png_debt_test_ols.csv
-    $tabs/png_debt_test_aipw.csv
-  Run AFTER 18_transforms.do (reads $clean/panel_lp.dta directly, matching
-  18b_mindur_variant.do's own standalone-file convention).
+    PART 0 — Import + merge + channel construction + coverage diagnostic.
+             Run this first. Saves $clean/panel_lp_png_test.dta.
+    PART 1 — Descriptive statistics (mirrors 03d_summary_statistics.do).
+             Reads $clean/panel_lp_png_test.dta. Exports
+             $tabs/png_debt_test_summary.xlsx.
+    PART 2 — One-stage OLS (mirrors 12_channels_resolution.do's per-channel
+             design). Reads $clean/panel_lp_png_test.dta. Exports
+             $tabs/png_debt_test_ols.csv.
+    PART 3 — AIPW (mirrors 13c_aipw_channels.do's per-channel design). Reads
+             $clean/panel_lp_png_test.dta. Exports
+             $tabs/png_debt_test_aipw.csv. Slowest part (1000-draw bootstrap
+             x 5 horizons) — run this one last/separately if you just want
+             the quick descriptive/OLS read first.
 ===========================================================================*/
 
 * ══════════════════════════════════════════════════════════════════════════
-* 1. IMPORT + RESHAPE data/raw/PNGtoGNI.xlsx (long stacked-series -> wide)
+* PART 0 — IMPORT + MERGE + CHANNEL CONSTRUCTION + COVERAGE DIAGNOSTIC
+*   Run this first. Builds png_gni and its channel outcome, then SAVES
+*   $clean/panel_lp_png_test.dta so Parts 1-3 can each start fresh from it
+*   without re-running this import/merge step.
 * ══════════════════════════════════════════════════════════════════════════
+
+* -- Import + reshape data/raw/PNGtoGNI.xlsx (long stacked-series -> wide) --
 import excel "$raw/PNGtoGNI.xlsx", sheet("Data") firstrow allstring clear
 
 * Header cleanup: "Country Code" -> iso3 (already ISO3, no crosswalk needed);
@@ -134,9 +114,18 @@ sort iso3 year
 tempfile png_cy
 save `png_cy'
 
-* ══════════════════════════════════════════════════════════════════════════
-* 2. MERGE ONTO panel_lp.dta + BUILD png_gni (ratio, ppt of GNI)
-* ══════════════════════════════════════════════════════════════════════════
+* -- Merge onto panel_lp.dta + build png_gni (ratio, ppt of GNI) --
+* CHANNEL CONSTRUCTION CHOICE: plain ratio, NOT a log-real-level transform.
+* 18_transforms.do's own reasoning for keeping claims_govt on a plain ratio
+* applies here on similar grounds: PNG debt is IDS-reported and covers only
+* debtor-reporting low/middle-income economies, with several of this panel's
+* higher-income default cases expected to be missing outright. Multiplying
+* by gdp_real and logging would only ever LOSE further observations
+* relative to the ratio (any zero PNG-debt year -- a real, informative "no
+* corporate external borrowing" observation -- drops out under a log), on a
+* variable whose coverage is already the binding constraint. The ratio-to-
+* GNI form keeps every non-missing observation, including true zeros, and
+* is directly interpretable (ppt of GNI) the same way claims_govt is.
 use "$clean/panel_lp.dta", clear
 capture drop pngdebt gni
 merge m:1 iso3 year using `png_cy', keep(master match) nogen
@@ -147,9 +136,9 @@ capture drop png_gni
 gen double png_gni = pngdebt / gni * 100 if pngdebt >= 0 & gni > 0 & !missing(pngdebt, gni)
 label var png_gni "Private nonguaranteed external debt / GNI, pct (test channel; plain ratio, see header)"
 
-* ── Channel outcome: ch_pngdebt_h = F h.png_gni - L.png_gni, h=0..4;
+* Channel outcome: ch_pngdebt_h = F h.png_gni - L.png_gni, h=0..4;
 * pre_pngdebt = L.png_gni - L2.png_gni (own pre-trend control, matching
-* 12_channels_resolution.do / 13c_aipw_channels.do's identical idiom) ──────
+* 12_channels_resolution.do / 13c_aipw_channels.do's identical idiom).
 capture drop pngdebt_base
 gen double pngdebt_base = L.png_gni
 forvalues h = 0/4 {
@@ -160,9 +149,9 @@ capture drop pre_pngdebt
 gen double pre_pngdebt = L.png_gni - L2.png_gni
 label var pre_pngdebt "L1-L2 change in png_gni (own pre-crisis trend, predetermined)"
 
-* ── Coverage diagnostic at onset (of 61 onsets), by resolution type ────────
+* -- Coverage diagnostic at onset (of 61 onsets), by resolution type --
 di as result _n "════════════════════════════════════════════════════════════"
-di as result "COVERAGE: png_gni (ch_pngdebt_0) AT ONSET, BY RESOLUTION TYPE (of 61)"
+di as result "PART 0 COMPLETE — COVERAGE: png_gni (ch_pngdebt_0) AT ONSET, BY RESOLUTION TYPE (of 61)"
 di as result "════════════════════════════════════════════════════════════"
 quietly count if onset_all == 1 & sample == 1 & !missing(ch_pngdebt_0)
 local n_all = r(N)
@@ -172,11 +161,22 @@ quietly count if onset_def == 1 & sample == 1 & !missing(ch_pngdebt_0)
 local n_def = r(N)
 di as result "  ch_pngdebt_0: all=" `n_all' " / 61   non-default=" `n_nd' " / 39   default-linked=" `n_def' " / 22"
 
+* -- Save the checkpoint Parts 1-3 will each read from --
+save "$clean/panel_lp_png_test.dta", replace
+di as result _n "Checkpoint saved: $clean/panel_lp_png_test.dta"
+di as result "You can now run Part 1, Part 2, and/or Part 3 independently (any order, any number of times)."
+
+
 * ══════════════════════════════════════════════════════════════════════════
-* 3. DESCRIPTIVE STATISTICS (mirrors 03d_summary_statistics.do's style)
+* PART 1 — DESCRIPTIVE STATISTICS (mirrors 03d_summary_statistics.do's style)
+*   Self-contained: reads $clean/panel_lp_png_test.dta directly. Requires
+*   Part 0 to have been run at least once already.
 * ══════════════════════════════════════════════════════════════════════════
+use "$clean/panel_lp_png_test.dta", clear
+xtset cid year
+
 di as result _n "════════════════════════════════════════════════════════════"
-di as result "DESCRIPTIVE STATISTICS: ch_pngdebt_0 (Year 1 cumulative change, sample==1)"
+di as result "PART 1 — DESCRIPTIVE STATISTICS: ch_pngdebt_0 (Year 1 cumulative change, sample==1)"
 di as result "════════════════════════════════════════════════════════════"
 summarize ch_pngdebt_0 if sample==1
 
@@ -197,14 +197,21 @@ preserve
     label var max        "Max"
     export excel "$tabs/png_debt_test_summary.xlsx", replace firstrow(varlabels)
 restore
-di as result "Descriptive statistics exported: $tabs/png_debt_test_summary.xlsx (native scale, no display rescaling — matches 03d_summary_statistics.do's current convention)"
+di as result "PART 1 COMPLETE — Descriptive statistics exported: $tabs/png_debt_test_summary.xlsx"
+di as result "(native scale, no display rescaling — matches 03d_summary_statistics.do's current convention)"
+
 
 * ══════════════════════════════════════════════════════════════════════════
-* 4. ONE-STAGE OLS (mirrors 12_channels_resolution.do's per-channel design
-*    EXACTLY: separate xtreg per arm, rival type dropped, country FE, robust
-*    SE, $ctrl_core + pre_pngdebt; paired row-bootstrap difference + Clogg z
-*    companion. NO common_abcd restriction — own best-available sample.)
+* PART 2 — ONE-STAGE OLS (mirrors 12_channels_resolution.do's per-channel
+*   design EXACTLY: separate xtreg per arm, rival type dropped, country FE,
+*   robust SE, $ctrl_core + pre_pngdebt; paired row-bootstrap difference +
+*   Clogg z companion. NO common_abcd restriction — own best-available
+*   sample.) Self-contained: reads $clean/panel_lp_png_test.dta directly.
+*   Requires Part 0 to have been run at least once already.
 * ══════════════════════════════════════════════════════════════════════════
+use "$clean/panel_lp_png_test.dta", clear
+xtset cid year
+
 if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 local ctrl_pngdebt $ctrl_core pre_pngdebt
 
@@ -313,7 +320,7 @@ program define _lpdiffboot, rclass
 end
 
 di as result _n "════════════════════════════════════════════════════════════"
-di as result "ONE-STAGE OLS: PNG debt / GNI channel, non-default vs default-linked"
+di as result "PART 2 — ONE-STAGE OLS: PNG debt / GNI channel, non-default vs default-linked"
 di as result "════════════════════════════════════════════════════════════"
 di "h   b_nd     b_def    p(nd=def)   Clogg z (p)"
 
@@ -375,13 +382,21 @@ preserve
     label var n_def   "Observations, default-linked regression"
     export delimited "$tabs/png_debt_test_ols.csv", replace
 restore
-di as result "OLS results exported: $tabs/png_debt_test_ols.csv"
+di as result "PART 2 COMPLETE — OLS results exported: $tabs/png_debt_test_ols.csv"
+
 
 * ══════════════════════════════════════════════════════════════════════════
-* 5. AIPW (mirrors 13c_aipw_channels.do's per-channel design EXACTLY: Act 2
-*    resolution split via _aipwpair, row-bootstrap level SEs (ADOPTED), Clogg
-*    z companion, cz_def propensity predictors. NO common_abcd restriction.)
+* PART 3 — AIPW (mirrors 13c_aipw_channels.do's per-channel design EXACTLY:
+*   Act 2 resolution split via _aipwpair, row-bootstrap level SEs (ADOPTED),
+*   Clogg z companion, cz_def propensity predictors. NO common_abcd
+*   restriction.) Self-contained: reads $clean/panel_lp_png_test.dta
+*   directly. Requires Part 0 to have been run at least once already.
+*   SLOWEST PART — 1000-draw bootstrap x 5 horizons x 2 arms.
 * ══════════════════════════════════════════════════════════════════════════
+use "$clean/panel_lp_png_test.dta", clear
+xtset cid year
+
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 local cz_def l_fedfunds l_contagion_dist_atdef years_since_def_onset
 
 * Outcome-model controls: core_aipw + pre_pngdebt. Judgment call on whether
@@ -395,12 +410,9 @@ local cz_def l_fedfunds l_contagion_dist_atdef years_since_def_onset
 * the credit/credit_bank case (same "private credit" concept measured two
 * ways). No term in $ctrl_core is the channel's own lagged level or a close
 * proxy for it, so none is dropped -- the full core_aipw + pre_pngdebt set is
-* used, matching claims_govt/inv/fdi/real_lending's own treatment (the
-* `else' branch of 13c_aipw_channels.do's om construction) rather than
-* credit's special-cased one. This is a judgment call, not a tested
-* correlation (Stata not run in this session to confirm the coefficient
-* empirically) -- worth checking directly (correlate l_credit_bank l_debt
-* png_gni) once this file is actually run.
+* used, matching claims_govt/inv/fdi/real_lending's own treatment. This is a
+* judgment call, not a tested correlation -- worth checking directly
+* (correlate l_credit_bank l_debt png_gni) once this part is actually run.
 local core_aipw l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2
 local om_pngdebt `core_aipw' pre_pngdebt
 
@@ -569,7 +581,7 @@ end
 local nboot_aipw = 1000     // matches 13c_aipw_channels.do's own G=1000
 
 di as result _n "════════════════════════════════════════════════════════════"
-di as result "AIPW (Act 2): PNG debt / GNI channel, non-default vs default-linked"
+di as result "PART 3 — AIPW (Act 2): PNG debt / GNI channel, non-default vs default-linked"
 di as result "════════════════════════════════════════════════════════════"
 di as result "  h   ND (se_boot)     DEF (se_boot)     def-nd   [95% boot CI]   Clogg z    p"
 di as result "  se_boot = ROW-BOOTSTRAP SE (ADOPTED, matching 13c_aipw_channels.do's departure from"
@@ -658,7 +670,7 @@ preserve
     label var ntreat_def "Treated onsets, default-linked sample"
     export delimited "$tabs/png_debt_test_aipw.csv", replace
 restore
-di as result "AIPW results exported: $tabs/png_debt_test_aipw.csv"
+di as result "PART 3 COMPLETE — AIPW results exported: $tabs/png_debt_test_aipw.csv"
 
 di as result _n "27_png_debt_test.do complete. EXPLORATORY/ROBUSTNESS ONLY -- not wired into"
 di as result "00_master.do, $ctrl_core, or any headline channel list."
