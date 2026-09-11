@@ -1,0 +1,256 @@
+/*===========================================================================
+  08D_FIRST_STAGE_FIGS.DO
+  Figures for the onset first-stage probit — the visual counterpart of
+  08c_first_stage_table.do's diagnostics, mirroring
+  21c_first_stage_figs_flow.do (the flow-tier analogue) for this file's own
+  onset specification, styled on Asonuma et al. (2024)'s own first-stage
+  figures (their companion code to Table 1):
+
+    Fig. A  Kernel density of the predicted probability, treated vs control,
+            one panel per crisis type — their "propensity overlap" figure.
+    Fig. B  Nested ROC comparison, one panel per crisis type — their AUROC
+            curves for successively richer specifications.
+
+  WHY THIS IS A SEPARATE FILE, NOT ADDED TO 08c
+  ----------------------------------------------
+  08c's job is the table export (esttab); it already computes both AUROC
+  numbers used here (aurocctrl/auroc) but only as scalars in a table. These
+  figures need their own predicted-probability variables (one per nested
+  model, per crisis type) and their own graph combine calls, which is a
+  different kind of work from esttab -- same reasoning 21c gives for being
+  separate from 21b. Per 21c's own header, neither 08c nor 21b had ever
+  built these figures before this file; this closes that gap for the onset
+  tier, matching what the flow tier already has.
+
+  WHY THE ROC COMPARISON HAS TWO CURVES, NOT THREE
+  ---------------------------------------------------------------------
+  Their nested ROC compares THREE specifications: Country FEs alone,
+  +Controls, +Controls+Predictors — because their probit's $convar/$cf
+  carries country dummies (c1-c74, noconstant) directly as regressors.
+  This project's onset probit is deliberately POOLED, no country FE
+  (08c's own header: "rare-event propensity: country FE separate/overfit
+  with ~20 events"). There is therefore no "country FEs alone" curve
+  available here, same as the flow tier. This file draws the two curves
+  this project actually has and that 08c already reports as numbers:
+  CONTROLS ONLY ($ctrl_core) vs CONTROLS + PREDICTORS (+ Z2) — the same
+  aurocctrl/auroc pair from 08c's table, as a picture rather than two cells.
+
+  SAMPLE AND MODELS — IDENTICAL TO 08c
+  -------------------------------------
+  sample==1, rival type dropped, pooled probit, clustered SEs by country.
+  `X' = $ctrl_core. `Z2' = l_fedfunds, l_contagion_dist_atdef, years_since_def_onset --
+  both the contagion and recency terms are default-linked-specific, matching
+  08c's adopted predictor set (THIRD PREDICTOR CHANGE, ADOPTED:
+  l_contagion_dist_atdef, AT-database-wide donor pool, replaces
+  l_contagion_dist_def as of 08c's own head-to-head comparison; 08c's
+  diagnostic history: the generic versions left the default arm's
+  classification power indistinguishable from controls-only). The kernel
+  density figure uses the FULL model's (controls+predictors) predicted
+  probability, matching the reference paper's own kdensity figure, which is
+  drawn from their single richest probit ($cf $convar $instrument), not a
+  nested comparison.
+
+  DENSITY TRIM: predicted probabilities outside [0.01, 0.6] are excluded
+  from the kdensity plot only (not from estimation), matching the reference
+  figure's own axis and avoiding a density dominated by the near-zero mass
+  every pooled probit on a rare-event outcome produces.
+
+  EACH ROC PANEL CARRIES roccomp's FORMAL TEST, NOT JUST THE TWO AUROCs
+  -----------------------------------------------------------------------
+  The AUROC delta shown in the legend is a point difference, not a
+  significance test. roccomp's chi2 test for equal correlated ROC areas is
+  printed as a note under each panel (H0: equal areas), and the combined
+  figure's subtitle is set from the actual computed p-values at run time
+  (not a fixed claim) -- whether it reads "established" or "modest, not
+  absent" depends on whether both arms clear the conventional 5 pct level
+  on that run. Matches 08c's console output, which reports the same test.
+
+  Outputs
+  -------
+    "$figs/fig_kdensity.pdf/.png"  predicted-probability density, nd/def
+    "$figs/fig_roc.pdf/.png"       nested ROC (controls vs +predictors), nd/def
+
+  Reads only $clean/panel_lp.dta — self-contained, run after 08c for the
+  reader's sake (same numbers), not as a data dependency.
+===========================================================================*/
+
+use "$clean/panel_lp.dta", clear
+if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
+
+foreach v in onset_nd onset_def sample years_since_def_onset l_contagion_dist_atdef {
+    capture confirm variable `v', exact
+    if _rc {
+        di as error "  ** `v' not in panel_lp.dta — re-run 18_transforms.do first."
+        exit 111
+    }
+}
+
+local X  $ctrl_core
+local Z2 l_fedfunds l_contagion_dist_atdef years_since_def_onset
+
+local c_nd   "0 84 166"
+local c_def  "157 36 73"
+
+* ══════════════════════════════════════════════════════════════════════════
+* FIT BOTH NESTED MODELS PER TYPE, SAVE PREDICTED PROBABILITIES
+* ══════════════════════════════════════════════════════════════════════════
+foreach s in nd def {
+    if "`s'" == "nd" local ifcond "sample==1 & onset_def==0"
+    else             local ifcond "sample==1 & onset_nd==0"
+
+    capture drop _p1_`s' _p2_`s'
+    quietly probit onset_`s' `X' if `ifcond', vce(cluster cid)
+    quietly lroc, nograph
+    local auc1_`s' = string(r(area), "%4.2f")
+    quietly predict double _p1_`s' if `ifcond', pr
+
+    quietly probit onset_`s' `X' `Z2' if `ifcond', vce(cluster cid)
+    quietly lroc, nograph
+    local auc2_`s' = string(r(area), "%4.2f")
+    quietly predict double _p2_`s' if `ifcond', pr
+}
+
+* ══════════════════════════════════════════════════════════════════════════
+* FIGURE A — PREDICTED-PROBABILITY DENSITY, TREATED VS CONTROL
+*
+* From the richer (controls+predictors) model, matching the reference
+* figure's use of its single richest probit. Trimmed to [0.01,0.6] for the
+* plot only, matching their axis.
+* ══════════════════════════════════════════════════════════════════════════
+* UNIFORM TREATMENT/CONTROL COLOR CODE (matches the reference kdensity
+* figure): treatment group = blue, solid; control group = red, dashed --
+* same convention in both panels, unlike the earlier version where color
+* varied by resolution type (nd/def) and only the dash pattern separated
+* treatment from control. Labels are placed directly next to each curve
+* (text(), color-matched) rather than in a legend box, also matching the
+* reference figure -- the label position is found from each curve's own
+* peak so it works regardless of how the two densities happen to fall.
+local gnames_a
+foreach s in nd def {
+    local ttl = cond("`s'"=="nd", "Non-default", "Default-linked")
+
+    * Y-axis title shown only on the leftmost panel (nd) -- not repeated
+    * in both.
+    local ytit ""
+    if "`s'" == "nd" local ytit "Probability density"
+
+    capture drop _xt_`s' _dt_`s' _xc_`s' _dc_`s' _tagt_`s' _tagc_`s'
+    quietly kdensity _p2_`s' if onset_`s'==1 & inrange(_p2_`s', 0.01, 0.6), ///
+        generate(_xt_`s' _dt_`s') n(200) nograph
+    quietly kdensity _p2_`s' if onset_`s'==0 & inrange(_p2_`s', 0.01, 0.6), ///
+        generate(_xc_`s' _dc_`s') n(200) nograph
+
+    * Peak location via a TOLERANCE match, not exact equality (`==` on two
+    * floats computed independently, as r(max) and the stored column are,
+    * routinely fails to match at all -- that is what produced the earlier
+    * "invalid point" error: r(mean) came back missing for one label, so
+    * the text() coordinate pair was malformed).
+    quietly summarize _dt_`s'
+    local dtmax = r(max)
+    quietly gen byte _tagt_`s' = abs(_dt_`s' - `dtmax') < 1e-6 if !missing(_dt_`s')
+    quietly summarize _xt_`s' if _tagt_`s'==1
+    local xt_lab = cond(missing(r(mean)), 0.2, r(mean) + 0.08)
+    local yt_lab = cond(missing(`dtmax'), 1, `dtmax' * 0.85)
+
+    quietly summarize _dc_`s'
+    local dcmax = r(max)
+    quietly gen byte _tagc_`s' = abs(_dc_`s' - `dcmax') < 1e-6 if !missing(_dc_`s')
+    quietly summarize _xc_`s' if _tagc_`s'==1
+    local xc_lab = cond(missing(r(mean)), 0.1, r(mean) + 0.04)
+    local yc_lab = cond(missing(`dcmax'), 2, `dcmax' * 0.85)
+    capture drop _xt_`s' _dt_`s' _xc_`s' _dc_`s' _tagt_`s' _tagc_`s'
+
+    * "Treatment group"/"Control group" text shown only once, in the first
+    * panel (nd) -- not repeated in both, same convention already applied
+    * elsewhere for a label that would otherwise just repeat.
+    local txtopt
+    if "`s'" == "nd" {
+        local txtopt text(`yt_lab' `xt_lab' "Treatment group", color(blue) size(large) place(e)) ///
+                     text(`yc_lab' `xc_lab' "Control group", color(red) size(large) place(e))
+    }
+
+    twoway ///
+        (kdensity _p2_`s' if onset_`s'==1 & inrange(_p2_`s', 0.01, 0.6), ///
+            lwidth(thick) lcolor(blue)) ///
+        (kdensity _p2_`s' if onset_`s'==0 & inrange(_p2_`s', 0.01, 0.6), ///
+            lwidth(thick) lcolor(red) lpattern(dash)), ///
+        graphregion(color(white)) plotregion(color(white)) ///
+        legend(off) ///
+        `txtopt' ///
+        xlabel(, labsize(large)) ///
+        ylabel(, angle(horizontal) labsize(large)) ///
+        ytitle("`ytit'", size(vlarge)) xtitle("Predicted probability", size(vlarge)) ///
+        title("`ttl'", size(vlarge) color(black)) ///
+        name(gk_`s', replace) nodraw
+    local gnames_a `gnames_a' gk_`s'
+}
+* No combine-level title() -- paper-ready.
+graph combine `gnames_a', rows(1) graphregion(color(white)) ///
+    xsize(12) ysize(5.5)
+capture graph export "$figs/fig_kdensity.pdf", replace
+if _rc di as error "  ** fig_kdensity.pdf export failed (rc=" _rc ") — is it open?"
+else {
+    capture graph export "$figs/fig_kdensity.png", replace width(1400)
+    di as result "Figure saved: fig_kdensity.pdf/.png"
+}
+foreach nm of local gnames_a {
+    capture graph drop `nm'
+}
+
+* ══════════════════════════════════════════════════════════════════════════
+* FIGURE B — NESTED ROC: CONTROLS ONLY vs CONTROLS + PREDICTORS
+*
+* Two curves, not three — see header for why a "country FEs alone" curve
+* does not exist in this project's onset probit.
+* ══════════════════════════════════════════════════════════════════════════
+local gnames_b
+local worstp_b = 0
+foreach s in nd def {
+    local ttl = cond("`s'"=="nd", "Non-default", "Default-linked")
+
+    * Y-axis title shown only on the leftmost panel (nd) -- not repeated
+    * in both.
+    local ytit ""
+    if "`s'" == "nd" local ytit "Sensitivity"
+
+    * roccomp's own chi2 test for equal correlated ROC areas -- the formal
+    * significance test the raw AUROC delta cannot substitute for. Run once,
+    * quietly, to capture r(chi2)/r(p) BEFORE the graphing call (whose own
+    * r() is not yet populated at the point its own option string is built),
+    * then reused as a literal string in the panel note below.
+    quietly roccomp onset_`s' _p1_`s' _p2_`s' if !missing(_p1_`s',_p2_`s')
+    local rocp_`s' = r(p)
+    if r(p) > `worstp_b' local worstp_b = r(p)
+
+    * No per-panel note() -- it printed too small to read once exported
+    * (vsmall against a full-page figure) and is dropped rather than kept
+    * as unreadable clutter; the roccomp chi2/p values are still reported
+    * in this file's own console output and in 08c's table, not lost.
+    roccomp onset_`s' _p1_`s' _p2_`s' if !missing(_p1_`s',_p2_`s'), ///
+        graph summary name(gr_`s', replace) graphregion(color(white)) nodraw ///
+        plot1opts(lcolor(red) mcolor(red) msymbol(circle)) ///
+        plot2opts(lcolor(green) mcolor(green) msymbol(diamond)) ///
+        title("`ttl'", size(vlarge)) ///
+        ytitle("`ytit'", size(vlarge)) xtitle("1 - Specificity", size(vlarge)) ///
+        ylabel(0(.25)1, angle(horizontal) labsize(large)) xlabel(0(.25)1, labsize(large)) ///
+        legend(position(5) region(lwidth(none)) size(large) cols(1) ring(0) ///
+            order(1 "Controls: `auc1_`s''" 2 "Controls+Predictors: `auc2_`s''"))
+    local gnames_b `gnames_b' gr_`s'
+}
+* No combine-level title()/subtitle() -- paper-ready; the earlier subtitle
+* text was also wrapping/truncating illegibly once exported.
+graph combine `gnames_b', graphregion(color(white)) ///
+    xsize(12) ysize(6)
+capture graph export "$figs/fig_roc.pdf", replace
+if _rc di as error "  ** fig_roc.pdf export failed (rc=" _rc ") — is it open?"
+else {
+    capture graph export "$figs/fig_roc.png", replace width(1400)
+    di as result "Figure saved: fig_roc.pdf/.png"
+}
+foreach nm of local gnames_b {
+    capture graph drop `nm'
+}
+
+capture drop _p1_nd _p2_nd _p1_def _p2_def
+
+di as result _n "08d_first_stage_figs.do complete."

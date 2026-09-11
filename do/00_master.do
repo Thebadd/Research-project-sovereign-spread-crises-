@@ -1,0 +1,133 @@
+/*===========================================================================
+  MASTER DO-FILE
+  Sovereign Spread Crises — Output Cost Estimation
+  Local Projections (Jordà 2005)
+
+  Structure:
+    10-18   → DATA BUILD: from-scratch, fully-sourced panel construction,
+              ending in 18_transforms.do, which saves panel_lp.dta (the
+              headline outcome dy_h it builds is TOTAL real GDP, not GDP
+              per capita -- the per-capita version is kept separately as
+              dy_pc_h, an explicit robustness column, never the default).
+              01_build_panel.do (and the 01x chain after it) is RETIRED --
+              still present in do/ for reference, but not run; see the
+              "DATA BUILD (10-18)" comment block below for why it was
+              replaced.
+    02+     → ANALYSIS: every file from here on reads $clean/panel_lp.dta
+              produced by stage 18. 02_lp_all.do (Act 1, all onsets) and
+              03_lp_resolution.do (Act 2, default-linked vs. non-default)
+              are the headline GDP-cost LPs; 04_graphs.do builds the
+              publication figures. See each file's own header for its role
+              (channels, mechanisms, exposure heterogeneity, AIPW, the flow
+              tier, etc.) -- not re-listed here to avoid this block going
+              stale again as files are added or retired.
+    (09_lp_imf.do removed: IMF selection model too weak for credible inference)
+
+  Required packages (run once):
+    ssc install xtscc
+    ssc install coefplot
+    ssc install estout   (provides esttab/eststo — used for result tables)
+    ssc install boottest
+===========================================================================*/
+
+clear all
+set more off
+set scheme s2mono
+
+* ── Paths ──────────────────────────────────────────────────────────────────
+global root  "/home/user/Research-project-sovereign-spread-crises-"
+global raw   "$root/data/raw"
+global clean "$root/data/clean"
+global do    "$root/do"
+global figs  "$root/output/figures"
+global tabs  "$root/output/tables"
+
+* ── Asonuma-aligned common-core control set (outcome-model controls) ─────────
+* Used uniformly across all GDP + channel regressions. Also (re)defined in
+* 18_transforms.do; set here so analysis files run standalone after a build.
+* The plain lagged columns (l_govexp/l_open/l_credit_bank/l_hyperinfl) are
+* created in 18_transforms.do and saved in panel_lp.dta.
+global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
+
+* ══════════════════════════════════════════════════════════════════════════
+* DATA BUILD (10-18) — from-scratch, fully-sourced panel. Keeps ONLY the own
+* spread-crisis DB for the crisis definition; every macro series is rebuilt from
+* official sources (IMF WEO / World Bank WDI+IDS / IMF MFS / FRED / Laeven-
+* Valencia) and every transform is done in code. Replaces the old 01x chain
+* (01_build_panel .. 01e_predictors), which is retained in do/ but no longer run.
+* Provenance documented in DATA_SOURCES.md.
+* ══════════════════════════════════════════════════════════════════════════
+do "$do/10_skeleton.do"      // crisis DB -> skeleton (iso3, onsets, spreads, class., imf legacy)
+do "$do/10b_skeleton_atonly.do" // extend skeleton to AT-only countries outside the 52-country spread panel
+do "$do/11_weo.do"           // IMF WEO: GDP/cap, GDP, pop, infl, ca, debt, govexp, revenue, inv, pb
+do "$do/12_wdi.do"           // World Bank WDI: credit(by banks), fdi, claims_govt, trade openness, REER
+do "$do/13_ifs_nexus.do"     // IMF MFS: sovereign-bank nexus (claims on govt/private / assets)
+do "$do/14_ids.do"           // World Bank IDS: stdebt_share, reserves, intpay, debt_service
+do "$do/15_rates.do"         // FRED: ust10y, fedfunds, vix (global push predictors)
+do "$do/16_banking.do"       // Laeven-Valencia banking-crisis dummy
+do "$do/17_predictors.do"    // derived Z: contagion + proneness; numeric cid + xtset
+do "$do/17b_merge_at_full.do" // full Asonuma-Trebesch (2016) database -> AT-side default columns, independent of spread dating
+do "$do/18_transforms.do"    // gdpg, lags, dy_h, pre-trends, sample -> panel_lp.dta
+
+* ══════════════════════════════════════════════════════════════════════════
+* ANALYSIS (unchanged — all read $clean/panel_lp.dta produced by stage 18)
+* ══════════════════════════════════════════════════════════════════════════
+do "$do/02a_descriptive_facts.do"   // stylised facts: raw output paths, no controls (Data section)
+do "$do/02_lp_all.do"
+do "$do/03_lp_resolution.do"
+do "$do/20_lp_flow.do"               // FLOW treatment: in-crisis = every year of an episode (not just onset)
+do "$do/20b_exposure_heterogeneity_flow.do"  // FLOW counterpart of 13b: pre-crisis exposure x flow-treatment interactions
+do "$do/21_aipw_flow.do"             // Asonuma Eqs. (1)-(3) on the FLOW treatment (self-contained)
+do "$do/21b_first_stage_table_flow.do"  // Table-1-style probit for 21's Eq. (2): predicting the START of a spread crisis
+do "$do/21c_first_stage_figs_flow.do"   // kdensity overlap + nested ROC figures, the visual counterpart of 21b
+do "$do/22_channels_flow.do"         // flow analogue of 11_channels.do: transmission channels, in-crisis treatment
+do "$do/23_channels_resolution_flow.do"  // flow analogue of 12's Spec A: channels by resolution type
+do "$do/24_aipw_channels_flow.do"    // flow analogue of 13c's Act 2: doubly-robust AIPW for the channels, nd vs def
+do "$do/25_aipw_nexus_split_flow.do" // flow analogue of 13d: sovereign-bank nexus heterogeneity split, nd/def x high/low
+do "$do/26_lp_debtcrisis_flow.do"    // broadened debt-crisis taxonomy (17b): nd vs preemptive default vs post-default
+do "$do/04_graphs.do"
+* 05_balance_table.do — RETIRED, superseded by 02a_descriptive_facts.do.
+* It compared the two resolution groups on the legacy control list
+* (gdpg debt ca infl imf: contemporaneous levels plus the retired IMF dummy),
+* so its columns described variables the paper no longer conditions on. The
+* pre-crisis characteristics table in 02a covers the same ground on the actual
+* common core, all at t-1, with tranquil years as a reference column. Nothing
+* in the write-up cited balance_table.csv.
+* do "$do/05_balance_table.do"
+do "$do/06_robustness.do"
+do "$do/07_placebo.do"
+* 08_ipw_lp.do REMOVED: plain IPW-LP, superseded by 08b_aipw.do's doubly-robust
+* AIPW estimator project-wide. See 08b's header and METHODOLOGY.md for the
+* reasoning (AIPW dominates IPW: consistent if EITHER the propensity or the
+* outcome model is correctly specified, not just the propensity model).
+do "$do/08b_aipw.do"                  // IPWRA (the reference paper's headline estimator) + stratified bootstrap CIs
+do "$do/08c_first_stage_table.do"     // Table 1-style probit first stage (predictors/controls + chi2/ROC)
+do "$do/08d_first_stage_figs.do"      // first-stage figures: kdensity overlap + nested ROC (mirrors 21c)
+* do "$do/09_lp_imf.do"   // removed: IMF selection unpredictable from observables
+* do "$do/10_heterogeneity.do"  // removed: frontier variable poorly coded, duration data incomplete
+do "$do/11_channels.do"
+do "$do/11b_nexus_channels.do"
+do "$do/12_channels_resolution.do"
+do "$do/12b_gelbach_decomposition.do"    // Gelbach share of the GDP cost "explained" by each channel (nd/def split)
+do "$do/13_mechanisms.do"
+do "$do/13b_exposure_heterogeneity.do"   // Tier-3: onset x pre-crisis channel exposure
+do "$do/13c_aipw_channels.do"            // doubly-robust AIPW for the transmission channels (matches 08b)
+do "$do/13d_aipw_nexus_split.do"         // bank-intermediation heterogeneity: AIPW by sovereign-bank nexus (Asonuma Fig 6)
+do "$do/13e_nexus_mechanism_diagram.do"  // conceptual 2x2 schematic of the nexus x resolution mechanism
+do "$do/13f_resolution_selection.do"     // does pre-crisis nexus exposure predict HOW a crisis resolves?
+
+* ── Structural model — DEFERRED, not part of the first version of the paper ──
+* The calibration, the Arellano-style VFI default block and the model-vs-data
+* IRF comparison are built and were running here, but the first version of the
+* paper is purely empirical: nothing in EMPIRICAL_ANALYSIS.md or
+* RESULTS_SECTION_DRAFT.md draws on them, so running them produced figures and
+* parameter files that no section cites, and 15_solve_default.do is the slowest
+* step in the pipeline by a wide margin.
+*
+* Commented out rather than removed. The three do-files and the three
+* THEORETICAL_*.md documents stay in the repository for a later version; to
+* bring them back, uncomment these lines. Nothing else in the pipeline depends
+* on their output, so the empirical chain runs identically without them.
+* do "$do/14_calibration.do"      // calibrate params (literature + data moments)
+* do "$do/15_solve_default.do"    // Arellano-style VFI: endogenous default & spread
+* do "$do/16_model_irf.do"        // log-linear transmission; model vs. data IRFs
