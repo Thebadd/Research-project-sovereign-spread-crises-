@@ -420,6 +420,22 @@ end
 di as result _n "════════════════════════════════════════════════════════════"
 di as result "PART 2 — ONE-STAGE OLS: Net flow on PNG debt / GNI channel, non-default vs default-linked"
 di as result "════════════════════════════════════════════════════════════"
+
+* ── DIAGNOSTIC: pre_pngdebt (t-1 flow level) by arm, at onset ────────────────
+* Checks whether the pre-crisis CONTROL itself already differs between the
+* two arms -- if nd and def onsets start from very different pre_pngdebt
+* levels, the xtreg's own pre_pngdebt coefficient can absorb a chunk of the
+* gap the descriptive figure shows (which compares each group's own path to
+* ITS OWN Year-0 reference, not to a common control), which would help
+* explain why the regression below finds no significant nd/def difference
+* even though the raw figure shows one.
+di as result "  pre_pngdebt (t-1 net flow / GNI level) at onset, by arm:"
+quietly summarize pre_pngdebt if onset_nd==1 & sample==1
+di as result "    non-default: mean=" %6.2f r(mean) "  sd=" %6.2f r(sd) "  N=" %3.0f r(N)
+quietly summarize pre_pngdebt if onset_def==1 & sample==1
+di as result "    default-linked: mean=" %6.2f r(mean) "  sd=" %6.2f r(sd) "  N=" %3.0f r(N)
+di as result ""
+
 di "h   b_nd     b_def    p(nd=def)   Clogg z (p)"
 
 tempname O
