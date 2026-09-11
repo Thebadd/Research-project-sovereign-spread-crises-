@@ -16,18 +16,36 @@
   existing channel's construction, or any of 12_channels_resolution.do /
   13c_aipw_channels.do / 03c_table_combined_six.do's own active channel lists.
 
-  DATA: data/raw/PNGtoGNI.xlsx, sheet "Data" — World Bank IDS/WDI long
+  DATA: data/raw/NetFlowToGNI.xlsx, sheet "Data" — World Bank IDS/WDI long
   (stacked-series) format, NOT this project's usual wide-by-indicator WDI
   layout. Two series stacked per country:
-    DT.DOD.DPNG.CD  External debt stocks, PNG (DOD, current US$) — a STOCK
+    DT.NFL.DPNG.CD  Net flows on external debt, PNG (NFL, current US$) — a
+                    FLOW (can be negative: net repayment years)
     NY.GNP.MKTP.CD  GNI (current US$)
   Country Code is already ISO3, so this merges directly onto the panel's own
   `iso3' key — no name crosswalk needed.
 
-  CHANNEL CONSTRUCTION CHOICE: plain ratio (png_gni = pngdebt/gni*100, ppt
-  of GNI), NOT a log-real-level transform — see PART 0 below for the full
-  reasoning (coverage/zero-value tradeoff, same logic 18_transforms.do
-  already applies to claims_govt).
+  STOCK -> FLOW SWITCH (this file originally used data/raw/PNGtoGNI.xlsx's
+  DT.DOD.DPNG.CD, a debt STOCK; superseded here). A stock's year-over-year
+  change conflates new borrowing with valuation/exchange-rate effects on
+  existing debt and debt that matures or is written off -- none of which is
+  "the private sector substituting toward domestic financing," the actual
+  mechanism this file tests. A FLOW (net new external borrowing that year)
+  is the economically direct measure of that substitution margin, so the
+  channel is rebuilt on DT.NFL.DPNG.CD instead.
+
+  CHANNEL CONSTRUCTION CHOICE: plain ratio (nfl_gni = netflow/gni*100, ppt
+  of GNI), NOT a log-real-level transform — GNI as denominator is kept for
+  consistency with the file's own established naming/convention (the same
+  denominator-procyclicality caveat that applies to any ratio channel in
+  this project applies here too, not specific to GNI vs GDP).
+  OUTCOME AT EACH HORIZON IS THE LEVEL, NOT A DIFFERENCE: a flow variable's
+  own value already is the economically meaningful quantity (how much new
+  external borrowing is happening that year) -- differencing a flow against
+  a base-year level (as the retired stock version did) would remove it one
+  step further from what is actually being measured. ch_pngdebt_h =
+  nfl_gni at year t+h directly; pre_pngdebt = nfl_gni at year t-1 (the
+  predetermined pre-crisis flow level, not a level-of-a-level difference).
 
   ══════════════════════════════════════════════════════════════════════════
   HOW TO RUN THIS FILE ONE PART AT A TIME
@@ -60,13 +78,13 @@
 
 * ══════════════════════════════════════════════════════════════════════════
 * PART 0 — IMPORT + MERGE + CHANNEL CONSTRUCTION + COVERAGE DIAGNOSTIC
-*   Run this first. Builds png_gni and its channel outcome, then SAVES
+*   Run this first. Builds nfl_gni and its channel outcome, then SAVES
 *   $clean/panel_lp_png_test.dta so Parts 1-3 can each start fresh from it
 *   without re-running this import/merge step.
 * ══════════════════════════════════════════════════════════════════════════
 
-* -- Import + reshape data/raw/PNGtoGNI.xlsx (long stacked-series -> wide) --
-import excel "$raw/PNGtoGNI.xlsx", sheet("Data") firstrow allstring clear
+* -- Import + reshape data/raw/NetFlowToGNI.xlsx (long stacked-series -> wide) --
+import excel "$raw/NetFlowToGNI.xlsx", sheet("Data") firstrow allstring clear
 
 * Header cleanup: "Country Code" -> iso3 (already ISO3, no crosswalk needed);
 * "1970 [YR1970]" style headers land as YR1970 ... YR2032 in Stata (matches
@@ -90,12 +108,12 @@ foreach v of varlist YR* {
 tempfile png_raw
 save `png_raw'
 
-* -- PNG debt stock (DT.DOD.DPNG.CD) --
+* -- Net flows on PNG external debt (DT.NFL.DPNG.CD) --
 use `png_raw', clear
-keep if series_code == "DT.DOD.DPNG.CD"
+keep if series_code == "DT.NFL.DPNG.CD"
 reshape long YR, i(iso3) j(year)
-rename YR pngdebt
-keep iso3 year pngdebt
+rename YR netflow
+keep iso3 year netflow
 tempfile t_png
 save `t_png'
 
@@ -114,44 +132,37 @@ sort iso3 year
 tempfile png_cy
 save `png_cy'
 
-* -- Merge onto panel_lp.dta + build png_gni (ratio, ppt of GNI) --
+* -- Merge onto panel_lp.dta + build nfl_gni (ratio, ppt of GNI) --
 * CHANNEL CONSTRUCTION CHOICE: plain ratio, NOT a log-real-level transform.
-* 18_transforms.do's own reasoning for keeping claims_govt on a plain ratio
-* applies here on similar grounds: PNG debt is IDS-reported and covers only
-* debtor-reporting low/middle-income economies, with several of this panel's
-* higher-income default cases expected to be missing outright. Multiplying
-* by gdp_real and logging would only ever LOSE further observations
-* relative to the ratio (any zero PNG-debt year -- a real, informative "no
-* corporate external borrowing" observation -- drops out under a log), on a
-* variable whose coverage is already the binding constraint. The ratio-to-
-* GNI form keeps every non-missing observation, including true zeros, and
-* is directly interpretable (ppt of GNI) the same way claims_govt is.
+* See header (STOCK -> FLOW SWITCH) for the full reasoning. netflow CAN be
+* negative (net repayment years, a real and informative observation), so
+* -- unlike the retired stock version -- there is no netflow>=0 filter here.
 use "$clean/panel_lp.dta", clear
-capture drop pngdebt gni
+capture drop netflow gni pngdebt
 merge m:1 iso3 year using `png_cy', keep(master match) nogen
 sort cid year
 xtset cid year
 
-capture drop png_gni
-gen double png_gni = pngdebt / gni * 100 if pngdebt >= 0 & gni > 0 & !missing(pngdebt, gni)
-label var png_gni "Private nonguaranteed external debt / GNI, pct (test channel; plain ratio, see header)"
+capture drop nfl_gni
+gen double nfl_gni = netflow / gni * 100 if gni > 0 & !missing(netflow, gni)
+label var nfl_gni "Net flows on PNG external debt / GNI, pct (flow-based external-financing exposure)"
 
-* Channel outcome: ch_pngdebt_h = F h.png_gni - L.png_gni, h=0..4;
-* pre_pngdebt = L.png_gni - L2.png_gni (own pre-trend control, matching
-* 12_channels_resolution.do / 13c_aipw_channels.do's identical idiom).
-capture drop pngdebt_base
-gen double pngdebt_base = L.png_gni
+* Channel outcome IS THE LEVEL at each horizon (not a difference from a
+* base year, see header) -- ch_pngdebt_h = F h.nfl_gni; pre_pngdebt =
+* L.nfl_gni (previous year's net-flow level, predetermined). Variable NAME
+* ch_pngdebt_* kept unchanged from the retired stock version so Parts 1-3's
+* downstream code needs no renaming -- only what feeds it changed.
 forvalues h = 0/4 {
     capture drop ch_pngdebt_`h'
-    gen double ch_pngdebt_`h' = F`h'.png_gni - pngdebt_base
+    gen double ch_pngdebt_`h' = F`h'.nfl_gni
 }
 capture drop pre_pngdebt
-gen double pre_pngdebt = L.png_gni - L2.png_gni
-label var pre_pngdebt "L1-L2 change in png_gni (own pre-crisis trend, predetermined)"
+gen double pre_pngdebt = L.nfl_gni
+label var pre_pngdebt "L1 level of nfl_gni (own pre-crisis flow level, predetermined)"
 
 * -- Coverage diagnostic at onset (of 61 onsets), by resolution type --
 di as result _n "════════════════════════════════════════════════════════════"
-di as result "PART 0 COMPLETE — COVERAGE: png_gni (ch_pngdebt_0) AT ONSET, BY RESOLUTION TYPE (of 61)"
+di as result "PART 0 COMPLETE — COVERAGE: nfl_gni (ch_pngdebt_0) AT ONSET, BY RESOLUTION TYPE (of 61)"
 di as result "════════════════════════════════════════════════════════════"
 quietly count if onset_all == 1 & sample == 1 & !missing(ch_pngdebt_0)
 local n_all = r(N)
@@ -176,7 +187,7 @@ use "$clean/panel_lp_png_test.dta", clear
 xtset cid year
 
 di as result _n "════════════════════════════════════════════════════════════"
-di as result "PART 1 — DESCRIPTIVE STATISTICS: ch_pngdebt_0 (Year 1 cumulative change, sample==1)"
+di as result "PART 1 — DESCRIPTIVE STATISTICS: ch_pngdebt_0 (net flow / GNI level, Year 1, sample==1)"
 di as result "════════════════════════════════════════════════════════════"
 summarize ch_pngdebt_0 if sample==1
 
@@ -184,7 +195,7 @@ tempname S
 tempfile sumf
 postfile `S' str32 variable long obs double mean double sd double min double max using "`sumf'", replace
 quietly summarize ch_pngdebt_0 if sample==1
-post `S' ("PNG debt / GNI (Year 1 chg, ppt)") (r(N)) (r(mean)) (r(sd)) (r(min)) (r(max))
+post `S' ("Net flow on PNG debt / GNI (Year 1 level, ppt)") (r(N)) (r(mean)) (r(sd)) (r(min)) (r(max))
 postclose `S'
 
 preserve
@@ -200,21 +211,28 @@ restore
 di as result "PART 1 COMPLETE — Descriptive statistics exported: $tabs/png_debt_test_summary.xlsx"
 di as result "(native scale, no display rescaling — matches 03d_summary_statistics.do's current convention)"
 
-* ── Pre/post-crisis evolution figure (mirrors 02a_descriptive_facts.do) ────
-* Same construction as 02a: pre-crisis placebo points (Years -3..-1) built
-* on the SAME t-1 base as every forward horizon (ch_pngdebt_m2/m3/m4 =
-* L2/L3/L4.png_gni - pngdebt_base), country-demeaned (dd_pngdebt_h =
-* ch_pngdebt_h - country mean, over sample==1), then a Year -3..5 mean path
-* plotted for all onsets pooled and for the nd/def split, exactly like
-* 02a's fig0_descriptive_<channel>.pdf panels -- so this channel's pre/post
-* evolution reads on the same axes/scale convention as every other channel
-* already in this project.
+* ── Pre/post-crisis evolution figure (style mirrors 02a_descriptive_facts.do) ──
+* nfl_gni is a FLOW, so this plots its LEVEL at each year relative to onset
+* (Year -3..-1 pre-crisis, Year 0..5 post-crisis) -- NOT a cumulative
+* change from a base year, unlike the retired stock version and unlike
+* 02a's own level-differenced channels. ch_pngdebt_m2/m3/m4 = the flow
+* level at t-2/t-3/t-4 respectively (L2/L3/L4.nfl_gni); ch_pngdebt_0..4 =
+* the flow level at t..t+4 (already built above). Still country-demeaned
+* (dd_pngdebt_h = ch_pngdebt_h - country mean, over sample==1) so the
+* figure reads a within-country deviation, matching every other
+* descriptive figure's convention, even though the underlying quantity is
+* now a level rather than a change.
+* Year -1 is NOT zero by construction here (unlike the retired stock-diff
+* version, where the base year was defined to be zero relative to itself)
+* -- it is the flow level at t-1, computed like every other horizon.
+capture drop ch_pngdebt_m1
+gen double ch_pngdebt_m1 = L.nfl_gni
 forvalues k = 2/4 {
     capture drop ch_pngdebt_m`k'
-    gen double ch_pngdebt_m`k' = L`k'.png_gni - pngdebt_base
+    gen double ch_pngdebt_m`k' = L`k'.nfl_gni
 }
 
-foreach h in m4 m3 m2 0 1 2 3 4 {
+foreach h in m4 m3 m2 m1 0 1 2 3 4 {
     capture drop cmean_pngdebt_`h' dd_pngdebt_`h'
     quietly bysort cid: egen double cmean_pngdebt_`h' = mean(ch_pngdebt_`h') if sample==1
     quietly gen double dd_pngdebt_`h' = ch_pngdebt_`h' - cmean_pngdebt_`h' if sample==1
@@ -222,7 +240,8 @@ foreach h in m4 m3 m2 0 1 2 3 4 {
 
 foreach g in all nd def {
     matrix desc_pngdebt_`g' = J(9, 1, .)
-    matrix desc_pngdebt_`g'[4,1] = 0     // Year -1 baseline, zero by construction
+    quietly summarize dd_pngdebt_m1 if onset_`g'==1 & sample==1, meanonly
+    matrix desc_pngdebt_`g'[4,1] = r(mean)
     quietly summarize dd_pngdebt_m4 if onset_`g'==1 & sample==1, meanonly
     matrix desc_pngdebt_`g'[1,1] = r(mean)
     quietly summarize dd_pngdebt_m3 if onset_`g'==1 & sample==1, meanonly
@@ -253,8 +272,8 @@ preserve
         xlabel(-3(1)5, labsize(medsmall)) ///
         ylabel(, format(%9.1f) labsize(medsmall) angle(horizontal)) ///
         xtitle("Year (0 = crisis onset)", size(small)) ///
-        ytitle("Cumulative percentage-point change", size(small)) ///
-        title("Private external financing (PNG debt / GNI)", size(medium) color(navy)) ///
+        ytitle("Country-demeaned net flow / GNI, pct", size(small)) ///
+        title("Private external financing (net flows on PNG debt / GNI)", size(medium) color(navy)) ///
         legend(order(1 "All onsets" 2 "Non-default" 3 "Default-linked") ///
                position(6) rows(1) size(small)) ///
         graphregion(color(white)) plotregion(color(white))
@@ -382,7 +401,7 @@ program define _lpdiffboot, rclass
 end
 
 di as result _n "════════════════════════════════════════════════════════════"
-di as result "PART 2 — ONE-STAGE OLS: PNG debt / GNI channel, non-default vs default-linked"
+di as result "PART 2 — ONE-STAGE OLS: Net flow on PNG debt / GNI channel, non-default vs default-linked"
 di as result "════════════════════════════════════════════════════════════"
 di "h   b_nd     b_def    p(nd=def)   Clogg z (p)"
 
@@ -421,7 +440,7 @@ forvalues h = 0/4 {
     }
     else {
         post `O' (`h') (.) (.) (.) (.) (.) (.) (.) (.) (.) (.) (.) (.) (.)
-        di as error "regression failed for png_gni h=" `h'+1
+        di as error "regression failed for nfl_gni h=" `h'+1
     }
 }
 postclose `O'
@@ -465,7 +484,7 @@ local cz_def l_fedfunds l_contagion_dist_atdef years_since_def_onset
 * any $ctrl_core term should be dropped the way l_credit_bank is dropped for
 * the credit channel (that channel's own outcome IS effectively the lagged
 * dependent variable, correlation 0.950): l_credit_bank is BANK credit to the
-* private sector, a domestic-banking-system claim; png_gni is PRIVATE
+* private sector, a domestic-banking-system claim; nfl_gni is PRIVATE
 * NONGUARANTEED EXTERNAL debt, i.e. corporate borrowing from foreign
 * creditors, a conceptually distinct balance-sheet object (external vs.
 * domestic counterparty) with no accounting identity linking the two, unlike
@@ -474,7 +493,7 @@ local cz_def l_fedfunds l_contagion_dist_atdef years_since_def_onset
 * proxy for it, so none is dropped -- the full core_aipw + pre_pngdebt set is
 * used, matching claims_govt/inv/fdi/real_lending's own treatment. This is a
 * judgment call, not a tested correlation -- worth checking directly
-* (correlate l_credit_bank l_debt png_gni) once this part is actually run.
+* (correlate l_credit_bank l_debt nfl_gni) once this part is actually run.
 local core_aipw l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2
 local om_pngdebt `core_aipw' pre_pngdebt
 
@@ -643,7 +662,7 @@ end
 local nboot_aipw = 1000     // matches 13c_aipw_channels.do's own G=1000
 
 di as result _n "════════════════════════════════════════════════════════════"
-di as result "PART 3 — AIPW (Act 2): PNG debt / GNI channel, non-default vs default-linked"
+di as result "PART 3 — AIPW (Act 2): Net flow on PNG debt / GNI channel, non-default vs default-linked"
 di as result "════════════════════════════════════════════════════════════"
 di as result "  h   ND (se_boot)     DEF (se_boot)     def-nd   [95% boot CI]   Clogg z    p"
 di as result "  se_boot = ROW-BOOTSTRAP SE (ADOPTED, matching 13c_aipw_channels.do's departure from"

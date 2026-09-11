@@ -1,7 +1,7 @@
 /*===========================================================================
   28_AIPW_EXTFIN_NEXUS_SPLIT_ND.DO
   EXPLORATORY / FIRST LOOK -- NOT wired into 00_master.do, not part of the
-  headline six-variable design. Standalone, self-contained (rebuilds png_gni
+  headline six-variable design. Standalone, self-contained (rebuilds nfl_gni
   from its own raw import, does not require 27_png_debt_test.do to have
   been run first in the same session).
 
@@ -15,9 +15,12 @@
   -- those firms have proportionally more external exposure to unwind and
   less domestic capacity to absorb it. This file tests that directly:
   median-split non-default onsets by pre-crisis private external-financing
-  exposure (png_gni = private nonguaranteed external debt / GNI, built in
-  27_png_debt_test.do), and compare AIPW-estimated GDP/credit/investment
-  paths between the high- and low-exposure halves.
+  exposure (nfl_gni = net flows on PNG external debt / GNI, built in
+  27_png_debt_test.do -- a FLOW, not the debt stock, so it measures actual
+  new external borrowing activity rather than conflating that with
+  valuation/write-off effects on the outstanding stock), and compare
+  AIPW-estimated GDP/credit/investment paths between the high- and
+  low-exposure halves.
 
   SCOPE, DELIBERATELY NARROW FOR THIS FIRST PASS:
     - NON-DEFAULT ARM ONLY. No default-linked estimation, no def-vs-nd
@@ -36,11 +39,11 @@
       -- that formatting effort is only worth building once/if this
       becomes a result worth reporting formally.
 
-  COVERAGE CAVEAT, STATED UP FRONT, NOT DISCOVERED LATER: png_gni comes
+  COVERAGE CAVEAT, STATED UP FRONT, NOT DISCOVERED LATER: nfl_gni comes
   from World Bank IDS/WDI private-nonguaranteed-debt reporting, which has
   real gaps relative to claimsgov_assets' coverage (the amplifier used in
   13d_aipw_nexus_split.do) -- several onsets, default and non-default
-  alike, may have no reported PNG debt at all. The coverage diagnostic
+  alike, may have no reported net-flow data at all. The coverage diagnostic
   below reports the actual usable non-default onset count before any
   estimate is read; if too few onsets survive in either bin, that is the
   finding of this file, not a bug to work around.
@@ -73,9 +76,9 @@
 ===========================================================================*/
 
 * ══════════════════════════════════════════════════════════════════════════
-* SETUP + BUILD png_gni (self-contained, copied from 27_png_debt_test.do)
+* SETUP + BUILD nfl_gni (self-contained, copied from 27_png_debt_test.do)
 * ══════════════════════════════════════════════════════════════════════════
-import excel "$raw/PNGtoGNI.xlsx", sheet("Data") firstrow allstring clear
+import excel "$raw/NetFlowToGNI.xlsx", sheet("Data") firstrow allstring clear
 
 capture rename CountryCode iso3
 capture rename CounterpartAreaName counterpart
@@ -93,10 +96,10 @@ tempfile png_raw
 save `png_raw'
 
 use `png_raw', clear
-keep if series_code == "DT.DOD.DPNG.CD"
+keep if series_code == "DT.NFL.DPNG.CD"
 reshape long YR, i(iso3) j(year)
-rename YR pngdebt
-keep iso3 year pngdebt
+rename YR netflow
+keep iso3 year netflow
 tempfile t_png
 save `t_png'
 
@@ -115,16 +118,16 @@ tempfile png_cy
 save `png_cy'
 
 use "$clean/panel_lp.dta", clear
-capture drop pngdebt gni
+capture drop netflow gni
 merge m:1 iso3 year using `png_cy', keep(master match) nogen
 sort cid year
 xtset cid year
 
 if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 
-capture drop png_gni
-gen double png_gni = pngdebt / gni * 100 if pngdebt >= 0 & gni > 0 & !missing(pngdebt, gni)
-label var png_gni "Private nonguaranteed external debt / GNI, pct (external-financing exposure)"
+capture drop nfl_gni
+gen double nfl_gni = netflow / gni * 100 if gni > 0 & !missing(netflow, gni)
+label var nfl_gni "Net flows on PNG external debt / GNI, pct (flow-based external-financing exposure)"
 
 * ══════════════════════════════════════════════════════════════════════════
 * AMPLIFIER: pre-crisis external-financing exposure + median split OVER ND ONSETS
@@ -133,8 +136,8 @@ label var png_gni "Private nonguaranteed external debt / GNI, pct (external-fina
 *   actually being split, matching 13d_aipw_nexus_split.do's own logic.
 * ══════════════════════════════════════════════════════════════════════════
 capture drop a_extfin a_extfin_cm highextfin
-gen a_extfin = L.png_gni                          // predetermined (year before onset)
-bysort cid: egen a_extfin_cm = mean(png_gni)
+gen a_extfin = L.nfl_gni                          // predetermined (year before onset)
+bysort cid: egen a_extfin_cm = mean(nfl_gni)
 replace a_extfin = a_extfin_cm if missing(a_extfin) // country-mean fill (thin coverage)
 
 quietly summarize a_extfin if sample==1 & onset_nd==1, detail
@@ -144,7 +147,7 @@ label define hef 0 "Low external financing" 1 "High external financing"
 label values highextfin hef
 
 di as result _n "=== EXTERNAL-FINANCING EXPOSURE MEDIAN SPLIT (NON-DEFAULT ONSETS ONLY) ==="
-di as result "  Amplifier = private nonguaranteed external debt / GNI (pre-crisis, country-mean filled)"
+di as result "  Amplifier = net flows on PNG external debt / GNI (pre-crisis, country-mean filled)"
 di as result "  Median cutoff among NON-DEFAULT crisis onsets = " %6.2f `med'
 quietly count if sample==1 & onset_nd==1 & highextfin==1
 local nh = r(N)
@@ -152,8 +155,8 @@ quietly count if sample==1 & onset_nd==1 & highextfin==0
 local nl = r(N)
 quietly count if sample==1 & onset_nd==1 & missing(highextfin)
 local nm = r(N)
-di as result "  onset_nd: high=" `nh' "  low=" `nl' "  unclassified (no png_gni data)=" `nm'
-di as result "  (COVERAGE CAVEAT: if `nm' is large relative to `nh'+`nl', png_gni's known"
+di as result "  onset_nd: high=" `nh' "  low=" `nl' "  unclassified (no nfl_gni data)=" `nm'
+di as result "  (COVERAGE CAVEAT: if `nm' is large relative to `nh'+`nl', nfl_gni's known"
 di as result "   IDS/WDI reporting gaps are binding on this sample -- read the estimates below"
 di as result "   with that in mind, not as a fully powered test.)"
 
@@ -161,7 +164,7 @@ di as result "   with that in mind, not as a fully powered test.)"
 di as result _n "=== EXTFIN-BIN COUNTRY COMPOSITION (non-default crisis onsets) ==="
 capture noisily tabulate country highextfin if sample==1 & onset_nd==1, ///
     row nofreq
-di as result _n "  Mean pre-crisis external-financing exposure (PNG debt/GNI) by bin, over ND onsets:"
+di as result _n "  Mean pre-crisis external-financing exposure (net flow/GNI) by bin, over ND onsets:"
 capture noisily tabstat a_extfin if sample==1 & onset_nd==1, ///
     by(highextfin) statistics(mean min max n) format(%6.2f)
 di as result "  (Read alongside any income/development ranking of these countries: if the two"
