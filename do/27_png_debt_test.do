@@ -252,6 +252,16 @@ foreach g in all nd def {
         quietly summarize dd_pngdebt_`h' if onset_`g'==1 & sample==1, meanonly
         matrix desc_pngdebt_`g'[`h'+5,1] = r(mean)
     }
+    * Rebase so Year 0 (row 5, the crisis year) = 0 for this group's own
+    * line -- easier to read as "change since crisis onset" than a level
+    * deviation from each country's own long-run average. Each group (all/
+    * nd/def) is rebased on ITS OWN Year-0 value, so the three lines stay
+    * directly comparable to the un-rebased figure in level terms (only
+    * the vertical offset changes, the shape/gap between lines does not).
+    scalar _base_`g' = desc_pngdebt_`g'[5,1]
+    forvalues r = 1/9 {
+        matrix desc_pngdebt_`g'[`r',1] = desc_pngdebt_`g'[`r',1] - _base_`g'
+    }
 }
 
 preserve
