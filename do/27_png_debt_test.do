@@ -79,7 +79,7 @@ keep iso3 counterpart series_code YR*
 * Drop trailing metadata/footer rows (blank Country Code) and confirm the
 * Counterpart-Area filter is the no-op it is documented to be above.
 keep if length(iso3) == 3
-quietly levelsof counterpart, local(cplevels)
+quietly levelsof counterpart, local(cplevels) clean
 di as result "  Counterpart-Area Name values present: `cplevels'"
 keep if counterpart == "World"
 
