@@ -200,6 +200,68 @@ restore
 di as result "PART 1 COMPLETE — Descriptive statistics exported: $tabs/png_debt_test_summary.xlsx"
 di as result "(native scale, no display rescaling — matches 03d_summary_statistics.do's current convention)"
 
+* ── Pre/post-crisis evolution figure (mirrors 02a_descriptive_facts.do) ────
+* Same construction as 02a: pre-crisis placebo points (Years -3..-1) built
+* on the SAME t-1 base as every forward horizon (ch_pngdebt_m2/m3/m4 =
+* L2/L3/L4.png_gni - pngdebt_base), country-demeaned (dd_pngdebt_h =
+* ch_pngdebt_h - country mean, over sample==1), then a Year -3..5 mean path
+* plotted for all onsets pooled and for the nd/def split, exactly like
+* 02a's fig0_descriptive_<channel>.pdf panels -- so this channel's pre/post
+* evolution reads on the same axes/scale convention as every other channel
+* already in this project.
+forvalues k = 2/4 {
+    capture drop ch_pngdebt_m`k'
+    gen double ch_pngdebt_m`k' = L`k'.png_gni - pngdebt_base
+}
+
+foreach h in m4 m3 m2 0 1 2 3 4 {
+    capture drop cmean_pngdebt_`h' dd_pngdebt_`h'
+    quietly bysort cid: egen double cmean_pngdebt_`h' = mean(ch_pngdebt_`h') if sample==1
+    quietly gen double dd_pngdebt_`h' = ch_pngdebt_`h' - cmean_pngdebt_`h' if sample==1
+}
+
+foreach g in all nd def {
+    matrix desc_pngdebt_`g' = J(9, 1, .)
+    matrix desc_pngdebt_`g'[4,1] = 0     // Year -1 baseline, zero by construction
+    quietly summarize dd_pngdebt_m4 if onset_`g'==1 & sample==1, meanonly
+    matrix desc_pngdebt_`g'[1,1] = r(mean)
+    quietly summarize dd_pngdebt_m3 if onset_`g'==1 & sample==1, meanonly
+    matrix desc_pngdebt_`g'[2,1] = r(mean)
+    quietly summarize dd_pngdebt_m2 if onset_`g'==1 & sample==1, meanonly
+    matrix desc_pngdebt_`g'[3,1] = r(mean)
+    forvalues h = 0/4 {
+        quietly summarize dd_pngdebt_`h' if onset_`g'==1 & sample==1, meanonly
+        matrix desc_pngdebt_`g'[`h'+5,1] = r(mean)
+    }
+}
+
+preserve
+    clear
+    svmat desc_pngdebt_all, names(b_all)
+    svmat desc_pngdebt_nd,  names(b_nd)
+    svmat desc_pngdebt_def, names(b_def)
+    gen horizon = _n - 4     // rows are Year -3..5
+
+    local c_nd  "blue"
+    local c_def "red"
+    twoway ///
+        (line b_all1 horizon, lcolor(gs8) lwidth(medthick) lpattern(dash)) ///
+        (connected b_nd1  horizon, lcolor("`c_nd'")  mcolor("`c_nd'")  msymbol(circle) lwidth(medthick)) ///
+        (connected b_def1 horizon, lcolor("`c_def'") mcolor("`c_def'") msymbol(square) lwidth(medthick)), ///
+        yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
+        xline(0, lpattern(dash) lcolor(gs10) lwidth(thin)) ///
+        xlabel(-3(1)5, labsize(medsmall)) ///
+        ylabel(, format(%9.1f) labsize(medsmall) angle(horizontal)) ///
+        xtitle("Year (0 = crisis onset)", size(small)) ///
+        ytitle("Cumulative percentage-point change", size(small)) ///
+        title("Private external financing (PNG debt / GNI)", size(medium) color(navy)) ///
+        legend(order(1 "All onsets" 2 "Non-default" 3 "Default-linked") ///
+               position(6) rows(1) size(small)) ///
+        graphregion(color(white)) plotregion(color(white))
+    graph export "$figs/fig0_descriptive_pngdebt.pdf", replace
+    di as result "Figure saved: fig0_descriptive_pngdebt.pdf (Years -3..5, country-demeaned mean, all/nd/def)"
+restore
+
 
 * ══════════════════════════════════════════════════════════════════════════
 * PART 2 — ONE-STAGE OLS (mirrors 12_channels_resolution.do's per-channel
