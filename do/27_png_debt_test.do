@@ -436,6 +436,16 @@ quietly summarize pre_pngdebt if onset_def==1 & sample==1
 di as result "    default-linked: mean=" %6.2f r(mean) "  sd=" %6.2f r(sd) "  N=" %3.0f r(N)
 di as result ""
 
+* ── DISTRIBUTION (percentiles, not just mean) of pre_pngdebt, by arm ────────
+* The mean alone can hide a distribution dominated by a couple of outlier
+* onsets on this thin a sample -- printing the actual percentile spread
+* shows where most onsets in each arm actually sit, not just the average.
+di as result "  Full percentile distribution, non-default onsets:"
+summarize pre_pngdebt if onset_nd==1 & sample==1, detail
+di as result _n "  Full percentile distribution, default-linked onsets:"
+summarize pre_pngdebt if onset_def==1 & sample==1, detail
+di as result ""
+
 di "h   b_nd     b_def    p(nd=def)   Clogg z (p)"
 
 tempname O
