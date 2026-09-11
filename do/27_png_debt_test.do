@@ -211,20 +211,24 @@ restore
 di as result "PART 1 COMPLETE — Descriptive statistics exported: $tabs/png_debt_test_summary.xlsx"
 di as result "(native scale, no display rescaling — matches 03d_summary_statistics.do's current convention)"
 
-* ── Pre/post-crisis evolution figure (style mirrors 02a_descriptive_facts.do) ──
-* nfl_gni is a FLOW, so this plots its LEVEL at each year relative to onset
-* (Year -3..-1 pre-crisis, Year 0..5 post-crisis) -- NOT a cumulative
-* change from a base year, unlike the retired stock version and unlike
-* 02a's own level-differenced channels. ch_pngdebt_m2/m3/m4 = the flow
-* level at t-2/t-3/t-4 respectively (L2/L3/L4.nfl_gni); ch_pngdebt_0..4 =
-* the flow level at t..t+4 (already built above). Still country-demeaned
-* (dd_pngdebt_h = ch_pngdebt_h - country mean, over sample==1) so the
-* figure reads a within-country deviation, matching every other
-* descriptive figure's convention, even though the underlying quantity is
-* now a level rather than a change.
-* Year -1 is NOT zero by construction here (unlike the retired stock-diff
-* version, where the base year was defined to be zero relative to itself)
-* -- it is the flow level at t-1, computed like every other horizon.
+* ── Pre/post-crisis evolution figure (EXACTLY mirrors 02a_descriptive_facts.do's
+*    convention, per explicit user request) ──────────────────────────────────
+* nfl_gni is a FLOW (its own level is the meaningful quantity, see header),
+* so ch_pngdebt_m2/m3/m4/m1 and ch_pngdebt_0..4 below are each simply the
+* flow LEVEL at that calendar year relative to onset (t-4..t+4) -- not a
+* cumulative change from a base year the way 02a's own channels are built
+* (they don't need to be: 02a's own "Year 0 = 0 by construction" trick is
+* ACHIEVED HERE INSTEAD by an explicit rebasing step below, subtracting
+* each group's own Year-0/t-1 value from every point -- same end result,
+* zero at the pre-crisis reference year, reached by a different route
+* since the underlying variable here is a level, not a construction that
+* is trivially zero at its own base by definition).
+* Labeling matches 02a's own convention EXACTLY: "Year 0" = the LAST
+* PRE-CRISIS year (t-1, forced to 0 by the rebasing step below), "Year 1"
+* = the crisis year itself (t), "Year 2..5" = years after, "Year -1..-3"
+* = years before Year 0 (t-2..t-4) -- NOT this project's usual h=0-is-the-
+* onset-year convention (used throughout the OLS/AIPW tables), a
+* deliberate one-off exception for this figure to match 02a's own style.
 capture drop ch_pngdebt_m1
 gen double ch_pngdebt_m1 = L.nfl_gni
 forvalues k = 2/4 {
@@ -252,13 +256,15 @@ foreach g in all nd def {
         quietly summarize dd_pngdebt_`h' if onset_`g'==1 & sample==1, meanonly
         matrix desc_pngdebt_`g'[`h'+5,1] = r(mean)
     }
-    * Rebase so Year 0 (row 5, the crisis year) = 0 for this group's own
-    * line -- easier to read as "change since crisis onset" than a level
-    * deviation from each country's own long-run average. Each group (all/
-    * nd/def) is rebased on ITS OWN Year-0 value, so the three lines stay
-    * directly comparable to the un-rebased figure in level terms (only
-    * the vertical offset changes, the shape/gap between lines does not).
-    scalar _base_`g' = desc_pngdebt_`g'[5,1]
+    * Rebase so Year 0 (row 4, the LAST PRE-CRISIS year, t-1) = 0 for this
+    * group's own line -- matches 02a_descriptive_facts.do's own convention
+    * EXACTLY (there, "Year 0" is the pre-crisis baseline, zero by
+    * construction, and "Year 1" is the crisis year itself; see that file's
+    * header). Each group (all/nd/def) is rebased on ITS OWN pre-crisis
+    * value, so the three lines stay directly comparable to the un-rebased
+    * figure in level terms (only the vertical offset changes, the shape/
+    * gap between lines does not).
+    scalar _base_`g' = desc_pngdebt_`g'[4,1]
     forvalues r = 1/9 {
         matrix desc_pngdebt_`g'[`r',1] = desc_pngdebt_`g'[`r',1] - _base_`g'
     }
@@ -281,14 +287,15 @@ preserve
         xline(0, lpattern(dash) lcolor(gs10) lwidth(thin)) ///
         xlabel(-3(1)5, labsize(medsmall)) ///
         ylabel(, format(%9.1f) labsize(medsmall) angle(horizontal)) ///
-        xtitle("Year (0 = crisis onset)", size(small)) ///
-        ytitle("Country-demeaned net flow / GNI, pct", size(small)) ///
+        xline(1, lpattern(dash) lcolor(gs12) lwidth(thin)) ///
+        xtitle("Year (0 = last pre-crisis year, 1 = crisis onset)", size(small)) ///
+        ytitle("Net flow / GNI, pct, relative to Year 0", size(small)) ///
         title("Private external financing (net flows on PNG debt / GNI)", size(medium) color(navy)) ///
         legend(order(1 "All onsets" 2 "Non-default" 3 "Default-linked") ///
                position(6) rows(1) size(small)) ///
         graphregion(color(white)) plotregion(color(white))
     graph export "$figs/fig0_descriptive_pngdebt.pdf", replace
-    di as result "Figure saved: fig0_descriptive_pngdebt.pdf (Years -3..5, country-demeaned mean, all/nd/def)"
+    di as result "Figure saved: fig0_descriptive_pngdebt.pdf (Years -3..5, rebased to Year 0 = last pre-crisis year, matching 02a's convention exactly; all/nd/def)"
 restore
 
 
