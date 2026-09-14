@@ -623,6 +623,12 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" "claims_govt ch_claims_go
                    %8.3f `BH' "`sghi'" " (" %5.3f `AH' ")  " %8.3f `DH' ///
                    " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
                    " " %7.3f `zz' " " %5.3f `pz2'
+                * Observations/Countries/Episodes per level, printed to console
+                * (already exported to the Table 3 RTF -- this just surfaces
+                * the same numbers in the run log so they don't require
+                * opening the RTF to read).
+                di "         Obs/Countries/Episodes -- low: " %5.0f `NL' "/" %2.0f `NCL' "/" %3.0f `ntrl' ///
+                   "   high: " %5.0f `NH' "/" %2.0f `NCH' "/" %3.0f `ntrh'
             }
             else di as error "    h=" `h'+1 ": estimate failed (too thin)."
         }
