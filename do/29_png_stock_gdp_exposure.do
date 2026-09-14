@@ -25,21 +25,23 @@
   private sector's own balance sheet is externally, unconditionally
   financed," independent of the sovereign's own debt level.
 
-  DENOMINATOR CAVEAT, STATED PLAINLY: this project has no WDI current-US$
-  GDP series already imported (only `gdp_real`, inherited from the
-  original Excel skeleton import, whose exact price/currency basis is not
-  independently re-verified here). `gdp_real` is used because it is
-  ALREADY the denominator this project uses to recover levels from WDI
-  %-of-GDP ratios elsewhere (ln_r_credit, as_r_claims_govt in
-  18_transforms.do multiply WDI ratio variables by gdp_real to get back a
-  level) -- so using it here is consistent with that existing convention,
-  not a new assumption. But PNG debt stock is reported in CURRENT US$,
-  and if `gdp_real` turns out to be on a different basis (constant-price,
-  or a different currency convention) than the WDI ratios it is already
-  multiplied against elsewhere, this ratio could be off by a scale factor.
-  CHECK THE MAGNITUDE of png_gdp once run (should mostly sit in a
-  plausible 0-100%-ish range for external private debt/GDP) before
-  trusting it -- flagged as an open verification, not resolved here.
+  DENOMINATOR -- RESOLVED, NOT `gdp_real`. The first version of this file
+  used `gdp_real` (IMF WEO NGDP_R, already in the panel from 11_weo.do) as
+  the denominator, on the reasoning that this project already multiplies
+  WDI %-of-GDP ratios by gdp_real elsewhere to recover levels. That
+  reasoning was WRONG for this specific use: `gdp_real`/`gdp_nominal` are
+  both DOMESTIC-CURRENCY WEO series (confirmed directly from 11_weo.do's
+  own indicator-mapping comment: NGDP_R/NGDP, "dom. cur."), whereas PNG
+  debt stock is reported in raw CURRENT US$ -- dividing one by the other
+  mixes currencies and produced nonsense when actually run (png_gdp came
+  back in the billions/tens-of-billions instead of a plausible 0-100%-ish
+  ratio, confirmed live). FIXED: this file now imports WEO's own NGDPD
+  series (GDP, current prices, US DOLLARS, billions) directly from
+  data/raw/WEOApr2026all.xlsx -- confirmed present in that file's own
+  indicator list, not previously imported by any other file in this
+  project -- and uses it (converted from billions to raw US$) as the
+  denominator instead. Both sides of the ratio are now genuinely in the
+  same currency.
 
   MEDIAN SPLIT: computed ONCE, pooling all onsets (onset_all==1 &
   sample==1), not separately by resolution type -- matching Asonuma et
@@ -92,9 +94,21 @@
 
 * ══════════════════════════════════════════════════════════════════════════
 * SETUP + BUILD png_gdp (self-contained: re-imports the PNG debt STOCK from
-* data/raw/PNGtoGNI.xlsx, the SAME raw file 27_png_debt_test.do's retired
-* stock-based version used -- DT.DOD.DPNG.CD -- but scaled by gdp_real
-* instead of GNI, so it does not depend on 27/28 having run first)
+* data/raw/PNGtoGNI.xlsx -- DT.DOD.DPNG.CD -- AND a GDP-in-current-US$
+* series from the IMF WEO raw file already used by 11_weo.do.
+*
+* DENOMINATOR FIX (supersedes the header's original "use gdp_real" plan,
+* which was tested and found WRONG): gdp_real/gdp_nominal (11_weo.do) are
+* IMF WEO's NGDP_R/NGDP, both DOMESTIC-CURRENCY series (confirmed from
+* 11_weo.do's own indicator-mapping comment) -- dividing a raw current-US$
+* PNG debt stock by a domestic-currency GDP figure produced nonsense
+* (checked live: png_gdp came back in the billions/tens-of-billions
+* instead of a 0-100%-ish ratio). The correct series is WEO's NGDPD (GDP,
+* current prices, US DOLLARS, reported in billions) -- confirmed present
+* in data/raw/WEOApr2026all.xlsx's own indicator list, not currently
+* imported by any file in this project, so it is imported here directly,
+* self-contained, matching 11_weo.do's own import mechanics (Excel letter
+* columns AB..CA = years 1980..2031).
 * ══════════════════════════════════════════════════════════════════════════
 import excel "$raw/PNGtoGNI.xlsx", sheet("Data") firstrow allstring clear
 
@@ -121,17 +135,46 @@ keep iso3 year pngdebt_stock
 tempfile png_cy
 save `png_cy'
 
+* -- GDP in current US$ (WEO NGDPD, billions) -- same import mechanics as
+* 11_weo.do (Excel letter columns AB..CA = years 1980..2031).
+import excel "$raw/WEOApr2026all.xlsx", sheet("Countries") firstrow clear
+capture rename COUNTRYID   iso3
+capture rename INDICATORID indid
+local col AB AC AD AE AF AG AH AI AJ AK AL AM AN AO AP AQ AR AS AT AU ///
+          AV AW AX AY AZ BA BB BC BD BE BF BG BH BI BJ BK BL BM BN BO ///
+          BP BQ BR BS BT BU BV BW BX BY BZ CA
+local y = 1980
+foreach c of local col {
+    capture rename `c' yr`y'
+    local ++y
+}
+keep iso3 indid yr*
+keep if length(iso3) == 3
+keep if indid == "NGDPD"
+capture destring yr*, replace force
+reshape long yr, i(iso3 indid) j(year)
+drop if missing(yr)
+rename yr gdp_usd_bn
+keep iso3 year gdp_usd_bn
+label var gdp_usd_bn "GDP, current prices, US$ billions (IMF WEO NGDPD)"
+tempfile weo_gdp
+save `weo_gdp'
+
 use "$clean/panel_lp.dta", clear
-capture drop pngdebt_stock
+capture drop pngdebt_stock gdp_usd_bn
 merge m:1 iso3 year using `png_cy', keep(master match) nogen
+merge m:1 iso3 year using `weo_gdp', keep(master match) nogen
 sort cid year
 xtset cid year
 
 if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 
+* gdp_usd_bn is in US$ BILLIONS; pngdebt_stock is in raw current US$ (WDI/IDS
+* convention) -- convert gdp_usd_bn to raw US$ (x 1e9) before dividing, so
+* both sides of the ratio are on the same unit.
 capture drop png_gdp
-gen double png_gdp = pngdebt_stock / gdp_real * 100 ///
-    if pngdebt_stock >= 0 & gdp_real > 0 & !missing(pngdebt_stock, gdp_real)
+gen double png_gdp = pngdebt_stock / (gdp_usd_bn * 1e9) * 100 ///
+    if pngdebt_stock >= 0 & gdp_usd_bn > 0 & !missing(pngdebt_stock, gdp_usd_bn)
 label var png_gdp "Private nonguaranteed external debt stock / GDP, pct (exposure amplifier)"
 
 quietly summarize png_gdp if sample==1
