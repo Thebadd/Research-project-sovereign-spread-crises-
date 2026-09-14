@@ -54,9 +54,9 @@
   EXACTLY, but OLS not AIPW (this is a first pass -- AIPW is a natural
   extension IF this shows a signal worth chasing, not built here, per the
   same "test first, extend if promising" discipline used for 27/28):
-    Four cells: {nd,def} x {high,low png_gdp exposure}, each vs the
-    tranquil pool, rival resolution type dropped from each cell's own
-    sample -- same onset-tier design as 03_lp_resolution.do/
+    Cells: {nd [,def]} x {high,low png_gdp exposure}, each vs the tranquil
+    pool, rival resolution type dropped from each cell's own sample --
+    same onset-tier design as 03_lp_resolution.do/
     12_channels_resolution.do throughout this project.
     Within each resolution type, the HIGH-LOW difference is tested via a
     paired row-bootstrap (G=1000, seeded), stratified over {control,
@@ -66,10 +66,20 @@
     alongside as the permissive analytic-SE companion, same convention as
     every other difference test in this project.
 
-  OUTCOME: GDP (dy_h, already built in panel_lp.dta) only, h=0..4 -- not
-  the channels, per explicit scope ("not with the flow but with the stock
-  and gdp"). A channel extension (credit, investment) is a natural next
-  step, not built here.
+  SCOPE, PER EXPLICIT REQUEST (speed + priority): the DEFAULT-LINKED arm
+  is MUTED (commented out) in the estimation loop's `foreach cell in ...`
+  list -- runs currently estimate the ND arm only. Restore it by
+  uncommenting that line once the ND-only read is done.
+
+  OUTCOME: credit (bank credit to the private sector, ch_credit_h) and inv
+  (investment, ch_inv_h) -- built fresh here (not persisted in
+  panel_lp.dta), same log-real-level differenced construction as
+  13c_aipw_channels.do/13d_aipw_nexus_split.do -- PLUS GDP (dy_h, already
+  in the panel), all h=0..4. Credit and investment were added, and the
+  loop reordered to run them FIRST, per explicit priority: "je souhaite
+  voir en priorité comment se comporte le credit au secteur prive et
+  l'investment chez les nd spread crises en fonction de si on a une low
+  or high exposure."
 
   INTERPRETIVE CAUTION, stated per this project's own writing standard:
   png_gdp is NOT randomly assigned. Countries with deep private external
@@ -83,13 +93,15 @@
   13d prints (country composition, income proxy check) is reproduced
   below for the same reason.
 
-  Output: $tabs/png_stock_gdp_exposure.csv (arm x level x horizon, levels +
-          the within-arm high-low difference/CI/Clogg z) ;
-          $figs/fig_png_stock_gdp_exposure.pdf (2-panel: nd, def; lines =
-          high/low exposure, orange/green, matching 13d's own high/low
-          palette).
+  Output: $tabs/png_stock_gdp_exposure.csv (outcome x arm x level x
+          horizon, levels + the within-arm high-low difference/CI/Clogg
+          z) ; $figs/fig_png_stock_gdp_<outcome>.pdf, one per outcome
+          (credit, inv, gdp), ND arm only while def stays muted -- high
+          (orange)/low (green) exposure lines, no by()-panel needed with
+          a single resolution type in scope.
   Run standalone, any time after 17_predictors.do and 18_transforms.do
-  (needs $ctrl_core, gdp_real, dy_h, sample, onset_nd, onset_def).
+  (needs $ctrl_core, ln_r_credit, ln_r_inv, dy_h, sample, onset_nd,
+  onset_def).
 ===========================================================================*/
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -222,6 +234,25 @@ di as result "  (Read alongside any income/development ranking of these countrie
 di as result "   interpretive caution: this split is NOT randomly assigned.)"
 
 * ══════════════════════════════════════════════════════════════════════════
+* CHANNEL OUTCOMES -- credit, inv (ch_v_h = F h.ln_r_v - L.ln_r_v), built
+*   fresh here (not persisted in panel_lp.dta), same construction as
+*   13c_aipw_channels.do/13d_aipw_nexus_split.do. Added per explicit
+*   request to prioritize credit-to-private-sector and investment under
+*   the ND arm before extending to GDP/def.
+* ══════════════════════════════════════════════════════════════════════════
+foreach v in credit inv {
+    local src ln_r_`v'
+    capture drop `v'_base
+    gen double `v'_base = L.`src'
+    forvalues h = 0/4 {
+        capture drop ch_`v'_`h'
+        gen double ch_`v'_`h' = F`h'.`src' - `v'_base
+    }
+    capture drop pre_`v'
+    gen double pre_`v' = L.`src' - L2.`src'
+}
+
+* ══════════════════════════════════════════════════════════════════════════
 * PROGRAM -- HIGH-LOW-within-arm difference, paired row bootstrap + Clogg z.
 *   Mirrors 13d_aipw_nexus_split.do's _aipwdiff mechanism exactly, adapted
 *   to plain OLS (`regress`) instead of AIPW's `_aipw`.
@@ -322,92 +353,113 @@ program define _lpdiffboot_hl, rclass
 end
 
 * ══════════════════════════════════════════════════════════════════════════
-* ESTIMATE -- GDP, four cells {nd,def} x {high,low}, within-arm difference
+* ESTIMATE -- {credit, inv, gdp} x {nd [,def]} x {high,low}, within-arm diff
+*
+* SCOPE, PER EXPLICIT REQUEST (speed + priority): the DEFAULT-LINKED arm is
+* MUTED (commented out) below so a run only estimates the ND arm -- credit
+* to the private sector and investment first, GDP kept in the loop too
+* since it was already built and costs nothing extra to leave in. To
+* restore the def arm, uncomment the "def onset_def onset_nd" line in the
+* `foreach cell in ...' list below.
 * ══════════════════════════════════════════════════════════════════════════
 set seed 20260819
 local nboot = 1000
 
 tempname R
 tempfile resf
-postfile `R' str4 part str4 level byte horizon double b se lo hi ntreat long nobs using "`resf'", replace
+postfile `R' str12 outcome str4 part str4 level byte horizon double b se lo hi ntreat long nobs using "`resf'", replace
 
 tempname D
 tempfile diff_resf
-postfile `D' str4 part byte horizon double dhl bhi blo se lo hi nd double cloggz cloggp using "`diff_resf'", replace
+postfile `D' str12 outcome str4 part byte horizon double dhl bhi blo se lo hi nd double cloggz cloggp using "`diff_resf'", replace
 
-di as result _n "############### OUTCOME: GDP -- PNG/GDP exposure split, high vs low ###############"
+foreach oc in "credit ch_credit" "inv ch_inv" "gdp dy" {
+    gettoken ocl   oc : oc
+    gettoken ystem oc : oc
 
-foreach cell in "nd onset_nd onset_def" "def onset_def onset_nd" {
-    gettoken part cell : cell
-    gettoken Dv   cell : cell
-    gettoken riv  cell : cell
+    * Outcome-model controls: GDP uses $ctrl_core as-is; credit drops its
+    * own domestic-credit control (l_credit_bank correlates 0.950 with the
+    * credit outcome itself, matching 13c/13d's own established exception)
+    * and adds pre_credit; inv adds pre_inv.
+    if      "`ocl'" == "gdp"    local om $ctrl_core
+    else if "`ocl'" == "credit" local om l1_gdpg l_debt l_banking_crisis l_govexp l_open l_lninfl exchange2 pre_credit
+    else                        local om $ctrl_core pre_`ocl'
 
-    di as result _n "--- GDP | Part `part' ---"
-    di as result "    h   LOW (se_boot)     HIGH (se_boot)    high-low  [95% boot CI]   Clogg z    p"
+    di as result _n "############### OUTCOME: `ocl' -- PNG/GDP exposure split, high vs low ###############"
 
-    post `R' ("`part'") ("low")  (0) (0) (0) (0) (0) (0) (0)
-    post `R' ("`part'") ("high") (0) (0) (0) (0) (0) (0) (0)
-    post `D' ("`part'") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)
+    foreach cell in "nd onset_nd onset_def" /* "def onset_def onset_nd" -- MUTED, see header note above */ {
+        gettoken part cell : cell
+        gettoken Dv   cell : cell
+        gettoken riv  cell : cell
 
-    forvalues h = 0/4 {
-        local ifhigh sample==1 & `riv'==0 & (`Dv'==0 | (`Dv'==1 & high_png==1))
-        local iflow  sample==1 & `riv'==0 & (`Dv'==0 | (`Dv'==1 & high_png==0))
+        di as result _n "--- `ocl' | Part `part' ---"
+        di as result "    h   LOW (se_boot)     HIGH (se_boot)    high-low  [95% boot CI]   Clogg z    p"
 
-        quietly count if `Dv'==1 & high_png==1 & sample==1 & `riv'==0
-        local ntrh = r(N)
-        quietly count if `Dv'==1 & high_png==0 & sample==1 & `riv'==0
-        local ntrl = r(N)
+        post `R' ("`ocl'") ("`part'") ("low")  (0) (0) (0) (0) (0) (0) (0)
+        post `R' ("`ocl'") ("`part'") ("high") (0) (0) (0) (0) (0) (0) (0)
+        post `D' ("`ocl'") ("`part'") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)
 
-        _lpdiffboot_hl, y(dy_`h') d(`Dv') ifhigh(`ifhigh') iflow(`iflow') ///
-            ctrl($ctrl_core) reps(`nboot')
+        forvalues h = 0/4 {
+            local ifhigh sample==1 & `riv'==0 & (`Dv'==0 | (`Dv'==1 & high_png==1))
+            local iflow  sample==1 & `riv'==0 & (`Dv'==0 | (`Dv'==1 & high_png==0))
 
-        if r(ok) {
-            local BH = r(bh)
-            local BL = r(bl)
-            local AH = r(ah)
-            local AL = r(al)
-            local BSEH = r(bseh)
-            local BSEL = r(bsel)
-            local DH = r(dh)
-            local SE = r(se)
-            local LO = r(lo)
-            local HI = r(hi)
-            local ND = r(nboot)
-            local NH = r(nh)
-            local NL = r(nl)
+            quietly count if `Dv'==1 & high_png==1 & sample==1 & `riv'==0
+            local ntrh = r(N)
+            quietly count if `Dv'==1 & high_png==0 & sample==1 & `riv'==0
+            local ntrl = r(N)
 
-            post `R' ("`part'") ("low")  (`h'+1) (`BL') (`BSEL') (`BL'-1.96*`BSEL') (`BL'+1.96*`BSEL') (`ntrl') (`NL')
-            post `R' ("`part'") ("high") (`h'+1) (`BH') (`BSEH') (`BH'-1.96*`BSEH') (`BH'+1.96*`BSEH') (`ntrh') (`NH')
+            _lpdiffboot_hl, y(`ystem'_`h') d(`Dv') ifhigh(`ifhigh') iflow(`iflow') ///
+                ctrl(`om') reps(`nboot')
 
-            local zz = r(cloggz)
-            local pz = r(cloggp)
-            post `D' ("`part'") (`h'+1) (`DH') (`BH') (`BL') (`SE') (`LO') (`HI') (`ND') (`zz') (`pz')
+            if r(ok) {
+                local BH = r(bh)
+                local BL = r(bl)
+                local AH = r(ah)
+                local AL = r(al)
+                local BSEH = r(bseh)
+                local BSEL = r(bsel)
+                local DH = r(dh)
+                local SE = r(se)
+                local LO = r(lo)
+                local HI = r(hi)
+                local ND = r(nboot)
+                local NH = r(nh)
+                local NL = r(nl)
 
-            local tlo  = cond(`BSEL'>0, `BL'/`BSEL', .)
-            local plo  = cond(!missing(`tlo'), 2*(1-normal(abs(`tlo'))), .)
-            local sglo = cond(missing(`plo'), "", cond(`plo'<.01,"***",cond(`plo'<.05,"**",cond(`plo'<.10,"*",""))))
-            local thi  = cond(`BSEH'>0, `BH'/`BSEH', .)
-            local phi  = cond(!missing(`thi'), 2*(1-normal(abs(`thi'))), .)
-            local sghi = cond(missing(`phi'), "", cond(`phi'<.01,"***",cond(`phi'<.05,"**",cond(`phi'<.10,"*",""))))
-            local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
+                post `R' ("`ocl'") ("`part'") ("low")  (`h'+1) (`BL') (`BSEL') (`BL'-1.96*`BSEL') (`BL'+1.96*`BSEL') (`ntrl') (`NL')
+                post `R' ("`ocl'") ("`part'") ("high") (`h'+1) (`BH') (`BSEH') (`BH'-1.96*`BSEH') (`BH'+1.96*`BSEH') (`ntrh') (`NH')
 
-            di "    " %1.0f `h'+1 "  " %8.3f `BL' "`sglo'" " (" %5.3f `BSEL' ")  " ///
-               %8.3f `BH' "`sghi'" " (" %5.3f `BSEH' ")  " %8.3f `DH' ///
-               " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
-               " " %7.3f `zz' " " %5.3f `pz'
+                local zz = r(cloggz)
+                local pz = r(cloggp)
+                post `D' ("`ocl'") ("`part'") (`h'+1) (`DH') (`BH') (`BL') (`SE') (`LO') (`HI') (`ND') (`zz') (`pz')
+
+                local tlo  = cond(`BSEL'>0, `BL'/`BSEL', .)
+                local plo  = cond(!missing(`tlo'), 2*(1-normal(abs(`tlo'))), .)
+                local sglo = cond(missing(`plo'), "", cond(`plo'<.01,"***",cond(`plo'<.05,"**",cond(`plo'<.10,"*",""))))
+                local thi  = cond(`BSEH'>0, `BH'/`BSEH', .)
+                local phi  = cond(!missing(`thi'), 2*(1-normal(abs(`thi'))), .)
+                local sghi = cond(missing(`phi'), "", cond(`phi'<.01,"***",cond(`phi'<.05,"**",cond(`phi'<.10,"*",""))))
+                local sig = cond(`ND'>=50 & !missing(`LO') & (`LO'>0 | `HI'<0), " *", "  ")
+
+                di "    " %1.0f `h'+1 "  " %8.3f `BL' "`sglo'" " (" %5.3f `BSEL' ")  " ///
+                   %8.3f `BH' "`sghi'" " (" %5.3f `BSEH' ")  " %8.3f `DH' ///
+                   " [" %7.3f `LO' ", " %7.3f `HI' "]`sig'" ///
+                   " " %7.3f `zz' " " %5.3f `pz'
+            }
+            else di as error "    h=" `h'+1 ": estimate failed (too thin)."
         }
-        else di as error "    h=" `h'+1 ": estimate failed (too thin)."
     }
 }
 postclose `R'
 postclose `D'
 
 * ══════════════════════════════════════════════════════════════════════════
-* EXPORT -- CSV
+* EXPORT -- CSV (now outcome x part x level x horizon; part=="def" absent
+*   from the data entirely while the def cell above stays muted)
 * ══════════════════════════════════════════════════════════════════════════
 preserve
     use "`diff_resf'", clear
-    label var dhl "AIPW-style OLS (high - low PNG/GDP exposure) difference, GDP (pp)"
+    label var dhl "AIPW-style OLS (high - low PNG/GDP exposure) difference (pp)"
     label var bhi "High-exposure onset coefficient"
     label var blo "Low-exposure onset coefficient"
     label var lo  "95% CI lower (row bootstrap)"
@@ -417,19 +469,19 @@ preserve
     label var cloggp "p-value of the Clogg z"
     gen byte sig95 = (nd>=50 & (lo>0 | hi<0))
     label var sig95 "Bootstrap CI excludes 0 (governing test)"
-    order part horizon dhl bhi blo se lo hi nd sig95 cloggz cloggp
+    order outcome part horizon dhl bhi blo se lo hi nd sig95 cloggz cloggp
     save "`diff_resf'", replace
 restore
 
 preserve
     use "`resf'", clear
-    label var b  "OLS coefficient on onset dummy, GDP (pp)"
+    label var b  "OLS coefficient on onset dummy (pp)"
     label var se "Row-bootstrap SE"
     label var lo "95% CI lower = b - 1.96*se (bootstrap)"
     label var hi "95% CI upper = b + 1.96*se (bootstrap)"
     label var ntreat "Treated onsets in cell"
     label var nobs   "Observations in this cell's own regression sample"
-    order part level horizon b se lo hi ntreat nobs
+    order outcome part level horizon b se lo hi ntreat nobs
     tempfile levf
     save `levf'
 restore
@@ -448,33 +500,39 @@ restore
 di as result _n "Results CSV saved: $tabs/png_stock_gdp_exposure.csv"
 
 * ══════════════════════════════════════════════════════════════════════════
-* FIGURE -- 2-panel (nd, def), high (orange) vs low (green) exposure
+* FIGURE -- one per outcome (credit, inv, gdp), ND arm only while def stays
+*   muted; high (orange) vs low (green) exposure. No by()-panel needed
+*   since only one resolution type is estimated right now -- a plain
+*   twoway per outcome, not 13d's by(partid) grid (that returns once the
+*   def arm is restored).
 * ══════════════════════════════════════════════════════════════════════════
 preserve
     use `levf', clear
-    gen byte partid = 1 if part=="nd"
-    replace partid = 2 if part=="def"
-    label define pl2 1 "Non-default" 2 "Default-linked"
-    label values partid pl2
-
     local c_hi "230 126 34"
     local c_lo "34 139 34"
-    capture twoway ///
-        (rarea lo hi horizon if level=="high", color("`c_hi'%16") lwidth(none)) ///
-        (rarea lo hi horizon if level=="low",  color("`c_lo'%16") lwidth(none)) ///
-        (connected b horizon if level=="high", lcolor("`c_hi'") lwidth(medthick) msymbol(square)) ///
-        (connected b horizon if level=="low",  lcolor("`c_lo'") lwidth(medthick) msymbol(circle)), ///
-        by(partid, yrescale legend(off) note("") graphregion(color(white)) title("GDP", size(medlarge) color(navy))) ///
-        yline(0, lpattern(dash) lcolor(gs8)) ///
-        xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
-        xtitle("Year", size(medium)) ///
-        ytitle("Cumulative percent change", size(medsmall)) ///
-        graphregion(color(white)) plotregion(color(white))
-    if _rc == 0 {
-        graph export "$figs/fig_png_stock_gdp_exposure.pdf", replace
-        di as result "Figure saved: fig_png_stock_gdp_exposure.pdf"
+    foreach oc in credit inv gdp {
+        if "`oc'" == "credit" local ptit "Bank credit"
+        if "`oc'" == "inv"    local ptit "Investment"
+        if "`oc'" == "gdp"    local ptit "GDP"
+        local fnm "fig_png_stock_gdp_`oc'"
+        capture twoway ///
+            (rarea lo hi horizon if level=="high" & outcome=="`oc'" & part=="nd", color("`c_hi'%16") lwidth(none)) ///
+            (rarea lo hi horizon if level=="low"  & outcome=="`oc'" & part=="nd", color("`c_lo'%16") lwidth(none)) ///
+            (connected b horizon if level=="high" & outcome=="`oc'" & part=="nd", lcolor("`c_hi'") lwidth(medthick) msymbol(square)) ///
+            (connected b horizon if level=="low"  & outcome=="`oc'" & part=="nd", lcolor("`c_lo'") lwidth(medthick) msymbol(circle)), ///
+            yline(0, lpattern(dash) lcolor(gs8)) ///
+            xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
+            xtitle("Year", size(medium)) ///
+            ytitle("Cumulative percent change", size(medsmall)) ///
+            title("`ptit' (non-default, PNG/GDP exposure split)", size(medlarge) color(navy)) ///
+            legend(order(3 "High exposure" 4 "Low exposure") position(6) rows(1) size(small)) ///
+            graphregion(color(white)) plotregion(color(white))
+        if _rc == 0 {
+            graph export "$figs/`fnm'.pdf", replace
+            di as result "Figure saved: `fnm'.pdf"
+        }
+        else di as error "  ** `fnm' failed (rc=" _rc ")"
     }
-    else di as error "  ** figure failed (rc=" _rc ")"
 restore
 
 di as result _n "29_png_stock_gdp_exposure.do complete. EXPLORATORY/ROBUSTNESS ONLY -- not wired"
