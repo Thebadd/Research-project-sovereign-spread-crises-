@@ -876,6 +876,26 @@ program define _starstr3, rclass
     return local stars "`s'"
 end
 
+* ══════════════════════════════════════════════════════════════════════════
+* PROGRAM — writes ONE genuine RTF table row (6 bordered cells: label + h=1..5)
+* to the already-open file handle t3tab. Replaces the old \tab-separated-text
+* approach (readable as plain text but NOT a real Word table object) so the
+* RTF opens in Word as an actual bordered table that can be selected/copied
+* as a table, matching the format the user asked for.
+* ══════════════════════════════════════════════════════════════════════════
+capture program drop _rtfrow6
+program define _rtfrow6
+    syntax , C1(string) C2(string) C3(string) C4(string) C5(string) C6(string) [BOLD ITAL SHADE]
+    local bd "\clbrdrt\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrr\brdrs\brdrw10"
+    local sh = cond("`shade'"=="shade", "\clshdng10000\clcbpat22", "")
+    local rowdef "\trowd\trgaph80\trleft-108`sh'`bd'\cellx2600`sh'`bd'\cellx3880`sh'`bd'\cellx5160`sh'`bd'\cellx6440`sh'`bd'\cellx7720`sh'`bd'\cellx9000"
+    local os = cond("`bold'"=="bold", "\b ", "") + cond("`ital'"=="ital", "\i ", "")
+    local oe = cond("`bold'"=="bold" | "`ital'"=="ital", "\b0\i0 ", "")
+    file write t3tab "`rowdef'" _n
+    file write t3tab "\pard\intbl\qc {`os'`c1'`oe'}\cell {`os'`c2'`oe'}\cell {`os'`c3'`oe'}\cell {`os'`c4'`oe'}\cell {`os'`c5'`oe'}\cell {`os'`c6'`oe'}\cell " _n
+    file write t3tab "\row" _n
+end
+
 foreach oc in gdp credit inv claims_govt {
     if      "`oc'" == "gdp"          local otit "GDP"
     else if "`oc'" == "credit"       local otit "Bank credit"
@@ -914,8 +934,10 @@ foreach oc in gdp credit inv claims_govt {
     file write t3tab " for Clogg z, row-bootstrap for the CI, regardless of which file). Bracket row = bootstrap" _n
     file write t3tab " 95% CI (single-tier *); parenthesis row below = Clogg et al. (1995) z, 3-tier stars.\par}" _n
     file write t3tab "\par" _n
-    file write t3tab "\tab h = 1\tab h = 2\tab h = 3\tab h = 4\tab h = 5\par" _n
-    file write t3tab "\par" _n
+
+    * ── Real RTF table, built row by row via _rtfrow6 (bordered cells, opens
+    * in Word as an actual table object -- not tab-separated text). ─────────
+    _rtfrow6, c1("") c2("h = 1") c3("h = 2") c4("h = 3") c5("h = 4") c6("h = 5") bold shade
 
     * ── Level rows: def,high / def,low / nd,high / nd,low ──────────────────
     foreach key in "def high Default-linked, High nexus" ///
@@ -926,10 +948,24 @@ foreach oc in gdp credit inv claims_govt {
         gettoken bk  key : key
         local lbl `key'
         use `t3lev', clear
-        file write t3tab "{\b `lbl'}\par" _n
-        local coefline ""
-        local seline ""
-        local ocline ""
+
+        _rtfrow6, c1(`"`lbl'"') c2("") c3("") c4("") c5("") c6("") bold shade
+
+        local c1 ""
+        local c2 ""
+        local c3 ""
+        local c4 ""
+        local c5 ""
+        local seC1 ""
+        local seC2 ""
+        local seC3 ""
+        local seC4 ""
+        local seC5 ""
+        local ocC1 ""
+        local ocC2 ""
+        local ocC3 ""
+        local ocC4 ""
+        local ocC5 ""
         forvalues h = 1/5 {
             quietly summarize b if part=="`pt'" & bank=="`bk'" & horizon==`h', meanonly
             local bb = r(mean)
@@ -951,23 +987,30 @@ foreach oc in gdp credit inv claims_govt {
             local estr : display %4.0f `ee'
             local ostr : display %5.0f `oo'
             local cstr : display %3.0f `cc'
-            local coefline "`coefline'\tab `bstr'`st'"
-            local seline   "`seline'\tab (`sestr')"
-            local ocline   "`ocline'\tab `ostr'/`cstr'/`estr'"
+            local c`h'   "`bstr'`st'"
+            local seC`h' "(`sestr')"
+            local ocC`h' "`ostr'/`cstr'/`estr'"
         }
-        file write t3tab "`coefline'\par" _n
-        file write t3tab "`seline'\par" _n
-        file write t3tab "Observations/Countries/Episodes`ocline'\par" _n
-        file write t3tab "\par" _n
+        _rtfrow6, c1("Coefficient") c2("`c1'") c3("`c2'") c4("`c3'") c5("`c4'") c6("`c5'")
+        _rtfrow6, c1("") c2("`seC1'") c3("`seC2'") c4("`seC3'") c5("`seC4'") c6("`seC5'") ital
+        _rtfrow6, c1("Obs./Countries/Episodes") c2("`ocC1'") c3("`ocC2'") c4("`ocC3'") c5("`ocC4'") c6("`ocC5'") ital
     }
 
     * ── Differences: HIGH - LOW within each resolution type ────────────────
-    file write t3tab "Differences between the estimated coefficients, [bootstrap 95% CI] (Clogg et al.'s z)\par" _n
+    _rtfrow6, c1("Differences between coefficients") c2("[bootstrap 95% CI]") c3("") c4("") c5("") c6("(Clogg et al.'s z)") bold shade
     foreach pt in def nd {
         local lbl = cond("`pt'"=="def", "Default-linked: High - Low", "Non-default: High - Low")
         use `t3hl', clear
-        local ciline ""
-        local zline ""
+        local ci1 ""
+        local ci2 ""
+        local ci3 ""
+        local ci4 ""
+        local ci5 ""
+        local z1 ""
+        local z2 ""
+        local z3 ""
+        local z4 ""
+        local z5 ""
         forvalues h = 1/5 {
             quietly summarize lo if part=="`pt'" & horizon==`h', meanonly
             local ll = r(mean)
@@ -985,21 +1028,27 @@ foreach oc in gdp credit inv claims_govt {
             local lls : display %5.1f `ll'
             local hhs : display %5.1f `hh'
             local zzs : display %6.2f `zz'
-            local ciline "`ciline'\tab [`lls', `hhs']`cist'"
-            local zline  "`zline'\tab (`zzs')`zst'"
+            local ci`h' "[`lls', `hhs']`cist'"
+            local z`h'  "(`zzs')`zst'"
         }
-        file write t3tab "{\i `lbl'}\par" _n
-        file write t3tab "`ciline'\par" _n
-        file write t3tab "`zline'\par" _n
-        file write t3tab "\par" _n
+        _rtfrow6, c1(`"`lbl'"') c2("`ci1'") c3("`ci2'") c4("`ci3'") c5("`ci4'") c6("`ci5'")
+        _rtfrow6, c1("") c2("`z1'") c3("`z2'") c4("`z3'") c5("`z4'") c6("`z5'") ital
     }
 
     * ── Differences: DEF - ND within each exposure level ────────────────────
     foreach bk in high low {
         local lbl = cond("`bk'"=="high", "High nexus: Default-linked - Non-default", "Low nexus: Default-linked - Non-default")
         use `t3dn', clear
-        local ciline ""
-        local zline ""
+        local ci1 ""
+        local ci2 ""
+        local ci3 ""
+        local ci4 ""
+        local ci5 ""
+        local z1 ""
+        local z2 ""
+        local z3 ""
+        local z4 ""
+        local z5 ""
         forvalues h = 1/5 {
             quietly summarize lo if bank=="`bk'" & horizon==`h', meanonly
             local ll = r(mean)
@@ -1017,19 +1066,18 @@ foreach oc in gdp credit inv claims_govt {
             local lls : display %5.1f `ll'
             local hhs : display %5.1f `hh'
             local zzs : display %6.2f `zz'
-            local ciline "`ciline'\tab [`lls', `hhs']`cist'"
-            local zline  "`zline'\tab (`zzs')`zst'"
+            local ci`h' "[`lls', `hhs']`cist'"
+            local z`h'  "(`zzs')`zst'"
         }
-        file write t3tab "{\i `lbl'}\par" _n
-        file write t3tab "`ciline'\par" _n
-        file write t3tab "`zline'\par" _n
-        file write t3tab "\par" _n
+        _rtfrow6, c1(`"`lbl'"') c2("`ci1'") c3("`ci2'") c4("`ci3'") c5("`ci4'") c6("`ci5'")
+        _rtfrow6, c1("") c2("`z1'") c3("`z2'") c4("`z3'") c5("`z4'") c6("`z5'") ital
     }
 
+    file write t3tab "\pard\par" _n
     file write t3tab "{\i * bootstrap 95% CI excludes 0. Clogg z stars: * p<0.10, ** p<0.05, *** p<0.01.\par}" _n
     file write t3tab "}" _n
     file close t3tab
-    di as result "Table 3-style layout saved: $tabs/table3_nexus_split_`oc'_analyticSE.rtf"
+    di as result "Table 3-style layout saved (real RTF table): $tabs/table3_nexus_split_`oc'_analyticSE.rtf"
 }
 
 di as result _n "13d_aipw_nexus_split_analyticSE.do complete (paper-aligned SE duplicate)."
