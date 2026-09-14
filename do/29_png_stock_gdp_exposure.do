@@ -304,7 +304,7 @@ foreach cell in "nd onset_nd onset_def" "def onset_def onset_nd" {
 
     post `R' ("`part'") ("low")  (0) (0) (0) (0) (0) (0) (0)
     post `R' ("`part'") ("high") (0) (0) (0) (0) (0) (0) (0)
-    post `D' ("`part'") (0) (0) (0) (0) (0) (0) (0) (.) (.)
+    post `D' ("`part'") (0) (0) (0) (0) (0) (0) (0) (0) (.) (.)
 
     forvalues h = 0/4 {
         local ifhigh sample==1 & `riv'==0 & (`Dv'==0 | (`Dv'==1 & high_png==1))
