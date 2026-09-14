@@ -316,7 +316,7 @@ foreach cell in "nd onset_nd onset_def" "def onset_def onset_nd" {
         local ntrl = r(N)
 
         _lpdiffboot_hl, y(dy_`h') d(`Dv') ifhigh(`ifhigh') iflow(`iflow') ///
-            ctrl(`ctrl_core') reps(`nboot')
+            ctrl($ctrl_core) reps(`nboot')
 
         if r(ok) {
             local BH = r(bh)
