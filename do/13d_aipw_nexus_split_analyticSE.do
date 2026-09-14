@@ -768,6 +768,14 @@ label values partid pl
 * mistake a high/low-nexus panel for a default/non-default one at a
 * glance. Everything else (rarea CI bands, connected lines, marker-matches-
 * line-color, no legend) matches the OLS/AIPW IRF style exactly.
+* CONSTRUCTION, ALIGNED WITH 03/12/08b/13c (per explicit request): each
+* panel (resolution type: nd, def) is its OWN named twoway, merged via
+* `graph combine' -- NOT Stata's by() faceting. 13c_aipw_channels.do's own
+* header (Figure B section) documents exactly why: by() "gives less
+* control over per-panel spacing/sizing and reads differently from the
+* rest of the project's figures." Rebuilt here so this figure's panel
+* layout mechanism matches the OLS/AIPW combined figures exactly, not just
+* its colors/size/background.
 local c_hi "230 126 34"   // high nexus = orange
 local c_lo "34 139 34"    // low  nexus = green
 foreach oc in gdp credit inv claims_govt {
@@ -787,23 +795,38 @@ foreach oc in gdp credit inv claims_govt {
         local ptit "Bank claims on government"
         local fnm  "fig_nexus_`oc'_analyticSE"
     }
-    capture twoway ///
-        (rarea lo hi horizon if bank=="high" & outcome=="`oc'", color("`c_hi'%16") lwidth(none)) ///
-        (rarea lo hi horizon if bank=="low"  & outcome=="`oc'", color("`c_lo'%16") lwidth(none)) ///
-        (connected b horizon if bank=="high" & outcome=="`oc'", lcolor("`c_hi'") lwidth(medthick) msymbol(square)) ///
-        (connected b horizon if bank=="low"  & outcome=="`oc'", lcolor("`c_lo'") lwidth(medthick) msymbol(circle)), ///
-        by(partid, yrescale xrescale legend(off) note("") graphregion(color(white)) title("`ptit'", size(medlarge) color(navy))) ///
-        yline(0, lpattern(dash) lcolor(gs8)) ///
-        xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
-        xtitle("Year", size(medium)) ///
-        ytitle("Cumulative percent change", size(medsmall)) ///
-        graphregion(color(white)) plotregion(color(white)) ///
-        xsize(12) ysize(5.5)
+    local pi = 1
+    foreach pt in nd def {
+        local ptlab = cond("`pt'"=="nd", "Non-default", "Default-linked")
+        * Y-axis title shown only on the left panel (cols(2): panel 1) --
+        * not repeated on every panel, matching 03/12/08b/13c's own rule.
+        local ytit ""
+        if `pi' == 1 local ytit "Cumulative percent change"
+        capture twoway ///
+            (rarea lo hi horizon if bank=="high" & outcome=="`oc'" & part=="`pt'", color("`c_hi'%16") lwidth(none)) ///
+            (rarea lo hi horizon if bank=="low"  & outcome=="`oc'" & part=="`pt'", color("`c_lo'%16") lwidth(none)) ///
+            (connected b horizon if bank=="high" & outcome=="`oc'" & part=="`pt'", lcolor("`c_hi'") lwidth(medthick) msymbol(square)) ///
+            (connected b horizon if bank=="low"  & outcome=="`oc'" & part=="`pt'", lcolor("`c_lo'") lwidth(medthick) msymbol(circle)), ///
+            yline(0, lpattern(dash) lcolor(gs8)) ///
+            xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
+            xtitle("Year", size(medium)) ///
+            ytitle("`ytit'", size(medsmall)) ///
+            title("`ptlab'", size(medlarge) color(navy)) legend(off) ///
+            graphregion(color(white)) plotregion(color(white)) ///
+            name(nexus1_`pi', replace)
+        local ++pi
+    }
+    capture graph combine nexus1_1 nexus1_2, ///
+        cols(2) rows(1) graphregion(color(white)) ///
+        title("`ptit'", size(medlarge) color(navy)) xsize(12) ysize(5.5)
     if _rc == 0 {
         graph export "$figs/`fnm'.pdf", replace
         di as result "Figure saved: `fnm'.pdf"
     }
     else di as error "  ** `fnm' failed (rc=" _rc ")"
+    forvalues p = 1/2 {
+        capture graph drop nexus1_`p'
+    }
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -817,6 +840,9 @@ replace bankid = 2 if bank=="low"
 label define bl 1 "High nexus" 2 "Low nexus"
 label values bankid bl
 
+* CONSTRUCTION, ALIGNED WITH 03/12/08b/13c (same rebuild as the figure
+* above, per explicit request) -- named panels (high nexus, low nexus)
+* merged via `graph combine', not by().
 local c_nd  "blue"
 local c_def "red"
 foreach oc in gdp credit inv claims_govt {
@@ -836,23 +862,36 @@ foreach oc in gdp credit inv claims_govt {
         local ptit "Bank claims on government"
         local fnm  "fig_nexus_`oc'_byexposure_analyticSE"
     }
-    capture twoway ///
-        (rarea lo hi horizon if part=="nd"  & outcome=="`oc'", color("`c_nd'%16")  lwidth(none)) ///
-        (rarea lo hi horizon if part=="def" & outcome=="`oc'", color("`c_def'%16") lwidth(none)) ///
-        (connected b horizon if part=="nd"  & outcome=="`oc'", lcolor("`c_nd'")  lwidth(medthick) msymbol(circle)) ///
-        (connected b horizon if part=="def" & outcome=="`oc'", lcolor("`c_def'") lwidth(medthick) msymbol(square)), ///
-        by(bankid, yrescale xrescale legend(off) note("") graphregion(color(white)) title("`ptit'", size(medlarge) color(navy))) ///
-        yline(0, lpattern(dash) lcolor(gs8)) ///
-        xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
-        xtitle("Year", size(medium)) ///
-        ytitle("Cumulative percent change", size(medsmall)) ///
-        graphregion(color(white)) plotregion(color(white)) ///
-        xsize(12) ysize(5.5)
+    local pi = 1
+    foreach bk in high low {
+        local bklab = cond("`bk'"=="high", "High nexus", "Low nexus")
+        local ytit ""
+        if `pi' == 1 local ytit "Cumulative percent change"
+        capture twoway ///
+            (rarea lo hi horizon if part=="nd"  & outcome=="`oc'" & bank=="`bk'", color("`c_nd'%16")  lwidth(none)) ///
+            (rarea lo hi horizon if part=="def" & outcome=="`oc'" & bank=="`bk'", color("`c_def'%16") lwidth(none)) ///
+            (connected b horizon if part=="nd"  & outcome=="`oc'" & bank=="`bk'", lcolor("`c_nd'")  lwidth(medthick) msymbol(circle)) ///
+            (connected b horizon if part=="def" & outcome=="`oc'" & bank=="`bk'", lcolor("`c_def'") lwidth(medthick) msymbol(square)), ///
+            yline(0, lpattern(dash) lcolor(gs8)) ///
+            xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
+            xtitle("Year", size(medium)) ///
+            ytitle("`ytit'", size(medsmall)) ///
+            title("`bklab'", size(medlarge) color(navy)) legend(off) ///
+            graphregion(color(white)) plotregion(color(white)) ///
+            name(nexus2_`pi', replace)
+        local ++pi
+    }
+    capture graph combine nexus2_1 nexus2_2, ///
+        cols(2) rows(1) graphregion(color(white)) ///
+        title("`ptit'", size(medlarge) color(navy)) xsize(12) ysize(5.5)
     if _rc == 0 {
         graph export "$figs/`fnm'.pdf", replace
         di as result "Figure saved: `fnm'.pdf"
     }
     else di as error "  ** `fnm' failed (rc=" _rc ")"
+    forvalues p = 1/2 {
+        capture graph drop nexus2_`p'
+    }
 }
 
 * ══════════════════════════════════════════════════════════════════════════
