@@ -698,8 +698,40 @@ foreach oc in "gdp dy" "credit ch_credit" "inv ch_inv" "claims_govt ch_claims_go
 }
 postclose `D2'
 
+* ══════════════════════════════════════════════════════════════════════════
+* CHECKPOINT — save the three raw estimation results to disk, so PART B
+* below (CSV/figure/Table-3-RTF export -- everything from here to the end
+* of the file) can be re-run INDEPENDENTLY afterward, without re-running
+* the bootstrap estimation above (the slow part). Once this checkpoint
+* exists, re-run Part B alone any time the export/table formatting needs
+* adjusting -- select from the "PART B" banner below to the end of the
+* file and run the selection.
+* ══════════════════════════════════════════════════════════════════════════
+preserve
+    use "`resf'", clear
+    save "$clean/_13d_nexus_analyticSE_resf.dta", replace
+restore
+preserve
+    use "`diff_resf'", clear
+    save "$clean/_13d_nexus_analyticSE_diffresf.dta", replace
+restore
 preserve
     use "`diff2_resf'", clear
+    save "$clean/_13d_nexus_analyticSE_diff2resf.dta", replace
+restore
+di as result _n "Checkpoint saved: \$clean/_13d_nexus_analyticSE_{resf,diffresf,diff2resf}.dta"
+di as result "PART B (export below) can now be re-run independently -- select from the"
+di as result "'PART B' banner to the end of the file and run the selection, any time."
+
+* ══════════════════════════════════════════════════════════════════════════
+* PART B — EXPORT (CSV + figures + Table 3 RTF). Self-contained from here:
+*   reads the checkpoint files saved above instead of the in-memory
+*   tempfiles, so this whole section can be re-run on its own (e.g. after a
+*   formatting fix) without re-running Part A's bootstrap estimation.
+*   Requires Part A (above) to have been run at least once already.
+* ══════════════════════════════════════════════════════════════════════════
+preserve
+    use "$clean/_13d_nexus_analyticSE_diff2resf.dta", clear
     label var ddef "AIPW (default - non-default) difference, within this exposure level (pp)"
     label var bdef "Default-linked ATE, this exposure level"
     label var bnd  "Non-default ATE, this exposure level"
@@ -720,7 +752,7 @@ restore
 * ══════════════════════════════════════════════════════════════════════════
 * (b) HIGH - LOW difference table: dhl = point gap, [lo,hi] = bootstrap 95% CI;
 *     a CI excluding 0 means the nexus effect differs significantly by cell.
-use "`diff_resf'", clear
+use "$clean/_13d_nexus_analyticSE_diffresf.dta", clear
 label var dhl "AIPW (high - low nexus) difference (pp)"
 label var bhi "High-nexus ATE"
 label var blo "Low-nexus ATE"
@@ -737,7 +769,7 @@ di as result _n "Nexus high-low DIFFERENCE CSV saved: $tabs/aipw_nexus_diff_anal
 di as result "(the high-low difference bootstrap itself is UNCHANGED from"
 di as result " 13d_aipw_nexus_split.do -- only written under a separate name)"
 
-use "`resf'", clear
+use "$clean/_13d_nexus_analyticSE_resf.dta", clear
 label var b  "AIPW ATE on outcome (pp)"
 label var se "Analytic (unclustered influence-function) SE, matching the paper's own formula (this duplicate only)"
 label var lo "95% CI lower = b - 1.96*se (analytic)"
@@ -944,19 +976,19 @@ foreach oc in gdp credit inv claims_govt {
     else if "`oc'" == "claims_govt"  local otit "Bank claims on government"
 
     preserve
-        use "`resf'", clear
+        use "$clean/_13d_nexus_analyticSE_resf.dta", clear
         keep if outcome=="`oc'" & horizon>0
         tempfile t3lev
         save `t3lev'
     restore
     preserve
-        use "`diff_resf'", clear
+        use "$clean/_13d_nexus_analyticSE_diffresf.dta", clear
         keep if outcome=="`oc'" & horizon>0
         tempfile t3hl
         save `t3hl'
     restore
     preserve
-        use "`diff2_resf'", clear
+        use "$clean/_13d_nexus_analyticSE_diff2resf.dta", clear
         keep if outcome=="`oc'" & horizon>0
         tempfile t3dn
         save `t3dn'
