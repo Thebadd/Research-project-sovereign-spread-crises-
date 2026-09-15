@@ -978,7 +978,7 @@ foreach oc in gdp credit inv claims_govt {
 
     * ── Real RTF table, built row by row via _rtfrow6 (bordered cells, opens
     * in Word as an actual table object -- not tab-separated text). ─────────
-    _rtfrow6, c1("") c2("h = 1") c3("h = 2") c4("h = 3") c5("h = 4") c6("h = 5") bold shade
+    _rtfrow6, c1(`""') c2(`"h = 1"') c3(`"h = 2"') c4(`"h = 3"') c5(`"h = 4"') c6(`"h = 5"') bold shade
 
     * ── Level rows: def,high / def,low / nd,high / nd,low ──────────────────
     foreach key in "def high Default-linked, High nexus" ///
@@ -990,7 +990,7 @@ foreach oc in gdp credit inv claims_govt {
         local lbl `key'
         use `t3lev', clear
 
-        _rtfrow6, c1(`"`lbl'"') c2("") c3("") c4("") c5("") c6("") bold shade
+        _rtfrow6, c1(`"`lbl'"') c2(`""') c3(`""') c4(`""') c5(`""') c6(`""') bold shade
 
         local c1 ""
         local c2 ""
@@ -1032,13 +1032,13 @@ foreach oc in gdp credit inv claims_govt {
             local seC`h' "(`sestr')"
             local ocC`h' "`ostr'/`cstr'/`estr'"
         }
-        _rtfrow6, c1("Coefficient") c2("`c1'") c3("`c2'") c4("`c3'") c5("`c4'") c6("`c5'")
-        _rtfrow6, c1("") c2("`seC1'") c3("`seC2'") c4("`seC3'") c5("`seC4'") c6("`seC5'") ital
-        _rtfrow6, c1("Obs./Countries/Episodes") c2("`ocC1'") c3("`ocC2'") c4("`ocC3'") c5("`ocC4'") c6("`ocC5'") ital
+        _rtfrow6, c1(`"Coefficient"') c2(`"`c1'"') c3(`"`c2'"') c4(`"`c3'"') c5(`"`c4'"') c6(`"`c5'"')
+        _rtfrow6, c1(`""') c2(`"`seC1'"') c3(`"`seC2'"') c4(`"`seC3'"') c5(`"`seC4'"') c6(`"`seC5'"') ital
+        _rtfrow6, c1(`"Obs./Countries/Episodes"') c2(`"`ocC1'"') c3(`"`ocC2'"') c4(`"`ocC3'"') c5(`"`ocC4'"') c6(`"`ocC5'"') ital
     }
 
     * ── Differences: HIGH - LOW within each resolution type ────────────────
-    _rtfrow6, c1("Differences between coefficients") c2("[bootstrap 95% CI]") c3("") c4("") c5("") c6("(Clogg et al.'s z)") bold shade
+    _rtfrow6, c1(`"Differences between coefficients"') c2(`"[bootstrap 95% CI]"') c3(`""') c4(`""') c5(`""') c6(`"(Clogg et al.'s z)"') bold shade
     foreach pt in def nd {
         local lbl = cond("`pt'"=="def", "Default-linked: High - Low", "Non-default: High - Low")
         use `t3hl', clear
@@ -1072,8 +1072,8 @@ foreach oc in gdp credit inv claims_govt {
             local ci`h' "[`lls', `hhs']`cist'"
             local z`h'  "(`zzs')`zst'"
         }
-        _rtfrow6, c1(`"`lbl'"') c2("`ci1'") c3("`ci2'") c4("`ci3'") c5("`ci4'") c6("`ci5'")
-        _rtfrow6, c1("") c2("`z1'") c3("`z2'") c4("`z3'") c5("`z4'") c6("`z5'") ital
+        _rtfrow6, c1(`"`lbl'"') c2(`"`ci1'"') c3(`"`ci2'"') c4(`"`ci3'"') c5(`"`ci4'"') c6(`"`ci5'"')
+        _rtfrow6, c1(`""') c2(`"`z1'"') c3(`"`z2'"') c4(`"`z3'"') c5(`"`z4'"') c6(`"`z5'"') ital
     }
 
     * ── Differences: DEF - ND within each exposure level ────────────────────
@@ -1110,8 +1110,8 @@ foreach oc in gdp credit inv claims_govt {
             local ci`h' "[`lls', `hhs']`cist'"
             local z`h'  "(`zzs')`zst'"
         }
-        _rtfrow6, c1(`"`lbl'"') c2("`ci1'") c3("`ci2'") c4("`ci3'") c5("`ci4'") c6("`ci5'")
-        _rtfrow6, c1("") c2("`z1'") c3("`z2'") c4("`z3'") c5("`z4'") c6("`z5'") ital
+        _rtfrow6, c1(`"`lbl'"') c2(`"`ci1'"') c3(`"`ci2'"') c4(`"`ci3'"') c5(`"`ci4'"') c6(`"`ci5'"')
+        _rtfrow6, c1(`""') c2(`"`z1'"') c3(`"`z2'"') c4(`"`z3'"') c5(`"`z4'"') c6(`"`z5'"') ital
     }
 
     file write t3tab "\pard\par" _n
