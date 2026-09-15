@@ -843,7 +843,7 @@ foreach oc in gdp credit inv claims_govt {
             xlabel(0(1)5, labsize(large)) ylabel(, labsize(large) angle(horizontal)) ///
             xtitle("Year", size(large)) ///
             ytitle("`ytit'", size(medlarge)) ///
-            title("`ptlab'", size(large) color(navy)) legend(off) ///
+            title("`ptlab'", size(vlarge) color(navy)) legend(off) ///
             graphregion(color(white)) plotregion(color(white)) ///
             name(nexus1_`pi', replace)
         local ++pi
@@ -908,7 +908,7 @@ foreach oc in gdp credit inv claims_govt {
             xlabel(0(1)5, labsize(large)) ylabel(, labsize(large) angle(horizontal)) ///
             xtitle("Year", size(large)) ///
             ytitle("`ytit'", size(medlarge)) ///
-            title("`bklab'", size(large) color(navy)) legend(off) ///
+            title("`bklab'", size(vlarge) color(navy)) legend(off) ///
             graphregion(color(white)) plotregion(color(white)) ///
             name(nexus2_`pi', replace)
         local ++pi
