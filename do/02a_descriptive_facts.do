@@ -1,0 +1,747 @@
+/*===========================================================================
+  02A_DESCRIPTIVE_FACTS.DO
+  Stylised facts: the raw GDP and transmission-channel paths around a spread
+  crisis, before any conditioning. Runs BEFORE the local projections and is
+  the figure the Data section of the paper leads with.
+
+  WHY THIS EXISTS
+  ---------------
+  Every estimate in this paper is conditional: country and year fixed effects,
+  eight predetermined controls, an estimator chosen for its properties. A
+  reader is entitled to see the object of interest before being asked to
+  accept a specification. If the default gap is only visible after the
+  controls go in, that is worth knowing; if it is visible in the raw data, the
+  regressions are sharpening a fact rather than manufacturing one.
+
+  This is the analog of the reference paper's descriptive tier (their Fig. 1/
+  Section 2.2), which reports conditional MEANS of the same horizon-
+  differenced outcome by restructuring type, with no regression at all. We
+  follow that construction, extended from GDP alone to the transmission
+  channels this project actually estimates with AIPW (13c_aipw_channels.do):
+  bank credit, investment, claims on government, and the two sovereign-bank
+  nexus shares. UNLIKE the reference paper's Figure 1, this file does NOT
+  cover gross capital inflows or real lending interest rates -- this project
+  has no source data for either, and building it would be new data
+  construction, not a figure extension; that scope decision is stated here
+  rather than left implicit.
+
+  WHAT IS AND IS NOT DONE TO THE DATA
+  -----------------------------------
+  DONE: every outcome is country-demeaned. A cumulative-change outcome
+  reflects systematic cross-country differences in trend, so a raw average
+  across episodes would partly rank countries rather than describe crises.
+  Subtracting each country's own mean over the estimation sample removes
+  that and leaves the deviation from a country's normal path -- exactly what
+  a country fixed effect does in the regressions, and the same demeaning the
+  reference paper applies. Each channel outcome (ch_v_h = F h.v - L.v) is
+  built here with the identical construction used in 13c_aipw_channels.do,
+  since ch_v_h is not persisted in panel_lp.dta and this file runs before 13c.
+
+  NOT DONE: no controls, no year effects, no weighting, no estimator. The
+  plotted point at horizon h for group g is the simple average of the
+  country-demeaned outcome over that group's onsets. No standard errors are
+  shown, deliberately: this is a description, and attaching inference to it
+  would invite reading it as a result.
+
+  HORIZONS: same convention as the rest of the paper -- Year 1 is the crisis
+  year, Year 0 is the hard-coded pre-crisis baseline. Years -1, -2 and -3 are
+  additional pre-crisis points, all built on the same t-1 base as every other
+  horizon (e.g. Year -3 = value(t-4) - value(t-1)), giving a four-year
+  pre-crisis run-up to check for a divergence that predates the crisis
+  itself, not just the single-point placebo a shorter window would allow.
+
+  Output: $figs/fig0_descriptive_paths.pdf          (GDP, nd vs def, Years -3..5 -- the
+                                                      Data-section figure)
+          $figs/fig0_descriptive_paths_post.pdf     (GDP, nd vs def, Years 0..5 only)
+          $figs/fig0a_descriptive_all.pdf           (GDP, all episodes pooled, Years -3..5)
+          $figs/fig0a_descriptive_all_post.pdf      (GDP, all episodes pooled, Years 0..5)
+          $figs/fig0_descriptive_<channel>.pdf      (standalone figure, one per channel,
+                                                      Years -3..5 -- each channel is its
+                                                      own independent graph, not combined
+                                                      into a multi-panel figure)
+          $figs/fig0_descriptive_<channel>_post.pdf (same, Years 0..5 only)
+          $tabs/descriptive_paths.csv               (all plotted numbers, GDP + channels,
+                                                      Years -3..5)
+          $tabs/descriptive_summary.csv        (pre-crisis characteristics by group)
+===========================================================================*/
+
+use "$clean/panel_lp.dta", clear
+sort cid year
+xtset cid year
+
+* ══════════════════════════════════════════════════════════════════════════
+* 0. CHANNEL OUTCOMES ch_v_h = F h.v - L.v (h=0..4), IDENTICAL CONSTRUCTION TO
+*    13c_aipw_channels.do -- built fresh here since this file runs early in
+*    the pipeline (before 13c) and ch_v_h is not persisted in panel_lp.dta.
+*    Scope: the channels this project actually has data for and estimates
+*    with AIPW (credit, inv, claims_govt, claimsgov_assets, claimpriv_assets)
+*    -- NOT the reference paper's full Figure 1 (gross capital inflows, real
+*    lending rates), for which this project has no source data. See this
+*    file's header note on that scope decision.
+*
+*    Pre-crisis horizons -1, -2, -3 (ch_v_m2/m3/m4) are all built on the SAME
+*    t-1 base as every other horizon (L.src), following further back in time
+*    for each -- e.g. ch_v_m3 = L3.src - L.src is the change from t-3 to t-1.
+*    This gives the descriptive figures a longer pre-crisis window (Years
+*    -3..5) to check for a pre-existing divergence, not just the single
+*    Year -1 placebo point.
+* ══════════════════════════════════════════════════════════════════════════
+capture drop ln_gdp_desc ln_gdp_desc_base
+gen double ln_gdp_desc = ln(gdp_real) if gdp_real > 0 & !missing(gdp_real)
+gen double ln_gdp_desc_base = L.ln_gdp_desc
+forvalues k = 3/4 {
+    capture drop dy_m`k'
+    gen double dy_m`k' = (L`k'.ln_gdp_desc - ln_gdp_desc_base) * 100
+    label var dy_m`k' "Pre-trend h=-`k' (same t-1 base as dy_h): GDP(t-`k') - GDP(t-1)"
+}
+
+foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending fdi {
+    local src `v'
+    if inlist("`v'","credit","inv") local src ln_r_`v'
+    * real_lending is already a log level (built in 18_transforms.do), same
+    * as claimsgov_assets/claimpriv_assets/claims_govt -- no further
+    * transform needed, so it falls through to the `local src `v'' default.
+    capture drop `v'_base
+    gen double `v'_base = L.`src'
+    forvalues h = 0/4 {
+        capture drop ch_`v'_`h'
+        gen double ch_`v'_`h' = F`h'.`src' - `v'_base
+    }
+    * Years -1, -2, -3 placebo points, all on the same t-1 base as every
+    * other horizon (mirrors dy_m2..dy_m4's construction for GDP above).
+    forvalues k = 2/4 {
+        capture drop ch_`v'_m`k'
+        gen double ch_`v'_m`k' = L`k'.`src' - `v'_base
+    }
+}
+
+* Coverage check for real_lending specifically: WDI lending-rate coverage is
+* often thin for exactly the EM countries this panel needs (managed/unified
+* rate regimes, underdeveloped bank-lending markets), so report the actual
+* onset-level count honestly rather than assuming it matches the other five
+* channels' ~55-58/61 coverage.
+quietly count if onset_all==1 & sample==1 & !missing(real_lending)
+local n_rl_all = r(N)
+quietly count if onset_nd==1 & sample==1 & !missing(real_lending)
+local n_rl_nd = r(N)
+quietly count if onset_def==1 & sample==1 & !missing(real_lending)
+local n_rl_def = r(N)
+di as result _n "  real_lending onset-level coverage: all=`n_rl_all'  nd=`n_rl_nd'  def=`n_rl_def' (of 61 onsets)"
+
+* ══════════════════════════════════════════════════════════════════════════
+* 1. COUNTRY-DEMEAN THE OUTCOMES
+*    Demeaning is over sample==1 (onset + tranquil years, continuation and
+*    carry-in rows excluded) so the reference path is a country's behaviour
+*    in the same universe the regressions use, not one that includes the
+*    continuation years the design deliberately drops.
+* ══════════════════════════════════════════════════════════════════════════
+foreach h in m4 m3 m2 0 1 2 3 4 {
+    capture drop cmean_`h' dd_`h'
+    quietly bysort cid: egen double cmean_`h' = mean(dy_`h') if sample==1
+    quietly gen double dd_`h' = dy_`h' - cmean_`h' if sample==1
+}
+label var dd_0 "Country-demeaned cumulative GDP change, crisis year"
+
+foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending fdi {
+    foreach h in m4 m3 m2 0 1 2 3 4 {
+        capture drop cmean_`v'_`h' dd_`v'_`h'
+        quietly bysort cid: egen double cmean_`v'_`h' = mean(ch_`v'_`h') if sample==1
+        quietly gen double dd_`v'_`h' = ch_`v'_`h' - cmean_`v'_`h' if sample==1
+    }
+}
+
+* ── Nominal lending rate / inflation / real lending rate: evolution figure
+* (mean only, Years 0-5, split nd vs def -- matching the reference paper's
+* own Panel B/C/D figure, non-default/preemptive vs default-linked/post-
+* default overlay) ──────────────────────────────────────────────────────
+* ch_v_h = F h.v - L.v (plain difference; neither lending nor infl_defl is
+* a GDP-ratio needing log-real-level treatment, they are already rates,
+* matching real_lending's own fallthrough-branch construction above).
+* Restricted to !missing(real_lending) at the SAME row -- not just lending/
+* infl_defl individually -- since real_lending itself also drops rows
+* where infl_defl>50 (18_transforms.do's own hyperinflation-truncation
+* rule), so this is the correct way to get "the same country-year sample
+* real_lending is built from" for all three series.
+foreach v in lending infl_defl {
+    capture drop `v'_base
+    gen double `v'_base = L.`v'
+    forvalues h = 0/4 {
+        capture drop ch_`v'_`h'
+        gen double ch_`v'_`h' = (F`h'.`v' - `v'_base) if !missing(real_lending)
+    }
+}
+foreach v in lending infl_defl real_lending {
+    forvalues h = 0/4 {
+        capture drop cmean_lir_`v'_`h' dd_lir_`v'_`h'
+        quietly bysort cid: egen double cmean_lir_`v'_`h' = ///
+            mean(ch_`v'_`h') if sample==1 & !missing(real_lending)
+        quietly gen double dd_lir_`v'_`h' = ///
+            ch_`v'_`h' - cmean_lir_`v'_`h' if sample==1 & !missing(real_lending)
+    }
+}
+foreach v in lending infl_defl real_lending {
+    foreach g in nd def {
+        matrix lir_`v'_`g' = J(6, 1, .)
+        matrix lir_`v'_`g'[1,1] = 0     // Year 0 baseline, zero by construction
+        forvalues h = 0/4 {
+            quietly summarize dd_lir_`v'_`h' if onset_`g'==1 & sample==1, meanonly
+            matrix lir_`v'_`g'[`h'+2,1] = r(mean)
+        }
+    }
+}
+
+* ══════════════════════════════════════════════════════════════════════════
+* 2. GROUP MEANS BY HORIZON  (rows: 1 = Year -3, 2 = Year -2, 3 = Year -1,
+*    4 = Year 0, 5..9 = Years 1-5)
+* ══════════════════════════════════════════════════════════════════════════
+foreach g in all nd def {
+    matrix desc_`g' = J(9, 1, .)
+    matrix nobs_`g' = J(9, 1, .)
+    matrix desc_`g'[4,1] = 0          // Year 0 = the baseline, zero by construction
+    matrix nobs_`g'[4,1] = .
+}
+
+* Years -3, -2, -1: pre-crisis placebo points, same t-1 base as every horizon
+foreach g in all nd def {
+    quietly summarize dd_m4 if onset_`g'==1 & sample==1
+    matrix desc_`g'[1,1] = r(mean)
+    matrix nobs_`g'[1,1] = r(N)
+    quietly summarize dd_m3 if onset_`g'==1 & sample==1
+    matrix desc_`g'[2,1] = r(mean)
+    matrix nobs_`g'[2,1] = r(N)
+    quietly summarize dd_m2 if onset_`g'==1 & sample==1
+    matrix desc_`g'[3,1] = r(mean)
+    matrix nobs_`g'[3,1] = r(N)
+}
+
+* Years 1-5
+forvalues h = 0/4 {
+    local row = `h' + 5
+    foreach g in all nd def {
+        quietly summarize dd_`h' if onset_`g'==1 & sample==1
+        matrix desc_`g'[`row',1] = r(mean)
+        matrix nobs_`g'[`row',1] = r(N)
+    }
+}
+
+* ── MEDIAN counterpart (same construction, r(mean) -> r(p50)) ──────────────
+* Mean is outlier-sensitive on these thin arms (21-40 episodes); the median
+* version below lets that be checked directly rather than assumed. `detail`
+* is required on `summarize` for r(p50) to be posted. Exported as separate
+* figures (fig0*_median.pdf), not overlaid on the mean panels -- see this
+* block's own figure section below.
+foreach g in all nd def {
+    matrix desc_`g'_med = J(9, 1, .)
+    matrix desc_`g'_med[4,1] = 0
+}
+foreach g in all nd def {
+    quietly summarize dd_m4 if onset_`g'==1 & sample==1, detail
+    matrix desc_`g'_med[1,1] = r(p50)
+    quietly summarize dd_m3 if onset_`g'==1 & sample==1, detail
+    matrix desc_`g'_med[2,1] = r(p50)
+    quietly summarize dd_m2 if onset_`g'==1 & sample==1, detail
+    matrix desc_`g'_med[3,1] = r(p50)
+}
+forvalues h = 0/4 {
+    local row = `h' + 5
+    foreach g in all nd def {
+        quietly summarize dd_`h' if onset_`g'==1 & sample==1, detail
+        matrix desc_`g'_med[`row',1] = r(p50)
+    }
+}
+
+di as result _n "════════════════════════════════════════════════════════════"
+di as result "DESCRIPTIVE PATHS — country-demeaned mean cumulative GDP change"
+di as result "No controls, no fixed effects beyond the demeaning, no estimator."
+di as result "════════════════════════════════════════════════════════════"
+di as result "Year      All (n)        Non-default (n)     Default-linked (n)"
+forvalues r = 1/9 {
+    local yr = `r' - 4
+    if `r' == 4 {
+        di "  " %2.0f `yr' "     0.000  (base)      0.000  (base)        0.000  (base)"
+    }
+    else {
+        di "  " %2.0f `yr' "  " %8.3f desc_all[`r',1] " (" %3.0f nobs_all[`r',1] ")" ///
+           "  " %8.3f desc_nd[`r',1]  " (" %3.0f nobs_nd[`r',1] ")" ///
+           "    " %8.3f desc_def[`r',1] " (" %3.0f nobs_def[`r',1] ")"
+    }
+}
+di as result _n "  Read the Years -3..-1 rows as the descriptive counterpart of the"
+di as result "  placebo test: if the two groups were already diverging before the"
+di as result "  crisis it shows up here, with no specification standing between the"
+di as result "  reader and the data."
+
+* ══════════════════════════════════════════════════════════════════════════
+* 2b. CHANNEL GROUP MEANS BY HORIZON -- identical construction to Section 2,
+*     applied to each active channel (credit, inv, claims_govt,
+*     claimsgov_assets, claimpriv_assets). No regression, no controls.
+* ══════════════════════════════════════════════════════════════════════════
+foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending fdi {
+    foreach g in all nd def {
+        matrix descv_`v'_`g' = J(9, 1, .)
+        matrix nobsv_`v'_`g' = J(9, 1, .)
+        matrix descv_`v'_`g'[4,1] = 0
+        matrix nobsv_`v'_`g'[4,1] = .
+    }
+    foreach g in all nd def {
+        quietly summarize dd_`v'_m4 if onset_`g'==1 & sample==1
+        matrix descv_`v'_`g'[1,1] = r(mean)
+        matrix nobsv_`v'_`g'[1,1] = r(N)
+        quietly summarize dd_`v'_m3 if onset_`g'==1 & sample==1
+        matrix descv_`v'_`g'[2,1] = r(mean)
+        matrix nobsv_`v'_`g'[2,1] = r(N)
+        quietly summarize dd_`v'_m2 if onset_`g'==1 & sample==1
+        matrix descv_`v'_`g'[3,1] = r(mean)
+        matrix nobsv_`v'_`g'[3,1] = r(N)
+    }
+    forvalues h = 0/4 {
+        local row = `h' + 5
+        foreach g in all nd def {
+            quietly summarize dd_`v'_`h' if onset_`g'==1 & sample==1
+            matrix descv_`v'_`g'[`row',1] = r(mean)
+            matrix nobsv_`v'_`g'[`row',1] = r(N)
+        }
+    }
+
+    * ── MEDIAN counterpart, same construction as the GDP block above ───────
+    foreach g in all nd def {
+        matrix descv_`v'_`g'_med = J(9, 1, .)
+        matrix descv_`v'_`g'_med[4,1] = 0
+    }
+    foreach g in all nd def {
+        quietly summarize dd_`v'_m4 if onset_`g'==1 & sample==1, detail
+        matrix descv_`v'_`g'_med[1,1] = r(p50)
+        quietly summarize dd_`v'_m3 if onset_`g'==1 & sample==1, detail
+        matrix descv_`v'_`g'_med[2,1] = r(p50)
+        quietly summarize dd_`v'_m2 if onset_`g'==1 & sample==1, detail
+        matrix descv_`v'_`g'_med[3,1] = r(p50)
+    }
+    forvalues h = 0/4 {
+        local row = `h' + 5
+        foreach g in all nd def {
+            quietly summarize dd_`v'_`h' if onset_`g'==1 & sample==1, detail
+            matrix descv_`v'_`g'_med[`row',1] = r(p50)
+        }
+    }
+
+    di as result _n "════════════════════════════════════════════════════════════"
+    di as result "DESCRIPTIVE PATHS — country-demeaned mean cumulative `v' change"
+    di as result "No controls, no fixed effects beyond the demeaning, no estimator."
+    di as result "════════════════════════════════════════════════════════════"
+    di as result "Year      All (n)        Non-default (n)     Default-linked (n)"
+    forvalues r = 1/9 {
+        local yr = `r' - 4
+        if `r' == 4 {
+            di "  " %2.0f `yr' "     0.000  (base)      0.000  (base)        0.000  (base)"
+        }
+        else {
+            di "  " %2.0f `yr' "  " %8.3f descv_`v'_all[`r',1] " (" %3.0f nobsv_`v'_all[`r',1] ")" ///
+               "  " %8.3f descv_`v'_nd[`r',1]  " (" %3.0f nobsv_`v'_nd[`r',1] ")" ///
+               "    " %8.3f descv_`v'_def[`r',1] " (" %3.0f nobsv_`v'_def[`r',1] ")"
+        }
+    }
+}
+
+* ══════════════════════════════════════════════════════════════════════════
+* 3. PLOT DATASET + FIGURES
+* ══════════════════════════════════════════════════════════════════════════
+preserve
+    clear
+    set obs 9
+    gen horizon = _n - 4
+    foreach g in all nd def {
+        svmat desc_`g', names(b_`g')
+        rename b_`g'1 b_`g'
+        svmat nobs_`g', names(n_`g')
+        rename n_`g'1 n_`g'
+        svmat desc_`g'_med, names(bmed_`g')
+        rename bmed_`g'1 bmed_`g'
+    }
+    foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending fdi {
+        foreach g in all nd def {
+            svmat descv_`v'_`g', names(b_`v'_`g')
+            rename b_`v'_`g'1 b_`v'_`g'
+            svmat nobsv_`v'_`g', names(n_`v'_`g')
+            rename n_`v'_`g'1 n_`v'_`g'
+            svmat descv_`v'_`g'_med, names(bmed_`v'_`g')
+            rename bmed_`v'_`g'1 bmed_`v'_`g'
+        }
+    }
+    label var horizon "Year (Year 1 = crisis year)"
+    export delimited "$tabs/descriptive_paths.csv", replace
+    di as result "Descriptive paths saved: $tabs/descriptive_paths.csv"
+
+    * UNIFORM IRF STYLE (project-wide onset-tier convention): non-default =
+    * blue, default-linked = red, both solid lines, markers the same color
+    * as their line. y-axis always "Cumulative percent change", x-axis
+    * always "Year", title = the variable's plain name only.
+    local c_nd  "blue"
+    local c_def "red"
+    local c_all "blue"
+
+    * Two windows are exported for every series below: the FULL window
+    * (Years -3..5, suffix none) shows the longer pre-crisis run-up used to
+    * check for a pre-existing divergence; the POST-ONSET window (Years 0..5,
+    * suffix _post) drops the pre-crisis years entirely and is the cleaner
+    * figure for a reader only interested in the path after the crisis
+    * starts. Both are built from the identical underlying series -- only
+    * the plotted horizon range and the file name differ.
+
+    * ── Figure 0: the Data-section figure — nd vs def, raw ────────────────
+    twoway ///
+        (line b_nd horizon, ///
+            lcolor("`c_nd'") lwidth(thick) lpattern(solid)) ///
+        (line b_def horizon, ///
+            lcolor("`c_def'") lwidth(thick) lpattern(solid)), ///
+        yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
+        xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
+        xlabel(-3(1)5, labsize(medsmall)) ///
+        ylabel(, format(%9.0f) labsize(medsmall) angle(horizontal)) ///
+        xtitle("Year", size(small)) ///
+        ytitle("Cumulative percent change", size(small)) ///
+        title("GDP", size(medium) color(navy)) ///
+        legend(off) ///
+        graphregion(color(white)) plotregion(color(white))
+    * Note text (kept as source comment, no longer rendered on the figure --
+    * the legend, previously overlapping the plot at ring(0) pos(7), now
+    * takes the bottom position this note used to occupy):
+    * "Simple average of the country-demeaned cumulative change in log real GDP over each group's onsets.
+    *  Demeaning is within country over the estimation sample and removes cross-country differences in trend
+    *  growth; nothing else is done to the data. No confidence bands are shown because this is a description,
+    *  not an estimate — the conditional versions with inference are Figure 2 and Table 2."
+    graph export "$figs/fig0_descriptive_paths.pdf", replace
+    capture graph export "$figs/fig0_descriptive_paths.png", replace width(1200)
+    di as result "Figure saved: fig0_descriptive_paths.pdf (Years -3..5)"
+
+    twoway ///
+        (line b_nd horizon if horizon>=0, ///
+            lcolor("`c_nd'") lwidth(thick) lpattern(solid)) ///
+        (line b_def horizon if horizon>=0, ///
+            lcolor("`c_def'") lwidth(thick) lpattern(solid)), ///
+        yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
+        xlabel(0(1)5, labsize(medsmall)) ///
+        ylabel(, format(%9.0f) labsize(medsmall) angle(horizontal)) ///
+        xtitle("Year", size(small)) ///
+        ytitle("Cumulative percent change", size(small)) ///
+        title("GDP", size(medium) color(navy)) ///
+        legend(off) ///
+        graphregion(color(white)) plotregion(color(white))
+    graph export "$figs/fig0_descriptive_paths_post.pdf", replace
+    di as result "Figure saved: fig0_descriptive_paths_post.pdf (Years 0..5)"
+
+    * ── Figure 0a: pooled, for the motivating paragraph ───────────────────
+    twoway (line b_all horizon, ///
+            lcolor("`c_all'") lwidth(thick) lpattern(solid)), ///
+        yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
+        xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
+        xlabel(-3(1)5, labsize(medsmall)) ylabel(, format(%9.0f) labsize(medsmall) angle(horizontal)) ///
+        xtitle("Year", size(small)) ///
+        ytitle("Cumulative percent change", size(small)) ///
+        title("GDP", size(medium) color(navy)) ///
+        legend(off) ///
+        graphregion(color(white)) plotregion(color(white))
+    graph export "$figs/fig0a_descriptive_all.pdf", replace
+    di as result "Figure saved: fig0a_descriptive_all.pdf (Years -3..5)"
+
+    twoway (line b_all horizon if horizon>=0, ///
+            lcolor("`c_all'") lwidth(thick) lpattern(solid)), ///
+        yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
+        xlabel(0(1)5, labsize(medsmall)) ylabel(, format(%9.0f) labsize(medsmall) angle(horizontal)) ///
+        xtitle("Year", size(small)) ///
+        ytitle("Cumulative percent change", size(small)) ///
+        title("GDP", size(medium) color(navy)) ///
+        legend(off) ///
+        graphregion(color(white)) plotregion(color(white))
+    graph export "$figs/fig0a_descriptive_all_post.pdf", replace
+    di as result "Figure saved: fig0a_descriptive_all_post.pdf (Years 0..5)"
+
+    * ── Figures 0b-0f: channel descriptive paths, same construction as
+    * Figure 0, one standalone figure per active channel (GDP already has
+    * its own standalone Figure 0/0a above). Each channel gets its own
+    * independent graph/PDF -- no combined small-multiple panel -- plus a
+    * post-onset-only companion, same as GDP above.
+    local panellab_credit "Bank credit"
+    local panellab_inv "Investment"
+    local panellab_claims_govt "Bank claims on government"
+    local panellab_claimsgov_assets "Bank claims on government / assets"
+    local panellab_claimpriv_assets "Bank claims on private sector / assets"
+    local panellab_real_lending "Real lending interest rate"
+    local panellab_fdi "FDI"
+    foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending fdi {
+        twoway ///
+            (line b_`v'_nd horizon, lcolor("`c_nd'") lwidth(thick) lpattern(solid)) ///
+            (line b_`v'_def horizon, lcolor("`c_def'") lwidth(thick) lpattern(solid)), ///
+            yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
+            xlabel(-3(1)5, labsize(small)) ylabel(, format(%9.0f) labsize(small) angle(horizontal)) ///
+            xtitle("Year") ytitle("Cumulative percent change", size(small)) ///
+            title("`panellab_`v''", size(medium)) ///
+            legend(off) ///
+            name(gk_`v', replace) graphregion(color(white)) plotregion(color(white))
+        graph export "$figs/fig0_descriptive_`v'.pdf", replace name(gk_`v')
+        graph drop gk_`v'
+
+        twoway ///
+            (line b_`v'_nd horizon if horizon>=0, lcolor("`c_nd'") lwidth(thick) lpattern(solid)) ///
+            (line b_`v'_def horizon if horizon>=0, lcolor("`c_def'") lwidth(thick) lpattern(solid)), ///
+            yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
+            xlabel(0(1)5, labsize(small)) ylabel(, format(%9.0f) labsize(small) angle(horizontal)) ///
+            xtitle("Year") ytitle("Cumulative percent change", size(small)) ///
+            title("`panellab_`v''", size(medium)) ///
+            legend(off) ///
+            name(gk_`v'_post, replace) graphregion(color(white)) plotregion(color(white))
+        graph export "$figs/fig0_descriptive_`v'_post.pdf", replace name(gk_`v'_post)
+        graph drop gk_`v'_post
+    }
+    di as result "Figures saved: fig0_descriptive_<channel>.pdf (Years -3..5) and"
+    di as result "               fig0_descriptive_<channel>_post.pdf (Years 0..5)"
+
+    * ── Combined 6-panel figure: Panel A GDP, B Investment, C Bank credit,
+    * D Claims on government, E FDI, F Real lending rate -- same nd/def
+    * two-line construction as the standalone figures above, merged into one
+    * publication-ready small multiple (cols(3) rows(2)) rather than six
+    * separate files. Kept ALONGSIDE the standalone per-channel figures
+    * above, not a replacement for them.
+    local combo_vars   gdp inv credit claims_govt fdi real_lending
+    local combo_labels `" "Panel A: GDP" "Panel B: Investment" "Panel C: Bank credit" "Panel D: Claims on govt" "Panel E: FDI" "Panel F: Real lending rate" "'
+    local i = 1
+    foreach cv of local combo_vars {
+        local clab : word `i' of `combo_labels'
+        local ytit ""
+        if inlist(`i', 1, 4) local ytit "Cumulative percent change"
+        local bser_nd  = cond("`cv'"=="gdp", "b_nd", "b_`cv'_nd")
+        local bser_def = cond("`cv'"=="gdp", "b_def", "b_`cv'_def")
+        twoway ///
+            (line `bser_nd' horizon, lcolor("`c_nd'") lwidth(thick) lpattern(solid)) ///
+            (line `bser_def' horizon, lcolor("`c_def'") lwidth(thick) lpattern(solid)), ///
+            yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
+            xlabel(-3(1)5, labsize(medlarge)) ylabel(, format(%9.1f) labsize(medium) angle(horizontal)) ///
+            xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
+            title("`clab'", size(medlarge)) ///
+            legend(off) ///
+            name(combo_`i', replace) graphregion(color(white)) plotregion(color(white))
+        local ++i
+    }
+    graph combine combo_1 combo_2 combo_3 combo_4 combo_5 combo_6, ///
+        cols(3) rows(2) graphregion(color(white)) xsize(10) ysize(7)
+    graph export "$figs/fig0_descriptive_combined.pdf", replace
+    di as result "Figure saved: fig0_descriptive_combined.pdf (Panel A-F: GDP, Investment, Bank credit, Claims on government, FDI, Real lending rate)"
+    forvalues i = 1/6 {
+        capture graph drop combo_`i'
+    }
+
+    * MEDIAN version of the combined 6-panel figure, same construction ─────
+    local i = 1
+    foreach cv of local combo_vars {
+        local clab : word `i' of `combo_labels'
+        local ytit ""
+        if inlist(`i', 1, 4) local ytit "Cumulative percent change"
+        local bmser_nd  = cond("`cv'"=="gdp", "bmed_nd", "bmed_`cv'_nd")
+        local bmser_def = cond("`cv'"=="gdp", "bmed_def", "bmed_`cv'_def")
+        twoway ///
+            (line `bmser_nd' horizon, lcolor("`c_nd'") lwidth(thick) lpattern(solid)) ///
+            (line `bmser_def' horizon, lcolor("`c_def'") lwidth(thick) lpattern(solid)), ///
+            yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) xline(0.5, lpattern(solid) lcolor(gs11) lwidth(thin)) ///
+            xlabel(-3(1)5, labsize(medlarge)) ylabel(, format(%9.1f) labsize(medium) angle(horizontal)) ///
+            xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
+            title("`clab'", size(medlarge)) ///
+            legend(off) ///
+            name(combomed_`i', replace) graphregion(color(white)) plotregion(color(white))
+        local ++i
+    }
+    graph combine combomed_1 combomed_2 combomed_3 combomed_4 combomed_5 combomed_6, ///
+        cols(3) rows(2) graphregion(color(white)) xsize(10) ysize(7)
+    graph export "$figs/fig0_descriptive_combined_median.pdf", replace
+    di as result "Figure saved: fig0_descriptive_combined_median.pdf (Panel A-F, median)"
+    forvalues i = 1/6 {
+        capture graph drop combomed_`i'
+    }
+
+    * Post-onset-only companion (Years 0..5), same construction, matching
+    * every standalone channel figure's own full/_post pair above.
+    local i = 1
+    foreach cv of local combo_vars {
+        local clab : word `i' of `combo_labels'
+        local ytit ""
+        if inlist(`i', 1, 4) local ytit "Cumulative percent change"
+        local bser_nd  = cond("`cv'"=="gdp", "b_nd", "b_`cv'_nd")
+        local bser_def = cond("`cv'"=="gdp", "b_def", "b_`cv'_def")
+        twoway ///
+            (line `bser_nd' horizon if horizon>=0, lcolor("`c_nd'") lwidth(thick) lpattern(solid)) ///
+            (line `bser_def' horizon if horizon>=0, lcolor("`c_def'") lwidth(thick) lpattern(solid)), ///
+            yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
+            xlabel(0(1)5, labsize(medlarge)) ylabel(, format(%9.1f) labsize(medium) angle(horizontal)) ///
+            xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
+            title("`clab'", size(medlarge)) ///
+            legend(off) ///
+            name(combo_post_`i', replace) graphregion(color(white)) plotregion(color(white))
+        local ++i
+    }
+    graph combine combo_post_1 combo_post_2 combo_post_3 combo_post_4 combo_post_5 combo_post_6, ///
+        cols(3) rows(2) graphregion(color(white)) xsize(10) ysize(7)
+    graph export "$figs/fig0_descriptive_combined_post.pdf", replace
+    di as result "Figure saved: fig0_descriptive_combined_post.pdf (Years 0..5, Panel A-F)"
+    forvalues i = 1/6 {
+        capture graph drop combo_post_`i'
+    }
+
+    * MEDIAN version of the post-onset combined figure ─────────────────────
+    local i = 1
+    foreach cv of local combo_vars {
+        local clab : word `i' of `combo_labels'
+        local ytit ""
+        if inlist(`i', 1, 4) local ytit "Cumulative percent change"
+        local bmser_nd  = cond("`cv'"=="gdp", "bmed_nd", "bmed_`cv'_nd")
+        local bmser_def = cond("`cv'"=="gdp", "bmed_def", "bmed_`cv'_def")
+        twoway ///
+            (line `bmser_nd' horizon if horizon>=0, lcolor("`c_nd'") lwidth(thick) lpattern(solid)) ///
+            (line `bmser_def' horizon if horizon>=0, lcolor("`c_def'") lwidth(thick) lpattern(solid)), ///
+            yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
+            xlabel(0(1)5, labsize(medlarge)) ylabel(, format(%9.1f) labsize(medium) angle(horizontal)) ///
+            xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
+            title("`clab'", size(medlarge)) ///
+            legend(off) ///
+            name(combomed_post_`i', replace) graphregion(color(white)) plotregion(color(white))
+        local ++i
+    }
+    graph combine combomed_post_1 combomed_post_2 combomed_post_3 combomed_post_4 combomed_post_5 combomed_post_6, ///
+        cols(3) rows(2) graphregion(color(white)) xsize(10) ysize(7)
+    graph export "$figs/fig0_descriptive_combined_median_post.pdf", replace
+    di as result "Figure saved: fig0_descriptive_combined_median_post.pdf (Years 0..5, Panel A-F, median)"
+    forvalues i = 1/6 {
+        capture graph drop combomed_post_`i'
+    }
+
+    * ── Nominal lending / inflation / real lending rate: 3-panel combined
+    * figure, non-default (blue) vs default-linked (red), Years 0-5, mean
+    * only -- matching the reference paper's own Panel B/C/D layout
+    * (their post-default/preemptive overlay), restricted to the
+    * real_lending-coverage sample (see the lir_*_g matrix construction
+    * above). lir_*_g matrices are 6 rows (Year 0..5), NOT the 9-row (Year
+    * -3..5) convention the rest of this preserve block uses -- rebuilt as
+    * its own small dataset here (clear + set obs 6) rather than svmat-ing
+    * into the existing 9-obs `horizon' dataset, which would misalign rows.
+    clear
+    set obs 6
+    gen horizon = _n - 1
+    foreach v in lending infl_defl real_lending {
+        foreach g in nd def {
+            svmat lir_`v'_`g', names(lir_`v'_`g')
+            rename lir_`v'_`g'1 lir_`v'_`g'
+        }
+    }
+    local lir_vars   lending infl_defl real_lending
+    local lir_labels `" "Panel A: Nominal lending rates" "Panel B: Inflation rates" "Panel C: Real lending rates" "'
+    local i = 1
+    foreach lv of local lir_vars {
+        local llab : word `i' of `lir_labels'
+        local ytit ""
+        if `i' == 1 local ytit "Cumulative percent change"
+        twoway ///
+            (line lir_`lv'_nd  horizon, lcolor("`c_nd'")  lwidth(thick) lpattern(solid)) ///
+            (line lir_`lv'_def horizon, lcolor("`c_def'") lwidth(thick) lpattern(solid)), ///
+            yline(0, lpattern(dash) lcolor(gs8) lwidth(thin)) ///
+            xlabel(0(1)5, labsize(medlarge)) ///
+            ylabel(, format(%9.1f) labsize(medium) angle(horizontal)) ///
+            xtitle("Year", size(medlarge)) ytitle("`ytit'", size(medlarge)) ///
+            title("`llab'", size(medlarge)) ///
+            legend(off) ///
+            name(lir_`i', replace) graphregion(color(white)) plotregion(color(white))
+        local ++i
+    }
+    graph combine lir_1 lir_2 lir_3, ///
+        cols(3) rows(1) graphregion(color(white)) xsize(11) ysize(4)
+    graph export "$figs/fig0_lending_inflation_real.pdf", replace
+    di as result "Figure saved: fig0_lending_inflation_real.pdf (Years 0..5, mean, nd vs def, real-lending-coverage sample: nd=`n_rl_nd' def=`n_rl_def' onsets)"
+    forvalues i = 1/3 {
+        capture graph drop lir_`i'
+    }
+restore
+
+* ══════════════════════════════════════════════════════════════════════════
+* 4. PRE-CRISIS CHARACTERISTICS BY GROUP
+*    The Data section needs a table showing what the two groups look like
+*    going in. Everything is measured at t-1, i.e. the same predetermined
+*    values the regressions condition on, so the table describes exactly the
+*    variation the controls are asked to absorb. Tranquil years are included
+*    as the reference column because they are the control group throughout.
+* ══════════════════════════════════════════════════════════════════════════
+local sumvars l1_gdpg l_debt l_banking_crisis l_govexp l_open ///
+              l_credit_bank l_lninfl exchange2 l_spr_mean claimsgov_assets
+
+* DISPLAY-ONLY rescale: l1_gdpg/l_debt/l_govexp/l_open/l_credit_bank were put
+* on a decimal scale project-wide (18_transforms.do) to match Asonuma et
+* al.'s own $convar convention for REGRESSION coefficients. This table is not
+* a regression output -- it is read directly by a reader as "what did debt/
+* GDP look like going in", so printing 0.608 for a 60.8% debt ratio would be
+* actively harder to read than the underlying variable's own units warrant.
+* Multiplying by 100 HERE, for display and the exported CSV only, restores
+* the percent-of-GDP/percentage-point reading; the p-values and every
+* regression elsewhere in the project are computed on the real (decimal)
+* $ctrl_core values and are completely unaffected, since a t-test's p-value
+* is invariant to a linear rescaling of the tested variable.
+local pct100 l1_gdpg l_debt l_govexp l_open l_credit_bank
+
+di as result _n "════════════════════════════════════════════════════════════"
+di as result "PRE-CRISIS CHARACTERISTICS (all at t-1) BY GROUP"
+di as result "  (l1_gdpg/l_debt/l_govexp/l_open/l_credit_bank shown x100, i.e."
+di as result "   percent/percentage points, for readability -- underlying"
+di as result "   regressions use the decimal $ctrl_core scale; unaffected)"
+di as result "════════════════════════════════════════════════════════════"
+di as result %-22s "Variable" "   Tranquil    Non-default   Default    p(nd=def)"
+
+tempname S
+tempfile sumf
+postfile `S' str24 variable double m_tranq double m_nd double m_def double pdiff ///
+    long n_tranq long n_nd long n_def using "`sumf'", replace
+
+foreach v of local sumvars {
+    capture confirm variable `v'
+    if _rc continue
+
+    quietly summarize `v' if sample==1 & onset_all==0
+    local mt = r(mean)
+    local nt = r(N)
+    quietly summarize `v' if sample==1 & onset_nd==1
+    local mn = r(mean)
+    local nn = r(N)
+    quietly summarize `v' if sample==1 & onset_def==1
+    local md = r(mean)
+    local nd = r(N)
+
+    * two-sample t-test on the nd/def difference; the paper's identifying
+    * comparison is between these two groups, so that is the difference worth
+    * testing here rather than crisis-vs-tranquil.
+    local pd = .
+    capture ttest `v' if sample==1 & onset_all==1, by(nondefault)
+    if _rc == 0 local pd = r(p)
+
+    * Display-only x100 for the five decimal-scale $ctrl_core terms (see
+    * `pct100' note above) -- applied AFTER the t-test, which already used
+    * the real (unscaled) values and is invariant to this anyway.
+    if strpos(" `pct100' ", " `v' ") {
+        local mt = `mt' * 100
+        local mn = `mn' * 100
+        local md = `md' * 100
+    }
+
+    post `S' ("`v'") (`mt') (`mn') (`md') (`pd') (`nt') (`nn') (`nd')
+    di as result %-22s "`v'" "  " %9.2f `mt' "  " %9.2f `mn' "  " %9.2f `md' "   " %6.3f `pd'
+}
+postclose `S'
+
+preserve
+    use "`sumf'", clear
+    label var m_tranq "Mean, tranquil years (l1_gdpg/l_debt/l_govexp/l_open/l_credit_bank x100 for display)"
+    label var m_nd    "Mean, non-default onsets (l1_gdpg/l_debt/l_govexp/l_open/l_credit_bank x100 for display)"
+    label var m_def   "Mean, default-linked onsets (l1_gdpg/l_debt/l_govexp/l_open/l_credit_bank x100 for display)"
+    label var pdiff   "p-value, nd = def"
+    export delimited "$tabs/descriptive_summary.csv", replace
+    di as result _n "Summary table saved: $tabs/descriptive_summary.csv"
+restore
+
+di as result _n "  A significant p(nd=def) means the two groups entered their crises"
+di as result "  differently on that dimension, which is the selection the propensity"
+di as result "  models of Section 5 are built to address. Read this table alongside"
+di as result "  the first-stage probit rather than as a balance test that has to pass."
+
+di as result _n "02a_descriptive_facts.do complete."
