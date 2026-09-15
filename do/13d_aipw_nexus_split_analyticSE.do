@@ -958,7 +958,7 @@ end
 * ══════════════════════════════════════════════════════════════════════════
 capture program drop _rtfrow6
 program define _rtfrow6
-    syntax , [C1(string asis) C2(string asis) C3(string asis) C4(string asis) C5(string asis) C6(string asis) BOLD ITAL SHADE]
+    syntax , [C1(string) C2(string) C3(string) C4(string) C5(string) C6(string) BOLD ITAL SHADE]
     local bd "\clbrdrt\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrr\brdrs\brdrw10"
     local sh = cond("`shade'"=="shade", "\clshdng10000\clcbpat22", "")
     local rowdef "\trowd\trgaph80\trleft-108`sh'`bd'\cellx2600`sh'`bd'\cellx3880`sh'`bd'\cellx5160`sh'`bd'\cellx6440`sh'`bd'\cellx7720`sh'`bd'\cellx9000"
