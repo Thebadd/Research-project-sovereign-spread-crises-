@@ -840,9 +840,9 @@ foreach oc in gdp credit inv claims_govt {
             (connected b horizon if bank=="high" & outcome=="`oc'" & part=="`pt'", lcolor("`c_hi'") lwidth(thick) msymbol(square)) ///
             (connected b horizon if bank=="low"  & outcome=="`oc'" & part=="`pt'", lcolor("`c_lo'") lwidth(thick) msymbol(circle)), ///
             yline(0, lpattern(dash) lcolor(gs8)) ///
-            xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
-            xtitle("Year", size(medium)) ///
-            ytitle("`ytit'", size(medsmall)) ///
+            xlabel(0(1)5, labsize(large)) ylabel(, labsize(large) angle(horizontal)) ///
+            xtitle("Year", size(large)) ///
+            ytitle("`ytit'", size(medlarge)) ///
             title("`ptlab'", size(large) color(navy)) legend(off) ///
             graphregion(color(white)) plotregion(color(white)) ///
             name(nexus1_`pi', replace)
@@ -905,9 +905,9 @@ foreach oc in gdp credit inv claims_govt {
             (connected b horizon if part=="nd"  & outcome=="`oc'" & bank=="`bk'", lcolor("`c_nd'")  lwidth(thick) msymbol(circle)) ///
             (connected b horizon if part=="def" & outcome=="`oc'" & bank=="`bk'", lcolor("`c_def'") lwidth(thick) msymbol(square)), ///
             yline(0, lpattern(dash) lcolor(gs8)) ///
-            xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
-            xtitle("Year", size(medium)) ///
-            ytitle("`ytit'", size(medsmall)) ///
+            xlabel(0(1)5, labsize(large)) ylabel(, labsize(large) angle(horizontal)) ///
+            xtitle("Year", size(large)) ///
+            ytitle("`ytit'", size(medlarge)) ///
             title("`bklab'", size(large) color(navy)) legend(off) ///
             graphregion(color(white)) plotregion(color(white)) ///
             name(nexus2_`pi', replace)
