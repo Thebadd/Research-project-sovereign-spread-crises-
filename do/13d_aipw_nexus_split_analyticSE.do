@@ -843,14 +843,14 @@ foreach oc in gdp credit inv claims_govt {
             xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
             xtitle("Year", size(medium)) ///
             ytitle("`ytit'", size(medsmall)) ///
-            title("`ptlab'", size(medlarge) color(navy)) legend(off) ///
+            title("`ptlab'", size(large) color(navy)) legend(off) ///
             graphregion(color(white)) plotregion(color(white)) ///
             name(nexus1_`pi', replace)
         local ++pi
     }
     capture graph combine nexus1_1 nexus1_2, ///
         cols(2) rows(1) graphregion(color(white)) ///
-        title("`ptit'", size(medlarge) color(navy)) xsize(12) ysize(5.5)
+        title("`ptit'", size(vlarge) color(navy)) xsize(12) ysize(5.5)
     if _rc == 0 {
         graph export "$figs/`fnm'.pdf", replace
         di as result "Figure saved: `fnm'.pdf"
@@ -908,14 +908,14 @@ foreach oc in gdp credit inv claims_govt {
             xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
             xtitle("Year", size(medium)) ///
             ytitle("`ytit'", size(medsmall)) ///
-            title("`bklab'", size(medlarge) color(navy)) legend(off) ///
+            title("`bklab'", size(large) color(navy)) legend(off) ///
             graphregion(color(white)) plotregion(color(white)) ///
             name(nexus2_`pi', replace)
         local ++pi
     }
     capture graph combine nexus2_1 nexus2_2, ///
         cols(2) rows(1) graphregion(color(white)) ///
-        title("`ptit'", size(medlarge) color(navy)) xsize(12) ysize(5.5)
+        title("`ptit'", size(vlarge) color(navy)) xsize(12) ysize(5.5)
     if _rc == 0 {
         graph export "$figs/`fnm'.pdf", replace
         di as result "Figure saved: `fnm'.pdf"
