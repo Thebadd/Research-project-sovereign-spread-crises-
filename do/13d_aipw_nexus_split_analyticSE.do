@@ -837,8 +837,8 @@ foreach oc in gdp credit inv claims_govt {
         capture twoway ///
             (rarea lo hi horizon if bank=="high" & outcome=="`oc'" & part=="`pt'", color("`c_hi'%16") lwidth(none)) ///
             (rarea lo hi horizon if bank=="low"  & outcome=="`oc'" & part=="`pt'", color("`c_lo'%16") lwidth(none)) ///
-            (connected b horizon if bank=="high" & outcome=="`oc'" & part=="`pt'", lcolor("`c_hi'") lwidth(medthick) msymbol(square)) ///
-            (connected b horizon if bank=="low"  & outcome=="`oc'" & part=="`pt'", lcolor("`c_lo'") lwidth(medthick) msymbol(circle)), ///
+            (connected b horizon if bank=="high" & outcome=="`oc'" & part=="`pt'", lcolor("`c_hi'") lwidth(thick) msymbol(square)) ///
+            (connected b horizon if bank=="low"  & outcome=="`oc'" & part=="`pt'", lcolor("`c_lo'") lwidth(thick) msymbol(circle)), ///
             yline(0, lpattern(dash) lcolor(gs8)) ///
             xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
             xtitle("Year", size(medium)) ///
@@ -902,8 +902,8 @@ foreach oc in gdp credit inv claims_govt {
         capture twoway ///
             (rarea lo hi horizon if part=="nd"  & outcome=="`oc'" & bank=="`bk'", color("`c_nd'%16")  lwidth(none)) ///
             (rarea lo hi horizon if part=="def" & outcome=="`oc'" & bank=="`bk'", color("`c_def'%16") lwidth(none)) ///
-            (connected b horizon if part=="nd"  & outcome=="`oc'" & bank=="`bk'", lcolor("`c_nd'")  lwidth(medthick) msymbol(circle)) ///
-            (connected b horizon if part=="def" & outcome=="`oc'" & bank=="`bk'", lcolor("`c_def'") lwidth(medthick) msymbol(square)), ///
+            (connected b horizon if part=="nd"  & outcome=="`oc'" & bank=="`bk'", lcolor("`c_nd'")  lwidth(thick) msymbol(circle)) ///
+            (connected b horizon if part=="def" & outcome=="`oc'" & bank=="`bk'", lcolor("`c_def'") lwidth(thick) msymbol(square)), ///
             yline(0, lpattern(dash) lcolor(gs8)) ///
             xlabel(0(1)5, labsize(medium)) ylabel(, labsize(medium) angle(horizontal)) ///
             xtitle("Year", size(medium)) ///
