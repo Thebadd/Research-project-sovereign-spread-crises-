@@ -812,19 +812,19 @@ local c_hi "230 126 34"   // high nexus = orange
 local c_lo "34 139 34"    // low  nexus = green
 foreach oc in gdp credit inv claims_govt {
     if "`oc'" == "gdp" {
-        local ptit "GDP"
+        local ptit "Panel A: GDP"
         local fnm  "fig_aipw_nexus_split_analyticSE"
     }
     else if "`oc'" == "credit" {
-        local ptit "Bank credit"
+        local ptit "Panel B: Bank credit"
         local fnm  "fig_nexus_`oc'_analyticSE"
     }
     else if "`oc'" == "inv" {
-        local ptit "Investment"
+        local ptit "Panel C: Investment"
         local fnm  "fig_nexus_`oc'_analyticSE"
     }
     else if "`oc'" == "claims_govt" {
-        local ptit "Bank claims on government"
+        local ptit "Panel D: Bank claims on government"
         local fnm  "fig_nexus_`oc'_analyticSE"
     }
     local pi = 1
@@ -879,19 +879,19 @@ local c_nd  "blue"
 local c_def "red"
 foreach oc in gdp credit inv claims_govt {
     if "`oc'" == "gdp" {
-        local ptit "GDP"
+        local ptit "Panel A: GDP"
         local fnm  "fig_aipw_nexus_split_byexposure_analyticSE"
     }
     else if "`oc'" == "credit" {
-        local ptit "Bank credit"
+        local ptit "Panel B: Bank credit"
         local fnm  "fig_nexus_`oc'_byexposure_analyticSE"
     }
     else if "`oc'" == "inv" {
-        local ptit "Investment"
+        local ptit "Panel C: Investment"
         local fnm  "fig_nexus_`oc'_byexposure_analyticSE"
     }
     else if "`oc'" == "claims_govt" {
-        local ptit "Bank claims on government"
+        local ptit "Panel D: Bank claims on government"
         local fnm  "fig_nexus_`oc'_byexposure_analyticSE"
     }
     local pi = 1
