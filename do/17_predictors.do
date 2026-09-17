@@ -15,32 +15,44 @@
                         distance (GEO_CEPII.xlsx) -- matches the reference
                         paper's own contagion predictor's bounded scale
                         (their Table B3: mean 0.05, range [0,0.88])
-    l_contagion_dist    Z2b lagged (predetermined) -- ADOPTED in cz (Act 1,
-                        pooled): the GENERIC (any-onset-type) contagion
-                        measure, since there is no resolution type to be
-                        specific about in a pooled spec
+    l_contagion_dist    Z2b lagged (predetermined) -- generic (any-onset-
+                        type), spread-panel-only donor pool. RETIRED as an
+                        adopted predictor: superseded by l_contagion_dist_atdef
+                        below in every predictor set that now uses a
+                        contagion term, in BOTH arms. Kept built for
+                        reference/comparison only.
     contagion_dist_def  Z2b(def): same construction, DEFAULT-LINKED in-crisis
                         years only (onset_def|continuation of a default-
-                        linked episode)
-    l_contagion_dist_def  Z2b(def) lagged -- ADOPTED in cz_def (resolution-
-                        type): the default arm's classification power was
-                        materially weaker under the generic contagion/recency
-                        combination (08c_first_stage_table.do's diagnostics),
-                        so cz_def is narrowed to default-linked-only
-    contagion_dist_atdef  Z2b(atdef) NEW, ADDITIVE variant: same construction
-                        as contagion_dist_def, but the donor pool k is
-                        widened from the 52-country spread-crisis panel to
+                        linked episode), spread-panel-only donor pool.
+    l_contagion_dist_def  Z2b(def) lagged -- RETIRED: was previously adopted
+                        in cz_def, since superseded there by
+                        l_contagion_dist_atdef (08c_first_stage_table.do's
+                        own head-to-head comparison). Kept built as the
+                        "legacy" comparison column in 08c/08d's own tables.
+    contagion_dist_atdef  Z2b(atdef): same construction, but the donor pool k
+                        is widened from the 52-country spread-crisis panel to
                         that panel UNION every country in the full Asonuma-
                         Trebesch (2016) default/restructuring database
                         (17b_merge_at_full.do's own source, re-read here
-                        directly since 17b runs after this file), and the
-                        donor-in-crisis flag is "this donor country-year
-                        falls inside an AT-recorded default/restructuring
-                        window" rather than "this donor has a default-linked
-                        spread-crisis onset/continuation". NOT adopted into
-                        cz_def or any AIPW/first-stage file -- built here as
-                        a candidate for a future robustness test only.
-    l_contagion_dist_atdef  Z2b(atdef) lagged (predetermined)
+                        directly since 17b runs after this file). The
+                        donor-in-crisis flag is the UNION of (a) this donor
+                        country-year falling inside an AT-recorded default/
+                        restructuring window, and (b) this donor being a
+                        spread-crisis onset/continuation of ANY resolution
+                        type per this project's own dating -- see the block
+                        below for the exact construction. NOT restricted to
+                        default-linked donors, so it is the right shared
+                        contagion measure for BOTH arms, not just cz_def.
+    l_contagion_dist_atdef  Z2b(atdef) lagged (predetermined) -- ADOPTED
+                        project-wide in cz_def (every AIPW/first-stage file,
+                        headline and _analyticSE alike), and ADOPTED in cz
+                        (the pooled/non-default-arm predictor set) in the
+                        three _analyticSE files specifically
+                        (08b_aipw_analyticSE.do, 13c_aipw_channels_
+                        analyticSE.do, 13d_aipw_nexus_split_analyticSE.do).
+                        The headline (non-SE) files' own cz still uses
+                        l_reg_crisis_share as of this comment -- not yet
+                        brought in line with the SE files' cz.
     past_onsets         Z3: cumulative own onsets before year t (proneness)
     past_def_onsets     Z3(def): cumulative own default-linked onsets before t
     years_since_def_onset  Z3(def)-recency: years since most recent prior
@@ -306,10 +318,15 @@ local panel_yr_max = r(max)
 *     (a) the donor country-year falls inside an AT-recorded default/
 *         restructuring window (any raw AT case row, start year through end
 *         year -- see below), OR
-*     (b) the donor country-year is a default-linked spread-crisis year per
-*         this project's OWN existing dating (onset_all==1 | continuation==1,
-*         carryin==0) -- i.e. the identical donor_in_crisis flag the
-*         contagion_dist_def block above already uses.
+*     (b) the donor country-year is a spread-crisis year of ANY resolution
+*         type (non-default or default-linked alike) per this project's OWN
+*         existing dating (onset_all==1 | continuation==1, carryin==0) --
+*         NOT restricted to default-linked donors, unlike the
+*         contagion_dist_def block above (which restricts its own donor
+*         flag to nd_ep_tmp==0). This is deliberate: contagion_dist_atdef is
+*         the variant meant to feed BOTH arms' predictor sets (cz and
+*         cz_def alike), so its donor pool counts every crisis type, not
+*         just default-linked ones.
 * For a spread-panel donor, both (a) and (b) are available and OR'd. For an
 * AT-only donor (no spread-panel presence at all), (b) is structurally
 * unavailable (never tested for a spread crisis -- see 10b_skeleton_atonly.do's
