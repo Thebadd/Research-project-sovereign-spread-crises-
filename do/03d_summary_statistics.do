@@ -24,8 +24,9 @@
 
   SCOPE, PER THE PROJECT OWNER'S EXPLICIT INSTRUCTION: only variables this
   project actually defines AND uses in its own estimation are reported --
-  the six headline outcomes (GDP + the five channels the LP/AIPW files
-  estimate) and the eight $ctrl_core controls (every regression's own
+  the seven headline outcomes (GDP + the six channels the LP/AIPW files
+  estimate, FDI included -- previously missing from this table, added per
+  follow-up request) and the eight $ctrl_core controls (every regression's own
   control set). Asonuma's Table B3 also reports an "Additional control
   variables" block (debt, terms of trade, Freedom House indices, Paris
   Club/IMF dummies), a "Predictors" block (fed funds, contagion, past
@@ -93,7 +94,7 @@ if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l
 * six.do (ch_v_h = F h.src - L.src; log-real-level src for credit/inv, raw
 * level for claims_govt/claimsgov_assets/claimpriv_assets/real_lending). Not
 * persisted in panel_lp.dta, built fresh here. ───────────────────────────
-foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets real_lending {
+foreach v in credit inv claims_govt claimsgov_assets claimpriv_assets fdi real_lending {
     local src `v'
     if inlist("`v'","credit","inv") local src ln_r_`v'
     capture drop `v'_sbase
@@ -117,7 +118,7 @@ di as result "TABLE [X]: SUMMARY STATISTICS (sample==1, onset + tranquil years, 
 di as result "════════════════════════════════════════════════════════════"
 
 di as result _n "-- Dependent variables --"
-summarize dy_0 ch0_inv ch0_credit ch0_claims_govt ch0_claimsgov_assets ch0_claimpriv_assets ch0_real_lending if sample==1
+summarize dy_0 ch0_credit ch0_inv ch0_claims_govt ch0_claimsgov_assets ch0_claimpriv_assets ch0_fdi ch0_real_lending if sample==1
 
 di as result _n "-- Baseline control variables (\$ctrl_core, native scale) --"
 summarize l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2 if sample==1
@@ -146,8 +147,8 @@ di as result "headline design, and no display rescaling."
 * by 18_transforms.do); claims_govt/claimsgov_assets/claimpriv_assets are
 * level changes in an already-percent ratio (no further x100 needed); GDP
 * and real_lending are also already x100-scaled at construction.
-local depvars    dy_0 ch0_credit ch0_inv ch0_claims_govt ch0_claimsgov_assets ch0_claimpriv_assets ch0_real_lending
-local depvarlab  `" "[ln(GDP{i,t}) - ln(GDP{i,t-1})] x 100" "[ln(Bank credit{i,t}) - ln(Bank credit{i,t-1})] x 100" "[ln(Investment{i,t}) - ln(Investment{i,t-1})] x 100" "(Claims on govt/GDP{i,t} - Claims on govt/GDP{i,t-1}), pp" "(Bank claims on govt/assets{i,t} - {i,t-1}), pp" "(Bank claims on private/assets{i,t} - {i,t-1}), pp" "[ln(1+Real lending rate{i,t}) - ln(1+Real lending rate{i,t-1})] x 100" "'
+local depvars    dy_0 ch0_credit ch0_inv ch0_claims_govt ch0_claimsgov_assets ch0_claimpriv_assets ch0_fdi ch0_real_lending
+local depvarlab  `" "[ln(GDP{i,t}) - ln(GDP{i,t-1})] x 100" "[ln(Bank credit{i,t}) - ln(Bank credit{i,t-1})] x 100" "[ln(Investment{i,t}) - ln(Investment{i,t-1})] x 100" "(Claims on govt/GDP{i,t} - Claims on govt/GDP{i,t-1}), pp" "(Bank claims on govt/assets{i,t} - {i,t-1}), pp" "(Bank claims on private/assets{i,t} - {i,t-1}), pp" "(FDI/GDP{i,t} - FDI/GDP{i,t-1}), pp" "[ln(1+Real lending rate{i,t}) - ln(1+Real lending rate{i,t-1})] x 100" "'
 local ctrlvars   l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2
 local ctrlvarlab `" "GDP growth rate" "Debt-to-GDP ratio" "Banking crisis dummy" "Govt. expenditure-to-GDP ratio" "Openness" "Bank credit-to-GDP ratio" "Log inflation" "Nominal exchange rate change" "'
 * Predictors: the pooled Act 1 propensity set `cz' as actually used in the
