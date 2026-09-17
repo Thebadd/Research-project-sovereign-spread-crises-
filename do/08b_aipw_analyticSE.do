@@ -105,7 +105,7 @@ xtset cid year
 * while omodel = $ctrl_core: same baseline in both stages (their $convar design).
 local cx    $ctrl_core
 * Act 1 predictors Z1: single global push (fed funds) + contagion + proneness.
-local cz    l_fedfunds l_reg_crisis_share past_onsets
+local cz    l_fedfunds l_contagion_dist_atdef past_onsets
 * Act 2 predictors Z2 (resolution-type): matches the flow tier's adopted
 * cz_recency in spirit (a country-year-specific spatial-lag contagion
 * measure in place of a coarse regional share; a genuine recency clock in

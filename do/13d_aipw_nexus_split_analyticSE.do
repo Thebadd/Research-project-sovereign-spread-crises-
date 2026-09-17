@@ -146,7 +146,7 @@ set seed 20260819
 * to the boundary and are left as they are.
 local nboot  = 1000
 local cx     $ctrl_core   // retained for reference; propensity baseline now passes `om' (strict parity)
-local cz     l_fedfunds l_reg_crisis_share past_onsets       // Act 1 predictors
+local cz     l_fedfunds l_contagion_dist_atdef past_onsets   // Act 1 predictors
 * Resolution predictors: both terms are DEFAULT-LINKED-SPECIFIC
 * (l_contagion_dist_def, years_since_def_onset) on economic grounds -- a
 * predictor for default-linked risk should measure default-linked

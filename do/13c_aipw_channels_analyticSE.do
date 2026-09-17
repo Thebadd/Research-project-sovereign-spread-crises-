@@ -128,7 +128,7 @@ set seed 20260819
 
 local nboot  = 1000     // matches the reference paper's own G=1000 (their bootstrap scripts)
 local cx     $ctrl_core   // retained for reference; propensity baseline now passes `om' (strict parity)
-local cz     l_fedfunds l_reg_crisis_share past_onsets       // Act 1 predictors Z1
+local cz     l_fedfunds l_contagion_dist_atdef past_onsets   // Act 1 predictors Z1
 * Act 2 predictors Z2 (resolution-type): both terms are DEFAULT-LINKED-
 * SPECIFIC (l_contagion_dist_def, years_since_def_onset) on economic
 * grounds -- a predictor for default-linked risk should measure
