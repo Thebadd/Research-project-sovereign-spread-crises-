@@ -137,16 +137,32 @@ di as result "headline design, and no display rescaling."
 * reference paper's Table B3 visual layout: bold block-header row, then
 * Variable | Obs. | Mean | Std. Dev. | Min | Max per row).
 * ══════════════════════════════════════════════════════════════════════════
-local depvars    dy_0 ch0_inv ch0_credit ch0_claims_govt ch0_claimsgov_assets ch0_claimpriv_assets ch0_real_lending
-local depvarlab  `" "GDP" "Investment" "Bank credit" "Claims on govt / GDP" "Bank claims on govt / assets" "Bank claims on private / assets" "Real lending interest rate" "'
+* Dependent-variable labels written as the actual transformation applied in
+* code (18_transforms.do / this file's own ch0_* block above), styled on the
+* reference paper's Table B3 bracket notation -- NOT a copy of their rows,
+* each formula is this project's own construction. t = crisis onset year,
+* t-1 = the pre-crisis base year (18_transforms.do's ln_gdp_base/`v'_sbase).
+* credit/inv are on the log-real-level scale (ln_r_*, already x100 baked in
+* by 18_transforms.do); claims_govt/claimsgov_assets/claimpriv_assets are
+* level changes in an already-percent ratio (no further x100 needed); GDP
+* and real_lending are also already x100-scaled at construction.
+local depvars    dy_0 ch0_credit ch0_inv ch0_claims_govt ch0_claimsgov_assets ch0_claimpriv_assets ch0_real_lending
+local depvarlab  `" "[ln(GDP{i,t}) - ln(GDP{i,t-1})] x 100" "[ln(Bank credit{i,t}) - ln(Bank credit{i,t-1})] x 100" "[ln(Investment{i,t}) - ln(Investment{i,t-1})] x 100" "(Claims on govt/GDP{i,t} - Claims on govt/GDP{i,t-1}), pp" "(Bank claims on govt/assets{i,t} - {i,t-1}), pp" "(Bank claims on private/assets{i,t} - {i,t-1}), pp" "[ln(1+Real lending rate{i,t}) - ln(1+Real lending rate{i,t-1})] x 100" "'
 local ctrlvars   l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2
 local ctrlvarlab `" "GDP growth rate" "Debt-to-GDP ratio" "Banking crisis dummy" "Govt. expenditure-to-GDP ratio" "Openness" "Bank credit-to-GDP ratio" "Log inflation" "Nominal exchange rate change" "'
-local predvars   l_fedfunds l_reg_crisis_share past_onsets
-local predvarlab `" "Federal funds rate" "Regional crisis share (contagion)" "Number of past onsets" "'
+* Predictors: the pooled Act 1 propensity set `cz' as actually used in the
+* three _analyticSE files (08b_aipw_analyticSE.do, 13c_aipw_channels_
+* analyticSE.do, 13d_aipw_nexus_split_analyticSE.do) after the contagion-
+* predictor fix -- l_contagion_dist_atdef (distance-weighted, donor pool =
+* own spread-crisis database UNION Asonuma-Trebesch, ANY resolution type),
+* not l_reg_crisis_share. See 17_predictors.do's header for the full
+* construction; matches cz_def's own contagion term project-wide too.
+local predvars   l_fedfunds l_contagion_dist_atdef past_onsets
+local predvarlab `" "Federal funds rate" "Contagion (distance-weighted, all crisis types + restructurings)" "Number of past onsets" "'
 
 tempname S
 tempfile sumf
-postfile `S' str48 variable long obs double mean double sd double min double max byte blockn using "`sumf'", replace
+postfile `S' str100 variable long obs double mean double sd double min double max byte blockn using "`sumf'", replace
 
 local i = 1
 foreach v of local depvars {
@@ -215,7 +231,7 @@ program define _rtfrow6b
     syntax , [C1(string) C2(string) C3(string) C4(string) C5(string) C6(string) BOLD SHADE]
     local bd "\clbrdrt\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrr\brdrs\brdrw10"
     local sh = cond("`shade'"=="shade", "\clshdng10000\clcbpat22", "")
-    local rowdef "\trowd\trgaph80\trleft-108`sh'`bd'\cellx3600`sh'`bd'\cellx4700`sh'`bd'\cellx5800`sh'`bd'\cellx6900`sh'`bd'\cellx8000`sh'`bd'\cellx9100"
+    local rowdef "\trowd\trgaph80\trleft-108`sh'`bd'\cellx7500`sh'`bd'\cellx8300`sh'`bd'\cellx9200`sh'`bd'\cellx10100`sh'`bd'\cellx11000`sh'`bd'\cellx11900"
     local os = cond("`bold'"=="bold", "\b ", "")
     local oe = cond("`bold'"=="bold", "\b0 ", "")
     file write t3s "`rowdef'" _n
@@ -225,7 +241,7 @@ end
 
 capture file close t3s
 file open t3s using "$tabs/table_summary_statistics.rtf", write replace
-file write t3s "{\rtf1\ansi\deff0" _n
+file write t3s "{\rtf1\ansi\deff0\landscape\paperw15840\paperh12240\margl720\margr720" _n
 file write t3s "{\b Table [X]. Summary Statistics\par}" _n
 file write t3s "\par" _n
 _rtfrow6b, c1("Variable") c2("Obs.") c3("Mean") c4("Std. Dev.") c5("Min") c6("Max") bold shade
