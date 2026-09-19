@@ -795,4 +795,180 @@ file write bt5 "}" _n
 file close bt5
 di as result "Balance table saved (real RTF table): $tabs/table_balance_precrisis.rtf"
 
+* ══════════════════════════════════════════════════════════════════════════
+* 5. DO THE CONTROLS PREDICT RESOLUTION TYPE? -- Table H1-style regression,
+*    equivalent to Asonuma et al.'s own "Regression of Restructuring
+*    Strategies on Control Variables", scoped to this project's own
+*    non-default vs. default-linked split (not the finer post-default/
+*    weakly/strictly preemptive AT sub-types, which this project's own
+*    onset_nd/onset_def design does not carry).
+*
+*    One regression per $ctrl_core control: that control (at t-1) on
+*    onset_def, restricted to crisis onsets only (onset_all==1) -- so the
+*    coefficient on onset_def is the mean difference between default-linked
+*    and non-default onsets (non-default is the omitted/reference
+*    category), with its own robust SE, N, countries, and R-squared,
+*    exactly mirroring the reference table's own layout. This is the same
+*    comparison as Section 4's t-test above, restated as a regression
+*    (numerically the same point estimate; the SE differs only in that this
+*    is a regression-robust SE rather than a two-sample t-test SE) --
+*    included because a reader comparing against Table H1 expects the
+*    regression form specifically.
+* ══════════════════════════════════════════════════════════════════════════
+di as result _n "════════════════════════════════════════════════════════════"
+di as result "DO PRE-CRISIS CONTROLS PREDICT RESOLUTION TYPE? (onset_def, ref=non-default)"
+di as result "════════════════════════════════════════════════════════════"
+
+local h1vars $ctrl_core
+local h1labels `" "GDP growth rate" "Debt-to-GDP ratio" "Banking crisis dummy" "Govt. expenditure-to-GDP ratio" "Openness" "Bank credit-to-GDP ratio" "Log inflation" "Nominal exchange rate change" "'
+
+tempname H
+tempfile h1f
+postfile `H' str32 variable double b double se double r2 long nobs byte ncty using "`h1f'", replace
+
+foreach v of local h1vars {
+    capture confirm variable `v'
+    if _rc continue
+
+    quietly regress `v' onset_def if sample==1 & onset_all==1, vce(robust)
+    local bb  = _b[onset_def]
+    local ss  = _se[onset_def]
+    local rr  = e(r2)
+    local nn  = e(N)
+
+    tempvar tagcty
+    quietly egen byte `tagcty' = tag(cid) if e(sample)
+    quietly count if `tagcty'==1
+    local cc = r(N)
+    drop `tagcty'
+
+    * Display-only x100 for the five decimal-scale $ctrl_core terms, same
+    * convention as Section 4's table above.
+    if strpos(" `pct100' ", " `v' ") {
+        local bb = `bb' * 100
+        local ss = `ss' * 100
+    }
+
+    post `H' ("`v'") (`bb') (`ss') (`rr') (`nn') (`cc')
+    di as result %-20s "`v'" "  b=" %8.3f `bb' "  se=" %7.3f `ss' "  R2=" %6.4f `rr' "  N=" `nn' "  countries=" `cc'
+}
+postclose `H'
+
+* ── RTF/Word export -- one column per control, one row (Default-linked),
+* plus Observations/Countries/R-squared rows, matching Table H1's layout.
+capture program drop _rtfrowh1
+program define _rtfrowh1
+    syntax , [C1(string) C2(string) C3(string) C4(string) C5(string) C6(string) C7(string) C8(string) C9(string) BOLD SHADE]
+    local bd "\clbrdrt\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrr\brdrs\brdrw10"
+    local sh = cond("`shade'"=="shade", "\clshdng10000\clcbpat22", "")
+    local rowdef "\trowd\trgaph80\trleft-108`sh'`bd'\cellx2200`sh'`bd'\cellx3400`sh'`bd'\cellx4600`sh'`bd'\cellx5800`sh'`bd'\cellx7000`sh'`bd'\cellx8200`sh'`bd'\cellx9400`sh'`bd'\cellx10600`sh'`bd'\cellx11800"
+    local os = cond("`bold'"=="bold", "\b ", "")
+    local oe = cond("`bold'"=="bold", "\b0 ", "")
+    file write h1t "`rowdef'" _n
+    file write h1t "\pard\intbl\ql {`os'`c1'`oe'}\cell \qc {`os'`c2'`oe'}\cell {`os'`c3'`oe'}\cell {`os'`c4'`oe'}\cell {`os'`c5'`oe'}\cell {`os'`c6'`oe'}\cell {`os'`c7'`oe'}\cell {`os'`c8'`oe'}\cell {`os'`c9'`oe'}\cell " _n
+    file write h1t "\row" _n
+end
+
+capture file close h1t
+file open h1t using "$tabs/table_control_predict_resolution.rtf", write replace
+file write h1t "{\rtf1\ansi\deff0\landscape\paperw15840\paperh12240\margl600\margr600" _n
+file write h1t "{\b Table H1-equiv. Do pre-crisis controls predict resolution type?\par}" _n
+file write h1t "\par" _n
+
+preserve
+    use "`h1f'", clear
+    local nr = _N
+    local c1 ""
+    local c2 ""
+    local c3 ""
+    local c4 ""
+    local c5 ""
+    local c6 ""
+    local c7 ""
+    local c8 ""
+    forvalues r = 1/`nr' {
+        local lab : word `r' of `h1labels'
+        local c`r' "`lab'"
+    }
+    _rtfrowh1, c1("") c2(`"`c1'"') c3(`"`c2'"') c4(`"`c3'"') c5(`"`c4'"') c6(`"`c5'"') c7(`"`c6'"') c8(`"`c7'"') c9(`"`c8'"') bold shade
+
+    local c1 ""
+    local c2 ""
+    local c3 ""
+    local c4 ""
+    local c5 ""
+    local c6 ""
+    local c7 ""
+    local c8 ""
+    local se1 ""
+    local se2 ""
+    local se3 ""
+    local se4 ""
+    local se5 ""
+    local se6 ""
+    local se7 ""
+    local se8 ""
+    forvalues r = 1/`nr' {
+        local bb  = b[`r']
+        local ss  = se[`r']
+        local pv  = 2*(1 - normal(abs(`bb'/`ss')))
+        local st  = cond(missing(`pv'), "", cond(`pv'<.01,"***",cond(`pv'<.05,"**",cond(`pv'<.10,"*",""))))
+        local bstr : display %6.2f `bb'
+        local sestr : display %6.2f `ss'
+        local c`r' "`bstr'`st'"
+        local se`r' "(`sestr')"
+    }
+    _rtfrowh1, c1("Default-linked") c2(`"`c1'"') c3(`"`c2'"') c4(`"`c3'"') c5(`"`c4'"') c6(`"`c5'"') c7(`"`c6'"') c8(`"`c7'"') c9(`"`c8'"')
+    _rtfrowh1, c1("") c2(`"`se1'"') c3(`"`se2'"') c4(`"`se3'"') c5(`"`se4'"') c6(`"`se5'"') c7(`"`se6'"') c8(`"`se7'"') c9(`"`se8'"')
+
+    local c1 ""
+    local c2 ""
+    local c3 ""
+    local c4 ""
+    local c5 ""
+    local c6 ""
+    local c7 ""
+    local c8 ""
+    forvalues r = 1/`nr' {
+        local nn : display %5.0f nobs[`r']
+        local c`r' "`nn'"
+    }
+    _rtfrowh1, c1("Observations") c2(`"`c1'"') c3(`"`c2'"') c4(`"`c3'"') c5(`"`c4'"') c6(`"`c5'"') c7(`"`c6'"') c8(`"`c7'"') c9(`"`c8'"')
+
+    local c1 ""
+    local c2 ""
+    local c3 ""
+    local c4 ""
+    local c5 ""
+    local c6 ""
+    local c7 ""
+    local c8 ""
+    forvalues r = 1/`nr' {
+        local nc : display %3.0f ncty[`r']
+        local c`r' "`nc'"
+    }
+    _rtfrowh1, c1("Countries") c2(`"`c1'"') c3(`"`c2'"') c4(`"`c3'"') c5(`"`c4'"') c6(`"`c5'"') c7(`"`c6'"') c8(`"`c7'"') c9(`"`c8'"')
+
+    local c1 ""
+    local c2 ""
+    local c3 ""
+    local c4 ""
+    local c5 ""
+    local c6 ""
+    local c7 ""
+    local c8 ""
+    forvalues r = 1/`nr' {
+        local rr : display %6.4f r2[`r']
+        local c`r' "`rr'"
+    }
+    _rtfrowh1, c1("R-squared") c2(`"`c1'"') c3(`"`c2'"') c4(`"`c3'"') c5(`"`c4'"') c6(`"`c5'"') c7(`"`c6'"') c8(`"`c7'"') c9(`"`c8'"')
+restore
+
+file write h1t "\pard\par" _n
+file write h1t "{\i Notes: each column is a separate regression of that control variable (at t-1) on onset_def, restricted to crisis onsets (onset_all==1); non-default onsets are the omitted/reference category, so the coefficient shown is the mean difference, default-linked minus non-default. l1_gdpg/l_debt/l_govexp/l_open/l_credit_bank shown x100 for readability, matching Table C1. Robust standard errors in parentheses. Numerically equivalent to Table C1's own nd/def comparison, restated here as a regression to match the reference table's own layout.\par}" _n
+file write h1t "{\i * p<0.10, ** p<0.05, *** p<0.01.\par}" _n
+file write h1t "}" _n
+file close h1t
+di as result "Control-predicts-resolution table saved (real RTF table): $tabs/table_control_predict_resolution.rtf"
+
 di as result _n "02a_descriptive_facts.do complete."
