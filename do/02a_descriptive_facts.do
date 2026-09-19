@@ -744,4 +744,55 @@ di as result "  differently on that dimension, which is the selection the propen
 di as result "  models of Section 5 are built to address. Read this table alongside"
 di as result "  the first-stage probit rather than as a balance test that has to pass."
 
+* ── RTF/Word export -- real bordered table, matching the reference paper's
+* balance-table layout: Variable | Tranquil | Non-default | Default-linked |
+* p(nd=def), with single-tier stars on the p-value. Same _rtfrow-style
+* helper as 03d_summary_statistics.do's table (optional string options, so
+* blank cells never trigger the "option required" bug fixed there).
+capture program drop _rtfrow5b
+program define _rtfrow5b
+    syntax , [C1(string) C2(string) C3(string) C4(string) C5(string) BOLD SHADE]
+    local bd "\clbrdrt\brdrs\brdrw10\clbrdrl\brdrs\brdrw10\clbrdrb\brdrs\brdrw10\clbrdrr\brdrs\brdrw10"
+    local sh = cond("`shade'"=="shade", "\clshdng10000\clcbpat22", "")
+    local rowdef "\trowd\trgaph80\trleft-108`sh'`bd'\cellx3400`sh'`bd'\cellx5000`sh'`bd'\cellx6600`sh'`bd'\cellx8200`sh'`bd'\cellx9800"
+    local os = cond("`bold'"=="bold", "\b ", "")
+    local oe = cond("`bold'"=="bold", "\b0 ", "")
+    file write bt5 "`rowdef'" _n
+    file write bt5 "\pard\intbl\ql {`os'`c1'`oe'}\cell \qc {`os'`c2'`oe'}\cell {`os'`c3'`oe'}\cell {`os'`c4'`oe'}\cell {`os'`c5'`oe'}\cell " _n
+    file write bt5 "\row" _n
+end
+
+local varlabels `" "GDP growth rate (t-1)" "Debt-to-GDP ratio (t-1)" "Banking crisis dummy (t-1)" "Govt. expenditure-to-GDP ratio (t-1)" "Openness (t-1)" "Bank credit-to-GDP ratio (t-1)" "Log inflation (t-1)" "Nominal exchange rate change (t-1)" "EMBIG spread, bps (t-1)" "Bank claims on govt / assets (t-1)" "'
+
+capture file close bt5
+file open bt5 using "$tabs/table_balance_precrisis.rtf", write replace
+file write bt5 "{\rtf1\ansi\deff0" _n
+file write bt5 "{\b Table C1. Pre-crisis characteristics by group\par}" _n
+file write bt5 "\par" _n
+_rtfrow5b, c1("Variable") c2("Tranquil") c3("Non-default") c4("Default-linked") c5("p(nd=def)") bold shade
+
+preserve
+    use "`sumf'", clear
+    local nr = _N
+    forvalues r = 1/`nr' {
+        local vv  = variable[`r']
+        local lab : word `r' of `varlabels'
+        if "`lab'" == "" local lab "`vv'"
+        local mt : display %8.2f m_tranq[`r']
+        local mn : display %8.2f m_nd[`r']
+        local md : display %8.2f m_def[`r']
+        local pv = pdiff[`r']
+        local pst = cond(missing(`pv'), "", cond(`pv'<.01,"***",cond(`pv'<.05,"**",cond(`pv'<.10,"*",""))))
+        local pstr : display %5.3f `pv'
+        _rtfrow5b, c1(`"`lab'"') c2(`"`mt'"') c3(`"`mn'"') c4(`"`md'"') c5(`"`pstr'`pst'"')
+    }
+restore
+
+file write bt5 "\pard\par" _n
+file write bt5 "{\i Notes: all variables measured at t-1 (predetermined, the same values the regressions condition on). l1_gdpg/l_debt/l_govexp/l_open/l_credit_bank shown x100 (percent/percentage points) for readability; underlying regressions use the decimal \$ctrl_core scale, unaffected. p(nd=def) is a two-sample t-test on the non-default vs. default-linked difference -- the paper's identifying comparison, not a crisis-vs-tranquil test. A significant p-value means the two groups entered their crises differently on that dimension, which the propensity models are built to address; read alongside the first-stage probit rather than as a balance test that has to pass.\par}" _n
+file write bt5 "{\i * p<0.10, ** p<0.05, *** p<0.01.\par}" _n
+file write bt5 "}" _n
+file close bt5
+di as result "Balance table saved (real RTF table): $tabs/table_balance_precrisis.rtf"
+
 di as result _n "02a_descriptive_facts.do complete."
