@@ -32,8 +32,6 @@ keep if horizon >= 0
 
 twoway ///
     (rarea lo95 hi95 horizon, ///
-        color("`c_all'%15") lwidth(none)) ///
-    (rarea lo90 hi90 horizon, ///
         color("`c_all'%25") lwidth(none)) ///
     (connected b horizon, ///
         lcolor("`c_all'") lwidth(medthick) ///
@@ -68,12 +66,12 @@ else {
     keep if horizon >= 0
 
     twoway ///
-        (rarea lo90 hi90 horizon if series=="baseline", ///
+        (rarea lo95 hi95 horizon if series=="baseline", ///
             color("`c_all'%20") lwidth(none)) ///
         (connected b horizon if series=="baseline", ///
             lcolor("`c_all'") lwidth(medthick) ///
             mcolor("`c_all'") msize(medium) msymbol(circle)) ///
-        (rarea lo90 hi90 horizon if series=="all_asonumasample", ///
+        (rarea lo95 hi95 horizon if series=="all_asonumasample", ///
             color("`c_def'%20") lwidth(none)) ///
         (connected b horizon if series=="all_asonumasample", ///
             lcolor("`c_def'") lwidth(medthick) ///
@@ -101,12 +99,12 @@ append using "$clean/irf_def.dta"
 keep if horizon >= 0
 
 twoway ///
-    (rarea lo90 hi90 horizon if series=="nd", ///
+    (rarea lo95 hi95 horizon if series=="nd", ///
         color("`c_nd'%20") lwidth(none)) ///
     (connected b horizon if series=="nd", ///
         lcolor("`c_nd'") lwidth(medthick) ///
         mcolor("`c_nd'") msize(medium) msymbol(circle)) ///
-    (rarea lo90 hi90 horizon if series=="def", ///
+    (rarea lo95 hi95 horizon if series=="def", ///
         color("`c_def'%20") lwidth(none)) ///
     (connected b horizon if series=="def", ///
         lcolor("`c_def'") lwidth(medthick) ///
@@ -141,12 +139,12 @@ else {
     keep if horizon >= 0
 
     twoway ///
-        (rarea lo90 hi90 horizon if series=="nd_asonumasample", ///
+        (rarea lo95 hi95 horizon if series=="nd_asonumasample", ///
             color("`c_nd'%20") lwidth(none)) ///
         (connected b horizon if series=="nd_asonumasample", ///
             lcolor("`c_nd'") lwidth(medthick) ///
             mcolor("`c_nd'") msize(medium) msymbol(circle)) ///
-        (rarea lo90 hi90 horizon if series=="def_asonumasample", ///
+        (rarea lo95 hi95 horizon if series=="def_asonumasample", ///
             color("`c_def'%20") lwidth(none)) ///
         (connected b horizon if series=="def_asonumasample", ///
             lcolor("`c_def'") lwidth(medthick) ///
@@ -173,7 +171,7 @@ use "$clean/irf_all.dta", clear
 keep if series == "all"
 
 twoway ///
-    (rarea lo90 hi90 horizon, ///
+    (rarea lo95 hi95 horizon, ///
         color("`c_all'%25") lwidth(none)) ///
     (connected b horizon, ///
         lcolor("`c_all'") lwidth(medthick) ///
