@@ -649,7 +649,7 @@ preserve
         local ++i
     }
     graph combine lir_1 lir_2 lir_3, ///
-        cols(3) rows(1) graphregion(color(white)) xsize(11) ysize(4)
+        cols(3) rows(1) graphregion(color(white)) xsize(12) ysize(6)
     graph export "$figs/fig0_lending_inflation_real.pdf", replace
     di as result "Figure saved: fig0_lending_inflation_real.pdf (Years 0..5, mean, nd vs def, real-lending-coverage sample: nd=`n_rl_nd' def=`n_rl_def' onsets)"
     forvalues i = 1/3 {
