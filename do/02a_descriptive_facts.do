@@ -804,19 +804,15 @@ di as result "Balance table saved (real RTF table): $tabs/table_balance_precrisi
 *    onset_nd/onset_def design does not carry).
 *
 *    One regression per $ctrl_core control: that control (at t-1) on
-*    onset_def, restricted to crisis onsets only (onset_all==1) -- so the
-*    coefficient on onset_def is the mean difference between default-linked
-*    and non-default onsets (non-default is the omitted/reference
-*    category), with its own robust SE, N, countries, and R-squared,
-*    exactly mirroring the reference table's own layout. This is the same
-*    comparison as Section 4's t-test above, restated as a regression
-*    (numerically the same point estimate; the SE differs only in that this
-*    is a regression-robust SE rather than a two-sample t-test SE) --
-*    included because a reader comparing against Table H1 expects the
-*    regression form specifically.
+*    onset_nd AND onset_def JOINTLY, on the full sample (tranquil years +
+*    both onset types) -- tranquil years are the omitted/reference
+*    category, matching the reference table's own design (their rows are
+*    each compared to the same tranquil baseline, not to each other). Both
+*    coefficients, their own robust SEs, and the regression's shared N/
+*    countries/R-squared are reported per column.
 * ══════════════════════════════════════════════════════════════════════════
 di as result _n "════════════════════════════════════════════════════════════"
-di as result "DO PRE-CRISIS CONTROLS PREDICT RESOLUTION TYPE? (onset_def, ref=non-default)"
+di as result "DO PRE-CRISIS CONTROLS PREDICT RESOLUTION TYPE? (ref=tranquil years)"
 di as result "════════════════════════════════════════════════════════════"
 
 local h1vars $ctrl_core
@@ -824,15 +820,17 @@ local h1labels `" "GDP growth rate" "Debt-to-GDP ratio" "Banking crisis dummy" "
 
 tempname H
 tempfile h1f
-postfile `H' str32 variable double b double se double r2 long nobs byte ncty using "`h1f'", replace
+postfile `H' str32 variable double bnd double send double bdef double sedef double r2 long nobs byte ncty using "`h1f'", replace
 
 foreach v of local h1vars {
     capture confirm variable `v'
     if _rc continue
 
-    quietly regress `v' onset_def if sample==1 & onset_all==1, vce(robust)
-    local bb  = _b[onset_def]
-    local ss  = _se[onset_def]
+    quietly regress `v' onset_nd onset_def if sample==1, vce(robust)
+    local bn  = _b[onset_nd]
+    local sn  = _se[onset_nd]
+    local bd  = _b[onset_def]
+    local sd  = _se[onset_def]
     local rr  = e(r2)
     local nn  = e(N)
 
@@ -845,12 +843,15 @@ foreach v of local h1vars {
     * Display-only x100 for the five decimal-scale $ctrl_core terms, same
     * convention as Section 4's table above.
     if strpos(" `pct100' ", " `v' ") {
-        local bb = `bb' * 100
-        local ss = `ss' * 100
+        local bn = `bn' * 100
+        local sn = `sn' * 100
+        local bd = `bd' * 100
+        local sd = `sd' * 100
     }
 
-    post `H' ("`v'") (`bb') (`ss') (`rr') (`nn') (`cc')
-    di as result %-20s "`v'" "  b=" %8.3f `bb' "  se=" %7.3f `ss' "  R2=" %6.4f `rr' "  N=" `nn' "  countries=" `cc'
+    post `H' ("`v'") (`bn') (`sn') (`bd') (`sd') (`rr') (`nn') (`cc')
+    di as result %-20s "`v'" "  b_nd=" %8.3f `bn' " (" %6.3f `sn' ")" ///
+       "  b_def=" %8.3f `bd' " (" %6.3f `sd' ")" "  R2=" %6.4f `rr' "  N=" `nn' "  countries=" `cc'
 }
 postclose `H'
 
@@ -872,7 +873,7 @@ end
 capture file close h1t
 file open h1t using "$tabs/table_control_predict_resolution.rtf", write replace
 file write h1t "{\rtf1\ansi\deff0\landscape\paperw15840\paperh12240\margl600\margr600" _n
-file write h1t "{\b Table H1-equiv. Do pre-crisis controls predict resolution type?\par}" _n
+file write h1t "{\b Table H1-equiv. Do pre-crisis controls predict resolution type? (non-default and default-linked, ref=tranquil)\par}" _n
 file write h1t "\par" _n
 
 preserve
@@ -892,6 +893,7 @@ preserve
     }
     _rtfrowh1, c1("") c2(`"`c1'"') c3(`"`c2'"') c4(`"`c3'"') c5(`"`c4'"') c6(`"`c5'"') c7(`"`c6'"') c8(`"`c7'"') c9(`"`c8'"') bold shade
 
+    * ── Row 1: Non-default (onset_nd) vs. tranquil ─────────────────────────
     local c1 ""
     local c2 ""
     local c3 ""
@@ -909,8 +911,38 @@ preserve
     local se7 ""
     local se8 ""
     forvalues r = 1/`nr' {
-        local bb  = b[`r']
-        local ss  = se[`r']
+        local bb  = bnd[`r']
+        local ss  = send[`r']
+        local pv  = 2*(1 - normal(abs(`bb'/`ss')))
+        local st  = cond(missing(`pv'), "", cond(`pv'<.01,"***",cond(`pv'<.05,"**",cond(`pv'<.10,"*",""))))
+        local bstr : display %6.2f `bb'
+        local sestr : display %6.2f `ss'
+        local c`r' "`bstr'`st'"
+        local se`r' "(`sestr')"
+    }
+    _rtfrowh1, c1("Non-default") c2(`"`c1'"') c3(`"`c2'"') c4(`"`c3'"') c5(`"`c4'"') c6(`"`c5'"') c7(`"`c6'"') c8(`"`c7'"') c9(`"`c8'"')
+    _rtfrowh1, c1("") c2(`"`se1'"') c3(`"`se2'"') c4(`"`se3'"') c5(`"`se4'"') c6(`"`se5'"') c7(`"`se6'"') c8(`"`se7'"') c9(`"`se8'"')
+
+    * ── Row 2: Default-linked (onset_def) vs. tranquil ─────────────────────
+    local c1 ""
+    local c2 ""
+    local c3 ""
+    local c4 ""
+    local c5 ""
+    local c6 ""
+    local c7 ""
+    local c8 ""
+    local se1 ""
+    local se2 ""
+    local se3 ""
+    local se4 ""
+    local se5 ""
+    local se6 ""
+    local se7 ""
+    local se8 ""
+    forvalues r = 1/`nr' {
+        local bb  = bdef[`r']
+        local ss  = sedef[`r']
         local pv  = 2*(1 - normal(abs(`bb'/`ss')))
         local st  = cond(missing(`pv'), "", cond(`pv'<.01,"***",cond(`pv'<.05,"**",cond(`pv'<.10,"*",""))))
         local bstr : display %6.2f `bb'
@@ -965,7 +997,7 @@ preserve
 restore
 
 file write h1t "\pard\par" _n
-file write h1t "{\i Notes: each column is a separate regression of that control variable (at t-1) on onset_def, restricted to crisis onsets (onset_all==1); non-default onsets are the omitted/reference category, so the coefficient shown is the mean difference, default-linked minus non-default. l1_gdpg/l_debt/l_govexp/l_open/l_credit_bank shown x100 for readability, matching Table C1. Robust standard errors in parentheses. Numerically equivalent to Table C1's own nd/def comparison, restated here as a regression to match the reference table's own layout.\par}" _n
+file write h1t "{\i Notes: each column is a separate regression of that control variable (at t-1) on onset_nd and onset_def jointly, on the full sample (tranquil years plus both onset types); tranquil years are the omitted/reference category, so each coefficient shown is that arm's mean difference from tranquil years. l1_gdpg/l_debt/l_govexp/l_open/l_credit_bank shown x100 for readability, matching Table C1. Robust standard errors in parentheses; Observations/Countries/R-squared are shared by both rows within a column, since both come from the same joint regression.\par}" _n
 file write h1t "{\i * p<0.10, ** p<0.05, *** p<0.01.\par}" _n
 file write h1t "}" _n
 file close h1t
