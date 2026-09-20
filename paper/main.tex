@@ -993,9 +993,15 @@ towards a potentially more limited response among high-nexus countries
 following non-default crises, the evidence does not establish a
 systematic or persistent attenuation effect.
 
+% Default: all four panels (A: GDP, B: Bank credit, C: Investment,
+% D: Bank claims on government) merged into one figure, stacked
+% vertically. If this does not fit comfortably on one page, comment out
+% this \includegraphics and use the two-part alternative further below
+% instead (fig6_..._part1/part2.png, Panels A-B and C-D respectively),
+% which presents as "Figure 6" and "Figure 6 (continued)".
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/fig6_aipw_by_crisis_type.png}
+\includegraphics[width=0.6\textwidth,height=0.85\textheight,keepaspectratio]{figures/fig6_aipw_by_crisis_type_all.png}
 \caption{AIPW estimation by type of crisis, high or low pre-crisis sovereign-bank nexus.}
 \label{fig:6}
 \notes{The figure shows AIPW estimation results for GDP, bank credit,
@@ -1011,6 +1017,39 @@ based on the sample median of this measure across all crisis onsets. The
 shaded bands indicate each group's own 95 percent confidence interval,
 computed from the analytic standard error.}
 \end{figure}
+
+% --- Two-part alternative to the single merged figure above -----------
+% Swap in this block (and comment out the single-figure block above) if
+% all four panels together do not fit comfortably on one page. Panels A-B
+% (GDP, bank credit) form the first part; Panels C-D (investment, bank
+% claims on government) continue on the next as "Figure 6 (continued)",
+% with the note carried only on the second part.
+%
+% \begin{figure}[htbp]
+% \centering
+% \includegraphics[width=0.75\textwidth]{figures/fig6_aipw_by_crisis_type_part1.png}
+% \caption{AIPW estimation by type of crisis, high or low pre-crisis sovereign-bank nexus.}
+% \label{fig:6}
+% \end{figure}
+%
+% \begin{figure}[htbp]
+% \centering
+% \ContinuedFloat
+% \includegraphics[width=0.75\textwidth]{figures/fig6_aipw_by_crisis_type_part2.png}
+% \caption[]{AIPW estimation by type of crisis, high or low pre-crisis sovereign-bank nexus (continued).}
+% \notes{The figure shows AIPW estimation results for GDP, bank credit,
+% investment, and bank claims on government (Panels A--D), separately for
+% non-default crises and default-linked crises. Year 1 is the crisis onset
+% year. Within each type of crisis, high-nexus (orange) and low-nexus
+% (green) countries are each estimated in a separate regression against
+% tranquil years, with the rival type excluded from that regression's own
+% sample. The nexus is measured as bank claims on government relative to
+% bank assets in the year before the crisis, or the country mean when the
+% pre-crisis value is unavailable; countries are split into two groups
+% based on the sample median of this measure across all crisis onsets. The
+% shaded bands indicate each group's own 95 percent confidence interval,
+% computed from the analytic standard error.}
+% \end{figure}
 
 The contrast with default-linked crises is more pronounced. GDP declines
 substantially following default-linked crises in both nexus groups, but
