@@ -26,9 +26,10 @@
   panel_lp.dta and reuses 13d's amplifier construction read-only; it does
   not touch 13d_aipw_nexus_split.do or change any AIPW result.
 
-  Output: $figs/fig_nexus_bar_combined.pdf -- a single two-panel figure
-          (Non-default | Default-linked) built with graph combine, matching
-          the paper's Figure 5 (one merged image, not two separate PDFs).
+  Output: $figs/fig_nexus_bar_combined.pdf -- a single two-panel figure,
+          stacked vertically (Non-default on top, Default-linked below),
+          built with graph combine, matching the paper's Figure 5 (one
+          merged image, not two separate PDFs).
   Run AFTER 18_transforms.do. Not wired into 00_master.do (standalone
   descriptive export, matching this project's convention for companion
   figure files).
@@ -113,10 +114,10 @@ foreach t in "nd" "def" {
 * ── Merge the two panels into one figure (matches the paper's Figure 5,
 *    a single side-by-side image, rather than two standalone PDFs). ──
 capture noisily graph combine g_nd g_def, ///
-    cols(2) ///
+    cols(1) ///
     imargin(small) ///
     graphregion(color(white)) ///
-    ysize(3) xsize(10)
+    ysize(6) xsize(5)
 if _rc == 0 {
     graph export "$figs/fig_nexus_bar_combined.pdf", replace
     di as result "Figure saved: fig_nexus_bar_combined.pdf"
@@ -124,8 +125,9 @@ if _rc == 0 {
 else di as error "  ** graph combine of g_nd/g_def failed (rc=" _rc ")"
 
 di as result _n "13e_nexus_bars.do complete."
-di as result "fig_nexus_bar_combined.pdf: two side-by-side panels (Non-default |"
-di as result "Default-linked), one bar per onset, pre-crisis sovereign-bank nexus,"
-di as result "sorted descending within each panel, navy line = the median across"
-di as result "all `npooled' onsets pooled (both types), matching"
-di as result "13d_aipw_nexus_split.do's own median-split cutoff population."
+di as result "fig_nexus_bar_combined.pdf: two stacked panels (Non-default on"
+di as result "top, Default-linked below), one bar per onset, pre-crisis"
+di as result "sovereign-bank nexus, sorted descending within each panel, navy"
+di as result "line = the median across all `npooled' onsets pooled (both"
+di as result "types), matching 13d_aipw_nexus_split.do's own median-split"
+di as result "cutoff population."
