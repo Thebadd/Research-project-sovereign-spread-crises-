@@ -42,8 +42,8 @@
 \newcommand{\source}[1]{\par\begingroup\footnotesize\itshape\justifying\noindent Source: #1\par\endgroup}
 
 \title{The Aftermath of Sovereign Spread Crises With and Without Default}
-\author{}
-\date{\today}
+\author{David BETSEM A DJAM}
+\date{September 2026}
 
 % ============================================================
 \begin{document}
@@ -129,7 +129,7 @@ Each identified crisis episode is then cross-referenced with the \citet{asonuma2
 incorporate post-2020 restructuring events. Episodes concurrent with a
 formal sovereign restructuring are classified as default-linked; the
 remainder are classified as debt crises without default. This approach
-identifies 61 spread crises, of which 21 (34 percent) coincide with an
+identifies 61 spread crises, of which 21 coincide with an
 outright default and 40 do not.
 
 We apply local projection with the Augmented Inverse Probability Weighted
@@ -292,6 +292,19 @@ conditions in both the first and second stages of the estimation.
 Figures~B2 and B3 in Appendix~B replicate Figure~\ref{fig:1} and Figure~B1
 using sample medians rather than means and yield similar patterns.
 
+Both GDP and bank credit experience severe losses following a
+default-linked spread crisis (red lines in Panels A and C), while the
+effect of a non-default spread crisis tends to remain mild. Negative
+values indicate the percentage deviation of GDP or bank credit from their
+country-specific pre-crisis dynamics. These deviations remain sizeable for
+several years following the crisis. Investment declines in both groups,
+although the timing and magnitude of the contraction differ. In
+default-linked crises, the trough occurs later and is deeper, reaching its
+lowest point in year 3, compared with year 2 for non-default crises. By
+year 5, however, the pattern reverses: investment begins to recover in
+default-linked crises, while it remains depressed following non-default
+crises.
+
 \clearpage
 \begin{figure}[th]
 \centering
@@ -306,18 +319,7 @@ changes from the level in the year before the start of a spread crisis
 ($t=0$).}
 \end{figure}
 
-Both GDP and bank credit experience severe losses following a
-default-linked spread crisis (red lines in Panels A and C), while the
-effect of a non-default spread crisis tends to remain mild. Negative
-values indicate the percentage deviation of GDP or bank credit from their
-country-specific pre-crisis dynamics. These deviations remain sizeable for
-several years following the crisis. Investment declines in both groups,
-although the timing and magnitude of the contraction differ. In
-default-linked crises, the trough occurs later and is deeper, reaching its
-lowest point in year 3, compared with year 2 for non-default crises. By
-year 5, however, the pattern reverses: investment begins to recover in
-default-linked crises, while it remains depressed following non-default
-crises.
+
 
 Claims on government (Panel D) increase in both groups following the
 onset of the crisis, suggesting that countries tend to rely more heavily
@@ -363,7 +365,7 @@ cumulative log change for GDP, investment, bank credit, and the real
 lending interest rate, and the cumulative level (percentage-point) change
 for claims on government, FDI, and the two sovereign-bank exposure
 shares, from the pre-crisis year (year $t-1$) to year $t+h$, separately
-for each crisis type \mbox{$S \in \{\text{non-default}, \text{default-linked}\}$},
+for each crisis type $S \in \{\text{non-default}, \text{default-linked}\}$,
 as follows:
 
 \begin{equation}
@@ -378,8 +380,7 @@ y_{i,t+h} - y_{i,t} = \alpha_i^{S,h} + \beta^{S,h} D_{i,t+1}^{S}
   + X_{i,t}\beta^{S,h} + \mu_{i,t+h}^{S}
 \end{equation}
 
-\noindent where, for each horizon $h=1,2,\dots,5$ and each type of spread
-crisis $S$, $\alpha_i^{S,h}$
+\noindent where, for each horizon $h=1,2,\dots,5$ and each type of crisis $S=\{\text{non-default}, \text{default-linked}\}$, $\alpha_i^{S,h}$
 denotes country fixed effects. $D_{i,t+1}^S$ indicates the dummy variable
 taking unity when a spread crisis of type $S$ occurs in year $t+1$, and
 $\beta^{S,h}$ is its coefficient. The vector of control variables is
@@ -410,7 +411,6 @@ the middle of the estimation horizon, narrowing and losing statistical
 significance by the final two years as the confidence interval around the
 difference widens.
 
-\clearpage
 \begin{figure}[th]
 \centering
 \includegraphics[width=0.95\textwidth]{figures/fig2_ols_lp.png}
@@ -505,29 +505,12 @@ only the second-stage outcome model:
 \Pr\!\left(D_{i,t+1}^S = 1 \mid X_{i,t}, Z_{i,t}\right) = \Phi\!\left(X_{i,t}\gamma^{S,X}, Z_{i,t}\gamma^{S,Z}\right)
 \end{equation}
 
-\noindent where \mbox{$S \in \{\text{non-default}, \text{default-linked}\}$},
+\noindent where $S \in \{\text{non-default}, \text{default-linked}\}$,
 $X_{i,t}$ is our baseline control set, and $Z_{i,t}$ is a set of
 predictors defined above. $\gamma^{S,X}$ and $\gamma^{S,Z}$ are the
 coefficients. Estimating the regression leads to the predicted
 likelihood of each type of spread crisis, $\widehat{p}_{i,t+1}^S$.
 
-\begin{figure}[th]
-\centering
-\includegraphics[width=0.8\textwidth]{figures/fig3_kernel_density.png}
-\caption{Kernel density estimates.}
-\label{fig:3}
-\notes{The figure shows kernel density estimates of the predicted
-probability of a spread crisis onset for the control group and the
-treatment group, for the two types of spread crises. The numbers on the
-vertical axis exceed 1 because the unit of the vertical axis is
-reciprocal to the unit of the variable on the horizontal axis.
-Observations with a predicted probability above 0.60 are excluded from
-the density estimate; no predicted probability in this sample exceeds
-approximately 0.3, which is why the plotted range does not extend
-further.}
-\end{figure}
-
-\FloatBarrier
 
 The probit regression results are reported in Table~\ref{tab:probit}.
 Predictors play a role in explaining the two types of spread crises. A
@@ -543,33 +526,6 @@ with the probability of both types of crisis onset. Thus, conditional on
 the other predictors, countries that have gone longer without a
 default-linked crisis are less likely to experience either type of spread
 crisis.
-
-The baseline controls show limited predictive power in the non-default
-specification, with none of the eight domestic macroeconomic and
-financial controls statistically significant. By contrast, GDP growth,
-bank credit-to-GDP, log inflation, and the nominal exchange rate are
-statistically significant predictors of default-linked crisis onset. This
-contrast suggests that the two types of spread crises are associated with
-different underlying conditions. Non-default crisis onsets appear to be
-more closely associated with external financial conditions, as captured
-by the US federal funds rate and the contagion measure, whereas
-default-linked onsets are more strongly associated with domestic
-macroeconomic and financial conditions.
-
-The implied areas under the ROC curve are 0.768 for non-default crises and
-0.886 for default-linked crises, indicating reasonably good classification
-performance in both cases. Relative to the probit specifications with
-controls only, adding the three predictors increases the AUC from 0.652
-to 0.768 for non-default crises and from 0.839 to 0.886 for default-linked
-crises. For the non-default specification, this improvement is
-statistically significant according to a formal test of equal ROC areas
-(a likelihood-ratio-type test distinct from the joint-significance
-chi-squared reported in Table~\ref{tab:probit}). For the default-linked
-specification, the corresponding improvement is not statistically
-significant. Thus, while the addition of the predictors is associated
-with a sizeable improvement in classification performance for both types
-of crises, only the improvement for non-default crises is statistically
-established.
 
 \begin{table}[th]
 \centering
@@ -617,10 +573,57 @@ Observations & 933 & 917 \\
 
 \FloatBarrier
 
+
+The baseline controls show limited predictive power in the non-default
+specification, with none of the eight domestic macroeconomic and
+financial controls statistically significant. By contrast, GDP growth,
+bank credit-to-GDP, log inflation, and the nominal exchange rate are
+statistically significant predictors of default-linked crisis onset. This
+contrast suggests that the two types of spread crises are associated with
+different underlying conditions. Non-default crisis onsets appear to be
+more closely associated with external financial conditions, as captured
+by the US federal funds rate and the contagion measure, whereas
+default-linked onsets are more strongly associated with domestic
+macroeconomic and financial conditions.
+
+The implied areas under the ROC curve are 0.768 for non-default crises and
+0.886 for default-linked crises, indicating reasonably good classification
+performance in both cases. Relative to the probit specifications with
+controls only, adding the three predictors increases the AUC from 0.652
+to 0.768 for non-default crises and from 0.839 to 0.886 for default-linked
+crises. For the non-default specification, this improvement is
+statistically significant according to a formal test of equal ROC areas
+(a likelihood-ratio-type test distinct from the joint-significance
+chi-squared reported in Table~\ref{tab:probit}). For the default-linked
+specification, the corresponding improvement is not statistically
+significant. Thus, while the addition of the predictors is associated
+with a sizeable improvement in classification performance for both types
+of crises, only the improvement for non-default crises is statistically
+established.
+
+\begin{figure}[th]
+\centering
+\includegraphics[width=0.8\textwidth]{figures/fig3_kernel_density.png}
+\caption{Kernel density estimates.}
+\label{fig:3}
+\notes{The figure shows kernel density estimates of the predicted
+probability of a spread crisis onset for the control group and the
+treatment group, for the two types of spread crises. The numbers on the
+vertical axis exceed 1 because the unit of the vertical axis is
+reciprocal to the unit of the variable on the horizontal axis.
+Observations with a predicted probability above 0.60 are excluded from
+the density estimate; no predicted probability in this sample exceeds
+approximately 0.3, which is why the plotted range does not extend
+further.}
+\end{figure}
+
+\FloatBarrier
+
+
 \subsection{Augmented Inverse Probability Weighted (AIPW) Estimation}
 
 We implement the AIPW estimation following \citet{jorda2016time}. For
-each crisis type \mbox{$S \in \{\text{non-default}, \text{default-linked}\}$} and
+each crisis type $S \in \{\text{non-default}, \text{default-linked}\}$ and
 horizon $h$, we first estimate the conditional outcome models using OLS
 based on the baseline specifications in equations~(\ref{eq:1}) and
 (\ref{eq:2}). These regressions yield the predicted conditional means
@@ -836,7 +839,6 @@ $p$-value, 3-tier stars) is a permissive companion statistic assuming
 independence between the two crisis types; where the two disagree, the
 bootstrap governs. * p$<$0.10, ** p$<$0.05, *** p$<$0.01.}
 
-\clearpage
 
 % ============================================================
 \section{Role of the Sovereign-Bank Nexus}
@@ -1078,6 +1080,8 @@ following default-linked crises. At that horizon, the estimated response
 is markedly positive in the low-nexus group, while remaining
 substantially negative in the high-nexus group.
 
+The clearest statistically significant difference involving the sovereign-bank nexus concerns claims on government, although it arises from a different comparison than for the other outcomes. The difference between high- and low-nexus countries following default-linked crises is not statistically significant at any horizon. Instead, the significant result comes from comparing crisis types within the high-nexus group: claims on government increase significantly more following default-linked crises (red line) than following non-default crises (blue line) at horizons 2 and 3.
+
 % Default: all four panels (A: GDP, B: Bank credit, C: Investment,
 % D: Bank claims on government) merged into one figure, stacked
 % vertically. If this does not fit comfortably on one page, comment out
@@ -1143,15 +1147,7 @@ computed from the analytic standard error.}
 % computed from the analytic standard error.}
 % \end{figure}
 
-The clearest statistically significant difference involving the
-sovereign-bank nexus concerns claims on government, although it arises
-from a different comparison than for the other outcomes. The difference
-between high- and low-nexus countries following default-linked crises is
-not statistically significant at any horizon. Instead, the significant
-result comes from comparing crisis types within the high-nexus group:
-claims on government increase significantly more following default-linked
-crises (red line) than following non-default crises (blue line) at
-horizons 2 and 3. Within the low-nexus group, the corresponding
+ Within the low-nexus group, the corresponding
 differences are not statistically significant at any horizon. The
 estimated trajectories also show a descriptively larger increase in
 claims on government among high-nexus countries in years 2 and 3
@@ -1165,7 +1161,6 @@ low-nexus groups means that the estimates do not establish that greater
 initial exposure is associated with a larger subsequent accumulation of
 government claims. The results are therefore consistent with, but do not
 independently establish, a sovereign-bank transmission mechanism.
-
 \begingroup
 \scriptsize
 \setlength{\tabcolsep}{3pt}
@@ -1275,8 +1270,6 @@ draws, stratified by pool); cells with fewer than 50 valid draws are
 omitted. The Clogg $z$ below it is a permissive companion assuming
 independence; where the two disagree, the bootstrap governs.
 * p$<$0.10, ** p$<$0.05, *** p$<$0.01.}
-
-\clearpage
 
 % ============================================================
 \section{Conclusion}
