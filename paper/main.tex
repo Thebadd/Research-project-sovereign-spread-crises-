@@ -15,6 +15,7 @@
 \usepackage{subcaption}
 \usepackage{rotating}      % sideways tables/landscape appendix tables
 \usepackage{pdflscape}
+\usepackage{chngcntr}      % \counterwithin, for appendix table/figure numbering (A1, B1, ...)
 \usepackage{setspace}
 \usepackage{titlesec}
 \usepackage{natbib}
@@ -1252,6 +1253,16 @@ interpreted as evidence that sovereign exposure is inherently protective.
 
 % ============================================================
 \appendix
+% Match the original document's appendix numbering: tables and figures
+% restart at 1 within each appendix section and are labeled with that
+% section's letter (Table A1, Table A2, ..., Figure B1, ..., Table C1,
+% Table D1, Figure D1), instead of continuing the plain arabic sequence
+% used for the main-text tables/figures (Table 1-3, Figure 1-7).
+\counterwithin{table}{section}
+\counterwithin{figure}{section}
+\renewcommand{\thetable}{\Alph{section}\arabic{table}}
+\renewcommand{\thefigure}{\Alph{section}\arabic{figure}}
+
 \section{Details of the Data Set}
 % ============================================================
 
@@ -1484,7 +1495,7 @@ Number of past onsets & 1{,}085 & 0.656 & 0.820 & 0.00 & 6.00 \\
 
 \begin{table}[p]
 \centering
-\caption{Estimation results, OLS (Table C1)}
+\caption{Estimation results, OLS}
 \label{tab:C1}
 \footnotesize
 \begin{tabular}{lccccc}
@@ -1582,7 +1593,7 @@ Table~2. * p$<$0.10, ** p$<$0.05, *** p$<$0.01.}
 
 \begin{table}[htbp]
 \centering
-\caption{Regression of each type of spread crisis on control variables (Table D1)}
+\caption{Regression of each type of spread crisis on control variables}
 \label{tab:D1}
 \footnotesize
 \begin{tabular}{lcccccccc}
