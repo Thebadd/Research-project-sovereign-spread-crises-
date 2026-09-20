@@ -28,6 +28,8 @@
 \setlength{\parskip}{6pt plus 1pt minus 1pt}
 \renewcommand{\arraystretch}{1.25}
 \setlength{\tabcolsep}{6pt}
+\setlength{\textfloatsep}{10pt plus 2pt minus 2pt} % gap between two stacked top floats (e.g. a table followed by a figure)
+\setlength{\intextsep}{10pt plus 2pt minus 2pt}     % gap around an in-text (non-top) float
 \titlespacing*{\section}{0pt}{28pt plus 4pt minus 2pt}{14pt plus 2pt}
 \titlespacing*{\subsection}{0pt}{20pt plus 3pt minus 2pt}{10pt plus 2pt}
 \bibliographystyle{apalike}
@@ -1688,6 +1690,9 @@ Table~2. * p$<$0.10, ** p$<$0.05, *** p$<$0.01.}
 \caption{Regression of each type of spread crisis on control variables}
 \label{tab:D1}
 \footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.0}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{lcccccccc}
 \toprule
  & GDP growth & Debt/GDP & Bank crisis & Govt.\ exp./GDP & Openness & Credit/GDP & Log infl.\ & Exch.\ rate \\
@@ -1701,7 +1706,7 @@ Observations & 1085 & 1056 & 1085 & 1063 & 998 & 1069 & 1076 & 1081 \\
 Countries & 51 & 51 & 51 & 51 & 47 & 51 & 51 & 51 \\
 R-squared & 0.0118 & 0.0029 & 0.0071 & 0.0013 & 0.0039 & 0.0057 & 0.0473 & 0.0057 \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \notes{Each column is a separate regression of that control variable (at
 $t-1$) on \texttt{onset\_nd} and \texttt{onset\_def} jointly, on the full
 sample (tranquil years plus both onset types); tranquil years are the
