@@ -26,8 +26,9 @@
   panel_lp.dta and reuses 13d's amplifier construction read-only; it does
   not touch 13d_aipw_nexus_split.do or change any AIPW result.
 
-  Output: $figs/fig_nexus_bar_nd.pdf (non-default onsets), $figs/fig_nexus_
-          bar_def.pdf (default-linked onsets).
+  Output: $figs/fig_nexus_bar_combined.pdf -- a single two-panel figure
+          (Non-default | Default-linked) built with graph combine, matching
+          the paper's Figure 5 (one merged image, not two separate PDFs).
   Run AFTER 18_transforms.do. Not wired into 00_master.do (standalone
   descriptive export, matching this project's convention for companion
   figure files).
@@ -102,17 +103,29 @@ foreach t in "nd" "def" {
             title("`tlab'", size(medium) color(navy)) ///
             legend(off) ///
             graphregion(color(white)) bgcolor(white) ///
-            ysize(3) xsize(5)
-        if _rc == 0 {
-            graph export "$figs/fig_nexus_bar_`t'.pdf", replace
-            di as result "Figure saved: fig_nexus_bar_`t'.pdf"
-        }
-        else di as error "  ** fig_nexus_bar_`t' failed (rc=" _rc ")"
+            ysize(3) xsize(5) ///
+            name(g_`t', replace)
+        if _rc == 0 di as result "  Panel built: g_`t' (`tlab')"
+        else di as error "  ** g_`t' failed (rc=" _rc ")"
     restore
 }
 
+* ── Merge the two panels into one figure (matches the paper's Figure 5,
+*    a single side-by-side image, rather than two standalone PDFs). ──
+capture noisily graph combine g_nd g_def, ///
+    cols(2) ///
+    imargin(small) ///
+    graphregion(color(white)) ///
+    ysize(3) xsize(10)
+if _rc == 0 {
+    graph export "$figs/fig_nexus_bar_combined.pdf", replace
+    di as result "Figure saved: fig_nexus_bar_combined.pdf"
+}
+else di as error "  ** graph combine of g_nd/g_def failed (rc=" _rc ")"
+
 di as result _n "13e_nexus_bars.do complete."
-di as result "fig_nexus_bar_nd.pdf / fig_nexus_bar_def.pdf: one bar per onset,"
-di as result "pre-crisis sovereign-bank nexus, sorted descending, navy line ="
-di as result "the median across all `npooled' onsets pooled (both types), matching"
+di as result "fig_nexus_bar_combined.pdf: two side-by-side panels (Non-default |"
+di as result "Default-linked), one bar per onset, pre-crisis sovereign-bank nexus,"
+di as result "sorted descending within each panel, navy line = the median across"
+di as result "all `npooled' onsets pooled (both types), matching"
 di as result "13d_aipw_nexus_split.do's own median-split cutoff population."
