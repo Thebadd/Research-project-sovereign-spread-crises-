@@ -511,6 +511,24 @@ predictors defined above. $\gamma^{S,X}$ and $\gamma^{S,Z}$ are the
 coefficients. Estimating the regression leads to the predicted
 likelihood of each type of spread crisis, $\widehat{p}_{i,t+1}^S$.
 
+\begin{figure}[th]
+\centering
+\includegraphics[width=0.8\textwidth]{figures/fig3_kernel_density.png}
+\caption{Kernel density estimates.}
+\label{fig:3}
+\notes{The figure shows kernel density estimates of the predicted
+probability of a spread crisis onset for the control group and the
+treatment group, for the two types of spread crises. The numbers on the
+vertical axis exceed 1 because the unit of the vertical axis is
+reciprocal to the unit of the variable on the horizontal axis.
+Observations with a predicted probability above 0.60 are excluded from
+the density estimate; no predicted probability in this sample exceeds
+approximately 0.3, which is why the plotted range does not extend
+further.}
+\end{figure}
+
+\FloatBarrier
+
 The probit regression results are reported in Table~\ref{tab:probit}.
 Predictors play a role in explaining the two types of spread crises. A
 higher US federal funds rate is positively and significantly associated
@@ -596,24 +614,6 @@ Observations & 933 & 917 \\
 \notes{Robust standard errors clustered by country in parentheses.
 * p$<$0.10, ** p$<$0.05, *** p$<$0.01.}
 \end{table}
-
-\FloatBarrier
-
-\begin{figure}[th]
-\centering
-\includegraphics[width=0.8\textwidth]{figures/fig3_kernel_density.png}
-\caption{Kernel density estimates.}
-\label{fig:3}
-\notes{The figure shows kernel density estimates of the predicted
-probability of a spread crisis onset for the control group and the
-treatment group, for the two types of spread crises. The numbers on the
-vertical axis exceed 1 because the unit of the vertical axis is
-reciprocal to the unit of the variable on the horizontal axis.
-Observations with a predicted probability above 0.60 are excluded from
-the density estimate; no predicted probability in this sample exceeds
-approximately 0.3, which is why the plotted range does not extend
-further.}
-\end{figure}
 
 \FloatBarrier
 
