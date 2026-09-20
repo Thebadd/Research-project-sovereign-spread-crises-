@@ -20,12 +20,20 @@
 \usepackage{natbib}
 \usepackage{hyperref}
 \hypersetup{colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue}
+\usepackage[skip=10pt, indent=0pt]{parskip}
 
-\setstretch{1.15}
+% Extra breathing room throughout: line spacing, paragraph spacing,
+% table row height, and spacing around section headings.
+\setstretch{1.3}
+\setlength{\parskip}{10pt plus 2pt minus 1pt}
+\renewcommand{\arraystretch}{1.25}
+\setlength{\tabcolsep}{6pt}
+\titlespacing*{\section}{0pt}{28pt plus 4pt minus 2pt}{14pt plus 2pt}
+\titlespacing*{\subsection}{0pt}{20pt plus 3pt minus 2pt}{10pt plus 2pt}
 \bibliographystyle{apalike}
 
-\newcommand{\notes}[1]{\par\vspace{4pt}\footnotesize\noindent\textit{Notes:} #1\par}
-\newcommand{\source}[1]{\par\vspace{2pt}\footnotesize\noindent\textit{Source:} #1\par}
+\newcommand{\notes}[1]{\par\vspace{8pt}\footnotesize\noindent\textit{Notes:} #1\par\vspace{2pt}}
+\newcommand{\source}[1]{\par\vspace{4pt}\footnotesize\noindent\textit{Source:} #1\par\vspace{2pt}}
 
 \title{The Aftermath of Sovereign Spread Crises With and Without Default}
 \author{}
@@ -299,16 +307,16 @@ using sample medians rather than means and yield similar patterns.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/docx_image01.png}
+\includegraphics[width=0.95\textwidth]{figures/fig1_mean_dynamics.png}
 \caption{Key variables around spread crisis onsets, mean.}
 \label{fig:1}
-\end{figure}
 \notes{GDP, investment, and bank credit series are the averages of
 demeaned cumulative percentage changes from the level in the year before
 the start of a spread crisis ($t=0$). Claims on government, FDI, and the
 real lending interest rate series are the averages of demeaned cumulative
 changes from the level in the year before the start of a spread crisis
 ($t=0$).}
+\end{figure}
 
 Both GDP and bank credit experience severe losses following a
 default-linked spread crisis (red lines in Panels A and C), while the
@@ -423,10 +431,9 @@ difference widens.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/docx_image02.png}
+\includegraphics[width=0.95\textwidth]{figures/fig2_ols_lp.png}
 \caption{OLS local projection.}
 \label{fig:2}
-\end{figure}
 \notes{The figure shows OLS local projection estimates. Year 1 is the
 crisis onset year. The dependent variable is the cumulative log change
 (GDP, investment, bank credit, real lending rate) or cumulative
@@ -437,6 +444,7 @@ years, with the rival type excluded from that regression's own sample.
 Panels A--D use a balanced sample across the same crisis episodes; Panels
 E--F use their own best-available sample. The shaded bands indicate each
 type's own 95 percent confidence interval.}
+\end{figure}
 
 Bank credit experiences a sharp and continuously deepening decline
 following a default-linked onset (red line, Panel C). Negative values
@@ -613,10 +621,9 @@ Observations & 933 & 917 \\
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.8\textwidth]{figures/docx_image03.png}
+\includegraphics[width=0.8\textwidth]{figures/fig3_kernel_density.png}
 \caption{Kernel density estimates.}
 \label{fig:3}
-\end{figure}
 \notes{The figure shows kernel density estimates of the predicted
 probability of a spread crisis onset for the control group and the
 treatment group, for the two types of spread crises. The numbers on the
@@ -626,6 +633,7 @@ Observations with a predicted probability above 0.60 are excluded from
 the density estimate; no predicted probability in this sample exceeds
 approximately 0.3, which is why the plotted range does not extend
 further.}
+\end{figure}
 
 \subsection{Augmented Inverse Probability Weighted (AIPW) Estimation}
 
@@ -719,10 +727,9 @@ statistically significant difference at any horizon.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/docx_image04.png}
+\includegraphics[width=0.95\textwidth]{figures/fig4_aipw_lp.png}
 \caption{Local projections, AIPW.}
 \label{fig:4}
-\end{figure}
 \notes{The figure shows AIPW estimation results, based on Table~2. Year 1
 is the crisis onset year. Non-default (blue) and default-linked (red)
 onsets are each estimated in a separate regression against tranquil
@@ -732,6 +739,7 @@ balanced sample across the same crisis episodes; Panels E--F (FDI, real
 lending interest rate) use their own best-available sample, to cover as
 many crisis episodes as possible. The shaded bands indicate each type's
 own 95 percent confidence interval.}
+\end{figure}
 
 \begin{table}[p]
 \centering
@@ -923,7 +931,7 @@ sovereign-bank exposure rather than as a cleanly exogenous classification.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.75\textwidth]{figures/docx_image05.png}
+\includegraphics[width=0.75\textwidth]{figures/fig5_nexus_distribution.png}
 \caption{Bank sovereign nexus in the pre-crisis year, crises with and without default.}
 \label{fig:5}
 \end{figure}
@@ -989,10 +997,9 @@ systematic or persistent attenuation effect.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/docx_image06.png}
+\includegraphics[width=0.95\textwidth]{figures/fig6_aipw_by_crisis_type.png}
 \caption{AIPW estimation by type of crisis, high or low pre-crisis sovereign-bank nexus.}
 \label{fig:6}
-\end{figure}
 \notes{The figure shows AIPW estimation results for GDP, bank credit,
 investment, and bank claims on government (Panels A--D), separately for
 non-default crises and default-linked crises. Year 1 is the crisis onset
@@ -1005,6 +1012,7 @@ pre-crisis value is unavailable; countries are split into two groups
 based on the sample median of this measure across all crisis onsets. The
 shaded bands indicate each group's own 95 percent confidence interval,
 computed from the analytic standard error.}
+\end{figure}
 
 The contrast with default-linked crises is more pronounced. GDP declines
 substantially following default-linked crises in both nexus groups, but
@@ -1042,10 +1050,9 @@ substantially negative in the high-nexus group.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/docx_image07.png}
+\includegraphics[width=0.95\textwidth]{figures/fig7_aipw_by_nexus.png}
 \caption{AIPW estimation by pre-crisis sovereign-bank nexus, non-default or default-linked crises.}
 \label{fig:7}
-\end{figure}
 \notes{The figure shows AIPW estimation results for GDP, bank credit,
 investment, and bank claims on government (Panels A--D), separately for
 countries with a high pre-crisis sovereign-bank nexus and countries with
@@ -1059,6 +1066,7 @@ pre-crisis value is unavailable; countries are split into two groups
 based on the sample median of this measure across all crisis onsets. The
 shaded bands indicate each group's own 95 percent confidence interval,
 computed from the analytic standard error.}
+\end{figure}
 
 The clearest statistically significant difference involving the
 sovereign-bank nexus concerns claims on government, although it arises
@@ -1454,28 +1462,28 @@ Number of past onsets & 1{,}085 & 0.656 & 0.820 & 0.00 & 6.00 \\
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/docx_image08.png}
+\includegraphics[width=0.95\textwidth]{figures/figB1_mean_precrisis.png}
 \caption{Key variables around debt spread crises with pre-crisis periods, mean.}
 \label{fig:B1}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/docx_image09.png}
+\includegraphics[width=0.95\textwidth]{figures/figB2_median_dynamics.png}
 \caption{Key variables around debt spread crises, median.}
 \label{fig:B2}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/docx_image10.png}
+\includegraphics[width=0.95\textwidth]{figures/figB3_median_precrisis.png}
 \caption{Key variables around debt spread crises with pre-crisis periods, median.}
 \label{fig:B3}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/docx_image11.png}
+\includegraphics[width=0.95\textwidth]{figures/figB4_extra_macro.png}
 \caption{Additional macroeconomic variables around spread crisis, mean.}
 \label{fig:B4}
 \end{figure}
@@ -1611,13 +1619,13 @@ difference from tranquil years. Robust standard errors in parentheses.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.8\textwidth]{figures/docx_image12.png}
+\includegraphics[width=0.8\textwidth]{figures/figD1_roc_curves.png}
 \caption{Classification power of the probit regression regressors, ROC curves.}
 \label{fig:D1}
-\end{figure}
 \notes{Each panel shows the area under the ROC curve. The area under the
 ROC ranges from 0.50 (predictors have no classification power when
 differentiating the start of a spread crisis from other observations) to
 1.00 (perfect classification power).}
+\end{figure}
 
 \end{document}
