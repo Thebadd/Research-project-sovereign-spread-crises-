@@ -363,7 +363,7 @@ cumulative log change for GDP, investment, bank credit, and the real
 lending interest rate, and the cumulative level (percentage-point) change
 for claims on government, FDI, and the two sovereign-bank exposure
 shares, from the pre-crisis year (year $t-1$) to year $t+h$, separately
-for each crisis type $S \in \{\text{non-default}, \text{default-linked}\}$,
+for each crisis type \mbox{$S \in \{\text{non-default}, \text{default-linked}\}$},
 as follows:
 
 \begin{equation}
@@ -505,7 +505,7 @@ only the second-stage outcome model:
 \Pr\!\left(D_{i,t+1}^S = 1 \mid X_{i,t}, Z_{i,t}\right) = \Phi\!\left(X_{i,t}\gamma^{S,X}, Z_{i,t}\gamma^{S,Z}\right)
 \end{equation}
 
-\noindent where $S \in \{\text{non-default}, \text{default-linked}\}$,
+\noindent where \mbox{$S \in \{\text{non-default}, \text{default-linked}\}$},
 $X_{i,t}$ is our baseline control set, and $Z_{i,t}$ is a set of
 predictors defined above. $\gamma^{S,X}$ and $\gamma^{S,Z}$ are the
 coefficients. Estimating the regression leads to the predicted
@@ -620,7 +620,7 @@ Observations & 933 & 917 \\
 \subsection{Augmented Inverse Probability Weighted (AIPW) Estimation}
 
 We implement the AIPW estimation following \citet{jorda2016time}. For
-each crisis type $S \in \{\text{non-default}, \text{default-linked}\}$ and
+each crisis type \mbox{$S \in \{\text{non-default}, \text{default-linked}\}$} and
 horizon $h$, we first estimate the conditional outcome models using OLS
 based on the baseline specifications in equations~(\ref{eq:1}) and
 (\ref{eq:2}). These regressions yield the predicted conditional means
