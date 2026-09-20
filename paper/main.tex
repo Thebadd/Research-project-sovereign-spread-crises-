@@ -627,13 +627,14 @@ probabilities to construct the AIPW estimator:
 
 \begin{equation}
 \label{eq:4}
-\Lambda_h^S =
-\frac{1}{N}\sum_{i}\sum_{t} \left\{
-\left[ \frac{D_{i,t+1}^S\left(y_{i,t+h} - y_{i,t}\right)}{\widehat{p}^S_{i,t+1}}
-     - \frac{\left(1-D_{i,t+1}^S\right)\left(y_{i,t+h} - y_{i,t}\right)}{1-\widehat{p}^S_{i,t+1}} \right]
-- \frac{D_{i,t+1}^S - \widehat{p}^S_{i,t+1}}{\widehat{p}^S_{i,t+1}\left(1-\widehat{p}^S_{i,t+1}\right)}
+\begin{split}
+\Lambda_h^S = \frac{1}{N}\sum_{i}\sum_{t} \Biggl\{
+&\left[ \frac{D_{i,t+1}^S\left(y_{i,t+h} - y_{i,t}\right)}{\widehat{p}^S_{i,t+1}}
+     - \frac{\left(1-D_{i,t+1}^S\right)\left(y_{i,t+h} - y_{i,t}\right)}{1-\widehat{p}^S_{i,t+1}} \right] \\
+&- \frac{D_{i,t+1}^S - \widehat{p}^S_{i,t+1}}{\widehat{p}^S_{i,t+1}\left(1-\widehat{p}^S_{i,t+1}\right)}
 \left[ \left(1-\widehat{p}^S_{i,t+1}\right)m_1^{S,h} + \widehat{p}^S_{i,t+1}\,m_0^{S,h} \right]
-\right\}
+\Biggr\}
+\end{split}
 \end{equation}
 
 \noindent where the first component of the estimator corresponds to the
