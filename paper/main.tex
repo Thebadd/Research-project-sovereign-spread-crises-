@@ -1352,7 +1352,11 @@ interpreted as evidence that sovereign exposure is inherently protective.
 \counterwithin{figure}{section}
 \renewcommand{\thetable}{\Alph{section}\arabic{table}}
 \renewcommand{\thefigure}{\Alph{section}\arabic{figure}}
+% Each appendix section reads "Appendix A: ..." and always starts on its
+% own fresh page (the \clearpage placed right before each \section below).
+\titleformat{\section}{\normalfont\Large\bfseries}{Appendix \thesection:}{0.6em}{}
 
+\clearpage
 \section{Details of the Data Set}
 % ============================================================
 
@@ -1547,6 +1551,7 @@ Number of past onsets & 1{,}085 & 0.656 & 0.820 & 0.00 & 6.00 \\
 \end{tabular}
 \end{table}
 
+\clearpage
 % ============================================================
 \section{Mean and Median Dynamics around Spread Crisis}
 % ============================================================
@@ -1579,6 +1584,7 @@ Number of past onsets & 1{,}085 & 0.656 & 0.820 & 0.00 & 6.00 \\
 \label{fig:B4}
 \end{figure}
 
+\clearpage
 % ============================================================
 \section{Baseline OLS Regression}
 % ============================================================
