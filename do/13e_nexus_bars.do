@@ -26,7 +26,7 @@
   panel_lp.dta and reuses 13d's amplifier construction read-only; it does
   not touch 13d_aipw_nexus_split.do or change any AIPW result.
 
-  Output: $figs/fig_nexus_bar_combined.pdf -- a single two-panel figure,
+  Output: $figs/fig_nexus_bar_combined.png -- a single two-panel figure,
           stacked vertically (Non-default on top, Default-linked below),
           built with graph combine, matching the paper's Figure 5 (one
           merged image, not two separate PDFs).
@@ -112,20 +112,20 @@ foreach t in "nd" "def" {
 }
 
 * ── Merge the two panels into one figure (matches the paper's Figure 5,
-*    a single side-by-side image, rather than two standalone PDFs). ──
+*    a single stacked image, rather than two standalone files). ──
 capture noisily graph combine g_nd g_def, ///
     cols(1) ///
     imargin(small) ///
     graphregion(color(white)) ///
     ysize(6) xsize(5)
 if _rc == 0 {
-    graph export "$figs/fig_nexus_bar_combined.pdf", replace
-    di as result "Figure saved: fig_nexus_bar_combined.pdf"
+    graph export "$figs/fig_nexus_bar_combined.png", replace width(2000)
+    di as result "Figure saved: fig_nexus_bar_combined.png"
 }
 else di as error "  ** graph combine of g_nd/g_def failed (rc=" _rc ")"
 
 di as result _n "13e_nexus_bars.do complete."
-di as result "fig_nexus_bar_combined.pdf: two stacked panels (Non-default on"
+di as result "fig_nexus_bar_combined.png: two stacked panels (Non-default on"
 di as result "top, Default-linked below), one bar per onset, pre-crisis"
 di as result "sovereign-bank nexus, sorted descending within each panel, navy"
 di as result "line = the median across all `npooled' onsets pooled (both"
