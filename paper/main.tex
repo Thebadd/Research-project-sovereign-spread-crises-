@@ -367,32 +367,25 @@ as follows:
 
 \begin{equation}
 \label{eq:1}
-y_{i,t+h} - y_{i,t-1} = \alpha_i^{S,h} + \beta^{S,h}\, D_{i,t}^{S}
-  + \Gamma^{S,h\prime} X_{i,t-1} + \varepsilon_{i,t+h}^{S}
-  \qquad \text{(untreated / treated combined OLS form)}
+\log(y_{i,t+h}) - \log(y_{i,t}) = \alpha_i^{S,h} + \beta^{S,h} D_{i,t+1}^{S}
+  + X_{i,t}\beta^{S,h} + \mu_{i,t+h}^{S}
 \end{equation}
 
 \begin{equation}
 \label{eq:2}
-E\!\left[\, y_{i,t+h} - y_{i,t-1} \;\middle|\; D_{i,t}^{S}=d,\, X_{i,t-1} \,\right]
-  = m_d^{S,h}(X_{i,t-1}), \qquad d \in \{0,1\}
+y_{i,t+h} - y_{i,t} = \alpha_i^{S,h} + \beta^{S,h} D_{i,t+1}^{S}
+  + X_{i,t}\beta^{S,h} + \mu_{i,t+h}^{S}
 \end{equation}
 
 \noindent where, for each horizon $h=1,2,\dots,5$ and each type of spread
 crisis $S=\{\text{non-default}, \text{default-linked}\}$, $\alpha_i^{S,h}$
-denotes country fixed effects, $D_{i,t}^S$ indicates the dummy variable
-taking unity when a spread crisis of type $S$ occurs in year $t$, and
+denotes country fixed effects. $D_{i,t+1}^S$ indicates the dummy variable
+taking unity when a spread crisis of type $S$ occurs in year $t+1$, and
 $\beta^{S,h}$ is its coefficient. The vector of control variables is
-denoted by $X_{i,t-1}$, with coefficients $\Gamma^{S,h}$. The error term
-is $\varepsilon_{i,t+h}^S$. The conditional mean of the dependent variable
-is denoted $m_d^{S,h}(\cdot)$ for treatment state $d=1,0$, corresponding
-to spread crisis and no spread crisis, respectively.
-
-\emph{[Editorial note: equations (1)--(2) were embedded in the original
-Word document as equation objects (.emf images) that cannot be rendered
-in this environment. The forms above are reconstructed from the
-surrounding prose and should be checked against the original document
-before final submission.]}
+denoted by $X_{i,t}$. Their coefficients are denoted as $\beta^{S,h}$.
+The error term is denoted by $\mu_{i,t+h}^S$. The conditional mean of the
+dependent variable is denoted by $m_j^{S,h}$ for state $j=1,0$
+corresponding to spread crisis and no spread crisis respectively.
 
 We report the results graphically in Figure~\ref{fig:2}. These results can
 also be found in Table~C1 in Appendix~C. Each point in the figure shows
@@ -507,18 +500,14 @@ only the second-stage outcome model:
 
 \begin{equation}
 \label{eq:3}
-\Pr\!\left(D_{i,t}^S = 1\right) = \Phi\!\left(\theta^{S\prime} X_{i,t-1} + \delta^{S\prime} Z_{i,t-1}\right),
-\qquad S \in \{\text{non-default}, \text{default-linked}\}
+\Pr\!\left(D_{i,t+1}^S = 1 \mid X_{i,t}, Z_{i,t}\right) = \Phi\!\left(X_{i,t}\gamma^{S,X} + Z_{i,t}\gamma^{S,Z}\right)
 \end{equation}
 
-\noindent where $X_{i,t-1}$ is our baseline control set, and $Z_{i,t-1}$ is
-the set of predictors defined above; $\theta^S$ and $\delta^S$ are the
-coefficients. Estimating the regression yields the predicted likelihood
-of each type of spread crisis, $\widehat{p}_{i,t}^S$.
-
-\emph{[Editorial note: equation (3) was embedded as a .emf equation
-object in the source document; the probit form above is reconstructed
-from the surrounding prose and should be verified against the original.]}
+\noindent where $S \in \{\text{non-default}, \text{default-linked}\}$,
+$X_{i,t}$ is our baseline control set, and $Z_{i,t}$ is a set of
+predictors defined above. $\gamma^{S,X}$ and $\gamma^{S,Z}$ are the
+coefficients. Estimating the regression leads to the predicted
+likelihood of each type of spread crisis, $\widehat{p}_{i,t+1}^S$.
 
 The probit regression results are reported in Table~\ref{tab:probit}.
 Predictors play a role in explaining the two types of spread crises. A
@@ -632,19 +621,19 @@ based on the baseline specifications in equations~(\ref{eq:1}) and
 $\widehat{m}_1^{S,h}$ and $\widehat{m}_0^{S,h}$ corresponding to the
 treated and untreated states, respectively. Second, we estimate the
 probit model in equation~(\ref{eq:3}) to obtain the predicted probability
-of experiencing a spread crisis of type $S$, denoted $\widehat{p}^S$.
+of experiencing a spread crisis of type $S$, denoted $\widehat{p}^S_{i,t+1}$.
 Finally, we combine the estimated outcome models and treatment
 probabilities to construct the AIPW estimator:
 
 \begin{equation}
 \label{eq:4}
-\widehat{\beta}^{S,h}_{AIPW} =
-\frac{1}{N}\sum_{i,t} \left[
-\left( \frac{D_{i,t}^S\, y_{i,t+h}}{\widehat{p}^S_{i,t}}
-     - \frac{(1-D_{i,t}^S)\, y_{i,t+h}}{1-\widehat{p}^S_{i,t}} \right)
-- \frac{D_{i,t}^S - \widehat{p}^S_{i,t}}{\widehat{p}^S_{i,t}\left(1-\widehat{p}^S_{i,t}\right)}
-\left[ \left(1-\widehat{p}^S_{i,t}\right)\widehat{m}_1^{S,h} + \widehat{p}^S_{i,t}\,\widehat{m}_0^{S,h} \right]
-\right]
+\Lambda_h^S =
+\frac{1}{N}\sum_{i}\sum_{t} \left\{
+\left[ \frac{D_{i,t+1}^S\left(y_{i,t+h} - y_{i,t}\right)}{\widehat{p}^S_{i,t+1}}
+     - \frac{\left(1-D_{i,t+1}^S\right)\left(y_{i,t+h} - y_{i,t}\right)}{1-\widehat{p}^S_{i,t+1}} \right]
+- \frac{D_{i,t+1}^S - \widehat{p}^S_{i,t+1}}{\widehat{p}^S_{i,t+1}\left(1-\widehat{p}^S_{i,t+1}\right)}
+\left[ \left(1-\widehat{p}^S_{i,t+1}\right)m_1^{S,h} + \widehat{p}^S_{i,t+1}\,m_0^{S,h} \right]
+\right\}
 \end{equation}
 
 \noindent where the first component of the estimator corresponds to the
@@ -654,11 +643,6 @@ second component is the augmentation term, which incorporates the
 predicted conditional outcomes from the OLS models. The resulting
 estimator therefore combines outcome regression and inverse-probability
 weighting, reducing sensitivity to misspecification of either component.
-
-\emph{[Editorial note: equation (4) is reconstructed directly from this
-project's own Stata implementation (the \texttt{\_aipw} program) rather
-than from the unrenderable .emf object in the source document, and should
-match the original formula exactly; please verify.]}
 
 Figure~\ref{fig:4} reports the AIPW estimates corresponding to the
 specifications presented in Table~\ref{tab:aipw}. For each crisis type,
@@ -938,24 +922,19 @@ within the same local-projection framework used throughout the analysis:
 
 \begin{equation}
 \label{eq:5}
-y_{i,t+h} - y_{i,t-1} = \alpha_i^{S,h}
-  + \beta^{S,h}_{high}\, D_{i,t}^{S}\, \mathrm{High}_{i,t-1}
-  + \beta^{S,h}_{low}\, D_{i,t}^{S}\, \left(1-\mathrm{High}_{i,t-1}\right)
-  + \Gamma^{S,h\prime} X_{i,t-1} + \varepsilon_{i,t+h}^{S}
+y_{i,t+h} - y_{i,t} = \delta_i^{S,h}
+  + \Gamma^{HN,h} D_{i,t}^{HN} D_{i,t+1}^{S}
+  + \Gamma^{LN,h} \left(1 - D_{i,t}^{HN}\right) D_{i,t+1}^{S}
+  + X_{i,t}\Gamma^{S,h} + e_{i,t+h}^{S}
 \end{equation}
 
-\noindent where $\mathrm{High}_{i,t-1}$ is a dummy equal to one if country
-$i$'s sovereign-bank nexus is large in year $t-1$ and zero otherwise,
-interacted with the crisis-type dummy $D_{i,t}^S$; $\beta^{S,h}_{high}$
-and $\beta^{S,h}_{low}$ are the coefficients of interest, capturing the
-impact of a crisis of type $S$ when the banking sector's sovereign
-exposure is, respectively, large or small; $\alpha_i^{S,h}$ denotes
-country fixed effects; and $X_{i,t-1}$ is the same vector of controls
-used throughout.
-
-\emph{[Editorial note: the unlabeled interaction equation preceding
-Figures 6--7 was likewise embedded as a .emf object; the form above is
-reconstructed from the surrounding prose.]}
+\noindent where $D_{i,t}^{HN}$ is a dummy equal to one if country $i$'s
+sovereign-bank nexus is large in year $t$ and zero otherwise, interacted
+with the crisis type dummy $D_{i,t+1}^S$; $\Gamma^{HN,h}$ and
+$\Gamma^{LN,h}$ are the coefficients of interest, capturing the impact of
+a crisis of type $S$ when the banking sector's sovereign exposure is,
+respectively, large or small; $\delta_i^{S,h}$ denotes country fixed
+effects; and $X_{i,t}$ is the same vector of controls used throughout.
 
 As in the baseline AIPW analysis, we estimate the local-projection
 specification separately by spread crisis type and sovereign-bank nexus,
