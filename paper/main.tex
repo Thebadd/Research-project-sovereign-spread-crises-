@@ -16,6 +16,7 @@
 \usepackage{rotating}      % sideways tables/landscape appendix tables
 \usepackage{pdflscape}
 \usepackage{chngcntr}      % \counterwithin, for appendix table/figure numbering (A1, B1, ...)
+\usepackage[section]{placeins} % keeps floats from drifting past the section that introduces them
 \usepackage{setspace}
 \usepackage{titlesec}
 \usepackage{natbib}
@@ -836,6 +837,8 @@ a permissive companion statistic assuming independence between the two
 crisis types; where the two disagree, the bootstrap governs.
 * p$<$0.10, ** p$<$0.05, *** p$<$0.01.}
 \end{table}
+
+\FloatBarrier
 
 % ============================================================
 \section{Role of the Sovereign-Bank Nexus}
