@@ -808,25 +808,20 @@ label values partid pl
 * rest of the project's figures." Rebuilt here so this figure's panel
 * layout mechanism matches the OLS/AIPW combined figures exactly, not just
 * its colors/size/background.
+* SINGLE JOINT FIGURE (per explicit request): all four outcomes are built
+* as their own nd/def combined sub-panel, then merged ONCE into one 2x2
+* figure (cols(2) rows(2)) -- not exported separately per outcome. This is
+* the project's "Figure 6": Panel A GDP, Panel B bank credit, Panel C
+* investment, Panel D bank claims on government, all in one image.
 local c_hi "230 126 34"   // high nexus = orange
 local c_lo "34 139 34"    // low  nexus = green
+local oi = 1
 foreach oc in gdp credit inv claims_govt {
-    if "`oc'" == "gdp" {
-        local ptit "Panel A: GDP"
-        local fnm  "fig_aipw_nexus_split_analyticSE"
-    }
-    else if "`oc'" == "credit" {
-        local ptit "Panel B: Bank credit"
-        local fnm  "fig_nexus_`oc'_analyticSE"
-    }
-    else if "`oc'" == "inv" {
-        local ptit "Panel C: Investment"
-        local fnm  "fig_nexus_`oc'_analyticSE"
-    }
-    else if "`oc'" == "claims_govt" {
-        local ptit "Panel D: Bank claims on government"
-        local fnm  "fig_nexus_`oc'_analyticSE"
-    }
+    if "`oc'" == "gdp" local ptit "Panel A: GDP"
+    else if "`oc'" == "credit" local ptit "Panel B: Bank credit"
+    else if "`oc'" == "inv" local ptit "Panel C: Investment"
+    else if "`oc'" == "claims_govt" local ptit "Panel D: Bank claims on government"
+
     local pi = 1
     foreach pt in nd def {
         local ptlab = cond("`pt'"=="nd", "Non-default", "Default-linked")
@@ -850,15 +845,23 @@ foreach oc in gdp credit inv claims_govt {
     }
     capture graph combine nexus1_1 nexus1_2, ///
         cols(2) rows(1) graphregion(color(white)) ///
-        title("`ptit'", size(vlarge) color(navy)) xsize(12) ysize(5.5)
-    if _rc == 0 {
-        graph export "$figs/`fnm'.pdf", replace
-        di as result "Figure saved: `fnm'.pdf"
-    }
-    else di as error "  ** `fnm' failed (rc=" _rc ")"
+        title("`ptit'", size(vlarge) color(navy)) xsize(12) ysize(5.5) ///
+        name(nexus1_outcome`oi', replace)
+    if _rc != 0 di as error "  ** nexus1_outcome`oi' (`oc') failed (rc=" _rc ")"
     forvalues p = 1/2 {
         capture graph drop nexus1_`p'
     }
+    local ++oi
+}
+capture graph combine nexus1_outcome1 nexus1_outcome2 nexus1_outcome3 nexus1_outcome4, ///
+    cols(2) rows(2) graphregion(color(white)) xsize(16) ysize(11)
+if _rc == 0 {
+    graph export "$figs/fig_aipw_nexus_split_analyticSE.png", replace width(2400)
+    di as result "Figure saved: fig_aipw_nexus_split_analyticSE.png (one joint 2x2 figure, Panels A-D)"
+}
+else di as error "  ** joint fig_aipw_nexus_split_analyticSE failed (rc=" _rc ")"
+forvalues p = 1/4 {
+    capture graph drop nexus1_outcome`p'
 }
 
 * ══════════════════════════════════════════════════════════════════════════
@@ -875,25 +878,20 @@ label values bankid bl
 * CONSTRUCTION, ALIGNED WITH 03/12/08b/13c (same rebuild as the figure
 * above, per explicit request) -- named panels (high nexus, low nexus)
 * merged via `graph combine', not by().
+* SINGLE JOINT FIGURE (per explicit request, same treatment as the figure
+* above): all four outcomes merged ONCE into one 2x2 figure instead of
+* exported separately per outcome. This is the project's "Figure 7":
+* Panel A GDP, Panel B bank credit, Panel C investment, Panel D bank
+* claims on government, all in one image.
 local c_nd  "blue"
 local c_def "red"
+local oi = 1
 foreach oc in gdp credit inv claims_govt {
-    if "`oc'" == "gdp" {
-        local ptit "Panel A: GDP"
-        local fnm  "fig_aipw_nexus_split_byexposure_analyticSE"
-    }
-    else if "`oc'" == "credit" {
-        local ptit "Panel B: Bank credit"
-        local fnm  "fig_nexus_`oc'_byexposure_analyticSE"
-    }
-    else if "`oc'" == "inv" {
-        local ptit "Panel C: Investment"
-        local fnm  "fig_nexus_`oc'_byexposure_analyticSE"
-    }
-    else if "`oc'" == "claims_govt" {
-        local ptit "Panel D: Bank claims on government"
-        local fnm  "fig_nexus_`oc'_byexposure_analyticSE"
-    }
+    if "`oc'" == "gdp" local ptit "Panel A: GDP"
+    else if "`oc'" == "credit" local ptit "Panel B: Bank credit"
+    else if "`oc'" == "inv" local ptit "Panel C: Investment"
+    else if "`oc'" == "claims_govt" local ptit "Panel D: Bank claims on government"
+
     local pi = 1
     foreach bk in high low {
         local bklab = cond("`bk'"=="high", "High nexus", "Low nexus")
@@ -915,15 +913,23 @@ foreach oc in gdp credit inv claims_govt {
     }
     capture graph combine nexus2_1 nexus2_2, ///
         cols(2) rows(1) graphregion(color(white)) ///
-        title("`ptit'", size(vlarge) color(navy)) xsize(12) ysize(5.5)
-    if _rc == 0 {
-        graph export "$figs/`fnm'.pdf", replace
-        di as result "Figure saved: `fnm'.pdf"
-    }
-    else di as error "  ** `fnm' failed (rc=" _rc ")"
+        title("`ptit'", size(vlarge) color(navy)) xsize(12) ysize(5.5) ///
+        name(nexus2_outcome`oi', replace)
+    if _rc != 0 di as error "  ** nexus2_outcome`oi' (`oc') failed (rc=" _rc ")"
     forvalues p = 1/2 {
         capture graph drop nexus2_`p'
     }
+    local ++oi
+}
+capture graph combine nexus2_outcome1 nexus2_outcome2 nexus2_outcome3 nexus2_outcome4, ///
+    cols(2) rows(2) graphregion(color(white)) xsize(16) ysize(11)
+if _rc == 0 {
+    graph export "$figs/fig_aipw_nexus_split_byexposure_analyticSE.png", replace width(2400)
+    di as result "Figure saved: fig_aipw_nexus_split_byexposure_analyticSE.png (one joint 2x2 figure, Panels A-D)"
+}
+else di as error "  ** joint fig_aipw_nexus_split_byexposure_analyticSE failed (rc=" _rc ")"
+forvalues p = 1/4 {
+    capture graph drop nexus2_outcome`p'
 }
 
 * ══════════════════════════════════════════════════════════════════════════
