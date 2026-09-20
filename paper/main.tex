@@ -12,6 +12,8 @@
 \usepackage{longtable}
 \usepackage{array}
 \usepackage{caption}
+\usepackage{ragged2e}     % \justifying, to force justified text even inside a \centering group
+\captionsetup{font=it, justification=justified, singlelinecheck=false}
 \usepackage{subcaption}
 \usepackage{chngcntr}      % \counterwithin, for appendix table/figure numbering (A1, B1, ...)
 \usepackage[section]{placeins} % keeps floats from drifting past the section that introduces them
@@ -34,8 +36,8 @@
 \titlespacing*{\subsection}{0pt}{20pt plus 3pt minus 2pt}{10pt plus 2pt}
 \bibliographystyle{apalike}
 
-\newcommand{\notes}[1]{\par\vspace{8pt}\footnotesize\noindent\textit{Notes:} #1\par\vspace{2pt}}
-\newcommand{\source}[1]{\par\vspace{4pt}\footnotesize\noindent\textit{Source:} #1\par\vspace{2pt}}
+\newcommand{\notes}[1]{\par\vspace{8pt}\footnotesize\itshape\justifying\noindent Notes: #1\par\vspace{2pt}}
+\newcommand{\source}[1]{\par\vspace{4pt}\footnotesize\itshape\justifying\noindent Source: #1\par\vspace{2pt}}
 
 \title{The Aftermath of Sovereign Spread Crises With and Without Default}
 \author{}
