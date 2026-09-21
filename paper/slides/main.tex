@@ -17,6 +17,7 @@
 \usepackage{graphicx}
 \usepackage{enumitem}
 \setlist[itemize]{topsep=0pt}
+\setlist[enumerate]{topsep=0pt}
 
 \setbeamertemplate{navigation symbols}{}
 
@@ -46,8 +47,13 @@
 \setbeamertemplate{frametitle}{%
   \vspace{1em}%
   \hspace{0.6em}\usebeamerfont{frametitle}\usebeamercolor[fg]{frametitle}\insertframetitle%
-  \vspace{-0.3em}%
+  \vspace{0pt}%
 }
+% Fixed, uniform gap between the title and the start of the body,
+% applied after the frametitle regardless of what follows (itemize,
+% enumerate, center, tabular, equation) so every slide starts its
+% content at the same distance from the title.
+\addtobeamertemplate{frametitle}{}{\vspace{0.35cm}}
 
 % ---- Three-segment footline ---------------------------------
 \newcommand{\shorttitletext}{Sovereign Spread Crises and the Sovereign-Bank Nexus}
@@ -176,7 +182,6 @@ Effect of the Sovereign-Bank Nexus}
 
 % ---------------- Roadmap ----------------
 \begin{frame}{Roadmap}
-  \vspace{1cm}
   \begin{enumerate}
     \item \textbf{Data and crisis classification}
     \item Estimation strategy and main results
