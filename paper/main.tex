@@ -620,7 +620,12 @@ AUROC, with predictors & 0.768 & 0.886 \\
 \bottomrule
 \end{tabular}
 \notes{Robust standard errors clustered by country in parentheses.
-* p$<$0.10, ** p$<$0.05, *** p$<$0.01.}
+* p$<$0.10, ** p$<$0.05, *** p$<$0.01. Contagion is a distance-weighted
+share of other countries in crisis at time $t$, with weights given by
+inverse great-circle distance (normalized to sum to one across donor
+countries), so that closer countries in crisis contribute more; the
+predictor entering the model is this share lagged one year, i.e.
+predetermined relative to the crisis onset it predicts.}
 \end{table}
 
 \FloatBarrier
