@@ -623,12 +623,10 @@ AUROC, with predictors & 0.768 & 0.886 \\
 * p$<$0.10, ** p$<$0.05, *** p$<$0.01. Contagion$_{i,t}$ measures how much
 of country $i$'s neighborhood is in crisis at time $t$, weighting each
 other country $k$ by inverse geographic distance (closer countries count
-more, weights sum to 1):
-\[
-\text{contagion}_{i,t} = \sum_{k \neq i} w_{ik}\cdot \mathbb{1}[k \text{ in crisis at } t], \qquad w_{ik} = \frac{1/d_{ik}}{\sum_{k'} 1/d_{ik'}}.
-\]
-The predictor entering the model is this share lagged one year, i.e.
-predetermined relative to the crisis onset it predicts.}
+more, weights sum to 1): $\text{contagion}_{i,t} = \sum_{k \neq i} w_{ik}\cdot \mathbf{1}[k \text{ in crisis at } t]$,
+where $w_{ik} = (1/d_{ik}) / \sum_{k'} (1/d_{ik'})$. The predictor
+entering the model is this share lagged one year, i.e. predetermined
+relative to the crisis onset it predicts.}
 \end{table}
 
 \FloatBarrier
