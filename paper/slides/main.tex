@@ -1,0 +1,266 @@
+\documentclass[aspectratio=169]{beamer}
+
+% ============================================================
+% Custom theme replicating the reference deck's look: sans-serif
+% body, blue frame titles, hollow/filled triangle bullets, and a
+% three-segment colored footline (institution | short title |
+% date/page). Built from scratch (no \usetheme{...}) to match
+% the reference slides exactly rather than approximate a stock
+% Beamer theme.
+% ============================================================
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+
+\setbeamertemplate{navigation symbols}{}
+
+% ---- Colors -------------------------------------------------
+\definecolor{slidetitleblue}{RGB}{60,90,190}
+\definecolor{footdark}{RGB}{35,45,90}
+\definecolor{footmid}{RGB}{70,95,175}
+
+\setbeamercolor{structure}{fg=slidetitleblue}
+\setbeamercolor{frametitle}{fg=slidetitleblue,bg=white}
+\setbeamercolor{title}{fg=slidetitleblue}
+\setbeamercolor{normal text}{fg=black,bg=white}
+\setbeamercolor{footline author}{fg=white,bg=footdark}
+\setbeamercolor{footline title}{fg=white,bg=footmid}
+\setbeamercolor{footline date}{fg=white,bg=footdark}
+
+\setbeamerfont{frametitle}{series=\bfseries,size=\large}
+\setbeamerfont{footline author}{size=\scriptsize}
+\setbeamerfont{footline title}{size=\scriptsize}
+\setbeamerfont{footline date}{size=\scriptsize}
+
+% ---- Bullets: hollow triangle (level 1), filled triangle (level 2) --
+\setbeamertemplate{itemize item}{\color{slidetitleblue}$\triangleright$}
+\setbeamertemplate{itemize subitem}{\color{slidetitleblue}$\blacktriangleright$}
+\setbeamertemplate{itemize subsubitem}{\color{slidetitleblue}$\bullet$}
+
+\setbeamertemplate{frametitle}{%
+  \vspace{0.4em}%
+  \hspace{0.6em}\usebeamerfont{frametitle}\usebeamercolor[fg]{frametitle}\insertframetitle%
+  \vspace{0.3em}%
+}
+
+% ---- Three-segment footline ---------------------------------
+\newcommand{\shorttitletext}{Sovereign Spread Crises and the Sovereign-Bank Nexus}
+\newcommand{\shortauthortext}{Betsem A Djam (HEC Paris)}
+
+\setbeamertemplate{footline}{%
+  \leavevmode%
+  \hbox{%
+    \begin{beamercolorbox}[wd=.27\paperwidth,ht=2.4ex,dp=1.2ex,left,leftskip=0.6em]{footline author}%
+      \usebeamerfont{footline author}\shortauthortext%
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.53\paperwidth,ht=2.4ex,dp=1.2ex,center]{footline title}%
+      \usebeamerfont{footline title}\shorttitletext%
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.20\paperwidth,ht=2.4ex,dp=1.2ex,right,rightskip=0.6em]{footline date}%
+      \usebeamerfont{footline date}\insertshortdate{} \hspace{0.4em} \insertframenumber{} / \inserttotalframenumber%
+    \end{beamercolorbox}%
+  }%
+}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{headline}{}
+
+% ---- Title page (affiliations as superscripts, small disclaimer) ----
+\title{\large\bfseries Costs of Sovereign Debt Crises With and Without Default:\\
+Effect of the Sovereign-Bank Nexus}
+\author{\normalsize David Betsem A Djam\textsuperscript{a}}
+\institute{%
+  \footnotesize
+  \textsuperscript{a}~HEC Paris, Institut Polytechnique de Paris
+}
+\date{\normalsize September 2026}
+
+\begin{document}
+
+% ---------------- Title slide ----------------
+{
+\setbeamertemplate{footline}{}
+\begin{frame}[plain]
+  \vspace{1cm}
+  \begin{center}
+    \usebeamercolor[fg]{title}{\Large\bfseries Costs of Sovereign Debt Crises With and\\
+    Without Default: Effect of the Sovereign-Bank Nexus\par}
+  \end{center}
+  \vspace{1cm}
+  \begin{center}
+    \large David Betsem A Djam\textsuperscript{a}\par
+    \vspace{0.6em}
+    \small \textsuperscript{a}~HEC Paris, Institut Polytechnique de Paris\par
+  \end{center}
+  \vspace{1.5cm}
+  \begin{center}
+    \normalsize Master Thesis Defense\par
+    \normalsize September 2026\par
+  \end{center}
+  \vfill
+  {\tiny\itshape The views expressed in this presentation are those of the author
+  and do not necessarily represent those of HEC Paris or Institut Polytechnique
+  de Paris.\par}
+\end{frame}
+}
+
+% ---------------- Motivation ----------------
+\begin{frame}{Motivation: not all sovereign debt crises end in default}
+  \begin{itemize}
+    \item \textbf{Sovereign spread crises are more common than defaults}
+    \begin{itemize}
+      \item Episodes of severe bond-market distress (Mexico 1994/95, Thailand
+      1997/98, Russia 2015) occurred without a missed payment or restructuring
+      \item Elevated spreads reflect rising default risk even when no default
+      is ultimately realized \citep{arellano2008default}
+    \end{itemize}
+    \item \textbf{The existing literature measures the cost of default}
+    \begin{itemize}
+      \item Output costs of default are estimated at 1--4 pp of GDP growth
+      \item Rarely benchmarked against equally severe episodes that did not
+      end in default
+    \end{itemize}
+    \item \textbf{This paper compares both types of crisis directly}
+    \begin{itemize}
+      \item Do spread crises without default carry a materially different
+      cost than default-linked crises?
+      \item Does the pre-crisis sovereign-bank nexus shape that difference?
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+% ---------------- This paper ----------------
+\begin{frame}{This paper}
+  \begin{itemize}
+    \item \textbf{Research question:} How do GDP, bank credit, and investment
+    respond to sovereign spread crises with and without default, and does the
+    pre-crisis sovereign-bank nexus amplify that response?
+    \item \textbf{Data:} JP Morgan EMBIG spread database, 1993--2023
+    \begin{itemize}
+      \item 61 spread crisis episodes, 21 default-linked, 40 non-default
+    \end{itemize}
+    \item \textbf{Method:} Local projection with Augmented Inverse Probability
+    Weighting (AIPW), following \citet{jorda2016time}
+    \item \textbf{Identification:} Comparison across crisis type and
+    pre-crisis sovereign-bank exposure (median split on bank claims on
+    government / assets)
+  \end{itemize}
+\end{frame}
+
+% ---------------- Preview of results ----------------
+\begin{frame}{Preview of results}
+  \begin{itemize}
+    \item \textbf{GDP and bank credit differ sharply by crisis type}
+    \begin{itemize}
+      \item GDP falls 1--2 pp following non-default crises vs.\ 6--9 pp
+      following default-linked crises
+      \item Bank credit turns positive after non-default crises but
+      contracts sharply after default-linked crises
+    \end{itemize}
+    \item \textbf{Investment, FDI, and lending rates respond similarly
+    across types}
+    \item \textbf{The sovereign-bank nexus matters, but only without default}
+    \begin{itemize}
+      \item High pre-crisis nexus is associated with a significantly better
+      GDP response in non-default crises
+      \item No significant high/low-nexus difference in default-linked
+      crises, given the smaller sample
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+% ---------------- Roadmap ----------------
+\begin{frame}{Roadmap}
+  \vspace{1cm}
+  \begin{enumerate}
+    \item \textbf{Data and crisis classification}
+    \item Estimation strategy and main results
+    \item Role of the sovereign-bank nexus
+    \item Conclusion
+  \end{enumerate}
+\end{frame}
+
+% ---------------- Section divider example ----------------
+\begin{frame}{Data sources}
+  \begin{itemize}
+    \item \textbf{JP Morgan EMBIG Global}
+    \begin{itemize}
+      \item Sovereign bond spread series used to identify crisis onsets
+    \end{itemize}
+    \item \textbf{IMF WEO, IMF FSI, World Bank IDS}
+    \begin{itemize}
+      \item GDP, investment, bank credit, bank claims on government, public
+      debt, trade openness
+    \end{itemize}
+    \item \textbf{\citet{asonuma2016sovereign}}
+    \begin{itemize}
+      \item Sovereign restructuring database, used to classify episodes as
+      default-linked or non-default
+    \end{itemize}
+    \item \textbf{\citet{laeven2013systemic,laeven2026systemic}}
+    \begin{itemize}
+      \item Systemic banking crisis dummy
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+% ---------------- Specification slide (equation example) ----------------
+\begin{frame}{Baseline specification}
+  \begin{center}
+    \[
+    y_{i,t+h} - y_{i,t} = \alpha_i^{S,h} + \beta^{S,h} D_{i,t+1}^{S} + X_{i,t}\beta^{S,h} + \mu_{i,t+h}^{S}
+    \]
+  \end{center}
+  \vspace{0.5em}
+  \begin{itemize}
+    \item $y_{i,t+h} - y_{i,t}$: cumulative change in the outcome from crisis
+    onset to horizon $h$
+    \item $D_{i,t+1}^{S}$: onset dummy for crisis type $S \in$ \{non-default,
+    default-linked\}
+    \item $X_{i,t}$: pre-crisis controls
+    \item $\alpha_i^{S,h}$: country fixed effects
+    \item Estimated via AIPW to attenuate selection bias, following
+    \citet{jorda2016time}
+  \end{itemize}
+\end{frame}
+
+% ---------------- Table example ----------------
+\begin{frame}{GDP response, AIPW estimates}
+  \begin{center}
+    \footnotesize
+    \begin{tabular}{lccccc}
+      \toprule
+       & $h=0$ & $h=1$ & $h=2$ & $h=3$ & $h=4$ \\
+      \midrule
+      Non-default & -- & -- & -- & -- & -- \\
+      Default-linked & -- & -- & -- & -- & -- \\
+      \bottomrule
+    \end{tabular}
+  \end{center}
+  \vspace{0.5em}
+  \begin{itemize}
+    \item Replace with the estimates and standard errors from
+    \texttt{tab:aipw} (Panel A, GDP)
+  \end{itemize}
+\end{frame}
+
+% ---------------- Conclusion ----------------
+\begin{frame}{Conclusion}
+  \begin{itemize}
+    \item Sovereign spread crises without default carry real but modest
+    output costs, far smaller than default-linked crises
+    \item The sovereign-bank nexus amplifies the recovery in non-default
+    crises, consistent with a bank-lending channel that is only active when
+    the sovereign avoids default
+    \item No significant nexus effect within default-linked crises, though
+    the point estimates are consistently more negative for high-nexus
+    countries -- a null result given the limited sample of default-linked
+    episodes, not evidence of no effect
+  \end{itemize}
+\end{frame}
+
+\end{document}
