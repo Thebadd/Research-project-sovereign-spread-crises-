@@ -85,7 +85,8 @@ substantially during crises with default. Investment, however, declines by
 a similar magnitude across both types of crises, with no robust difference
 between them. Extending the analysis to domestic banks' exposure to the
 sovereign, we find that, among debt crises without default, high exposure
-is associated with a significantly better GDP outcome than low exposure.
+is associated with a significantly higher GDP on impact than low
+exposure, by 0.0--6.9 percentage points (95\% bootstrap CI, $h=1$).
 However, among crises with default, the difference between countries with
 high and low sovereign exposure does not appear to be statistically
 significant for any outcome.
@@ -114,24 +115,6 @@ continued to receive payments in full and on time. In a similar vein,
 several prominent emerging market crises, such as in Mexico (1994/95),
 Thailand (1997/98), Brazil (1999 and 2002), Turkey (2001), or Russia (2015)
 did not result in a default or restructuring of external debt \citep{mitchener2021sovereign}.
-
-\citet{pescatori2007adequately} argue that a default-only definition of debt
-crises becomes problematic once sovereign bond markets emerge in
-developing economies. They demonstrate that default episodes have grown
-increasingly unreliable as a signal of debt distress and call instead for
-a broader measure grounded in bond market turbulence. On this basis, they
-extended the definition of debt crises to episodes in which yield spreads
-exceed 1000 basis points, a threshold they describe as a ``psychological
-barrier'' for market participants. A similar approach is adopted by
-\citet{broner2013why} and \citet{aguiar2016quantitative}, who
-characterize debt crises through sharp quarter-on-quarter increases in
-bond yields, a phenomenon later termed ``spread crises'' or ``spread
-spikes'' by \citet{krishnamurthy2017credit}. \citet{mitchener2021sovereign}
-introduce the term ``sovereign debt crisis without a default'' to describe
-episodes marked by elevated sovereign bond yields and debt rollover
-difficulties in the absence of missed payments or formal default. Their
-evidence indicates that such episodes are not a novel phenomenon, though
-their frequency has risen markedly since the 1990s.
 
 This paper evaluates the macroeconomic cost of sovereign debt crises
 without default and asks how that cost compares to episodes that do end in
@@ -169,9 +152,10 @@ banking system to the sovereign shapes the amplification of that response.
 Our results show four main findings. First, GDP and bank credit to the
 private sector exhibit the clearest and most persistent differences
 between crises with and without default. Following crises without
-default, GDP declines modestly, by around 1--2 percentage points over the
-first two years, before returning towards its pre-crisis path. By
-contrast, GDP falls by 6--9 percentage points following crises with
+default, GDP declines modestly but significantly, by around 1--2
+percentage points over the first two years, before returning towards its
+pre-crisis path and losing statistical significance from year 3 onward.
+By contrast, GDP falls by 6--9 percentage points following crises with
 default, with the decline remaining significant five years after the
 crisis onset. Bank credit displays a similar, but more delayed, contrast:
 it turns significantly positive by the fifth year following crises
@@ -188,17 +172,23 @@ default, by around 7 percentage points, while remaining broadly unchanged
 following crises without default. Finally, the pre-crisis sovereign-bank
 nexus does not systematically amplify the output costs of crises with
 default, although point estimates tend to be more negative when sovereign
-exposure is high. For crises without default, by contrast, a higher
-pre-crisis nexus is associated with a significantly better GDP response
-on impact.
+exposure is high, a difference that is not statistically significant at
+any horizon. For crises without default, by contrast, a higher pre-crisis
+nexus is associated with a significantly higher GDP on impact, by 0.0--6.9
+percentage points (95\% bootstrap CI, $h=1$).
 
 \noindent\textbf{Related literature:}\par
 This paper relates to three strands of
 the literature on sovereign debt.
 
-The first is the literature on debt crises without default. \citet{pescatori2007adequately}, \citet{aguiar2016quantitative}, and \citet{krishnamurthy2017credit} define
-these episodes through bond-market distress rather than through a missed
-payment. \citet{arellano2008default} shows theoretically that default
+The first is the literature on debt crises without default. \citet{pescatori2007adequately} define these episodes through bond-market
+distress rather than through a missed payment, extending the definition
+of debt crises to episodes in which yield spreads exceed 1000 basis
+points, a threshold they describe as a ``psychological barrier'' for
+market participants; \citet{broner2013why}, \citet{aguiar2016quantitative}, and \citet{krishnamurthy2017credit} adopt a
+similar bond-market-based approach, the latter terming such episodes
+``spread crises'' or ``spread spikes.''
+\citet{arellano2008default} shows theoretically that default
 risk and interest rate spreads are jointly determined by the state of
 the economy, with spreads rising before any default occurs -- the basis
 for treating elevated spreads as informative of sovereign distress on
@@ -255,9 +245,38 @@ sovereign-bank nexus across emerging and developing economies since the
 COVID-19 pandemic, driven by rising public debt and greater reliance on
 domestic banks for financing. We extend this literature by comparing
 high- and low-exposure countries across both crisis types rather than
-within a single one, and find a significantly better GDP response to high
-exposure in crises without default, with no significant difference in
-crises with default.
+within a single one, and find a significantly higher GDP on impact for
+high-exposure countries in crises without default (by 0.0--6.9 percentage
+points, 95\% bootstrap CI), with no significant difference in crises with
+default.
+
+\noindent\textbf{Implications:} These findings raise broader questions
+that this paper is not designed to resolve outright but that are worth
+stating explicitly. If crises without default carry smaller and
+shorter-lived output and credit costs than default-linked crises, a
+natural question is why: whether non-default resolution reflects
+genuinely lower underlying distress, a different policy response
+(including the possibility of international financial support), or the
+sovereign-bank channel discussed above, in which banks that avoid
+absorbing losses on defaulted debt are better placed to keep lending. Our
+design does not allow us to adjudicate between these explanations. A
+related question is whether avoiding default is unambiguously
+preferable once spreads have already risen sharply, or whether
+non-default resolution simply postpones costs that default would
+otherwise crystallize sooner. Our evidence on this point is limited: as
+discussed in Section 4.2, the increase in bank claims on government
+following default-linked crises is a robust finding only in the crisis
+year, and we cannot establish whether default-linked crises leave banks
+more or less exposed to the sovereign in the long run than crises
+resolved without default. We therefore do not read our results as
+evidence that avoiding default is costless, nor that it merely defers
+distress; both readings remain open. Finally, our design does not
+control for the intensity of the initial spread spike, so part of the
+contrast between crisis types could reflect that more severe spread
+episodes are more likely to end in default, rather than default itself
+driving the difference in outcomes; disentangling the severity of the
+initiating shock from the resolution strategy chosen is a natural
+extension of this work.
 
 % ============================================================
 \section{Data Description and Classification of Spread Crises}
@@ -776,7 +795,17 @@ crises but remain broadly unchanged following non-default crises. The
 difference between the two groups is statistically significant under
 both tests in the crisis year and remains significant under the Clogg et
 al.\ (1995) test through year 3. The difference subsequently loses
-statistical significance and becomes negative by year 5. Real lending
+statistical significance under both tests by year 4 and turns negative
+under the Clogg et al.\ (1995) test by year 5, but the bootstrap
+confidence interval does not exclude zero at any horizon beyond the
+crisis year. Since the bootstrap test is the governing criterion
+throughout this paper (see the notes to Table~\ref{tab:aipw}), the only
+robust finding is the impact-year increase
+in claims on government following default-linked crises; the paper does
+not establish whether default-linked crises end with a higher or lower
+level of bank exposure to the sovereign than crises without default; the
+apparent later-horizon reversal is not distinguishable from sampling
+noise given the 21 default-linked episodes in the sample. Real lending
 interest rates decline following non-default crises in most years,
 whereas their response following default-linked crises is larger and
 more volatile, with a marked decline from year 2 onward. The Clogg et
@@ -1336,8 +1365,9 @@ default-linked crises, the estimated responses of high- and
 low-exposure countries are not statistically distinguishable for any of
 the outcomes considered, although the point estimates are generally more
 negative in the high-exposure group. Within crises without default, by
-contrast, higher exposure is associated with a significantly better GDP
-response on impact. This asymmetry is consistent with the possibility
+contrast, higher exposure is associated with a significantly higher GDP
+on impact, by 0.0--6.9 percentage points (95\% bootstrap CI, $h=1$). This
+asymmetry is consistent with the possibility
 that sovereign-bank linkages operate differently across crisis types. In
 particular, losses on sovereign bonds may matter when distress is
 followed by default, while expectations of a possible default may affect
