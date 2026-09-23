@@ -225,79 +225,62 @@ resolution strategy chosen is a natural extension of this work.
 \section{Related Literature}
 % ============================================================
 
-This paper relates to three strands of
-the literature on sovereign debt.
+This paper relates to four strands of the literature on sovereign debt.
+The first is the literature on debt crises without default.
+\citet{pescatori2007adequately} argue that a default-only definition of
+debt crises becomes problematic once sovereign bond markets emerge in
+emerging and developing economies (EMDE). They demonstrate that default
+episodes have grown increasingly unreliable as a signal of debt distress
+and call instead for a broader measure grounded in bond market
+turbulence. On this basis, they extended the definition of debt crises
+to episodes in which yield spreads exceed 1000 basis points, a threshold
+they describe as a ``psychological barrier'' for market participants. A
+similar approach is adopted by \citet{broner2013why} and \citet{aguiar2016quantitative}, who characterize debt crises through sharp
+quarter-on-quarter increases in bond yields, a phenomenon later termed
+``spread crises'' or ``spread spikes'' by \citet{krishnamurthy2017credit}. \citet{mitchener2021sovereign} introduce the term
+``sovereign debt crisis without a default'' to describe episodes marked
+by elevated sovereign bond yields and debt rollover difficulties in the
+absence of missed payments or formal default. Their evidence indicates
+that such episodes are not a novel phenomenon, though their frequency
+has risen markedly since the 1990s.
 
-The first is the literature on debt crises without default. \citet{pescatori2007adequately} define these episodes through bond-market
-distress rather than through a missed payment, extending the definition
-of debt crises to episodes in which yield spreads exceed 1000 basis
-points, a threshold they describe as a ``psychological barrier'' for
-market participants; \citet{broner2013why}, \citet{aguiar2016quantitative}, and \citet{krishnamurthy2017credit} adopt a
-similar bond-market-based approach, the latter terming such episodes
-``spread crises'' or ``spread spikes.''
-\citet{arellano2008default} shows theoretically that default
+Second, this paper relates to the literature on fluctuation in country
+spreads. \citet{arellano2008default} shows theoretically that default
 risk and interest rate spreads are jointly determined by the state of
 the economy, with spreads rising before any default occurs -- the basis
 for treating elevated spreads as informative of sovereign distress on
 their own. \citet{uribeyue2006country} confirm this empirically: country
 spreads and output move together in emerging economies, each explaining
-a large share of the other's fluctuations. \citet{bocola2016passthrough} shows theoretically that expectations of a future
-default can tighten bank lending and depress output even absent an actual
-default. \citet{mitchener2021sovereign} document that such episodes have
-become increasingly common since the 1990s. None of this work offers
-systematic cross-country evidence on the aggregate output effects of
-these crises, which is the gap we fill.
+a large share of the other's fluctuations. \citet{bocola2016passthrough}
+shows theoretically that expectations of a future default can tighten
+bank lending and depress output even absent an actual default.
 
-Second, this paper relates to the literature on the output cost of
+Third, this paper relates to the literature on the output cost of
 sovereign default. \citet{borensztein2009costs}, \citet{furceri2012costly}, \citet{trebesch2017output}, and \citet{kuvshinov2019sovereigns}
-estimate this cost at 1 to 4 percentage points of GDP per capita growth,
-typically without benchmarking it against a comparable sample of equally
-severe episodes that did not end in default. \citet{levyyeyati2011elusive} show that most output contraction occurs before the default
-itself, a finding that motivates our design of comparing default-linked
-and non-default crises within the same estimation framework rather than
-comparing default to tranquil years alone. Within the default-linked
-category itself, \citet{asonuma2024costs} show that output costs vary
-systematically with the restructuring strategy chosen, post-default
-resolutions being markedly more costly than preemptive ones; our
-comparison operates one level up from that distinction, contrasting
-default-linked crises as a whole against crises that do not end in
-default. We build on this work by
-estimating both crisis types jointly and showing that GDP and bank credit
-to the private sector fall considerably more, and for longer, in
-default-linked crises, while investment and the response of FDI and real
-lending rates do not differ significantly across the two under the
-bootstrap test.
+estimate this cost at 1--4 percentage points of GDP per capita growth.
+Recent work shows that these costs vary across episodes; \citet{asonuma2024costs} find that post-default restructurings are markedly
+more costly than preemptive ones. Our analysis considers a broader
+distinction, asking whether crises that culminate in sovereign default
+have different macroeconomic costs from crises without default. This
+comparison is motivated by \citet{levyyeyati2011elusive}, who show that
+a substantial share of the output contraction associated with sovereign
+default occurs before the default itself.
 
-Third, this paper relates to the sovereign-bank nexus literature, which
-is built largely on euro-area or single-country microdata.
-\citet{gennaioli2014sovereign} and \citet{acharya2018real} emphasize bank
-holdings of sovereign debt as a channel through which sovereign distress
-transmits to credit and output, \citet{dellariccia2018managing} describe
-the resulting adverse feedback loops between bank and sovereign distress,
-and \citet{broner2014sovereign} document a crowding-out effect on credit
-to the private sector even absent a default. \citet{acharya2015greatest}
-show that eurozone banks increased rather than reduced their holdings of
-domestic sovereign debt as sovereign risk rose, a ``carry trade''
-sustained by funding advantages tied to the sovereign's own credit
-standing, and \citet{acharya2014pyrrhic} show that bank bailouts
-themselves raised sovereign credit risk, which then fed back onto the
-banks holding that debt: both document a channel that runs through banks
-absorbing sovereign risk rather than shedding it, and \citet{copestake2023banks}
-show that this exposure can also generate direct capital losses for banks
-when interest rates rise. This is consistent with our finding that claims
-on government rise sharply in the crisis year following default-linked
-crises but not following crises without default. The relevance of this
-channel has only grown in recent years: \citet{deghi2022sovereign} and
-\citet{wezel2026sovereign} document a marked strengthening of the
-sovereign-bank nexus across emerging and developing economies since the
-COVID-19 pandemic, driven by rising public debt and greater reliance on
-domestic banks for financing. We extend this literature by comparing
-high- and low-exposure countries across both crisis types rather than
-within a single one, and find a significantly higher GDP on impact for
-high-exposure countries in crises without default (0.75 vs.\ $-$2.87
-percentage points at $h=1$, significant under the bootstrap test), with
-no significant difference under the bootstrap test in crises with
-default.
+Fourth, this paper relates to the sovereign-bank nexus literature.
+\citet{gennaioli2014sovereign}, \citet{acharya2018real}, and \citet{dellariccia2018managing} show how banks' exposure to sovereign debt
+can transmit sovereign distress to credit and output and generate
+adverse feedback loops. \citet{broner2014sovereign} document a
+crowding-out effect on private-sector credit even in the absence of
+default. \citet{acharya2015greatest} document a ``carry trade'' in
+eurozone banks, while \citet{acharya2014pyrrhic} show that bank bailouts
+can raise sovereign risk and feed back onto banks. \citet{copestake2023banks} highlight the potential for direct bank capital
+losses when interest rates rise. Yet this evidence remains concentrated
+in advanced economies, while research on emerging market and developing
+economies (EMDEs) has been constrained by data limitations. This gap has
+become increasingly important as the sovereign-bank nexus has
+strengthened across EMDEs since the COVID-19 pandemic, driven by rising
+public debt and greater reliance on domestic banks for government
+financing \citep{deghi2022sovereign,wezel2026sovereign}.
 
 % ============================================================
 \section{Data Description and Classification of Spread Crises}
