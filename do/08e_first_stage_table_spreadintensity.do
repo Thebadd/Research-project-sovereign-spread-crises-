@@ -128,8 +128,9 @@ preserve
     }
 
     capture noisily graph box spr_max, over(onset_def, relabel(1 "Non-default" 2 "Default-linked")) ///
+        box(1, color(blue)) box(2, color(red)) ///
         ytitle("Peak EMBIG spread at onset (bps)") title("Spread intensity at onset, by resolution type") ///
-        graphregion(color(white)) bgcolor(white)
+        graphregion(color(white)) bgcolor(white) legend(off)
     if _rc == 0 {
         graph export "$figs/fig_spreadintensity_by_crisistype.png", replace width(1600)
         di as result "      Figure saved: fig_spreadintensity_by_crisistype.png"

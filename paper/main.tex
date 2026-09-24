@@ -214,12 +214,14 @@ whether default-linked crises leave banks more or less exposed to the
 sovereign in the long run than crises resolved without default. We
 therefore do not read our results as evidence that avoiding default is
 costless, nor that it merely defers distress; both readings remain
-open. Finally, our design does not control for the intensity of the
-initial spread spike, so part of the contrast between crisis types
-could reflect that more severe spread episodes are more likely to end
-in default, rather than default itself driving the difference in
-outcomes; disentangling the severity of the initiating shock from the
-resolution strategy chosen is a natural extension of this work.
+open. Finally, our headline design does not control for the intensity
+of the initial spread spike. Table~\ref{tab:spreadintensity} in
+Section~\ref{sec:probit-subsection} shows that more severe spread
+episodes are indeed more likely to end in default, so part of the
+contrast between crisis types documented below could reflect the
+severity of the initiating shock rather than default itself driving
+the difference in outcomes; disentangling the two is a natural
+extension of this work.
 
 % ============================================================
 \section{Related Literature}
@@ -549,6 +551,7 @@ roughly a third and roughly two-thirds of the way through the horizon.
 % ============================================================
 
 \subsection{Probit Regression on Spread Crisis Onsets}
+\label{sec:probit-subsection}
 
 A country's exposure to a spread crisis and decision to restructure its
 debt is affected by the economic conditions that it faces, spread crisis
@@ -723,6 +726,74 @@ further.}
 
 \FloatBarrier
 
+The first-stage predictors above capture pre-crisis risk factors, but not
+the intensity of the spread shock itself. Table~\ref{tab:spreadintensity}
+and Figure~\ref{fig:spreadintensity} report a robustness check that
+addresses this gap directly, comparing default-linked onsets against
+non-default onsets rather than against tranquil years. Evaluated at the
+sample means of the two groups, the model in column (1) implies a
+default-linked resolution probability of approximately 28 percent for a
+non-default-sized shock and 52 percent for a default-linked-sized shock.
+This indicates that default-linked and non-default crises differ
+systematically in the severity of the initiating shock and in several
+structural characteristics, not only in conventional fiscal fragility
+indicators, and motivates the caveat discussed in the Introduction.
+
+\begin{table}[th]
+\centering
+\begingroup
+\captionsetup{labelsep=newline, labelfont=bf, singlelinecheck=false, justification=raggedright}
+\caption{Robustness: does spread intensity at onset predict default-linked resolution?}
+\label{tab:spreadintensity}
+\endgroup
+\footnotesize
+\renewcommand{\arraystretch}{1.0}
+\begin{tabular}{lcc}
+\toprule
+\multicolumn{3}{l}{Dependent variable = Dummy taking 1 if the onset resolves as default-linked} \\
+\midrule
+ & (1) & (2) \\
+\midrule
+Peak EMBIG spread at onset & 0.001*** & 0.001*** \\
+ & (0.000) & (0.000) \\[4pt]
+GDP growth & & $-$15.945 \\
+ & & (11.089) \\[2pt]
+Public debt-to-GDP ratio & & $-$1.834 \\
+ & & (1.120) \\[2pt]
+Banking crisis dummy & & $-$0.531 \\
+ & & (0.608) \\[2pt]
+Government expenditure-to-GDP ratio & & 1.800 \\
+ & & (2.185) \\[2pt]
+Trade openness & & 5.323*** \\
+ & & (1.897) \\[2pt]
+Bank credit-to-GDP ratio & & $-$7.533*** \\
+ & & (2.491) \\[2pt]
+Inflation & & $-$36.034*** \\
+ & & (11.296) \\[2pt]
+Nominal exchange-rate & & 20.192*** \\
+ & & (5.783) \\
+\midrule
+Baseline controls & No & Yes \\
+Observations & 59 & 48 \\
+\bottomrule
+\end{tabular}
+\notes{Sample restricted to onset years (default-linked or non-default),
+i.e.\ this compares default-linked onsets directly against non-default
+onsets, unlike Table~\ref{tab:probit}, which compares each type against
+tranquil years. Pooled probit, robust standard errors clustered by
+country in parentheses. * p$<$0.10, ** p$<$0.05, *** p$<$0.01.}
+\end{table}
+
+\begin{figure}[th]
+\centering
+\includegraphics[width=0.6\textwidth]{figures/fig_spreadintensity_by_crisistype.png}
+\caption{Spread intensity at onset, by resolution type.}
+\label{fig:spreadintensity}
+\notes{Peak EMBIG spread (basis points) reached during the onset year,
+non-default vs.\ default-linked crises.}
+\end{figure}
+
+\FloatBarrier
 
 \subsection{Augmented Inverse Probability Weighted (AIPW) Estimation}
 \label{sec:aipw-subsection}
