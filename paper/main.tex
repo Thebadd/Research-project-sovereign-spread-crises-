@@ -734,11 +734,11 @@ non-default onsets rather than against tranquil years. Figure~\ref{fig:spreadint
 shows that the distribution of peak onset-year spreads for default-linked
 crises sits visibly above that for non-default crises, with substantially
 more dispersion. Evaluated at the
-sample means of the two groups, the model in column (1) of
-Table~\ref{tab:spreadintensity} implies a
+sample means of the two groups, a univariate probit of default-linked
+resolution on peak spread alone (not tabulated) implies a
 default-linked resolution probability of approximately 28 percent for a
 non-default-sized shock and 52 percent for a default-linked-sized shock.
-Column (2) points to a coherent set of economic mechanisms behind this
+Table~\ref{tab:spreadintensity} points to a coherent set of economic mechanisms behind this
 gap, rather than an isolated statistical association. Higher trade
 openness is associated with a greater likelihood of default-linked
 resolution. This suggests that more open economies are more exposed to
@@ -776,33 +776,30 @@ and motivate the caveat discussed in the Introduction.
 \endgroup
 \footnotesize
 \renewcommand{\arraystretch}{1.0}
-\begin{tabular}{lcc}
+\begin{tabular}{lc}
 \toprule
-\multicolumn{3}{l}{Dependent variable = Dummy taking 1 if the onset resolves as default-linked} \\
+\multicolumn{2}{l}{Dependent variable = Dummy taking 1 if the onset resolves as default-linked} \\
 \midrule
- & (1) & (2) \\
+Peak EMBIG spread at onset & 0.001*** \\
+ & (0.000) \\[4pt]
+GDP growth & $-$15.945 \\
+ & (11.089) \\[2pt]
+Public debt-to-GDP ratio & $-$1.834 \\
+ & (1.120) \\[2pt]
+Banking crisis dummy & $-$0.531 \\
+ & (0.608) \\[2pt]
+Government expenditure-to-GDP ratio & 1.800 \\
+ & (2.185) \\[2pt]
+Trade openness & 5.323*** \\
+ & (1.897) \\[2pt]
+Bank credit-to-GDP ratio & $-$7.533*** \\
+ & (2.491) \\[2pt]
+Inflation & $-$36.034*** \\
+ & (11.296) \\[2pt]
+Nominal exchange-rate & 20.192*** \\
+ & (5.783) \\
 \midrule
-Peak EMBIG spread at onset & 0.001*** & 0.001*** \\
- & (0.000) & (0.000) \\[4pt]
-GDP growth & & $-$15.945 \\
- & & (11.089) \\[2pt]
-Public debt-to-GDP ratio & & $-$1.834 \\
- & & (1.120) \\[2pt]
-Banking crisis dummy & & $-$0.531 \\
- & & (0.608) \\[2pt]
-Government expenditure-to-GDP ratio & & 1.800 \\
- & & (2.185) \\[2pt]
-Trade openness & & 5.323*** \\
- & & (1.897) \\[2pt]
-Bank credit-to-GDP ratio & & $-$7.533*** \\
- & & (2.491) \\[2pt]
-Inflation & & $-$36.034*** \\
- & & (11.296) \\[2pt]
-Nominal exchange-rate & & 20.192*** \\
- & & (5.783) \\
-\midrule
-Baseline controls & No & Yes \\
-Observations & 59 & 48 \\
+Observations & 48 \\
 \bottomrule
 \end{tabular}
 \notes{Sample restricted to onset years (default-linked or non-default),
