@@ -137,18 +137,53 @@ preserve
 restore
 
 * ══════════════════════════════════════════════════════════════════════════
-* CHECK 2 — DIRECT TEST: among onsets only, does spr_max predict onset_def?
+* CHECK 2 — DIRECT TEST, exported Table-1-style: among onsets only (i.e.
+* comparing default-linked onsets directly against non-default onsets, NOT
+* onset-vs-tranquil as in Check 3/08c), does spr_max predict onset_def?
+* THIS is the test that answers the supervisor's actual question -- Check 3
+* below compares onset vs tranquil, which spr_max separates near-mechanically
+* since the very definition of a spread crisis requires spr_max to cross a
+* threshold; Check 2 has no such circularity, since both onset_nd==1 and
+* onset_def==1 rows already satisfy that threshold by construction.
 * ══════════════════════════════════════════════════════════════════════════
-di as result _n "=== CHECK 2: probit of onset_def on spr_max, among onsets only ==="
+di as result _n "=== CHECK 2: probit of onset_def on spr_max, among onsets only (exported) ==="
 
 preserve
     quietly keep if sample==1 & (onset_nd==1 | onset_def==1)
 
-    di as result _n "      (a) spr_max alone:"
-    probit onset_def spr_max, vce(cluster cid)
+    eststo clear
+    quietly probit onset_def spr_max, vce(cluster cid)
+    eststo dvsnd_bare
+    estadd local ctrls "No"
 
-    di as result _n "      (b) spr_max + baseline controls (\$ctrl_core):"
-    probit onset_def spr_max $ctrl_core, vce(cluster cid)
+    quietly probit onset_def spr_max $ctrl_core, vce(cluster cid)
+    eststo dvsnd_ctrl
+    estadd local ctrls "Yes"
+
+    capture esttab dvsnd_bare dvsnd_ctrl using "$tabs/table_default_vs_nondefault_spreadintensity.rtf", replace ///
+        b(4) se(4) star(* 0.10 ** 0.05 *** 0.01) nonumber ///
+        mtitles("Default vs.\ non-default" "Default vs.\ non-default") ///
+        order(spr_max l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2) ///
+        coeflabel(spr_max "Peak EMBIG spread at onset (bps)" ///
+                  l1_gdpg "GDP growth" ///
+                  l_debt "Public debt-to-GDP ratio" ///
+                  l_banking_crisis "Banking crisis dummy" ///
+                  l_govexp "Government expenditure-to-GDP ratio" ///
+                  l_open "Trade openness" ///
+                  l_credit_bank "Bank credit-to-GDP ratio" ///
+                  l_lninfl "Inflation" ///
+                  exchange2 "Nominal exchange-rate") ///
+        stats(ctrls N, labels("Baseline controls" "Observations")) ///
+        title("Robustness: does spread intensity at onset predict default vs.\ non-default resolution?") ///
+        addnotes("Sample restricted to onset years only (onset_nd==1 | onset_def==1), i.e.\ this compares" ///
+                 "default-linked onsets directly against non-default onsets -- NOT onset vs.\ tranquil years" ///
+                 "as in the paper's Table 1 or in Check 3/table_first_stage_spreadintensity.rtf below." ///
+                 "Dependent variable: onset_def (1 = default-linked, 0 = non-default). Pooled probit, robust" ///
+                 "standard errors clustered by country in parentheses." ///
+                 "* p<0.10, ** p<0.05, *** p<0.01.")
+    if _rc == 608 di as error "  ** table_default_vs_nondefault_spreadintensity.rtf is OPEN IN WORD -- close it and re-run."
+    else if _rc  di as error "  ** Table (default vs non-default): esttab failed (rc=" _rc ")"
+    else di as result "Default-vs-non-default table saved: $tabs/table_default_vs_nondefault_spreadintensity.rtf"
 restore
 
 * ══════════════════════════════════════════════════════════════════════════
