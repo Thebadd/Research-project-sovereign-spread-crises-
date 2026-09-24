@@ -70,6 +70,38 @@ if _rc {
 if "$ctrl_core"=="" global ctrl_core "l1_gdpg l_debt l_banking_crisis l_govexp l_open l_credit_bank l_lninfl exchange2"
 
 * ══════════════════════════════════════════════════════════════════════════
+* CHECK 0 — RECONCILE the 61-episode headline count (40 ND + 21 def) against
+* the sample used below: onset_nd/onset_def fire on ALL identified onsets,
+* but Check 1-3 also require sample==1 (this project's main analysis-sample
+* flag) and non-missing spr_max. This block lists exactly which onset
+* country-years are dropped by each restriction, and why, rather than
+* leaving a silent N mismatch for the reader to puzzle over.
+* ══════════════════════════════════════════════════════════════════════════
+di as result _n "=== CHECK 0: reconciling N against the paper's 61 identified onsets ==="
+quietly count if onset_nd==1
+di as result "      onset_nd==1, all rows (no sample/spr_max restriction): " r(N)
+quietly count if onset_def==1
+di as result "      onset_def==1, all rows (no sample/spr_max restriction): " r(N)
+
+preserve
+    quietly keep if onset_nd==1 | onset_def==1
+    quietly count if sample!=1
+    if r(N) > 0 {
+        di as result _n "      Onsets excluded by sample!=1 (" r(N) "):"
+        list country year onset_nd onset_def sample if sample!=1, noobs clean
+    }
+    quietly count if sample==1 & missing(spr_max)
+    if r(N) > 0 {
+        di as result _n "      Onsets with sample==1 but missing spr_max (" r(N) "):"
+        list country year onset_nd onset_def spr_max if sample==1 & missing(spr_max), noobs clean
+    }
+    quietly count if onset_nd==1 & sample==1 & !missing(spr_max)
+    di as result _n "      onset_nd, surviving both restrictions: " r(N) " (Check 1/2 below use this count)"
+    quietly count if onset_def==1 & sample==1 & !missing(spr_max)
+    di as result "      onset_def, surviving both restrictions: " r(N) " (Check 1/2 below use this count)"
+restore
+
+* ══════════════════════════════════════════════════════════════════════════
 * CHECK 1 — DESCRIPTIVE: spread intensity at onset, by resolution type
 * ══════════════════════════════════════════════════════════════════════════
 di as result _n "=== CHECK 1: spr_max / spr_mean at onset, non-default vs default-linked ==="
