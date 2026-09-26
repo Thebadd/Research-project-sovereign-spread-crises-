@@ -313,8 +313,10 @@ Effect of the Sovereign-Bank Nexus}
     $w_{i,t} = D_{i,t+1}^S/\widehat{p}_{i,t+1}^S + (1-D_{i,t+1}^S)/(1-\widehat{p}_{i,t+1}^S)$,
     using $\widehat{p}_{i,t+1}^S$ from Stage 1
     \item Then predict twice from that one fitted regression -- once
-    as if $D=1$, once as if $D=0$ -- to get two numbers:
-    $\widehat{m}_1^{S,h}$ and $\widehat{m}_0^{S,h}$
+    as if $D=1$, once as if $D=0$ -- to get two numbers per
+    country-year: $\widehat{m}_1^{S,h}$ = ``predicted outcome if this
+    country-year had this crisis type'', $\widehat{m}_0^{S,h}$ =
+    ``predicted outcome if it did not''
     \item These two numbers feed into the next slide; they are not
     the final result yet
   \end{itemize}
@@ -322,32 +324,37 @@ Effect of the Sovereign-Bank Nexus}
 
 % ---------------- Main Specification: combining into AIPW ----------------
 \begin{frame}{Main Specification: the AIPW estimator}
-  \small
-  Two ingredients so far: $\widehat{m}_1^{S,h}, \widehat{m}_0^{S,h}$
-  (outcome model) and $\widehat{p}_{i,t+1}^S$ (probit). We combine them,
-  following \citet{jorda2016time}:
-  \vspace{0.2em}
   \footnotesize
+  For each country-year, take (a) $-$ (b) below; the result
+  $\Lambda_h^S$ is the average of that quantity over every
+  country-year in the sample -- our estimated effect of crisis type
+  $S$ on the outcome at horizon $h$:
+  \vspace{0.2em}
   \[
   \Lambda_h^S = \frac{1}{N}\sum_{i}\sum_{t}\Biggl\{
   \underbrace{\left[\frac{D_{i,t+1}^S(y_{i,t+h}-y_{i,t})}{\widehat{p}_{i,t+1}^S}
-    - \frac{(1-D_{i,t+1}^S)(y_{i,t+h}-y_{i,t})}{1-\widehat{p}_{i,t+1}^S}\right]}_{\text{(a) reweighted gap}}
+    - \frac{(1-D_{i,t+1}^S)(y_{i,t+h}-y_{i,t})}{1-\widehat{p}_{i,t+1}^S}\right]}_{\text{(a)}}
   - \underbrace{\frac{D_{i,t+1}^S - \widehat{p}_{i,t+1}^S}{\widehat{p}_{i,t+1}^S(1-\widehat{p}_{i,t+1}^S)}
-    \left[(1-\widehat{p}_{i,t+1}^S)\widehat{m}_1^{S,h} + \widehat{p}_{i,t+1}^S\widehat{m}_0^{S,h}\right]}_{\text{(b) correction}}
+    \left[(1-\widehat{p}_{i,t+1}^S)\widehat{m}_1^{S,h} + \widehat{p}_{i,t+1}^S\widehat{m}_0^{S,h}\right]}_{\text{(b)}}
   \Biggr\}
   \]
-  \small
   \vspace{0.2em}
   \begin{itemize}
-    \item $\Lambda_h^S$: our result -- the effect of crisis type $S$ on
-    the outcome at horizon $h$
-    \item (a): the raw outcome gap between crisis and non-crisis
-    observations, reweighted by how predictable each one was
-    \item (b): a correction term, built from the outcome model, for
-    whatever the probit gets wrong
-    \item Why bother with (b): the result stays reliable even if the
-    probit is imperfect, as long as the outcome model is right (or
-    vice versa) -- ``doubly robust''
+    \item \textbf{(a) for a country-year that actually had this
+    crisis} ($D=1$): its own observed outcome change, divided by
+    $\widehat{p}_{i,t+1}^S$ -- the rarer/less predictable this crisis
+    was for it, the more it counts
+    \item \textbf{(a) for a country-year that did not} ($D=0$): minus
+    its own observed change, divided by $1-\widehat{p}_{i,t+1}^S$
+    \item \textbf{(b), the correction:} $D_{i,t+1}^S - \widehat{p}_{i,t+1}^S$
+    is the probit's own prediction error for that country-year (0 or 1
+    minus the predicted probability); (b) uses the outcome model's
+    $\widehat{m}_1,\widehat{m}_0$ to correct for that error, so a
+    probit mistake does not translate one-for-one into a mistake in
+    $\Lambda_h^S$
+    \item \textbf{Why bother with (b):} the average still comes out
+    right even if the probit is somewhat wrong, as long as the outcome
+    model is right (or vice versa) -- ``doubly robust''
     \item Differences between non-default and default-linked estimates
     are tested with a paired bootstrap (governing) and the
     \citet{clogg1995statistical} test (companion)
