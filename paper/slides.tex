@@ -300,9 +300,9 @@ Effect of the Sovereign-Bank Nexus}
 \begin{frame}{Main Specification: outcome model}
   \footnotesize
 
-  For each crisis type $S$ and horizon $h$, we estimate the outcome
-  regression by OLS, separately for the treated ($D=1$) and untreated
-  ($D=0$) states
+  For each crisis type $S$ and horizon $h$, we estimate a single
+  outcome regression, weighted by the Stage 1 propensity score
+  (IPWRA: inverse-probability-weighted regression adjustment)
   \[
   y_{i,t+h} - y_{i,t} = \alpha_i^{S,h} + \beta^{S,h} D_{i,t+1}^{S} + X_{i,t}\beta^{S,h} + \mu_{i,t+h}^{S}
   \]
@@ -311,15 +311,19 @@ Effect of the Sovereign-Bank Nexus}
     \item $y_{i,t+h} - y_{i,t}$: cumulative change in the outcome $y$
     from crisis onset ($t$) to horizon $h$
     \item $D_{i,t+1}^{S}$: same onset dummy as in the probit, for
-    crisis type $S$
+    crisis type $S$ -- entered as a regressor, not split into two
+    samples
     \item $\alpha_i^{S,h}$: country fixed effects, specific to crisis
     type $S$ and horizon $h$
     \item $X_{i,t}$: same 8 baseline controls as the probit stage
     \item $\beta^{S,h}$: coefficient on $D$ and on $X_{i,t}$
     \item $\mu_{i,t+h}^{S}$: error term
-    \item $\to$ this regression yields the predicted conditional means
-    $\widehat{m}_1^{S,h}$ (treated) and $\widehat{m}_0^{S,h}$
-    (untreated) -- these are inputs to the AIPW estimator, not the
+    \item One regression, weighted by
+    $w_{i,t} = D_{i,t+1}^S/\widehat{p}_{i,t+1}^S + (1-D_{i,t+1}^S)/(1-\widehat{p}_{i,t+1}^S)$
+    (from Stage 1)
+    \item $\to$ predict twice from the same fitted regression, once
+    setting $D=1$ and once $D=0$, to get $\widehat{m}_1^{S,h}$ and
+    $\widehat{m}_0^{S,h}$ -- inputs to the AIPW estimator, not the
     final effect
   \end{itemize}
 \end{frame}
