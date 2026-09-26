@@ -170,6 +170,78 @@ Effect of the Sovereign-Bank Nexus}
   and non-default crises and their pre-crisis sovereign-bank exposure.
 \end{frame}
 
+% ---------------- Identification ----------------
+\begin{frame}{Identification: two-step AIPW}
+  \small
+  \begin{itemize}
+    \item \textbf{Step 1 -- probit (propensity model):} estimate the
+    probability that a country-year is a crisis onset, separately for
+    non-default and default-linked crises, from pre-crisis controls
+    plus three excluded predictors (US federal funds rate, a
+    contagion measure, years since the country's last default-linked
+    onset)
+    \item \textbf{Step 2 -- AIPW local projection:} use the predicted
+    probabilities to reweight observations by how predictable their
+    crisis type was ex ante, combined with an outcome regression,
+    following \citet{jorda2016time}
+    \item This corrects for the fact that crises are not randomly
+    assigned: countries entering a given crisis type are systematically
+    different on observables, so a simple mean comparison or OLS would
+    conflate selection with the effect of the crisis itself
+  \end{itemize}
+\end{frame}
+
+% ---------------- First stage results ----------------
+\begin{frame}{First stage: what predicts crisis onset and default?}
+  \small
+  \begin{itemize}
+    \item \textbf{Onset vs.\ tranquil years} (Table~1): US federal
+    funds rate and years since last default-linked onset predict both
+    crisis types; GDP growth, bank credit-to-GDP, inflation and the
+    exchange rate predict default-linked onset specifically, while no
+    domestic control significantly predicts non-default onset
+    \item AUROC: 0.77 (non-default) and 0.89 (default-linked) with
+    predictors, vs.\ 0.65 and 0.84 with controls only
+    \item \textbf{Robustness -- default vs.\ non-default among onsets
+    only:} peak EMBIG spread at onset significantly predicts a
+    default-linked resolution, even conditional on the same controls
+    \begin{itemize}
+      \item Trade openness and currency depreciation also raise the
+      likelihood of default-linked resolution; deeper bank credit and
+      higher inflation lower it
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+% ---------------- Nexus specification ----------------
+\begin{frame}{Sovereign-bank nexus: specification}
+  \begin{itemize}
+    \item \textbf{Measure:} banks' claims on government as a share of
+    total bank assets, lagged one year before crisis onset; median
+    split (14.96\%) into high- and low-nexus groups, 25 onsets each
+    \item \textbf{Specification:} interact the crisis-type dummy with
+    the high-nexus dummy inside the same local-projection framework
+  \end{itemize}
+  \vspace{0.3em}
+  \begin{center}
+    \footnotesize
+    \[
+    y_{i,t+h} - y_{i,t} = \delta_i^{S,h}
+      + \Gamma^{HN,h} D_{i,t}^{HN} D_{i,t+1}^{S}
+      + \Gamma^{LN,h} \left(1 - D_{i,t}^{HN}\right) D_{i,t+1}^{S}
+      + X_{i,t}\Gamma^{S,h} + e_{i,t+h}^{S}
+    \]
+  \end{center}
+  \vspace{0.3em}
+  \begin{itemize}
+    \item $\Gamma^{HN,h}$, $\Gamma^{LN,h}$: effect of a crisis of type
+    $S$ when pre-crisis sovereign exposure is high or low,
+    respectively; differences assessed via paired bootstrap and the
+    \citet{clogg1995statistical} test
+    \item Result on the next slide
+  \end{itemize}
+\end{frame}
+
 % ---------------- Preview of results ----------------
 \begin{frame}{Preview of results}
   \small
