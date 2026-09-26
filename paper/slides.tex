@@ -227,47 +227,7 @@ Effect of the Sovereign-Bank Nexus}
   \end{itemize}
 \end{frame}
 
-% ---------------- Main specification: overview ----------------
-\begin{frame}{Main specification: two stages}
-  \footnotesize
-  \textbf{Stage 1 -- probit:} estimate each country-year's ex-ante
-  probability of entering a non-default or default-linked spread crisis
-  \[
-  \Pr\!\left(D_{i,t+1}^S = 1 \mid X_{i,t}, Z_{i,t}\right) = \Phi\!\left(X_{i,t}\gamma^{S,X}, Z_{i,t}\gamma^{S,Z}\right)
-  \]
-  \vspace{-0.2em}
-  \begin{itemize}
-    \item $\to$ predicted probability $\widehat{p}_{i,t+1}^S$
-    \item $X_{i,t}$: 8 baseline controls (GDP growth, public
-    debt-to-GDP, banking crisis dummy, government expenditure-to-GDP,
-    trade openness, bank credit-to-GDP, inflation, nominal exchange
-    rate)
-    \item $Z_{i,t}$: 3 excluded predictors -- shift crisis probability
-    but are not shaped by the country's own crisis (US federal funds
-    rate, a contagion measure, years since the country's last
-    default-linked onset)
-  \end{itemize}
-  \vspace{0.4em}
-  \textbf{Stage 2 -- AIPW local projection:} use $\widehat{p}_{i,t+1}^S$
-  to reweight observations and estimate the cumulative effect of each
-  crisis type at every horizon $h$
-  \[
-  y_{i,t+h} - y_{i,t} = \alpha_i^{S,h} + \beta^{S,h} D_{i,t+1}^{S} + X_{i,t}\beta^{S,h} + \mu_{i,t+h}^{S}
-  \]
-  \vspace{-0.2em}
-  \begin{itemize}
-    \item $\to$ post-crisis trajectories, non-default vs.\ default-linked
-    ($X_{i,t}$: same baseline controls as Stage 1)
-  \end{itemize}
-  \vspace{0.4em}
-  \begin{center}
-    \small
-    Stage 1 (probit) $\;\to\;$ IPW weights $\;\to\;$ Stage 2 (local
-    projection) $\;\to\;$ effect by horizon $h$
-  \end{center}
-\end{frame}
-
-% ---------------- Probit: why ----------------
+% ---------------- Why a first-stage probit? ----------------
 \begin{frame}{Why a first-stage probit?}
   \small
   \begin{itemize}
@@ -283,16 +243,39 @@ Effect of the Sovereign-Bank Nexus}
     to what would prevail absent this predictable selection
     \citep{altonji2005selection}
   \end{itemize}
-  \vspace{0.4em}
+\end{frame}
+
+% ---------------- Main Specification: Probit model ----------------
+\begin{frame}{Main Specification: Probit model}
+  \footnotesize
+
+  We estimate each country-year's ex-ante probability of entering a
+  non-default or default-linked spread crisis
   \[
   \Pr\!\left(D_{i,t+1}^S = 1 \mid X_{i,t}, Z_{i,t}\right) = \Phi\!\left(X_{i,t}\gamma^{S,X}, Z_{i,t}\gamma^{S,Z}\right)
   \]
+  \vspace{-0.2em}
   \begin{itemize}
-    \item $S \in \{$non-default, default-linked$\}$; $X_{i,t}$ and
-    $Z_{i,t}$ as defined on the previous slide
+    \item $D_{i,t+1}^S \in \{0,1\}$: dummy equal to 1 if country $i$
+    enters a crisis of type $S$ in year $t+1$
+    \item $S \in \{$non-default, default-linked$\}$: two probits
+    estimated separately, one per crisis type
+    \item $\Phi(\cdot)$: standard normal CDF (probit link function)
+    \item $X_{i,t}$: 8 baseline controls (GDP growth, public
+    debt-to-GDP, banking crisis dummy, government expenditure-to-GDP,
+    trade openness, bank credit-to-GDP, inflation, nominal exchange
+    rate)
+    \item $Z_{i,t}$: 3 predictors -- US federal funds rate, a
+    contagion measure, years since the country's last default-linked
+    onset
+    \item $\gamma^{S,X}$, $\gamma^{S,Z}$: estimated coefficients on
+    $X_{i,t}$ and $Z_{i,t}$, respectively, for crisis type $S$
+    \item $\to$ we derive the predicted probability
+    $\widehat{p}_{i,t+1}^S$
   \end{itemize}
 \end{frame}
 
+% ---------------- Main Specification: AIPW local projection ----------------
 % ---------------- Probit: results ----------------
 \begin{frame}{First stage: what predicts crisis onset and default?}
   \small
@@ -315,26 +298,41 @@ Effect of the Sovereign-Bank Nexus}
   \end{itemize}
 \end{frame}
 
-% ---------------- AIPW LP: specification ----------------
-\begin{frame}{Second stage: AIPW local projection}
+% ---------------- Main Specification: AIPW local projection ----------------
+\begin{frame}{Main Specification: AIPW local projection}
+  \footnotesize
+
+  We use $\widehat{p}_{i,t+1}^S$ to reweight observations and estimate
+  the cumulative effect of each crisis type on the outcome at every
+  horizon $h$
   \[
   y_{i,t+h} - y_{i,t} = \alpha_i^{S,h} + \beta^{S,h} D_{i,t+1}^{S} + X_{i,t}\beta^{S,h} + \mu_{i,t+h}^{S}
   \]
-  \vspace{0.3em}
+  \vspace{-0.2em}
   \begin{itemize}
-    \item $y_{i,t+h} - y_{i,t}$: cumulative change in the outcome from
-    crisis onset to horizon $h$
-    \item $D_{i,t+1}^{S}$: onset dummy for crisis type $S \in$
-    \{non-default, default-linked\}
-    \item $X_{i,t}$: pre-crisis controls; $\alpha_i^{S,h}$: country
-    fixed effects
-    \item Estimated using the first-stage probabilities to reweight
-    observations, following \citet{jorda2016time}, separately for each
-    crisis type and horizon $h$
+    \item $y_{i,t+h} - y_{i,t}$: cumulative change in the outcome $y$
+    from crisis onset ($t$) to horizon $h$
+    \item $D_{i,t+1}^{S}$: same onset dummy as in the probit, for
+    crisis type $S$
+    \item $\alpha_i^{S,h}$: country fixed effects, specific to crisis
+    type $S$ and horizon $h$
+    \item $X_{i,t}$: same 8 baseline controls as the probit stage
+    \item $\beta^{S,h}$: coefficient of interest -- the effect of a
+    crisis of type $S$ on the outcome at horizon $h$
+    \item $\mu_{i,t+h}^{S}$: error term
+    \item Estimated using $\widehat{p}_{i,t+1}^S$ (Stage 1) to reweight
+    observations by how predictable their crisis type was ex ante,
+    following \citet{jorda2016time}
     \item Differences between non-default and default-linked estimates
     are assessed with a paired bootstrap test (governing) and the
     \citet{clogg1995statistical} test (companion, assumes independence)
   \end{itemize}
+  \vspace{0.4em}
+  \begin{center}
+    \small
+    Stage 1 (probit) $\;\to\;$ IPW weights $\;\to\;$ Stage 2 (local
+    projection) $\;\to\;$ effect by horizon $h$
+  \end{center}
 \end{frame}
 
 % ---------------- AIPW LP: results, GDP ----------------
