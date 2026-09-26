@@ -279,69 +279,7 @@ Effect of the Sovereign-Bank Nexus}
 % ---------------- Probit: results ----------------
 \begin{frame}{First stage: what predicts crisis onset and default?}
   \begin{center}
-  \footnotesize
-  \renewcommand{\arraystretch}{1.0}
-  \begin{tabular}{lcc}
-  \toprule
-  \multicolumn{3}{l}{Dependent variable = Dummy taking 1 at the start of a spread crisis} \\
-  \midrule
-   & Non-default & Default-linked \\
-   & (1) & (2) \\
-  \midrule
-  \multicolumn{3}{l}{\textit{Predictors}} \\[1pt]
-  US federal funds rate & 19.070*** & 14.621*** \\
-   & (3.473) & (5.456) \\[2pt]
-  Contagion & $-$3.262*** & $-$1.843 \\
-   & (1.145) & (1.909) \\[2pt]
-  Years since last default-linked onset & $-$0.008** & $-$0.018** \\
-   & (0.003) & (0.008) \\[4pt]
-  \multicolumn{3}{l}{\textit{Baseline controls}} \\[1pt]
-  GDP growth & 0.634 & $-$6.979*** \\
-   & (3.780) & (2.264) \\[2pt]
-  Public debt-to-GDP ratio & 0.335 & 0.424 \\
-   & (0.236) & (0.562) \\[2pt]
-  Banking crisis dummy & 0.462 & 0.065 \\
-   & (0.337) & (0.482) \\
-  \bottomrule
-  \end{tabular}
-  \end{center}
-  \vspace{0.3em}
-  {\tiny\textit{Notes:} Robust standard errors clustered by country in
-  parentheses. * p$<$0.10, ** p$<$0.05, *** p$<$0.01. Contagion$_{i,t}$
-  weights each in-crisis country $k$ by inverse geographic distance to
-  $i$ (closer countries count more), lagged one year so it is
-  predetermined relative to the onset it predicts. Table continues on
-  the next slide.\par}
-\end{frame}
-
-\begin{frame}{First stage: what predicts crisis onset and default? (continued)}
-  \begin{center}
-  \footnotesize
-  \renewcommand{\arraystretch}{1.0}
-  \begin{tabular}{lcc}
-  \toprule
-   & Non-default & Default-linked \\
-   & (1) & (2) \\
-  \midrule
-  Government expenditure-to-GDP ratio & $-$0.583 & $-$1.551 \\
-   & (1.128) & (1.630) \\[2pt]
-  Trade openness & $-$0.424 & 0.502 \\
-   & (0.268) & (0.472) \\[2pt]
-  Bank credit-to-GDP ratio & 0.046 & $-$2.075*** \\
-   & (0.369) & (0.692) \\[2pt]
-  Inflation & 1.265 & $-$8.200*** \\
-   & (0.978) & (2.156) \\[2pt]
-  Nominal exchange-rate & $-$0.250 & 4.821*** \\
-   & (0.545) & (0.834) \\
-  \midrule
-  Observations & 933 & 917 \\
-  \midrule
-  Chi-squared for predictors & 41.98 & 8.13 \\
-  $p$-value of chi-squared & 0.000 & 0.043 \\
-  AUROC, controls only & 0.652 & 0.839 \\
-  AUROC, with predictors & 0.768 & 0.886 \\
-  \bottomrule
-  \end{tabular}
+  \includegraphics[width=0.62\textwidth]{figures/table1_probit_screenshot.png}
   \end{center}
 \end{frame}
 
