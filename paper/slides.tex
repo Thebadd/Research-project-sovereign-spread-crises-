@@ -298,70 +298,60 @@ Effect of the Sovereign-Bank Nexus}
 
 % ---------------- Main Specification: outcome model ----------------
 \begin{frame}{Main Specification: outcome model}
-  \footnotesize
-
-  For each crisis type $S$ and horizon $h$, we estimate a single
-  outcome regression, weighted by the Stage 1 propensity score
-  (IPWRA: inverse-probability-weighted regression adjustment)
+  \small
+  One regression per crisis type and horizon: the same equation as
+  before, but now weighted so that predictable observations count less
   \[
   y_{i,t+h} - y_{i,t} = \alpha_i^{S,h} + \beta^{S,h} D_{i,t+1}^{S} + X_{i,t}\beta^{S,h} + \mu_{i,t+h}^{S}
   \]
   \vspace{-0.2em}
   \begin{itemize}
-    \item $y_{i,t+h} - y_{i,t}$: cumulative change in the outcome $y$
-    from crisis onset ($t$) to horizon $h$
-    \item $D_{i,t+1}^{S}$: same onset dummy as in the probit, for
-    crisis type $S$ -- entered as a regressor, not split into two
-    samples
-    \item $\alpha_i^{S,h}$: country fixed effects, specific to crisis
-    type $S$ and horizon $h$
-    \item $X_{i,t}$: same 8 baseline controls as the probit stage
-    \item $\beta^{S,h}$: coefficient on $D$ and on $X_{i,t}$
-    \item $\mu_{i,t+h}^{S}$: error term
-    \item One regression, weighted by
-    $w_{i,t} = D_{i,t+1}^S/\widehat{p}_{i,t+1}^S + (1-D_{i,t+1}^S)/(1-\widehat{p}_{i,t+1}^S)$
-    (from Stage 1)
-    \item $\to$ predict twice from the same fitted regression, once
-    setting $D=1$ and once $D=0$, to get $\widehat{m}_1^{S,h}$ and
-    $\widehat{m}_0^{S,h}$ -- inputs to the AIPW estimator, not the
-    final effect
+    \item Same variables as the probit stage: $y$ = outcome change,
+    $D$ = onset dummy, $X$ = controls, $\alpha_i$ = country fixed
+    effects
+    \item Weight each observation by
+    $w_{i,t} = D_{i,t+1}^S/\widehat{p}_{i,t+1}^S + (1-D_{i,t+1}^S)/(1-\widehat{p}_{i,t+1}^S)$,
+    using $\widehat{p}_{i,t+1}^S$ from Stage 1
+    \item Then predict twice from that one fitted regression -- once
+    as if $D=1$, once as if $D=0$ -- to get two numbers:
+    $\widehat{m}_1^{S,h}$ and $\widehat{m}_0^{S,h}$
+    \item These two numbers feed into the next slide; they are not
+    the final result yet
   \end{itemize}
 \end{frame}
 
 % ---------------- Main Specification: combining into AIPW ----------------
 \begin{frame}{Main Specification: the AIPW estimator}
+  \small
+  Two ingredients so far: $\widehat{m}_1^{S,h}, \widehat{m}_0^{S,h}$
+  (outcome model) and $\widehat{p}_{i,t+1}^S$ (probit). We combine them,
+  following \citet{jorda2016time}:
+  \vspace{0.2em}
   \footnotesize
-
-  We combine the outcome model ($\widehat{m}_1^{S,h}$,
-  $\widehat{m}_0^{S,h}$) and the probit ($\widehat{p}_{i,t+1}^S$) into
-  the AIPW estimator, following \citet{jorda2016time}:
   \[
   \Lambda_h^S = \frac{1}{N}\sum_{i}\sum_{t}\Biggl\{
   \underbrace{\left[\frac{D_{i,t+1}^S(y_{i,t+h}-y_{i,t})}{\widehat{p}_{i,t+1}^S}
-    - \frac{(1-D_{i,t+1}^S)(y_{i,t+h}-y_{i,t})}{1-\widehat{p}_{i,t+1}^S}\right]}_{\text{IPW term}}
+    - \frac{(1-D_{i,t+1}^S)(y_{i,t+h}-y_{i,t})}{1-\widehat{p}_{i,t+1}^S}\right]}_{\text{(a) reweighted gap}}
   - \underbrace{\frac{D_{i,t+1}^S - \widehat{p}_{i,t+1}^S}{\widehat{p}_{i,t+1}^S(1-\widehat{p}_{i,t+1}^S)}
-    \left[(1-\widehat{p}_{i,t+1}^S)\widehat{m}_1^{S,h} + \widehat{p}_{i,t+1}^S\widehat{m}_0^{S,h}\right]}_{\text{augmentation term}}
+    \left[(1-\widehat{p}_{i,t+1}^S)\widehat{m}_1^{S,h} + \widehat{p}_{i,t+1}^S\widehat{m}_0^{S,h}\right]}_{\text{(b) correction}}
   \Biggr\}
   \]
-  \vspace{-0.2em}
+  \small
+  \vspace{0.2em}
   \begin{itemize}
-    \item $\Lambda_h^S$: the AIPW estimate -- the effect of crisis type
-    $S$ on the outcome at horizon $h$, our object of interest
-    \item \textbf{Not} simply reweighting observations and running the
-    local projection: the augmentation term is required
-    \item Doubly robust: $\Lambda_h^S$ stays consistent if either the
-    probit \emph{or} the outcome model is correctly specified, not both
+    \item $\Lambda_h^S$: our result -- the effect of crisis type $S$ on
+    the outcome at horizon $h$
+    \item (a): the raw outcome gap between crisis and non-crisis
+    observations, reweighted by how predictable each one was
+    \item (b): a correction term, built from the outcome model, for
+    whatever the probit gets wrong
+    \item Why bother with (b): the result stays reliable even if the
+    probit is imperfect, as long as the outcome model is right (or
+    vice versa) -- ``doubly robust''
     \item Differences between non-default and default-linked estimates
-    are assessed with a paired bootstrap test (governing) and the
-    \citet{clogg1995statistical} test (companion, assumes independence)
+    are tested with a paired bootstrap (governing) and the
+    \citet{clogg1995statistical} test (companion)
   \end{itemize}
-  \vspace{0.3em}
-  \begin{center}
-    \small
-    Outcome model ($\widehat{m}_1,\widehat{m}_0$) $+$ Probit
-    ($\widehat{p}$) $\;\to\;$ AIPW estimator $\;\to\;$ effect by
-    horizon $h$
-  \end{center}
 \end{frame}
 
 % ---------------- AIPW LP: results, GDP ----------------
