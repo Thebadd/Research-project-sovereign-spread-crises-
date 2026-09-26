@@ -286,6 +286,29 @@ Effect of the Sovereign-Bank Nexus}
   \end{itemize}
 \end{frame}
 
+% ---------------- Controls and predictors ----------------
+\begin{frame}{Controls $X_{i,t}$ and predictors $Z_{i,t}$}
+  \small
+  \textbf{Baseline controls $X_{i,t}$} (same set in every specification,
+  probit and local projection):
+  \begin{itemize}
+    \item GDP growth, public debt-to-GDP ratio, banking crisis dummy,
+    government expenditure-to-GDP ratio, trade openness, bank
+    credit-to-GDP ratio, inflation, nominal exchange rate
+  \end{itemize}
+  \vspace{0.4em}
+  \textbf{Predictors $Z_{i,t}$} (probit only -- satisfy an exclusion
+  restriction: they shift a country's probability of entering a crisis
+  but are not themselves shaped by that country's own crisis):
+  \begin{itemize}
+    \item US federal funds rate (lagged)
+    \item Contagion: share of a country's neighborhood in crisis,
+    weighted by inverse geographic distance (lagged)
+    \item Years since the country's own most recent default-linked
+    spread crisis onset
+  \end{itemize}
+\end{frame}
+
 % ---------------- Probit: results ----------------
 \begin{frame}{First stage: what predicts crisis onset and default?}
   \small
