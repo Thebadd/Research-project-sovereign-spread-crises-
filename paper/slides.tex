@@ -238,6 +238,14 @@ Effect of the Sovereign-Bank Nexus}
   \vspace{-0.2em}
   \begin{itemize}
     \item $\to$ predicted probability $\widehat{p}_{i,t+1}^S$
+    \item $X_{i,t}$: 8 baseline controls (GDP growth, public
+    debt-to-GDP, banking crisis dummy, government expenditure-to-GDP,
+    trade openness, bank credit-to-GDP, inflation, nominal exchange
+    rate)
+    \item $Z_{i,t}$: 3 excluded predictors -- shift crisis probability
+    but are not shaped by the country's own crisis (US federal funds
+    rate, a contagion measure, years since the country's last
+    default-linked onset)
   \end{itemize}
   \vspace{0.4em}
   \textbf{Stage 2 -- AIPW local projection:} use $\widehat{p}_{i,t+1}^S$
@@ -249,6 +257,7 @@ Effect of the Sovereign-Bank Nexus}
   \vspace{-0.2em}
   \begin{itemize}
     \item $\to$ post-crisis trajectories, non-default vs.\ default-linked
+    ($X_{i,t}$: same baseline controls as Stage 1)
   \end{itemize}
   \vspace{0.4em}
   \begin{center}
@@ -279,33 +288,8 @@ Effect of the Sovereign-Bank Nexus}
   \Pr\!\left(D_{i,t+1}^S = 1 \mid X_{i,t}, Z_{i,t}\right) = \Phi\!\left(X_{i,t}\gamma^{S,X}, Z_{i,t}\gamma^{S,Z}\right)
   \]
   \begin{itemize}
-    \item $S \in \{$non-default, default-linked$\}$; $X_{i,t}$: pre-crisis
-    controls; $Z_{i,t}$: excluded predictors (US federal funds rate, a
-    contagion measure, years since the country's last default-linked
-    onset)
-  \end{itemize}
-\end{frame}
-
-% ---------------- Controls and predictors ----------------
-\begin{frame}{Controls $X_{i,t}$ and predictors $Z_{i,t}$}
-  \small
-  \textbf{Baseline controls $X_{i,t}$} (same set in every specification,
-  probit and local projection):
-  \begin{itemize}
-    \item GDP growth, public debt-to-GDP ratio, banking crisis dummy,
-    government expenditure-to-GDP ratio, trade openness, bank
-    credit-to-GDP ratio, inflation, nominal exchange rate
-  \end{itemize}
-  \vspace{0.4em}
-  \textbf{Predictors $Z_{i,t}$} (probit only -- satisfy an exclusion
-  restriction: they shift a country's probability of entering a crisis
-  but are not themselves shaped by that country's own crisis):
-  \begin{itemize}
-    \item US federal funds rate (lagged)
-    \item Contagion: share of a country's neighborhood in crisis,
-    weighted by inverse geographic distance (lagged)
-    \item Years since the country's own most recent default-linked
-    spread crisis onset
+    \item $S \in \{$non-default, default-linked$\}$; $X_{i,t}$ and
+    $Z_{i,t}$ as defined on the previous slide
   \end{itemize}
 \end{frame}
 
