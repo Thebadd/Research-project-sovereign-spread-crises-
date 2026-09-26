@@ -245,13 +245,15 @@ Effect of the Sovereign-Bank Nexus}
   \end{itemize}
 \end{frame}
 
-% ---------------- Main Specification: Probit model ----------------
+% ---------------- Main specification: overview ----------------
 \begin{frame}{Main Specification: Probit model}
   \footnotesize
 
-  We estimate each country-year's ex-ante probability of entering a
+   We estimate each country-year's ex-ante probability of entering a
   non-default or default-linked spread crisis, and derive the
   predicted probability $\widehat{p}_{i,t+1}^S$
+    \vspace{0.2em}
+
   \[
   \Pr\!\left(D_{i,t+1}^S = 1 \mid X_{i,t}, Z_{i,t}\right) = \Phi\!\left(X_{i,t}\gamma^{S,X}, Z_{i,t}\gamma^{S,Z}\right)
   \]
@@ -259,9 +261,9 @@ Effect of the Sovereign-Bank Nexus}
   \begin{itemize}
     \item $D_{i,t+1}^S \in \{0,1\}$: dummy equal to 1 if country $i$
     enters a crisis of type $S$ in year $t+1$
-    \item $S \in \{$non-default, default-linked$\}$: two probits
-    estimated separately, one per crisis type
-    \item $\Phi(\cdot)$: standard normal CDF (probit link function)
+    \item $S \in \{$non-default, default-linked$\}$
+
+
     \item $X_{i,t}$: 8 baseline controls (GDP growth, public
     debt-to-GDP, banking crisis dummy, government expenditure-to-GDP,
     trade openness, bank credit-to-GDP, inflation, nominal exchange
@@ -296,68 +298,74 @@ Effect of the Sovereign-Bank Nexus}
   \end{itemize}
 \end{frame}
 
-% ---------------- Main Specification: outcome model ----------------
-\begin{frame}{Main Specification: outcome model}
-  \small
-  One regression per crisis type and horizon: the same equation as
-  before, but now weighted so that predictable observations count less
+\begin{frame}{Main Specification: OLS Local Projection}
+  \footnotesize
+
+  For each crisis type $S$ and horizon $h$, we estimate:
+
+  \vspace{0.2em}
   \[
-  y_{i,t+h} - y_{i,t} = \alpha_i^{S,h} + \beta^{S,h} D_{i,t+1}^{S} + X_{i,t}\beta^{S,h} + \mu_{i,t+h}^{S}
+  y_{i,t+h} - y_{i,t}
+  =
+  \alpha_i^{S,h}
+  + \beta_D^{S,h} D_{i,t+1}^{S}
+  + X_{i,t}'\beta_X^{S,h}
+  + \mu_{i,t+h}^{S}
   \]
   \vspace{-0.2em}
-  \begin{itemize}
-    \item Same variables as the probit stage: $y$ = outcome change,
-    $D$ = onset dummy, $X$ = controls, $\alpha_i$ = country fixed
-    effects
-    \item Weight each observation by
-    $w_{i,t} = D_{i,t+1}^S/\widehat{p}_{i,t+1}^S + (1-D_{i,t+1}^S)/(1-\widehat{p}_{i,t+1}^S)$,
-    using $\widehat{p}_{i,t+1}^S$ from Stage 1
-    \item Then predict twice from that one fitted regression -- once
-    as if $D=1$, once as if $D=0$ -- to get two numbers per
-    country-year: $\widehat{m}_1^{S,h}$ = ``predicted outcome if this
-    country-year had this crisis type'', $\widehat{m}_0^{S,h}$ =
-    ``predicted outcome if it did not''
-    \item These two numbers feed into the next slide; they are not
-    the final result yet
-  \end{itemize}
+
+
+ Then we predict the outcome under two counterfactual scenarios corresponding to the treated and untreated states:
+
+
+  \[
+  \widehat m_{1}^{S,h}
+  =
+  \widehat\alpha_i^{S,h}
+  +\widehat\beta_D^{S,h}
+  +X_{i,t}'\widehat\beta_X^{S,h}
+  \qquad (D=1)
+  \]
+
+  \[
+  \widehat m_{0}^{S,h}
+  =
+  \widehat\alpha_i^{S,h}
+  +X_{i,t}'\widehat\beta_X^{S,h}
+  \qquad (D=0)
+  \]
+
 \end{frame}
 
 % ---------------- Main Specification: combining into AIPW ----------------
 \begin{frame}{Main Specification: the AIPW estimator}
   \footnotesize
-  For each country-year, take (a) $-$ (b) below; the result
-  $\Lambda_h^S$ is the average of that quantity over every
-  country-year in the sample -- our estimated effect of crisis type
-  $S$ on the outcome at horizon $h$:
-  \vspace{0.2em}
+
+  We combine the outcome model ($\widehat{m}_1^{S,h}$,
+  $\widehat{m}_0^{S,h}$) and the probit ($\widehat{p}_{i,t+1}^S$) into
+  the AIPW estimator, following \citet{jorda2016time}:
+
+
   \[
   \Lambda_h^S = \frac{1}{N}\sum_{i}\sum_{t}\Biggl\{
   \underbrace{\left[\frac{D_{i,t+1}^S(y_{i,t+h}-y_{i,t})}{\widehat{p}_{i,t+1}^S}
-    - \frac{(1-D_{i,t+1}^S)(y_{i,t+h}-y_{i,t})}{1-\widehat{p}_{i,t+1}^S}\right]}_{\text{(a)}}
+    - \frac{(1-D_{i,t+1}^S)(y_{i,t+h}-y_{i,t})}{1-\widehat{p}_{i,t+1}^S}\right]}_{\text{IPW term}}
   - \underbrace{\frac{D_{i,t+1}^S - \widehat{p}_{i,t+1}^S}{\widehat{p}_{i,t+1}^S(1-\widehat{p}_{i,t+1}^S)}
-    \left[(1-\widehat{p}_{i,t+1}^S)\widehat{m}_1^{S,h} + \widehat{p}_{i,t+1}^S\widehat{m}_0^{S,h}\right]}_{\text{(b)}}
+    \left[(1-\widehat{p}_{i,t+1}^S)\widehat{m}_1^{S,h} + \widehat{p}_{i,t+1}^S\widehat{m}_0^{S,h}\right]}_{\text{augmentation term}}
   \Biggr\}
   \]
-  \vspace{0.2em}
+  \vspace{-0.2em}
   \begin{itemize}
-    \item \textbf{(a) for a country-year that actually had this
-    crisis} ($D=1$): its own observed outcome change, divided by
-    $\widehat{p}_{i,t+1}^S$ -- the rarer/less predictable this crisis
-    was for it, the more it counts
-    \item \textbf{(a) for a country-year that did not} ($D=0$): minus
-    its own observed change, divided by $1-\widehat{p}_{i,t+1}^S$
-    \item \textbf{(b), the correction:} $D_{i,t+1}^S - \widehat{p}_{i,t+1}^S$
-    is the probit's own prediction error for that country-year (0 or 1
-    minus the predicted probability); (b) uses the outcome model's
-    $\widehat{m}_1,\widehat{m}_0$ to correct for that error, so a
-    probit mistake does not translate one-for-one into a mistake in
-    $\Lambda_h^S$
-    \item \textbf{Why bother with (b):} the average still comes out
-    right even if the probit is somewhat wrong, as long as the outcome
-    model is right (or vice versa) -- ``doubly robust''
+    \item $\Lambda_h^S$: the AIPW estimate -- the effect of crisis type
+    $S$ on the outcome at horizon $h$, our object of interest
+
+    \item Doubly robust: $\Lambda_h^S$ stays consistent if either the
+    probit \emph{or} the outcome model is correctly specified, not both
+
+
     \item Differences between non-default and default-linked estimates
-    are tested with a paired bootstrap (governing) and the
-    \citet{clogg1995statistical} test (companion)
+    are assessed with a paired bootstrap test (governing) and the
+    \citet{clogg1995statistical} test (companion, assumes independence)
   \end{itemize}
 \end{frame}
 
