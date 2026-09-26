@@ -274,7 +274,6 @@ Effect of the Sovereign-Bank Nexus}
   \end{itemize}
 \end{frame}
 
-% ---------------- Main Specification: AIPW local projection ----------------
 % ---------------- Probit: results ----------------
 \begin{frame}{First stage: what predicts crisis onset and default?}
   \small
@@ -297,13 +296,13 @@ Effect of the Sovereign-Bank Nexus}
   \end{itemize}
 \end{frame}
 
-% ---------------- Main Specification: AIPW local projection ----------------
-\begin{frame}{Main Specification: AIPW local projection}
+% ---------------- Main Specification: outcome model ----------------
+\begin{frame}{Main Specification: outcome model}
   \footnotesize
 
-  We use $\widehat{p}_{i,t+1}^S$ to reweight observations and estimate
-  the cumulative effect of each crisis type on the outcome at every
-  horizon $h$
+  For each crisis type $S$ and horizon $h$, we estimate the outcome
+  regression by OLS, separately for the treated ($D=1$) and untreated
+  ($D=0$) states
   \[
   y_{i,t+h} - y_{i,t} = \alpha_i^{S,h} + \beta^{S,h} D_{i,t+1}^{S} + X_{i,t}\beta^{S,h} + \mu_{i,t+h}^{S}
   \]
@@ -316,21 +315,48 @@ Effect of the Sovereign-Bank Nexus}
     \item $\alpha_i^{S,h}$: country fixed effects, specific to crisis
     type $S$ and horizon $h$
     \item $X_{i,t}$: same 8 baseline controls as the probit stage
-    \item $\beta^{S,h}$: coefficient of interest -- the effect of a
-    crisis of type $S$ on the outcome at horizon $h$
+    \item $\beta^{S,h}$: coefficient on $D$ and on $X_{i,t}$
     \item $\mu_{i,t+h}^{S}$: error term
-    \item Estimated using $\widehat{p}_{i,t+1}^S$ (Stage 1) to reweight
-    observations by how predictable their crisis type was ex ante,
-    following \citet{jorda2016time}
+    \item $\to$ this regression yields the predicted conditional means
+    $\widehat{m}_1^{S,h}$ (treated) and $\widehat{m}_0^{S,h}$
+    (untreated) -- these are inputs to the AIPW estimator, not the
+    final effect
+  \end{itemize}
+\end{frame}
+
+% ---------------- Main Specification: combining into AIPW ----------------
+\begin{frame}{Main Specification: the AIPW estimator}
+  \footnotesize
+
+  We combine the outcome model ($\widehat{m}_1^{S,h}$,
+  $\widehat{m}_0^{S,h}$) and the probit ($\widehat{p}_{i,t+1}^S$) into
+  the AIPW estimator, following \citet{jorda2016time}:
+  \[
+  \Lambda_h^S = \frac{1}{N}\sum_{i}\sum_{t}\Biggl\{
+  \underbrace{\left[\frac{D_{i,t+1}^S(y_{i,t+h}-y_{i,t})}{\widehat{p}_{i,t+1}^S}
+    - \frac{(1-D_{i,t+1}^S)(y_{i,t+h}-y_{i,t})}{1-\widehat{p}_{i,t+1}^S}\right]}_{\text{IPW term}}
+  - \underbrace{\frac{D_{i,t+1}^S - \widehat{p}_{i,t+1}^S}{\widehat{p}_{i,t+1}^S(1-\widehat{p}_{i,t+1}^S)}
+    \left[(1-\widehat{p}_{i,t+1}^S)\widehat{m}_1^{S,h} + \widehat{p}_{i,t+1}^S\widehat{m}_0^{S,h}\right]}_{\text{augmentation term}}
+  \Biggr\}
+  \]
+  \vspace{-0.2em}
+  \begin{itemize}
+    \item $\Lambda_h^S$: the AIPW estimate -- the effect of crisis type
+    $S$ on the outcome at horizon $h$, our object of interest
+    \item \textbf{Not} simply reweighting observations and running the
+    local projection: the augmentation term is required
+    \item Doubly robust: $\Lambda_h^S$ stays consistent if either the
+    probit \emph{or} the outcome model is correctly specified, not both
     \item Differences between non-default and default-linked estimates
     are assessed with a paired bootstrap test (governing) and the
     \citet{clogg1995statistical} test (companion, assumes independence)
   \end{itemize}
-  \vspace{0.4em}
+  \vspace{0.3em}
   \begin{center}
     \small
-    Stage 1 (probit) $\;\to\;$ IPW weights $\;\to\;$ Stage 2 (local
-    projection) $\;\to\;$ effect by horizon $h$
+    Outcome model ($\widehat{m}_1,\widehat{m}_0$) $+$ Probit
+    ($\widehat{p}$) $\;\to\;$ AIPW estimator $\;\to\;$ effect by
+    horizon $h$
   \end{center}
 \end{frame}
 
