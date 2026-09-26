@@ -279,7 +279,7 @@ Effect of the Sovereign-Bank Nexus}
 % ---------------- Probit: results ----------------
 \begin{frame}{First stage: what predicts crisis onset and default?}
   \begin{center}
-  \resizebox{!}{0.72\textheight}{%
+  \resizebox{!}{0.52\textheight}{%
   \renewcommand{\arraystretch}{1.0}
   \begin{tabular}{lcc}
   \toprule
@@ -323,16 +323,12 @@ Effect of the Sovereign-Bank Nexus}
   \end{tabular}%
   }
   \end{center}
-  \vspace{0.3em}
+  \vspace{0.2em}
   {\tiny\textit{Notes:} Robust standard errors clustered by country in
-  parentheses. * p$<$0.10, ** p$<$0.05, *** p$<$0.01.
-  Contagion$_{i,t}$ measures how much of country $i$'s neighborhood is
-  in crisis at time $t$, weighting each other country $k$ by inverse
-  geographic distance (closer countries count more, weights sum to
-  1): contagion$_{i,t} = \sum_{k\neq i} w_{ik}\cdot\mathbf{1}[k\text{
-  in crisis at }t]$, where $w_{ik} = (1/d_{ik})/\sum_{k'}(1/d_{ik'})$.
-  The predictor entering the model is this share lagged one year,
-  i.e.\ predetermined relative to the crisis onset it predicts.\par}
+  parentheses. * p$<$0.10, ** p$<$0.05, *** p$<$0.01. Contagion$_{i,t}$
+  weights each in-crisis country $k$ by inverse geographic distance to
+  $i$ (closer countries count more), lagged one year so it is
+  predetermined relative to the onset it predicts.\par}
 \end{frame}
 
 \begin{frame}{Main Specification: OLS Local Projection}
