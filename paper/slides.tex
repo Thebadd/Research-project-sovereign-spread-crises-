@@ -278,24 +278,50 @@ Effect of the Sovereign-Bank Nexus}
 
 % ---------------- Probit: results ----------------
 \begin{frame}{First stage: what predicts crisis onset and default?}
-  \small
-  \begin{itemize}
-    \item \textbf{Onset vs.\ tranquil years} (Table~1): US federal
-    funds rate and years since last default-linked onset predict both
-    crisis types; GDP growth, bank credit-to-GDP, inflation and the
-    exchange rate predict default-linked onset specifically, while no
-    domestic control significantly predicts non-default onset
-    \item AUROC: 0.77 (non-default) and 0.89 (default-linked) with
-    predictors, vs.\ 0.65 and 0.84 with controls only
-    \item \textbf{Robustness -- default vs.\ non-default among onsets
-    only:} peak EMBIG spread at onset significantly predicts a
-    default-linked resolution, even conditional on the same controls
-    \begin{itemize}
-      \item Trade openness and currency depreciation also raise the
-      likelihood of default-linked resolution; deeper bank credit and
-      higher inflation lower it
-    \end{itemize}
-  \end{itemize}
+  \begin{center}
+  \tiny
+  \renewcommand{\arraystretch}{1.0}
+  \begin{tabular}{lcc}
+  \toprule
+  \multicolumn{3}{l}{Dependent variable = Dummy taking 1 at the start of a spread crisis} \\
+  \midrule
+   & Non-default & Default-linked \\
+   & (1) & (2) \\
+  \midrule
+  \multicolumn{3}{l}{\textit{Predictors}} \\[1pt]
+  US federal funds rate & 19.070*** & 14.621*** \\
+   & (3.473) & (5.456) \\[2pt]
+  Contagion & $-$3.262*** & $-$1.843 \\
+   & (1.145) & (1.909) \\[2pt]
+  Years since last default-linked onset & $-$0.008** & $-$0.018** \\
+   & (0.003) & (0.008) \\[4pt]
+  \multicolumn{3}{l}{\textit{Baseline controls}} \\[1pt]
+  GDP growth & 0.634 & $-$6.979*** \\
+   & (3.780) & (2.264) \\[2pt]
+  Public debt-to-GDP ratio & 0.335 & 0.424 \\
+   & (0.236) & (0.562) \\[2pt]
+  Banking crisis dummy & 0.462 & 0.065 \\
+   & (0.337) & (0.482) \\[2pt]
+  Government expenditure-to-GDP ratio & $-$0.583 & $-$1.551 \\
+   & (1.128) & (1.630) \\[2pt]
+  Trade openness & $-$0.424 & 0.502 \\
+   & (0.268) & (0.472) \\[2pt]
+  Bank credit-to-GDP ratio & 0.046 & $-$2.075*** \\
+   & (0.369) & (0.692) \\[2pt]
+  Inflation & 1.265 & $-$8.200*** \\
+   & (0.978) & (2.156) \\[2pt]
+  Nominal exchange-rate & $-$0.250 & 4.821*** \\
+   & (0.545) & (0.834) \\
+  \midrule
+  Observations & 933 & 917 \\
+  \midrule
+  Chi-squared for predictors & 41.98 & 8.13 \\
+  $p$-value of chi-squared & 0.000 & 0.043 \\
+  AUROC, controls only & 0.652 & 0.839 \\
+  AUROC, with predictors & 0.768 & 0.886 \\
+  \bottomrule
+  \end{tabular}
+  \end{center}
 \end{frame}
 
 \begin{frame}{Main Specification: OLS Local Projection}
