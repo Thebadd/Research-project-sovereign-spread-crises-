@@ -170,83 +170,6 @@ Effect of the Sovereign-Bank Nexus}
   and non-default crises and their pre-crisis sovereign-bank exposure.
 \end{frame}
 
-% ---------------- Identification ----------------
-\begin{frame}{Identification: two-step AIPW}
-  \footnotesize
-  \textbf{Step 1 -- probit (propensity model):}
-  \[
-  \Pr\!\left(D_{i,t+1}^S = 1 \mid X_{i,t}, Z_{i,t}\right) = \Phi\!\left(X_{i,t}\gamma^{S,X}, Z_{i,t}\gamma^{S,Z}\right)
-  \]
-  \begin{itemize}
-    \item $S \in \{$non-default, default-linked$\}$; $X_{i,t}$: pre-crisis
-    controls; $Z_{i,t}$: excluded predictors (US federal funds rate, a
-    contagion measure, years since the country's last default-linked
-    onset); yields the predicted probability $\widehat{p}_{i,t+1}^S$
-  \end{itemize}
-  \vspace{0.4em}
-  \textbf{Step 2 -- AIPW local projection:}
-  \[
-  y_{i,t+h} - y_{i,t} = \alpha_i^{S,h} + \beta^{S,h} D_{i,t+1}^{S} + X_{i,t}\beta^{S,h} + \mu_{i,t+h}^{S}
-  \]
-  \begin{itemize}
-    \item Estimated using $\widehat{p}_{i,t+1}^S$ to reweight
-    observations by how predictable their crisis type was ex ante,
-    following \citet{jorda2016time}, so that selection into crisis type
-    is not conflated with the effect of the crisis itself
-  \end{itemize}
-\end{frame}
-
-% ---------------- First stage results ----------------
-\begin{frame}{First stage: what predicts crisis onset and default?}
-  \small
-  \begin{itemize}
-    \item \textbf{Onset vs.\ tranquil years} (Table~1): US federal
-    funds rate and years since last default-linked onset predict both
-    crisis types; GDP growth, bank credit-to-GDP, inflation and the
-    exchange rate predict default-linked onset specifically, while no
-    domestic control significantly predicts non-default onset
-    \item AUROC: 0.77 (non-default) and 0.89 (default-linked) with
-    predictors, vs.\ 0.65 and 0.84 with controls only
-    \item \textbf{Robustness -- default vs.\ non-default among onsets
-    only:} peak EMBIG spread at onset significantly predicts a
-    default-linked resolution, even conditional on the same controls
-    \begin{itemize}
-      \item Trade openness and currency depreciation also raise the
-      likelihood of default-linked resolution; deeper bank credit and
-      higher inflation lower it
-    \end{itemize}
-  \end{itemize}
-\end{frame}
-
-% ---------------- Nexus specification ----------------
-\begin{frame}{Sovereign-bank nexus: specification}
-  \begin{itemize}
-    \item \textbf{Measure:} banks' claims on government as a share of
-    total bank assets, lagged one year before crisis onset; median
-    split (14.96\%) into high- and low-nexus groups, 25 onsets each
-    \item \textbf{Specification:} interact the crisis-type dummy with
-    the high-nexus dummy inside the same local-projection framework
-  \end{itemize}
-  \vspace{0.3em}
-  \begin{center}
-    \footnotesize
-    \[
-    y_{i,t+h} - y_{i,t} = \delta_i^{S,h}
-      + \Gamma^{HN,h} D_{i,t}^{HN} D_{i,t+1}^{S}
-      + \Gamma^{LN,h} \left(1 - D_{i,t}^{HN}\right) D_{i,t+1}^{S}
-      + X_{i,t}\Gamma^{S,h} + e_{i,t+h}^{S}
-    \]
-  \end{center}
-  \vspace{0.3em}
-  \begin{itemize}
-    \item $\Gamma^{HN,h}$, $\Gamma^{LN,h}$: effect of a crisis of type
-    $S$ when pre-crisis sovereign exposure is high or low,
-    respectively; differences assessed via paired bootstrap and the
-    \citet{clogg1995statistical} test
-    \item Result on the next slide
-  \end{itemize}
-\end{frame}
-
 % ---------------- Preview of results ----------------
 \begin{frame}{Preview of results}
   \small
@@ -304,23 +227,171 @@ Effect of the Sovereign-Bank Nexus}
   \end{itemize}
 \end{frame}
 
-% ---------------- Table example ----------------
-\begin{frame}{GDP response, AIPW estimates}
+% ---------------- Probit: why ----------------
+\begin{frame}{Why a first-stage probit?}
+  \small
+  \begin{itemize}
+    \item Crises are not randomly assigned: countries entering a
+    default-linked or non-default spread crisis are systematically
+    different on observables, and those same pre-crisis conditions can
+    also shape the post-crisis path
+    \item A simple comparison of means, or plain OLS, would conflate
+    this selection with the effect of the crisis itself
+    \item Solution: estimate each country-year's ex-ante probability of
+    entering each crisis type, and use it to reweight observations
+    (AIPW) so the estimated effect is drawn from a distribution closer
+    to what would prevail absent this predictable selection
+    \citep{altonji2005selection}
+  \end{itemize}
+  \vspace{0.4em}
+  \[
+  \Pr\!\left(D_{i,t+1}^S = 1 \mid X_{i,t}, Z_{i,t}\right) = \Phi\!\left(X_{i,t}\gamma^{S,X}, Z_{i,t}\gamma^{S,Z}\right)
+  \]
+  \begin{itemize}
+    \item $S \in \{$non-default, default-linked$\}$; $X_{i,t}$: pre-crisis
+    controls; $Z_{i,t}$: excluded predictors (US federal funds rate, a
+    contagion measure, years since the country's last default-linked
+    onset)
+  \end{itemize}
+\end{frame}
+
+% ---------------- Probit: results ----------------
+\begin{frame}{First stage: what predicts crisis onset and default?}
+  \small
+  \begin{itemize}
+    \item \textbf{Onset vs.\ tranquil years} (Table~1): US federal
+    funds rate and years since last default-linked onset predict both
+    crisis types; GDP growth, bank credit-to-GDP, inflation and the
+    exchange rate predict default-linked onset specifically, while no
+    domestic control significantly predicts non-default onset
+    \item AUROC: 0.77 (non-default) and 0.89 (default-linked) with
+    predictors, vs.\ 0.65 and 0.84 with controls only
+    \item \textbf{Robustness -- default vs.\ non-default among onsets
+    only:} peak EMBIG spread at onset significantly predicts a
+    default-linked resolution, even conditional on the same controls
+    \begin{itemize}
+      \item Trade openness and currency depreciation also raise the
+      likelihood of default-linked resolution; deeper bank credit and
+      higher inflation lower it
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+% ---------------- AIPW LP: specification ----------------
+\begin{frame}{Second stage: AIPW local projection}
+  \[
+  y_{i,t+h} - y_{i,t} = \alpha_i^{S,h} + \beta^{S,h} D_{i,t+1}^{S} + X_{i,t}\beta^{S,h} + \mu_{i,t+h}^{S}
+  \]
+  \vspace{0.3em}
+  \begin{itemize}
+    \item $y_{i,t+h} - y_{i,t}$: cumulative change in the outcome from
+    crisis onset to horizon $h$
+    \item $D_{i,t+1}^{S}$: onset dummy for crisis type $S \in$
+    \{non-default, default-linked\}
+    \item $X_{i,t}$: pre-crisis controls; $\alpha_i^{S,h}$: country
+    fixed effects
+    \item Estimated using the first-stage probabilities to reweight
+    observations, following \citet{jorda2016time}, separately for each
+    crisis type and horizon $h$
+    \item Differences between non-default and default-linked estimates
+    are assessed with a paired bootstrap test (governing) and the
+    \citet{clogg1995statistical} test (companion, assumes independence)
+  \end{itemize}
+\end{frame}
+
+% ---------------- AIPW LP: results, GDP ----------------
+\begin{frame}{Result: GDP}
+  \begin{itemize}
+    \item Non-default crises: GDP declines modestly, by around
+    $-$1--2 pp over $h=1$--2, before returning towards its pre-crisis
+    path
+    \item Default-linked crises: GDP falls by $-$4--9 pp, with the
+    decline remaining significant through $h=5$
+    \item The gap between the two crisis types is significant under
+    the bootstrap test
+  \end{itemize}
+\end{frame}
+
+% ---------------- AIPW LP: results, bank credit ----------------
+\begin{frame}{Result: bank credit to the private sector}
+  \begin{itemize}
+    \item Non-default crises: bank credit turns significantly positive
+    by $h=5$, reaching nearly +7 pp above its pre-crisis path
+    \item Default-linked crises: bank credit falls to more than
+    $-$40 pp below its pre-crisis path, a contraction that persists
+    through the end of the horizon
+    \item A similar contrast to GDP, but more delayed in onset
+  \end{itemize}
+\end{frame}
+
+% ---------------- AIPW LP: results, investment/FDI/lending ----------------
+\begin{frame}{Result: investment, FDI, and lending rates}
+  \begin{itemize}
+    \item All three move significantly following at least one crisis
+    type
+    \item But the difference between non-default and default-linked
+    crises is never significant under the bootstrap test, at any
+    horizon
+    \item A genuine null result -- not merely a smaller-magnitude
+    difference
+  \end{itemize}
+\end{frame}
+
+% ---------------- AIPW LP: results, claims on government ----------------
+\begin{frame}{Result: bank claims on government}
+  \begin{itemize}
+    \item Default-linked crises: claims on government rise
+    significantly, by approximately +7 pp at $h=1$
+    \item Non-default crises: claims on government decline by less
+    than 1 pp at $h=1$
+    \item This difference is significant under the bootstrap test --
+    the only outcome robust under both the bootstrap and the Clogg test
+  \end{itemize}
+\end{frame}
+
+% ---------------- Nexus specification ----------------
+\begin{frame}{Sovereign-bank nexus: specification}
+  \begin{itemize}
+    \item \textbf{Measure:} banks' claims on government as a share of
+    total bank assets, lagged one year before crisis onset; median
+    split (14.96\%) into high- and low-nexus groups, 25 onsets each
+    \item \textbf{Specification:} interact the crisis-type dummy with
+    the high-nexus dummy inside the same local-projection framework
+  \end{itemize}
+  \vspace{0.3em}
   \begin{center}
     \footnotesize
-    \begin{tabular}{lccccc}
-      \toprule
-       & $h=0$ & $h=1$ & $h=2$ & $h=3$ & $h=4$ \\
-      \midrule
-      Non-default & -- & -- & -- & -- & -- \\
-      Default-linked & -- & -- & -- & -- & -- \\
-      \bottomrule
-    \end{tabular}
+    \[
+    y_{i,t+h} - y_{i,t} = \delta_i^{S,h}
+      + \Gamma^{HN,h} D_{i,t}^{HN} D_{i,t+1}^{S}
+      + \Gamma^{LN,h} \left(1 - D_{i,t}^{HN}\right) D_{i,t+1}^{S}
+      + X_{i,t}\Gamma^{S,h} + e_{i,t+h}^{S}
+    \]
   \end{center}
-  \vspace{0.5em}
+  \vspace{0.3em}
   \begin{itemize}
-    \item Replace with the estimates and standard errors from
-    \texttt{tab:aipw} (Panel A, GDP)
+    \item $\Gamma^{HN,h}$, $\Gamma^{LN,h}$: effect of a crisis of type
+    $S$ when pre-crisis sovereign exposure is high or low,
+    respectively; differences assessed via paired bootstrap and the
+    \citet{clogg1995statistical} test
+  \end{itemize}
+\end{frame}
+
+% ---------------- Nexus results ----------------
+\begin{frame}{Sovereign-bank nexus: result}
+  \begin{itemize}
+    \item \textbf{Non-default crises} ($h=1$): GDP changes by
+    approximately $+$0.75 pp in the high-nexus group, vs.\ a decline of
+    around $-$2.87 pp in the low-nexus group -- significant under the
+    bootstrap test
+    \item \textbf{Default-linked crises} ($h=1$): GDP declines by
+    approximately $-$18 pp in the high-nexus group, vs.\ around
+    $-$8 pp in the low-nexus group -- not significant under the
+    bootstrap test, at any horizon
+    \item No systematic evidence that a stronger pre-crisis nexus
+    amplifies the output costs of default-linked crises; it is
+    associated with a smaller GDP decline on impact for non-default
+    crises
   \end{itemize}
 \end{frame}
 
