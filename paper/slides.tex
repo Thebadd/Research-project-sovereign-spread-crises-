@@ -279,7 +279,7 @@ Effect of the Sovereign-Bank Nexus}
 % ---------------- Probit: results ----------------
 \begin{frame}{First stage: what predicts crisis onset and default?}
   \begin{center}
-  \resizebox{!}{4.6cm}{%
+  \footnotesize
   \renewcommand{\arraystretch}{1.0}
   \begin{tabular}{lcc}
   \toprule
@@ -301,7 +301,28 @@ Effect of the Sovereign-Bank Nexus}
   Public debt-to-GDP ratio & 0.335 & 0.424 \\
    & (0.236) & (0.562) \\[2pt]
   Banking crisis dummy & 0.462 & 0.065 \\
-   & (0.337) & (0.482) \\[2pt]
+   & (0.337) & (0.482) \\
+  \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{0.3em}
+  {\tiny\textit{Notes:} Robust standard errors clustered by country in
+  parentheses. * p$<$0.10, ** p$<$0.05, *** p$<$0.01. Contagion$_{i,t}$
+  weights each in-crisis country $k$ by inverse geographic distance to
+  $i$ (closer countries count more), lagged one year so it is
+  predetermined relative to the onset it predicts. Table continues on
+  the next slide.\par}
+\end{frame}
+
+\begin{frame}{First stage: what predicts crisis onset and default? (continued)}
+  \begin{center}
+  \footnotesize
+  \renewcommand{\arraystretch}{1.0}
+  \begin{tabular}{lcc}
+  \toprule
+   & Non-default & Default-linked \\
+   & (1) & (2) \\
+  \midrule
   Government expenditure-to-GDP ratio & $-$0.583 & $-$1.551 \\
    & (1.128) & (1.630) \\[2pt]
   Trade openness & $-$0.424 & 0.502 \\
@@ -320,15 +341,8 @@ Effect of the Sovereign-Bank Nexus}
   AUROC, controls only & 0.652 & 0.839 \\
   AUROC, with predictors & 0.768 & 0.886 \\
   \bottomrule
-  \end{tabular}%
-  }
+  \end{tabular}
   \end{center}
-  \vspace{0.2em}
-  {\tiny\textit{Notes:} Robust standard errors clustered by country in
-  parentheses. * p$<$0.10, ** p$<$0.05, *** p$<$0.01. Contagion$_{i,t}$
-  weights each in-crisis country $k$ by inverse geographic distance to
-  $i$ (closer countries count more), lagged one year so it is
-  predetermined relative to the onset it predicts.\par}
 \end{frame}
 
 \begin{frame}{Main Specification: OLS Local Projection}
