@@ -227,6 +227,37 @@ Effect of the Sovereign-Bank Nexus}
   \end{itemize}
 \end{frame}
 
+% ---------------- Main specification: overview ----------------
+\begin{frame}{Main specification: two stages}
+  \footnotesize
+  \textbf{Stage 1 -- probit:} estimate each country-year's ex-ante
+  probability of entering a non-default or default-linked spread crisis
+  \[
+  \Pr\!\left(D_{i,t+1}^S = 1 \mid X_{i,t}, Z_{i,t}\right) = \Phi\!\left(X_{i,t}\gamma^{S,X}, Z_{i,t}\gamma^{S,Z}\right)
+  \]
+  \vspace{-0.2em}
+  \begin{itemize}
+    \item $\to$ predicted probability $\widehat{p}_{i,t+1}^S$
+  \end{itemize}
+  \vspace{0.4em}
+  \textbf{Stage 2 -- AIPW local projection:} use $\widehat{p}_{i,t+1}^S$
+  to reweight observations and estimate the cumulative effect of each
+  crisis type at every horizon $h$
+  \[
+  y_{i,t+h} - y_{i,t} = \alpha_i^{S,h} + \beta^{S,h} D_{i,t+1}^{S} + X_{i,t}\beta^{S,h} + \mu_{i,t+h}^{S}
+  \]
+  \vspace{-0.2em}
+  \begin{itemize}
+    \item $\to$ post-crisis trajectories, non-default vs.\ default-linked
+  \end{itemize}
+  \vspace{0.4em}
+  \begin{center}
+    \small
+    Stage 1 (probit) $\;\to\;$ IPW weights $\;\to\;$ Stage 2 (local
+    projection) $\;\to\;$ effect by horizon $h$
+  \end{center}
+\end{frame}
+
 % ---------------- Probit: why ----------------
 \begin{frame}{Why a first-stage probit?}
   \small
