@@ -172,22 +172,27 @@ Effect of the Sovereign-Bank Nexus}
 
 % ---------------- Identification ----------------
 \begin{frame}{Identification: two-step AIPW}
-  \small
+  \footnotesize
+  \textbf{Step 1 -- probit (propensity model):}
+  \[
+  \Pr\!\left(D_{i,t+1}^S = 1 \mid X_{i,t}, Z_{i,t}\right) = \Phi\!\left(X_{i,t}\gamma^{S,X}, Z_{i,t}\gamma^{S,Z}\right)
+  \]
   \begin{itemize}
-    \item \textbf{Step 1 -- probit (propensity model):} estimate the
-    probability that a country-year is a crisis onset, separately for
-    non-default and default-linked crises, from pre-crisis controls
-    plus three excluded predictors (US federal funds rate, a
+    \item $S \in \{$non-default, default-linked$\}$; $X_{i,t}$: pre-crisis
+    controls; $Z_{i,t}$: excluded predictors (US federal funds rate, a
     contagion measure, years since the country's last default-linked
-    onset)
-    \item \textbf{Step 2 -- AIPW local projection:} use the predicted
-    probabilities to reweight observations by how predictable their
-    crisis type was ex ante, combined with an outcome regression,
-    following \citet{jorda2016time}
-    \item This corrects for the fact that crises are not randomly
-    assigned: countries entering a given crisis type are systematically
-    different on observables, so a simple mean comparison or OLS would
-    conflate selection with the effect of the crisis itself
+    onset); yields the predicted probability $\widehat{p}_{i,t+1}^S$
+  \end{itemize}
+  \vspace{0.4em}
+  \textbf{Step 2 -- AIPW local projection:}
+  \[
+  y_{i,t+h} - y_{i,t} = \alpha_i^{S,h} + \beta^{S,h} D_{i,t+1}^{S} + X_{i,t}\beta^{S,h} + \mu_{i,t+h}^{S}
+  \]
+  \begin{itemize}
+    \item Estimated using $\widehat{p}_{i,t+1}^S$ to reweight
+    observations by how predictable their crisis type was ex ante,
+    following \citet{jorda2016time}, so that selection into crisis type
+    is not conflated with the effect of the crisis itself
   \end{itemize}
 \end{frame}
 
@@ -296,26 +301,6 @@ Effect of the Sovereign-Bank Nexus}
     \begin{itemize}
       \item Systemic banking crisis dummy
     \end{itemize}
-  \end{itemize}
-\end{frame}
-
-% ---------------- Specification slide (equation example) ----------------
-\begin{frame}{Baseline specification}
-  \begin{center}
-    \[
-    y_{i,t+h} - y_{i,t} = \alpha_i^{S,h} + \beta^{S,h} D_{i,t+1}^{S} + X_{i,t}\beta^{S,h} + \mu_{i,t+h}^{S}
-    \]
-  \end{center}
-  \vspace{0.5em}
-  \begin{itemize}
-    \item $y_{i,t+h} - y_{i,t}$: cumulative change in the outcome from crisis
-    onset to horizon $h$
-    \item $D_{i,t+1}^{S}$: onset dummy for crisis type $S \in$ \{non-default,
-    default-linked\}
-    \item $X_{i,t}$: pre-crisis controls
-    \item $\alpha_i^{S,h}$: country fixed effects
-    \item Estimated via AIPW to attenuate selection bias, following
-    \citet{jorda2016time}
   \end{itemize}
 \end{frame}
 
