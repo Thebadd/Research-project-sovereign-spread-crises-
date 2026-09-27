@@ -86,14 +86,15 @@
 \newcounter{sectionmark}
 \newcommand{\roadmapitem}[2]{%
   \ifnum#1=\value{sectionmark}%
-    {\bfseries\color{slidetitleblue}#2}%
+    {\bfseries#2}%
   \else
-    {\color{roadmapgray}#2}%
+    #2%
   \fi
 }
 \newcommand{\sectionroadmap}[1]{%
   \setcounter{sectionmark}{#1}%
   \begin{frame}{Roadmap}
+    \footnotesize
     \begin{enumerate}
       \item \roadmapitem{1}{Data and crisis classification}
       \item \roadmapitem{2}{Estimation strategy and main results}
@@ -266,16 +267,8 @@ Effect of the Sovereign-Bank Nexus}
 \end{frame}
 
 
-% ---------------- Roadmap ----------------
-\begin{frame}{Roadmap}
- \footnotesize
-  \begin{enumerate}
-    \item \textbf{Data and crisis classification}
-    \item Estimation strategy and main results
-    \item Role of the sovereign-bank nexus
-    \item Conclusion
-  \end{enumerate}
-\end{frame}
+% ==== Section 1: Data and crisis classification ====
+\sectionroadmap{1}
 
 % ==== Section 2: Estimation strategy and main results ====
 \sectionroadmap{2}
