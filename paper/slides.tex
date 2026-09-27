@@ -290,25 +290,21 @@ Effect of the Sovereign-Bank Nexus}
 \begin{frame}{Identifying spread crisis episodes}
   \footnotesize
   \begin{itemize}
-    \item \textbf{Source:} JP Morgan EMBIG spread data, 1993--2025, 52
-    countries (full EMBIG panel)
-    \item \textbf{Onset threshold:} a spread crisis begins when the
-    EMBIG spread exceeds 1000 basis points -- a ``psychological
-    barrier'' for market participants \citep{pescatori2007adequately}
-    \item \textbf{Episode dating -- interruption rule:} a single
-    tranquil year surrounded by distress years does not split one
-    episode into two; an episode ends only after two consecutive
-    tranquil years
-    \item \textbf{Classification:} each episode is cross-referenced
-    against the \citet{asonuma2016sovereign} sovereign restructuring
-    database (extended past 2020) -- default-linked if it coincides
-    with, or is followed during the episode by, a formal
-    restructuring; non-default otherwise
+    \item \textbf{How we identify a spread crisis:} a country enters a
+    spread crisis when its EMBIG spread exceeds 1000 basis points --
+    a ``psychological barrier'' for market participants
+    \citep{pescatori2007adequately}
+    \item \textbf{How we define an episode:} the interruption rule --
+    a single tranquil year surrounded by distress years does not
+    split one episode into two; an episode ends only once two
+    consecutive tranquil years follow
+    \item \textbf{How we classify episodes:} each episode is
+    cross-referenced against the \citet{asonuma2016sovereign}
+    sovereign restructuring database (extended past 2020) --
+    default-linked if it coincides with, or is followed during the
+    episode by, a formal restructuring; non-default otherwise
     \item \textbf{Result:} 61 spread crisis episodes -- 21 (34\%)
     default-linked, 40 non-default
-    \item \textbf{Coding:} each episode enters as a single onset-year
-    event ($D=1$ in the onset year only), consistent with the annual
-    local-projection framework used throughout
   \end{itemize}
 \end{frame}
 
