@@ -23,6 +23,7 @@
 \definecolor{slidetitleblue}{RGB}{60,90,190}
 \definecolor{footdark}{RGB}{35,45,90}
 \definecolor{footmid}{RGB}{70,95,175}
+\definecolor{roadmapgray}{RGB}{140,140,140}
 
 \setbeamercolor{structure}{fg=slidetitleblue}
 \setbeamercolor{frametitle}{fg=slidetitleblue,bg=white}
@@ -32,7 +33,10 @@
 \setbeamercolor{footline title}{fg=white,bg=footmid}
 \setbeamercolor{footline date}{fg=white,bg=footdark}
 
-\setbeamerfont{frametitle}{series=\mdseries,size=\Large}
+% Frame titles set in footnotesize, matching the reference deck's
+% small, understated title style (rather than the earlier large
+% title).
+\setbeamerfont{frametitle}{series=\mdseries,size=\footnotesize}
 \setbeamerfont{footline author}{size=\scriptsize}
 \setbeamerfont{footline title}{size=\scriptsize}
 \setbeamerfont{footline date}{size=\scriptsize}
@@ -54,7 +58,7 @@
 \addtobeamertemplate{frametitle}{}{\vspace{0.35cm}}
 
 % ---- Three-segment footline ---------------------------------
-\newcommand{\shorttitletext}{Sovereign Spread Crises and the Sovereign-Bank Nexus}
+\newcommand{\shorttitletext}{Sovereign Debt Crises and the Sovereign-Bank Nexus}
 \newcommand{\shortauthortext}{David Betsem}
 
 \setbeamertemplate{footline}{%
@@ -75,6 +79,30 @@
 \setbeamertemplate{navigation symbols}{}
 \setbeamertemplate{headline}{}
 
+% ---- Roadmap recap slide: shown again at the start of each new
+% section, with the current section in bold/blue and the others in
+% gray, so the audience always knows where we are (matching the
+% "Salmon (BdF)" reference model shared for this deck). ----
+\newcounter{sectionmark}
+\newcommand{\roadmapitem}[2]{%
+  \ifnum#1=\value{sectionmark}%
+    {\bfseries\color{slidetitleblue}#2}%
+  \else
+    {\color{roadmapgray}#2}%
+  \fi
+}
+\newcommand{\sectionroadmap}[1]{%
+  \setcounter{sectionmark}{#1}%
+  \begin{frame}{Roadmap}
+    \begin{enumerate}
+      \item \roadmapitem{1}{Data and crisis classification}
+      \item \roadmapitem{2}{Estimation strategy and main results}
+      \item \roadmapitem{3}{Role of the sovereign-bank nexus}
+      \item \roadmapitem{4}{Conclusion}
+    \end{enumerate}
+  \end{frame}
+}
+
 % ---- Title page (affiliations as superscripts, small disclaimer) ----
 \title{\large Costs of Sovereign Debt Crises With and Without Default:\\
 Effect of the Sovereign-Bank Nexus}
@@ -91,29 +119,28 @@ Effect of the Sovereign-Bank Nexus}
 {
 \setbeamertemplate{footline}{}
 \begin{frame}[plain]
-  \vspace{0.8cm}
+  \vspace{0.9cm}
   \vfill
   \begin{center}
-    \normalsize Master Thesis Defense\par
+    \footnotesize {Master Thesis Defense}\par
   \end{center}
-
+  \vspace{-0.5cm}
   \begin{center}
     \usebeamercolor[fg]{title}{\Large Costs of Sovereign Debt Crises With and\\
     Without Default: Effect of the Sovereign-Bank Nexus\par}
   \end{center}
-  \vspace{0.05cm}
+
   \begin{center}
-    \large David Betsem\par
+     \normalsize David Betsem\par
   \end{center}
-  \vspace{0.05cm}
   \begin{center}
-    \normalsize HEC Paris, Institut Polytechnique de Paris\par
+    \small HEC Paris, Institut Polytechnique de Paris\par
   \end{center}
-  \vspace{0.1cm}
+  \vspace{0.05em}
   \begin{center}
-    \normalsize Supervisor: Eric Mengus \qquad Jury: Tomasz Michalski\par
+     \small  Supervisor: Eric Mengus \qquad Jury: Tomasz Michalski\par
   \end{center}
-  \vspace{0.6em}
+  \vspace{0.9em}
   \begin{center}
     \small 28\textsuperscript{th} September 2026\par
   \end{center}
@@ -121,69 +148,91 @@ Effect of the Sovereign-Bank Nexus}
   \vfill
 \end{frame}
 }
-
 % ---------------- Motivation ----------------
-\begin{frame}{Motivation: sovereign debt crises do not always involve default}
+\begin{frame}{Motivation: not all sovereign debt crises end with a default}
+ \footnotesize
   \begin{itemize}
-    \item \textbf{Sovereign spread crises are more common than defaults}
+  \footnotesize
+    \item \textbf{Sovereign debt crises are often resolved through restructuring}
     \begin{itemize}
-      \item Episodes of severe bond-market distress (Mexico 1994/95, Thailand
-      1997/98, Russia 2015) occurred without a missed payment or restructuring
-      \item Elevated spreads reflect rising default risk even when no default
-      is ultimately realized \citep{arellano2008default}
+    \item Sovereign default: (i) missed payments or a legal default, or (ii) a debt restructuring, resulting in creditor losses (``haircuts'') and/or coercion. \citep{ams2019sovereign}
     \end{itemize}
-    \item \textbf{The existing literature measures the cost of default}
+
+    \item \textbf{However, sovereign debt crisis can occur without a default}
     \begin{itemize}
-      \item Output costs of default are estimated at 1--4 pp of GDP growth
-      \item Rarely benchmarked against equally severe episodes that did not
-      end in default
+     \footnotesize
+    \item Eurozone debt crisis, crises in Mexico (1994--95), Thailand (1997--98), Brazil (1999, 2002), and Turkey (2001) did not result in external debt default or restructuring.
     \end{itemize}
-    \item \textbf{This paper compares both types of crisis directly}
+
+
+    \item \textbf{A broader definition of debt crises has emerged}
     \begin{itemize}
-      \item Do spread crises without default carry a materially different
-      cost than default-linked crises?
-      \item Does the pre-crisis sovereign-bank nexus shape that difference?
+ \footnotesize
+    \item With the emergence of sovereign bond markets in EMDEs, debt crises can occur without default, involving elevated yields and rollover difficulties.
+
+  \item The literature therefore uses broader measures based on bond market turbulence.
+
+
     \end{itemize}
   \end{itemize}
 \end{frame}
 
 % ---------------- This paper ----------------
 \begin{frame}{This paper}
+
+ \footnotesize
   \begin{itemize}
-    \item \textbf{Research question:} How do GDP, bank credit, and investment
-    respond to sovereign spread crises with and without default, and does the
-    pre-crisis sovereign-bank nexus amplify that response?
-    \item \textbf{Data:} JP Morgan EMBIG spread database, 1993--2023
+
+    \item \textbf{Research question:} What are the macroeconomic costs of sovereign debt crises with and without default, and does the pre-crisis sovereign-bank nexus amplify these effects?
+
+    \item \textbf{Data:} JP Morgan EMBIG spread database
     \begin{itemize}
+ \footnotesize
       \item 61 spread crisis episodes, 21 default-linked, 40 non-default
     \end{itemize}
-    \item \textbf{Method:} Local projection with Augmented Inverse Probability
-    Weighting (AIPW), following \citet{jorda2016time}
-    \item \textbf{Identification:} Comparison across crisis type and
-    pre-crisis sovereign-bank exposure (median split on bank claims on
-    government / assets)
-  \end{itemize}
-\end{frame}
 
-% ---------------- Related literature ----------------
-\begin{frame}{Related literature}
-  \small
-  \begin{itemize}
-    \item \textbf{Debt crises without default}: \citet{pescatori2007adequately}, \citet{broner2013why}, \citet{aguiar2016quantitative}, \citet{krishnamurthy2017credit}, \citet{mitchener2021sovereign}
-    \item \textbf{Fluctuations in country spreads}: \citet{uribeyue2006country}, \citet{arellano2008default}, \citet{mendozayue2012general}, \citet{bocola2016passthrough}, \citet{bahaj2020sovereign}
-    \item \textbf{Output costs of default}: \citet{borensztein2009costs}, \citet{furceri2012costly}, \citet{trebesch2017output}, \citet{kuvshinov2019sovereigns}, \citet{levyyeyati2011elusive}, \citet{asonuma2024costs}
-    \item \textbf{Sovereign-bank nexus}: \citet{gennaioli2014sovereign}, \citet{gennaioli2018banks}, \citet{acharya2015greatest}, \citet{dellariccia2018managing}, \citet{broner2014sovereign}, \citet{angelini2014negative}
+    \item \textbf{Method:} Local projection with Augmented Inverse Probability
+    Weighting (AIPW)
+
   \end{itemize}
-  \vspace{0.6em}
-  \noindent This paper contributes by jointly comparing default-linked
-  and non-default crises and their pre-crisis sovereign-bank exposure.
 \end{frame}
 
 % ---------------- Preview of results ----------------
+
 \begin{frame}{Preview of results}
-  \small
-  \noindent All figures: AIPW local projection estimates, own pre-crisis
-  path = 0.\par
+ \footnotesize
+  \begin{itemize}
+    \item \textbf{Crisis type is predictable} (at onset): larger spread
+    shocks, more trade openness, sharper depreciation $\to$ default;
+    deeper bank credit, higher inflation $\to$ non-default
+
+    \item \textbf{GDP and bank credit significantly differ by crisis type}
+    \begin{itemize}
+     \footnotesize
+      \item GDP falls 1--2 pp following non-default crises vs.\ 4--9 pp
+      following default-linked crises
+      \item Bank credit turns positive (+7 pp) after non-default crises
+      but contracts by more than 40 pp after default-linked crises
+    \end{itemize}
+    \item \textbf{Investment, FDI, and lending rates show no significant
+    difference across types}
+    \item \textbf{Bank claims on government rise sharply only after
+    default-linked crises} ($\approx$+7 pp vs. $\approx$ -1 pp)
+
+    \item \textbf{The sovereign-bank nexus matters, but only without
+    default}
+    \begin{itemize}
+     \footnotesize
+      \item High pre-crisis nexus is associated with a significantly
+      higher GDP on impact in non-default crises (0.75 vs.\ $-$2.87 pp)
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+% ---------------- Preview of results ----------------
+\begin{frame}{Preview of results}
+ \footnotesize
   \vspace{0.4em}
   \begin{itemize}
     \item \textbf{Crisis type is predictable} (at onset): larger spread
@@ -193,17 +242,33 @@ Effect of the Sovereign-Bank Nexus}
     $-$4--9 pp (default)
     \item \textbf{Bank credit} ($h=1$--5): +7 pp by $h=5$
     (non-default) vs.\ $-$40+ pp (default)
-    \item \textbf{Investment, FDI, lending rates} ($h=1$--5): no
-    significant difference by crisis type
+    \item \textbf{Investment and FDI } : no
+    significant difference by crisis type at any horizon
     \item \textbf{Claims on government} ($h=1$): +7 pp vs.\ $<$1 pp --
     only outcome robust under both tests
-    \item \textbf{Nexus} ($h=1$): matters for non-default (0.75 vs.\
-    $-$2.87 pp, sig.), not for default (18 vs.\ 8 pp, not sig.)
+    \item \textbf{Nexus}: matters for non-default at $h=1$ (0.75 vs.\
+    $-$2.87 pp, sig.)
   \end{itemize}
 \end{frame}
 
+
+
+% ---------------- Related literature ----------------
+\begin{frame}{Related literature}
+  \footnotesize
+  \begin{itemize}
+    \item \textbf{Debt crises without default}: \citet{pescatori2007adequately}, \citet{broner2013why}, \citet{aguiar2016quantitative}, \citet{krishnamurthy2017credit}, \citet{mitchener2021sovereign}
+    \item \textbf{Fluctuations in country spreads}: \citet{uribeyue2006country}, \citet{arellano2008default}, \citet{mendozayue2012general}, \citet{bocola2016passthrough}, \citet{bahaj2020sovereign}
+    \item \textbf{Output costs of default}: \citet{borensztein2009costs}, \citet{furceri2012costly}, \citet{trebesch2017output}, \citet{kuvshinov2019sovereigns}, \citet{levyyeyati2011elusive}, \citet{asonuma2024costs}
+    \item \textbf{Sovereign-bank nexus}: \citet{gennaioli2014sovereign}, \citet{gennaioli2018banks}, \citet{acharya2015greatest}, \citet{dellariccia2018managing}, \citet{broner2014sovereign}, \citet{angelini2014negative}
+  \end{itemize}
+
+\end{frame}
+
+
 % ---------------- Roadmap ----------------
 \begin{frame}{Roadmap}
+ \footnotesize
   \begin{enumerate}
     \item \textbf{Data and crisis classification}
     \item Estimation strategy and main results
@@ -212,47 +277,8 @@ Effect of the Sovereign-Bank Nexus}
   \end{enumerate}
 \end{frame}
 
-% ---------------- Section divider example ----------------
-\begin{frame}{Data sources}
-  \begin{itemize}
-    \item \textbf{JP Morgan EMBIG Global}
-    \begin{itemize}
-      \item Sovereign bond spread series used to identify crisis onsets
-    \end{itemize}
-    \item \textbf{IMF WEO, IMF FSI, World Bank IDS}
-    \begin{itemize}
-      \item GDP, investment, bank credit, bank claims on government, public
-      debt, trade openness
-    \end{itemize}
-    \item \textbf{\citet{asonuma2016sovereign}}
-    \begin{itemize}
-      \item Sovereign restructuring database, used to classify episodes as
-      default-linked or non-default
-    \end{itemize}
-    \item \textbf{\citet{laeven2013systemic,laeven2026systemic}}
-    \begin{itemize}
-      \item Systemic banking crisis dummy
-    \end{itemize}
-  \end{itemize}
-\end{frame}
-
-% ---------------- Why a first-stage probit? ----------------
-\begin{frame}{Why a first-stage probit?}
-  \small
-  \begin{itemize}
-    \item Crises are not randomly assigned: countries entering a
-    default-linked or non-default spread crisis are systematically
-    different on observables, and those same pre-crisis conditions can
-    also shape the post-crisis path
-    \item A simple comparison of means, or plain OLS, would conflate
-    this selection with the effect of the crisis itself
-    \item Solution: estimate each country-year's ex-ante probability of
-    entering each crisis type, and use it to reweight observations
-    (AIPW) so the estimated effect is drawn from a distribution closer
-    to what would prevail absent this predictable selection
-    \citep{altonji2005selection}
-  \end{itemize}
-\end{frame}
+% ==== Section 2: Estimation strategy and main results ====
+\sectionroadmap{2}
 
 % ---------------- Main specification: overview ----------------
 \begin{frame}{Main Specification: Probit model}
@@ -263,9 +289,9 @@ Effect of the Sovereign-Bank Nexus}
   predicted probability $\widehat{p}_{i,t+1}^S$
     \vspace{0.2em}
 
-  \[
+  \begin{equation}
   \Pr\!\left(D_{i,t+1}^S = 1 \mid X_{i,t}, Z_{i,t}\right) = \Phi\!\left(X_{i,t}\gamma^{S,X}, Z_{i,t}\gamma^{S,Z}\right)
-  \]
+  \end{equation}
   \vspace{-0.2em}
   \begin{itemize}
     \item $D_{i,t+1}^S \in \{0,1\}$: dummy equal to 1 if country $i$
@@ -285,8 +311,92 @@ Effect of the Sovereign-Bank Nexus}
   \end{itemize}
 \end{frame}
 
+
+
+
+\begin{frame}{Main Specification: OLS Local Projection}
+  \footnotesize
+
+  For each crisis type $S$ and horizon $h$, we estimate:
+
+  \vspace{0.2em}
+  \begin{equation}
+  y_{i,t+h} - y_{i,t}
+  =
+  \alpha_i^{S,h}
+  + \beta_D^{S,h} D_{i,t+1}^{S}
+  + X_{i,t}'\beta_X^{S,h}
+  + \mu_{i,t+h}^{S}
+  \end{equation}
+  \vspace{-0.2em}
+
+
+ Then we predict the outcome under two counterfactual scenarios corresponding to the treated and untreated states:
+
+
+  \begin{equation}
+  \widehat m_{1}^{S,h}
+  =
+  \widehat\alpha_i^{S,h}
+  +\widehat\beta_D^{S,h}
+  +X_{i,t}'\widehat\beta_X^{S,h}
+  \qquad (D=1)
+  \end{equation}
+
+  \begin{equation}
+  \widehat m_{0}^{S,h}
+  =
+  \widehat\alpha_i^{S,h}
+  +X_{i,t}'\widehat\beta_X^{S,h}
+  \qquad (D=0)
+  \end{equation}
+
+\end{frame}
+
+
+
+
+% ---------------- Main Specification: combining into AIPW ----------------
+\begin{frame}{Main Specification: AIPW estimator}
+  \footnotesize
+
+Following \citet{jorda2016time} and using the results from Equations (1)--(4),
+we define the AIPW estimator as:
+
+  \begin{equation}
+  \resizebox{0.92\linewidth}{!}{$\displaystyle
+  \Lambda_h^S = \frac{1}{N}\sum_{i}\sum_{t}\Biggl\{
+  \underbrace{\left[\frac{D_{i,t+1}^S(y_{i,t+h}-y_{i,t})}{\widehat{p}_{i,t+1}^S}
+    - \frac{(1-D_{i,t+1}^S)(y_{i,t+h}-y_{i,t})}{1-\widehat{p}_{i,t+1}^S}\right]}_{\text{IPW term}}
+  - \underbrace{\frac{D_{i,t+1}^S - \widehat{p}_{i,t+1}^S}{\widehat{p}_{i,t+1}^S(1-\widehat{p}_{i,t+1}^S)}
+    \left[(1-\widehat{p}_{i,t+1}^S)\widehat{m}_1^{S,h} + \widehat{p}_{i,t+1}^S\widehat{m}_0^{S,h}\right]}_{\text{augmentation term}}
+  \Biggr\}
+  $}
+  \end{equation}
+  \vspace{-0.2em}
+  \begin{itemize}
+    \item $\Lambda_h^S$: the AIPW estimate -- the effect of crisis type
+    $S$ on the outcome at horizon $h$, our object of interest
+
+    \item Doubly robust: $\Lambda_h^S$ stays consistent if either the
+    probit \emph{or} the outcome model is correctly specified, not both
+
+
+    \item Differences between non-default and default-linked estimates
+    are assessed with a paired bootstrap test (governing) and the
+    \citet{clogg1995statistical} test (companion, assumes independence)
+  \end{itemize}
+\end{frame}
+
+
+
+
+
+
+
+
 % ---------------- Probit: results ----------------
-\begin{frame}{First stage: what predicts crisis onset and default?}
+\begin{frame}{First stage: what predicts a crisis onset?}
   \tiny
   \begin{center}
   \renewcommand{\arraystretch}{0.85}
@@ -321,128 +431,26 @@ Effect of the Sovereign-Bank Nexus}
   \end{center}
 \end{frame}
 
-\begin{frame}{Main Specification: OLS Local Projection}
-  \footnotesize
-
-  For each crisis type $S$ and horizon $h$, we estimate:
-
-  \vspace{0.2em}
-  \[
-  y_{i,t+h} - y_{i,t}
-  =
-  \alpha_i^{S,h}
-  + \beta_D^{S,h} D_{i,t+1}^{S}
-  + X_{i,t}'\beta_X^{S,h}
-  + \mu_{i,t+h}^{S}
-  \]
-  \vspace{-0.2em}
 
 
- Then we predict the outcome under two counterfactual scenarios corresponding to the treated and untreated states:
 
 
-  \[
-  \widehat m_{1}^{S,h}
-  =
-  \widehat\alpha_i^{S,h}
-  +\widehat\beta_D^{S,h}
-  +X_{i,t}'\widehat\beta_X^{S,h}
-  \qquad (D=1)
-  \]
-
-  \[
-  \widehat m_{0}^{S,h}
-  =
-  \widehat\alpha_i^{S,h}
-  +X_{i,t}'\widehat\beta_X^{S,h}
-  \qquad (D=0)
-  \]
-
-\end{frame}
-
-% ---------------- Main Specification: combining into AIPW ----------------
-\begin{frame}{Main Specification: the AIPW estimator}
-  \footnotesize
-
-  We combine the outcome model ($\widehat{m}_1^{S,h}$,
-  $\widehat{m}_0^{S,h}$) and the probit ($\widehat{p}_{i,t+1}^S$) into
-  the AIPW estimator, following \citet{jorda2016time}:
-
-
-  \[
-  \resizebox{\linewidth}{!}{$\displaystyle
-  \Lambda_h^S = \frac{1}{N}\sum_{i}\sum_{t}\Biggl\{
-  \underbrace{\left[\frac{D_{i,t+1}^S(y_{i,t+h}-y_{i,t})}{\widehat{p}_{i,t+1}^S}
-    - \frac{(1-D_{i,t+1}^S)(y_{i,t+h}-y_{i,t})}{1-\widehat{p}_{i,t+1}^S}\right]}_{\text{IPW term}}
-  - \underbrace{\frac{D_{i,t+1}^S - \widehat{p}_{i,t+1}^S}{\widehat{p}_{i,t+1}^S(1-\widehat{p}_{i,t+1}^S)}
-    \left[(1-\widehat{p}_{i,t+1}^S)\widehat{m}_1^{S,h} + \widehat{p}_{i,t+1}^S\widehat{m}_0^{S,h}\right]}_{\text{augmentation term}}
-  \Biggr\}
-  $}
-  \]
-  \vspace{-0.2em}
-  \begin{itemize}
-    \item $\Lambda_h^S$: the AIPW estimate -- the effect of crisis type
-    $S$ on the outcome at horizon $h$, our object of interest
-
-    \item Doubly robust: $\Lambda_h^S$ stays consistent if either the
-    probit \emph{or} the outcome model is correctly specified, not both
-
-
-    \item Differences between non-default and default-linked estimates
-    are assessed with a paired bootstrap test (governing) and the
-    \citet{clogg1995statistical} test (companion, assumes independence)
-  \end{itemize}
-\end{frame}
-
-% ---------------- Robustness: spread intensity ----------------
-\begin{frame}{Does spread intensity at onset predict default-linked resolution?}
-  \footnotesize
-  The first-stage predictors above capture pre-crisis risk factors,
-  but they do not account for the intensity of the spread shock
-  itself, and therefore provide limited insight into why some debt
-  crises lead to default while others do not. The table below
-  augments the baseline specification with the intensity of the
-  spread shock in the onset year. Rather than comparing crisis onsets
-  with tranquil years, we now directly compare default-linked and
-  non-default onsets -- to assess whether differences in the severity
-  of the initial shock help explain why some crises lead to default
-  while others are resolved without default.
-  \vspace{0.3em}
-  \tiny
+% ---------------- AIPW: results ----------------
+\begin{frame}{ AIPW Local Projection Results }
   \begin{center}
-  \renewcommand{\arraystretch}{0.85}
-  \setlength{\tabcolsep}{5pt}
-  \begin{tabular}{lc}
-  \toprule
-  \multicolumn{2}{l}{Dependent variable = Dummy taking 1 if the onset resolves as default-linked} \\
-  \midrule
-  Peak EMBIG spread at onset & 0.001*** \\
-   & (0.000) \\[2pt]
-  GDP growth & $-$15.945 \\
-   & (11.089) \\[2pt]
-  Public debt-to-GDP ratio & $-$1.834 \\
-   & (1.120) \\[2pt]
-  Banking crisis dummy & $-$0.531 \\
-   & (0.608) \\[2pt]
-  Government expenditure-to-GDP ratio & 1.800 \\
-   & (2.185) \\[2pt]
-  Trade openness & 5.323*** \\
-   & (1.897) \\[2pt]
-  Bank credit-to-GDP ratio & $-$7.533*** \\
-   & (2.491) \\[2pt]
-  Inflation & $-$36.034*** \\
-   & (11.296) \\[2pt]
-  Nominal exchange-rate & 20.192*** \\
-   & (5.783) \\
-  \midrule
-  Observations & 48 \\
-  \bottomrule
-  \end{tabular}
+  \includegraphics[width=0.65\textwidth]{figures/fig4_aipw_lp}
   \end{center}
 \end{frame}
 
+
+
+
+
+
+
+
 % ---------------- AIPW LP: results, GDP + bank credit ----------------
-\begin{frame}{Result: GDP and bank credit (AIPW)}
+\begin{frame}{ AIPW Results: Summary table}
   \tiny
   \begin{center}
   \renewcommand{\arraystretch}{1.0}
@@ -481,7 +489,7 @@ Effect of the Sovereign-Bank Nexus}
 \end{frame}
 
 % ---------------- AIPW LP: results, investment + FDI ----------------
-\begin{frame}{Result: investment and FDI (AIPW)}
+\begin{frame}{AIPW Results: Summary table}
   \tiny
   \begin{center}
   \renewcommand{\arraystretch}{1.0}
@@ -520,7 +528,7 @@ Effect of the Sovereign-Bank Nexus}
 \end{frame}
 
 % ---------------- AIPW LP: results, claims on govt + lending rate ----------------
-\begin{frame}{Result: bank claims on government and real lending rate (AIPW)}
+\begin{frame}{AIPW Results: Summary table}
   \tiny
   \begin{center}
   \renewcommand{\arraystretch}{1.0}
@@ -558,37 +566,97 @@ Effect of the Sovereign-Bank Nexus}
   \end{center}
 \end{frame}
 
+
+
+
+% ---------------- Robustness: spread intensity ----------------
+\begin{frame}{ Crises With and Without Default: What Makes the Difference?}
+  \footnotesize
+
+ \tiny
+  \begin{center}
+  \renewcommand{\arraystretch}{0.85}
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{lc}
+  \toprule
+  \multicolumn{2}{l}{Dependent variable = Dummy taking 1 if the onset resolves as default-linked} \\
+  \midrule
+  Peak EMBIG spread at onset & 0.001*** \\
+   & (0.000) \\[2pt]
+  GDP growth & $-$15.945 \\
+   & (11.089) \\[2pt]
+  Public debt-to-GDP ratio & $-$1.834 \\
+   & (1.120) \\[2pt]
+  Banking crisis dummy & $-$0.531 \\
+   & (0.608) \\[2pt]
+  Government expenditure-to-GDP ratio & 1.800 \\
+   & (2.185) \\[2pt]
+  Trade openness & 5.323*** \\
+   & (1.897) \\[2pt]
+  Bank credit-to-GDP ratio & $-$7.533*** \\
+   & (2.491) \\[2pt]
+  Inflation & $-$36.034*** \\
+   & (11.296) \\[2pt]
+  Nominal exchange-rate & 20.192*** \\
+   & (5.783) \\
+  \midrule
+  Observations & 48 \\
+  \bottomrule
+  \end{tabular}
+  \end{center}
+
+\end{frame}
+
+
+% ==== Section 3: Role of the sovereign-bank nexus ====
+\sectionroadmap{3}
+
 % ---------------- Nexus specification ----------------
 \begin{frame}{Sovereign-bank nexus: specification}
-  \begin{itemize}
-    \item \textbf{Measure:} banks' claims on government as a share of
-    total bank assets, lagged one year before crisis onset; median
-    split (14.96\%) into high- and low-nexus groups, 25 onsets each
-    \item \textbf{Specification:} interact the crisis-type dummy with
+
+ \footnotesize
+
+   We interact the crisis-type dummy with
     the high-nexus dummy inside the same local-projection framework
-  \end{itemize}
-  \vspace{0.3em}
+
   \begin{center}
-    \footnotesize
-    \[
+
+    \begin{equation}
     y_{i,t+h} - y_{i,t} = \delta_i^{S,h}
       + \Gamma^{HN,h} D_{i,t}^{HN} D_{i,t+1}^{S}
       + \Gamma^{LN,h} \left(1 - D_{i,t}^{HN}\right) D_{i,t+1}^{S}
       + X_{i,t}\Gamma^{S,h} + e_{i,t+h}^{S}
-    \]
+    \end{equation}
   \end{center}
-  \vspace{0.3em}
+
   \begin{itemize}
-    \item $\Gamma^{HN,h}$, $\Gamma^{LN,h}$: effect of a crisis of type
-    $S$ when pre-crisis sovereign exposure is high or low,
-    respectively; differences assessed via paired bootstrap and the
-    \citet{clogg1995statistical} test
+
+   \item Where $\Gamma^{HN,h}$, $\Gamma^{LN,h}$ are effect of a crisis of type $S$ when pre-crisis sovereign exposure is high or low.
   \end{itemize}
 \end{frame}
 
+
+
+
+% ---------------- Nexus results ----------------
+\begin{frame}{Sovereign-bank nexus: result, by crisis type}
+  \begin{center}
+  \includegraphics[width=0.50\textwidth,height=0.95\textheight,keepaspectratio]{figures/fig6_aipw_by_crisis_type_part1.png}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Sovereign-bank nexus: result, by crisis type}
+  \begin{center}
+  \includegraphics[width=0.50\textwidth,height=0.95\textheight,keepaspectratio]{figures/fig6_aipw_by_crisis_type_part2.png}
+  \end{center}
+\end{frame}
+
+
+
+
 % ---------------- Nexus results: tables ----------------
-\begin{frame}{Result: GDP (AIPW, nexus)}
-  \scriptsize
+\begin{frame}{Nexus results: tables}
+  \tiny
   \begin{center}
   \begin{tabular*}{0.92\linewidth}{@{\extracolsep{\fill}}lccccc}
   \multicolumn{6}{c}{\normalsize GDP} \\
@@ -610,8 +678,8 @@ Effect of the Sovereign-Bank Nexus}
   \end{center}
 \end{frame}
 
-\begin{frame}{Result: bank credit (AIPW, nexus)}
-  \scriptsize
+\begin{frame}{Nexus results: tables}
+  \tiny
   \begin{center}
   \begin{tabular*}{0.92\linewidth}{@{\extracolsep{\fill}}lccccc}
   \multicolumn{6}{c}{\normalsize Bank credit} \\
@@ -633,8 +701,8 @@ Effect of the Sovereign-Bank Nexus}
   \end{center}
 \end{frame}
 
-\begin{frame}{Result: investment (AIPW, nexus)}
-  \scriptsize
+\begin{frame}{Nexus results: tables}
+  \tiny
   \begin{center}
   \begin{tabular*}{0.92\linewidth}{@{\extracolsep{\fill}}lccccc}
   \multicolumn{6}{c}{\normalsize Investment} \\
@@ -656,8 +724,8 @@ Effect of the Sovereign-Bank Nexus}
   \end{center}
 \end{frame}
 
-\begin{frame}{Result: bank claims on government (AIPW, nexus)}
-  \scriptsize
+\begin{frame}{Nexus results: tables}
+  \tiny
   \begin{center}
   \begin{tabular*}{0.92\linewidth}{@{\extracolsep{\fill}}lccccc}
   \multicolumn{6}{c}{\normalsize Bank claims on government} \\
@@ -679,33 +747,13 @@ Effect of the Sovereign-Bank Nexus}
   \end{center}
 \end{frame}
 
-% ---------------- Nexus results ----------------
-\begin{frame}{Sovereign-bank nexus: result, by crisis type (GDP, bank credit)}
-  \begin{center}
-  \includegraphics[width=0.62\textwidth,height=0.85\textheight,keepaspectratio]{figures/fig6_aipw_by_crisis_type_part1.png}
-  \end{center}
-\end{frame}
 
-\begin{frame}{Sovereign-bank nexus: result, by crisis type (investment, claims on government)}
-  \begin{center}
-  \includegraphics[width=0.62\textwidth,height=0.85\textheight,keepaspectratio]{figures/fig6_aipw_by_crisis_type_part2.png}
-  \end{center}
-\end{frame}
-
-\begin{frame}{Sovereign-bank nexus: result, by nexus group (GDP, bank credit)}
-  \begin{center}
-  \includegraphics[width=0.62\textwidth,height=0.85\textheight,keepaspectratio]{figures/fig7_aipw_nexus_byexposure_part1.png}
-  \end{center}
-\end{frame}
-
-\begin{frame}{Sovereign-bank nexus: result, by nexus group (investment, claims on government)}
-  \begin{center}
-  \includegraphics[width=0.62\textwidth,height=0.85\textheight,keepaspectratio]{figures/fig7_aipw_nexus_byexposure_part2.png}
-  \end{center}
-\end{frame}
+% ==== Section 4: Conclusion ====
+\sectionroadmap{4}
 
 % ---------------- Conclusion ----------------
 \begin{frame}{Conclusion}
+ \footnotesize
   \begin{itemize}
     \item Sovereign spread crises without default carry real but modest
     output costs, far smaller than default-linked crises
