@@ -270,6 +270,58 @@ Effect of the Sovereign-Bank Nexus}
 % ==== Section 1: Data and crisis classification ====
 \sectionroadmap{1}
 
+% ---------------- Data and crisis classification ----------------
+\begin{frame}{Identifying spread crisis episodes}
+  \footnotesize
+  \begin{itemize}
+    \item \textbf{Source:} JP Morgan EMBIG spread data, 1993--2025, 52
+    countries (full EMBIG panel)
+    \item \textbf{Onset threshold:} a spread crisis begins when the
+    EMBIG spread exceeds 1000 basis points -- a ``psychological
+    barrier'' for market participants \citep{pescatori2007adequately}
+    \item \textbf{Episode dating -- interruption rule:} a single
+    tranquil year surrounded by distress years does not split one
+    episode into two; an episode ends only after two consecutive
+    tranquil years
+    \item \textbf{Classification:} each episode is cross-referenced
+    against the \citet{asonuma2016sovereign} sovereign restructuring
+    database (extended past 2020) -- default-linked if it coincides
+    with, or is followed during the episode by, a formal
+    restructuring; non-default otherwise
+    \item \textbf{Result:} 61 spread crisis episodes -- 21 (34\%)
+    default-linked, 40 non-default
+    \item \textbf{Coding:} each episode enters as a single onset-year
+    event ($D=1$ in the onset year only), consistent with the annual
+    local-projection framework used throughout
+  \end{itemize}
+\end{frame}
+
+% ---------------- Data sources ----------------
+\begin{frame}{Data sources}
+  \footnotesize
+  \begin{itemize}
+    \item \textbf{JP Morgan EMBIG Global} -- sovereign bond spread
+    series used to identify crisis onsets
+    \item \textbf{IMF World Economic Outlook} -- GDP, prices,
+    government expenditure, other national accounts variables
+    \item \textbf{World Bank WDI} -- bank credit to the private
+    sector, trade openness
+    \item \textbf{IMF International Financial Statistics} --
+    sovereign-bank nexus variables (bank claims on government and on
+    the private sector, relative to total bank assets)
+    \item \textbf{World Bank International Debt Statistics} --
+    external debt composition and debt-service indicators
+    \item \textbf{FRED} -- US federal funds rate
+    \item \textbf{\citet{asonuma2016sovereign}} -- sovereign
+    restructuring database, used to classify episodes as
+    default-linked or non-default
+    \item \textbf{\citet{laeven2013systemic,laeven2026systemic}} --
+    systemic banking crisis dummy
+    \item \textbf{CEPII geographic database} -- great-circle distances
+    between capital cities, used to build the contagion predictor
+  \end{itemize}
+\end{frame}
+
 % ==== Section 2: Estimation strategy and main results ====
 \sectionroadmap{2}
 
