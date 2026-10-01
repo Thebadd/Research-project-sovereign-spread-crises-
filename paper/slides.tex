@@ -1,0 +1,808 @@
+\documentclass[aspectratio=169]{beamer}
+
+% ============================================================
+% Custom theme replicating the reference deck's look: sans-serif
+% body, blue frame titles, hollow/filled triangle bullets, and a
+% three-segment colored footline (institution | short title |
+% date/page). Built from scratch (no \usetheme{...}) to match
+% the reference slides exactly rather than approximate a stock
+% Beamer theme.
+% ============================================================
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[round]{natbib}
+
+\setbeamertemplate{navigation symbols}{}
+
+% ---- Colors -------------------------------------------------
+\definecolor{slidetitleblue}{RGB}{60,90,190}
+\definecolor{footdark}{RGB}{35,45,90}
+\definecolor{footmid}{RGB}{70,95,175}
+\definecolor{roadmapgray}{RGB}{140,140,140}
+
+\setbeamercolor{structure}{fg=slidetitleblue}
+\setbeamercolor{frametitle}{fg=slidetitleblue,bg=white}
+\setbeamercolor{title}{fg=slidetitleblue}
+\setbeamercolor{normal text}{fg=black,bg=white}
+\setbeamercolor{footline author}{fg=white,bg=footdark}
+\setbeamercolor{footline title}{fg=white,bg=footmid}
+\setbeamercolor{footline date}{fg=white,bg=footdark}
+
+% Frame titles set in footnotesize, matching the reference deck's
+% small, understated title style (rather than the earlier large
+% title).
+\setbeamerfont{frametitle}{series=\mdseries,size=\footnotesize}
+\setbeamerfont{footline author}{size=\scriptsize}
+\setbeamerfont{footline title}{size=\scriptsize}
+\setbeamerfont{footline date}{size=\scriptsize}
+
+% ---- Bullets: hollow triangle (level 1), filled triangle (level 2) --
+\setbeamertemplate{itemize item}{\color{slidetitleblue}$\triangleright$}
+\setbeamertemplate{itemize subitem}{\color{slidetitleblue}$\blacktriangleright$}
+\setbeamertemplate{itemize subsubitem}{\color{slidetitleblue}$\bullet$}
+
+\setbeamertemplate{frametitle}{%
+  \vspace{1em}%
+  \hspace{0.6em}\usebeamerfont{frametitle}\usebeamercolor[fg]{frametitle}\insertframetitle%
+  \vspace{0pt}%
+}
+% Fixed, uniform gap between the title and the start of the body,
+% applied after the frametitle regardless of what follows (itemize,
+% enumerate, center, tabular, equation) so every slide starts its
+% content at the same distance from the title.
+\addtobeamertemplate{frametitle}{}{\vspace{0.35cm}}
+
+% ---- Three-segment footline ---------------------------------
+\newcommand{\shorttitletext}{Sovereign Debt Crises and the Sovereign-Bank Nexus}
+\newcommand{\shortauthortext}{David Betsem}
+
+\setbeamertemplate{footline}{%
+  \leavevmode%
+  \hbox{%
+    \begin{beamercolorbox}[wd=.27\paperwidth,ht=2.4ex,dp=1.2ex,left,leftskip=0.6em]{footline author}%
+      \usebeamerfont{footline author}\shortauthortext%
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.53\paperwidth,ht=2.4ex,dp=1.2ex,center]{footline title}%
+      \usebeamerfont{footline title}\shorttitletext%
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.20\paperwidth,ht=2.4ex,dp=1.2ex,right,rightskip=0.6em]{footline date}%
+      \usebeamerfont{footline date}\insertshortdate{} \hspace{0.4em} \insertframenumber{} / \inserttotalframenumber%
+    \end{beamercolorbox}%
+  }%
+}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{headline}{}
+
+% ---- Roadmap recap slide: shown again at the start of each new
+% section, with the current section in bold/blue and the others in
+% gray, so the audience always knows where we are (matching the
+% "Salmon (BdF)" reference model shared for this deck). ----
+\newcounter{sectionmark}
+\newcommand{\roadmapitem}[2]{%
+  \ifnum#1=\value{sectionmark}%
+    {\bfseries#2}%
+  \else
+    #2%
+  \fi
+}
+\newcommand{\sectionroadmap}[1]{%
+  \setcounter{sectionmark}{#1}%
+  \begin{frame}{Roadmap}
+    \footnotesize
+    \begin{enumerate}
+      \item \roadmapitem{1}{Data and crisis classification}
+      \item \roadmapitem{2}{Estimation strategy and main results}
+      \item \roadmapitem{3}{Role of the sovereign-bank nexus}
+      \item \roadmapitem{4}{Conclusion}
+    \end{enumerate}
+  \end{frame}
+}
+
+% ---- Title page (affiliations as superscripts, small disclaimer) ----
+\title{\large Costs of Sovereign Debt Crises With and Without Default:\\
+Effect of the Sovereign-Bank Nexus}
+\author{\normalsize David Betsem A Djam}
+\institute{%
+  \footnotesize
+  HEC Paris, Institut Polytechnique de Paris
+}
+\date{\normalsize 28\textsuperscript{th} September 2026}
+
+\begin{document}
+
+% ---------------- Title slide ----------------
+{
+\setbeamertemplate{footline}{}
+\begin{frame}[plain]
+  \vspace{0.9cm}
+  \vfill
+  \begin{center}
+    \footnotesize {Master Thesis Defense}\par
+  \end{center}
+  \vspace{-0.5cm}
+  \begin{center}
+    \usebeamercolor[fg]{title}{\Large Costs of Sovereign Debt Crises With and\\
+    Without Default: Effect of the Sovereign-Bank Nexus\par}
+  \end{center}
+
+  \begin{center}
+     \normalsize David Betsem\par
+  \end{center}
+  \begin{center}
+    \small HEC Paris, Institut Polytechnique de Paris\par
+  \end{center}
+  \vspace{0.05em}
+  \begin{center}
+     \small  Supervisor: Eric Mengus \qquad Jury: Tomasz Michalski\par
+  \end{center}
+  \vspace{0.9em}
+  \begin{center}
+    \small 28\textsuperscript{th} September 2026\par
+  \end{center}
+  \vspace{1.2cm}
+  \vfill
+\end{frame}
+}
+% ---------------- Motivation ----------------
+\begin{frame}{Motivation: not all sovereign debt crises end with a default}
+ \footnotesize
+  \begin{itemize}
+  \footnotesize
+    \item \textbf{Sovereign debt crises are often resolved through restructuring}
+    \begin{itemize}
+    \item Sovereign default: (i) missed payments or a legal default, or (ii) a debt restructuring, resulting in creditor losses (``haircuts'') and/or coercion. \citep{ams2019sovereign}
+    \end{itemize}
+
+    \item \textbf{However, sovereign debt crisis can occur without a default}
+    \begin{itemize}
+     \footnotesize
+    \item Eurozone debt crisis, crises in Mexico (1994--95), Thailand (1997--98), Brazil (1999, 2002), and Turkey (2001) did not result in external debt default or restructuring.
+    \end{itemize}
+
+
+    \item \textbf{A broader definition of debt crises has emerged}
+    \begin{itemize}
+ \footnotesize
+    \item With the emergence of sovereign bond markets in EMDEs, debt crises can occur without default, involving elevated yields and rollover difficulties.
+
+  \item The literature therefore uses broader measures based on bond market turbulence.
+
+
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+% ---------------- This paper ----------------
+\begin{frame}{This paper}
+
+ \footnotesize
+  \begin{itemize}
+
+    \item \textbf{Research question:} What are the macroeconomic costs of sovereign debt crises with and without default, and does the pre-crisis sovereign-bank nexus amplify these effects?
+
+    \item \textbf{Data:} JP Morgan EMBIG spread database
+    \begin{itemize}
+ \footnotesize
+      \item 61 spread crisis episodes, 21 default-linked, 40 non-default
+    \end{itemize}
+
+    \item \textbf{Method:} Local projection with Augmented Inverse Probability
+    Weighting (AIPW)
+
+  \end{itemize}
+\end{frame}
+
+% ---------------- Preview of results ----------------
+
+\begin{frame}{Preview of results}
+ \footnotesize
+  \begin{itemize}
+    \item \textbf{Crisis type is predictable} (at onset): larger spread
+    shocks, more trade openness, sharper depreciation $\to$ default;
+    deeper bank credit, higher inflation $\to$ non-default
+
+    \item \textbf{GDP and bank credit significantly differ by crisis type}
+    \begin{itemize}
+     \footnotesize
+      \item GDP falls 1--2 pp following non-default crises vs.\ 4--9 pp
+      following default-linked crises
+      \item Bank credit turns positive (+7 pp) after non-default crises
+      but contracts by more than 40 pp after default-linked crises
+    \end{itemize}
+    \item \textbf{Investment, FDI, and lending rates show no significant
+    difference across types}
+    \item \textbf{Bank claims on government rise sharply only after
+    default-linked crises} ($\approx$+7 pp vs. $\approx$ -1 pp)
+
+    \item \textbf{The sovereign-bank nexus matters, but only without
+    default}
+    \begin{itemize}
+     \footnotesize
+      \item High pre-crisis nexus is associated with a significantly
+      higher GDP on impact in non-default crises (0.75 vs.\ $-$2.87 pp)
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+% ---------------- Preview of results ----------------
+\begin{frame}{Preview of results}
+ \footnotesize
+  \vspace{0.4em}
+  \begin{itemize}
+    \item \textbf{Crisis type is predictable} (at onset): larger spread
+    shocks, more trade openness, sharper depreciation $\to$ default;
+    deeper bank credit, higher inflation $\to$ non-default
+    \item \textbf{GDP} ($h=1$--5): $-$1--2 pp (non-default) vs.\
+    $-$4--9 pp (default)
+    \item \textbf{Bank credit} ($h=1$--5): +7 pp by $h=5$
+    (non-default) vs.\ $-$40+ pp (default)
+    \item \textbf{Investment and FDI } : no
+    significant difference by crisis type at any horizon
+    \item \textbf{Claims on government} ($h=1$): +7 pp vs.\ $<$1 pp --
+    only outcome robust under both tests
+    \item \textbf{Nexus}: matters for non-default at $h=1$ (0.75 vs.\
+    $-$2.87 pp, sig.)
+  \end{itemize}
+\end{frame}
+
+
+
+% ---------------- Related literature ----------------
+\begin{frame}{Related literature}
+  \footnotesize
+  \begin{itemize}
+    \item \textbf{Debt crises without default}: \citet{pescatori2007adequately}, \citet{broner2013why}, \citet{aguiar2016quantitative}, \citet{krishnamurthy2017credit}, \citet{mitchener2021sovereign}
+    \item \textbf{Fluctuations in country spreads}: \citet{uribeyue2006country}, \citet{arellano2008default}, \citet{mendozayue2012general}, \citet{bocola2016passthrough}, \citet{bahaj2020sovereign}
+    \item \textbf{Output costs of default}: \citet{borensztein2009costs}, \citet{furceri2012costly}, \citet{trebesch2017output}, \citet{kuvshinov2019sovereigns}, \citet{levyyeyati2011elusive}, \citet{asonuma2024costs}
+    \item \textbf{Sovereign-bank nexus}: \citet{gennaioli2014sovereign}, \citet{gennaioli2018banks}, \citet{acharya2015greatest}, \citet{dellariccia2018managing}, \citet{broner2014sovereign}, \citet{angelini2014negative}
+  \end{itemize}
+
+\end{frame}
+
+
+% ==== Section 1: Data and crisis classification ====
+\sectionroadmap{1}
+
+% ---------------- Data sources ----------------
+\begin{frame}{Data sources}
+  \footnotesize
+  \begin{itemize}
+    \item JP Morgan EMBIG Global
+    \item IMF World Economic Outlook
+    \item World Bank World Development Indicators
+    \item IMF International Financial Statistics
+    \item World Bank International Debt Statistics
+    \item FRED
+    \item \citet{asonuma2016sovereign}
+    \item \citet{laeven2013systemic,laeven2026systemic}
+    \item CEPII geographic database
+  \end{itemize}
+\end{frame}
+
+% ---------------- Data and crisis classification ----------------
+\begin{frame}{Identifying spread crisis episodes}
+  \footnotesize
+  \begin{itemize}
+    \item \textbf{Identifying a crisis:} a country enters a spread
+    crisis in the first year its EMBIG spread crosses 1000 basis
+    points -- a level market participants treat as a
+    ``psychological barrier'' \citep{pescatori2007adequately}
+    \item \textbf{Defining an episode:} consecutive distress years
+    count as the same episode; a single tranquil year in between does
+    not end it -- the episode is only considered over once two
+    tranquil years follow in a row
+    \item \textbf{Classifying episodes:} we check each episode
+    against the \citet{asonuma2016sovereign} restructuring database
+    (updated past 2020) -- if a restructuring happens during a spread
+    crisis episode, we call it default-linked; otherwise, non-default
+  \end{itemize}
+\end{frame}
+
+% ==== Section 2: Estimation strategy and main results ====
+\sectionroadmap{2}
+
+% ---------------- Main specification: overview ----------------
+\begin{frame}{Main Specification: Probit model}
+  \footnotesize
+
+   We estimate each country-year's ex-ante probability of entering a
+  non-default or default-linked spread crisis, and derive the
+  predicted probability $\widehat{p}_{i,t+1}^S$
+    \vspace{0.2em}
+
+  \begin{equation}
+  \Pr\!\left(D_{i,t+1}^S = 1 \mid X_{i,t}, Z_{i,t}\right) = \Phi\!\left(X_{i,t}\gamma^{S,X}, Z_{i,t}\gamma^{S,Z}\right)
+  \end{equation}
+  \vspace{-0.2em}
+  \begin{itemize}
+    \item $D_{i,t+1}^S \in \{0,1\}$: dummy equal to 1 if country $i$
+    enters a crisis of type $S$ in year $t+1$
+    \item $S \in \{$non-default, default-linked$\}$
+
+
+    \item $X_{i,t}$: 8 baseline controls (GDP growth, public
+    debt-to-GDP, banking crisis dummy, government expenditure-to-GDP,
+    trade openness, bank credit-to-GDP, inflation, nominal exchange
+    rate)
+    \item $Z_{i,t}$: 3 predictors -- US federal funds rate, a
+    contagion measure, years since the country's last default-linked
+    onset
+    \item $\gamma^{S,X}$, $\gamma^{S,Z}$: estimated coefficients on
+    $X_{i,t}$ and $Z_{i,t}$, respectively, for crisis type $S$
+  \end{itemize}
+\end{frame}
+
+
+
+
+\begin{frame}{Main Specification: OLS Local Projection}
+  \footnotesize
+
+  For each crisis type $S$ and horizon $h$, we estimate:
+
+  \vspace{0.2em}
+  \begin{equation}
+  y_{i,t+h} - y_{i,t}
+  =
+  \alpha_i^{S,h}
+  + \beta_D^{S,h} D_{i,t+1}^{S}
+  + X_{i,t}'\beta_X^{S,h}
+  + \mu_{i,t+h}^{S}
+  \end{equation}
+  \vspace{-0.2em}
+
+
+ Then we predict the outcome under two counterfactual scenarios corresponding to the treated and untreated states:
+
+
+  \begin{equation}
+  \widehat m_{1}^{S,h}
+  =
+  \widehat\alpha_i^{S,h}
+  +\widehat\beta_D^{S,h}
+  +X_{i,t}'\widehat\beta_X^{S,h}
+  \qquad (D=1)
+  \end{equation}
+
+  \begin{equation}
+  \widehat m_{0}^{S,h}
+  =
+  \widehat\alpha_i^{S,h}
+  +X_{i,t}'\widehat\beta_X^{S,h}
+  \qquad (D=0)
+  \end{equation}
+
+\end{frame}
+
+
+
+
+% ---------------- Main Specification: combining into AIPW ----------------
+\begin{frame}{Main Specification: AIPW estimator}
+  \footnotesize
+
+Following \citet{jorda2016time} and using the results from Equations (1)--(4),
+we define the AIPW estimator as:
+
+  \begin{equation}
+  \resizebox{0.92\linewidth}{!}{$\displaystyle
+  \Lambda_h^S = \frac{1}{N}\sum_{i}\sum_{t}\Biggl\{
+  \underbrace{\left[\frac{D_{i,t+1}^S(y_{i,t+h}-y_{i,t})}{\widehat{p}_{i,t+1}^S}
+    - \frac{(1-D_{i,t+1}^S)(y_{i,t+h}-y_{i,t})}{1-\widehat{p}_{i,t+1}^S}\right]}_{\text{IPW term}}
+  - \underbrace{\frac{D_{i,t+1}^S - \widehat{p}_{i,t+1}^S}{\widehat{p}_{i,t+1}^S(1-\widehat{p}_{i,t+1}^S)}
+    \left[(1-\widehat{p}_{i,t+1}^S)\widehat{m}_1^{S,h} + \widehat{p}_{i,t+1}^S\widehat{m}_0^{S,h}\right]}_{\text{augmentation term}}
+  \Biggr\}
+  $}
+  \end{equation}
+  \vspace{-0.2em}
+  \begin{itemize}
+    \item $\Lambda_h^S$: the AIPW estimate -- the effect of crisis type
+    $S$ on the outcome at horizon $h$, our object of interest
+
+    \item Doubly robust: $\Lambda_h^S$ stays consistent if either the
+    probit \emph{or} the outcome model is correctly specified, not both
+
+
+    \item Differences between non-default and default-linked estimates
+    are assessed with a paired bootstrap test (governing) and the
+    \citet{clogg1995statistical} test (companion, assumes independence)
+  \end{itemize}
+\end{frame}
+
+
+
+
+
+
+
+
+% ---------------- Probit: results ----------------
+\begin{frame}{First stage: what predicts a crisis onset?}
+  \tiny
+  \begin{center}
+  \renewcommand{\arraystretch}{0.85}
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{lcc}
+  \toprule
+   & Non-default & Default-linked \\
+   & (1) & (2) \\
+  \midrule
+  \multicolumn{3}{l}{\textit{Predictors}} \\[0.5pt]
+  US federal funds rate & 19.070*** & 14.621*** \\
+  Contagion & $-$3.262*** & $-$1.843 \\
+  Years since last default-linked onset & $-$0.008** & $-$0.018** \\[1pt]
+  \multicolumn{3}{l}{\textit{Baseline controls}} \\[0.5pt]
+  GDP growth & 0.634 & $-$6.979*** \\
+  Public debt-to-GDP ratio & 0.335 & 0.424 \\
+  Banking crisis dummy & 0.462 & 0.065 \\
+  Government expenditure-to-GDP ratio & $-$0.583 & $-$1.551 \\
+  Trade openness & $-$0.424 & 0.502 \\
+  Bank credit-to-GDP ratio & 0.046 & $-$2.075*** \\
+  Inflation & 1.265 & $-$8.200*** \\
+  Nominal exchange-rate & $-$0.250 & 4.821*** \\
+  \midrule
+  Observations & 933 & 917 \\
+  \midrule
+  Chi-squared for predictors & 41.98 & 8.13 \\
+  $p$-value of chi-squared & 0.000 & 0.043 \\
+  AUROC, controls only & 0.652 & 0.839 \\
+  AUROC, with predictors & 0.768 & 0.886 \\
+  \bottomrule
+  \end{tabular}
+  \end{center}
+\end{frame}
+
+
+
+
+
+% ---------------- AIPW: results ----------------
+\begin{frame}{ AIPW Local Projection Results }
+  \begin{center}
+  \includegraphics[width=0.65\textwidth]{figures/fig4_aipw_lp}
+  \end{center}
+\end{frame}
+
+
+
+
+
+
+
+
+% ---------------- AIPW LP: results, GDP + bank credit ----------------
+\begin{frame}{ AIPW Results: Summary table}
+  \tiny
+  \begin{center}
+  \renewcommand{\arraystretch}{1.0}
+  \begin{tabular*}{0.92\linewidth}{@{\extracolsep{\fill}}lccccc}
+  \multicolumn{6}{c}{\normalsize GDP} \\
+  \toprule
+   & $h=1$ & $h=2$ & $h=3$ & $h=4$ & $h=5$ \\
+  \midrule
+  Non-default & $-$1.396*** & $-$2.133*** & $-$0.197 & 0.390 & 0.923 \\
+   & (0.381) & (0.408) & (0.459) & (0.498) & (0.582) \\[1pt]
+  Default-linked & $-$6.093*** & $-$8.822*** & $-$6.181*** & $-$4.212*** & $-$4.479*** \\
+   & (0.174) & (0.219) & (0.255) & (0.309) & (0.400) \\
+  \midrule
+  \multicolumn{6}{l}{Default $-$ Non-default, bootstrap 95\% CI / Clogg $z$} \\
+  & [$-$8.60,$-$0.43]* & [$-$10.52,$-$0.35]* & [$-$10.75,2.27] & [$-$11.01,3.63] & [$-$15.03,3.31] \\
+  & ($-$11.22***) & ($-$14.43***) & ($-$11.41***) & ($-$7.86***) & ($-$7.65***) \\
+  \bottomrule
+  \end{tabular*}
+  \vspace{0.5em}
+  \begin{tabular*}{0.92\linewidth}{@{\extracolsep{\fill}}lccccc}
+  \multicolumn{6}{c}{\normalsize Bank credit} \\
+  \toprule
+   & $h=1$ & $h=2$ & $h=3$ & $h=4$ & $h=5$ \\
+  \midrule
+  Non-default & $-$1.056** & $-$3.021*** & 0.222 & 3.162*** & 6.791*** \\
+   & (0.444) & (0.676) & (0.838) & (1.175) & (1.446) \\[1pt]
+  Default-linked & $-$0.782 & $-$23.024*** & $-$36.794*** & $-$41.945*** & $-$39.879*** \\
+   & (0.483) & (0.708) & (1.176) & (1.230) & (1.327) \\
+  \midrule
+  \multicolumn{6}{l}{Default $-$ Non-default, bootstrap 95\% CI / Clogg $z$} \\
+  & [$-$9.15,8.08] & [$-$29.55,$-$6.15]* & [$-$51.06,$-$6.89]* & [$-$55.49,$-$8.77]* & [$-$59.90,$-$7.17]* \\
+  & (0.42) & ($-$20.43***) & ($-$25.63***) & ($-$26.52***) & ($-$23.78***) \\
+  \bottomrule
+  \end{tabular*}
+  \end{center}
+\end{frame}
+
+% ---------------- AIPW LP: results, investment + FDI ----------------
+\begin{frame}{AIPW Results: Summary table}
+  \tiny
+  \begin{center}
+  \renewcommand{\arraystretch}{1.0}
+  \begin{tabular*}{0.92\linewidth}{@{\extracolsep{\fill}}lccccc}
+  \multicolumn{6}{c}{\normalsize Investment} \\
+  \toprule
+   & $h=1$ & $h=2$ & $h=3$ & $h=4$ & $h=5$ \\
+  \midrule
+  Non-default & $-$4.825*** & $-$9.680*** & $-$5.698*** & $-$13.695*** & $-$7.506*** \\
+   & (1.567) & (1.691) & (1.399) & (1.985) & (2.332) \\[1pt]
+  Default-linked & $-$8.761*** & $-$17.684*** & $-$9.832*** & $-$13.818*** & $-$12.406*** \\
+   & (0.560) & (0.810) & (1.122) & (1.150) & (1.294) \\
+  \midrule
+  \multicolumn{6}{l}{Default $-$ Non-default, bootstrap 95\% CI / Clogg $z$} \\
+  & [$-$18.98,14.71] & [$-$26.19,9.56] & [$-$30.51,16.46] & [$-$26.77,26.87] & [$-$38.87,28.58] \\
+  & ($-$2.37**) & ($-$4.27***) & ($-$2.31**) & ($-$0.05) & ($-$1.84*) \\
+  \bottomrule
+  \end{tabular*}
+  \vspace{0.5em}
+  \begin{tabular*}{0.92\linewidth}{@{\extracolsep{\fill}}lccccc}
+  \multicolumn{6}{c}{\normalsize FDI} \\
+  \toprule
+   & $h=1$ & $h=2$ & $h=3$ & $h=4$ & $h=5$ \\
+  \midrule
+  Non-default & $-$0.639** & $-$0.435 & $-$0.017 & 0.131 & $-$0.066 \\
+   & (0.265) & (0.327) & (0.356) & (0.335) & (0.341) \\[1pt]
+  Default-linked & $-$0.925*** & 0.182 & 0.004 & 0.658** & 1.824*** \\
+   & (0.249) & (0.315) & (0.305) & (0.315) & (0.344) \\
+  \midrule
+  \multicolumn{6}{l}{Default $-$ Non-default, bootstrap 95\% CI / Clogg $z$} \\
+  & [$-$1.76,1.37] & [$-$1.94,2.70] & [$-$1.79,2.69] & [$-$2.42,2.62] & [$-$1.78,4.42] \\
+  & ($-$0.79) & (1.36) & (0.05) & (1.15) & (3.90***) \\
+  \bottomrule
+  \end{tabular*}
+  \end{center}
+\end{frame}
+
+% ---------------- AIPW LP: results, claims on govt + lending rate ----------------
+\begin{frame}{AIPW Results: Summary table}
+  \tiny
+  \begin{center}
+  \renewcommand{\arraystretch}{1.0}
+  \begin{tabular*}{0.92\linewidth}{@{\extracolsep{\fill}}lccccc}
+  \multicolumn{6}{c}{\normalsize Bank claims on government} \\
+  \toprule
+   & $h=1$ & $h=2$ & $h=3$ & $h=4$ & $h=5$ \\
+  \midrule
+  Non-default & $-$0.707*** & $-$0.484 & $-$0.287 & $-$0.833* & $-$0.384 \\
+   & (0.222) & (0.325) & (0.377) & (0.457) & (0.566) \\[1pt]
+  Default-linked & 6.665*** & 5.754*** & 4.895*** & $-$0.268 & $-$2.605*** \\
+   & (0.193) & (0.229) & (0.236) & (0.254) & (0.300) \\
+  \midrule
+  \multicolumn{6}{l}{Default $-$ Non-default, bootstrap 95\% CI / Clogg $z$} \\
+  & [0.66,9.99]* & [$-$1.45,10.45] & [$-$2.61,8.64] & [$-$6.27,5.44] & [$-$9.10,4.49] \\
+  & (25.06***) & (15.70***) & (11.66***) & (1.08) & ($-$3.47***) \\
+  \bottomrule
+  \end{tabular*}
+  \vspace{0.5em}
+  \begin{tabular*}{0.92\linewidth}{@{\extracolsep{\fill}}lccccc}
+  \multicolumn{6}{c}{\normalsize Real lending rate} \\
+  \toprule
+   & $h=1$ & $h=2$ & $h=3$ & $h=4$ & $h=5$ \\
+  \midrule
+  Non-default & $-$1.498*** & 0.969** & $-$4.285*** & $-$0.456 & 0.065 \\
+   & (0.301) & (0.463) & (0.799) & (0.387) & (0.395) \\[1pt]
+  Default-linked & 1.573 & $-$8.890*** & $-$1.712*** & $-$4.598*** & $-$10.006*** \\
+   & (1.078) & (1.033) & (0.637) & (0.702) & (0.608) \\
+  \midrule
+  \multicolumn{6}{l}{Default $-$ Non-default, bootstrap 95\% CI / Clogg $z$} \\
+  & [$-$13.44,20.60] & [$-$23.03,3.78] & [$-$8.61,14.87] & [$-$13.37,6.28] & [$-$19.60,2.20] \\
+  & (2.74***) & ($-$8.71***) & (2.52**) & ($-$5.17***) & ($-$13.89***) \\
+  \bottomrule
+  \end{tabular*}
+  \end{center}
+\end{frame}
+
+
+
+
+% ---------------- Robustness: spread intensity ----------------
+\begin{frame}{ Crises With and Without Default: What Makes the Difference?}
+  \footnotesize
+
+ \tiny
+  \begin{center}
+  \renewcommand{\arraystretch}{0.85}
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{lc}
+  \toprule
+  \multicolumn{2}{l}{Dependent variable = Dummy taking 1 if the onset resolves as default-linked} \\
+  \midrule
+  Peak EMBIG spread at onset & 0.001*** \\
+   & (0.000) \\[2pt]
+  GDP growth & $-$15.945 \\
+   & (11.089) \\[2pt]
+  Public debt-to-GDP ratio & $-$1.834 \\
+   & (1.120) \\[2pt]
+  Banking crisis dummy & $-$0.531 \\
+   & (0.608) \\[2pt]
+  Government expenditure-to-GDP ratio & 1.800 \\
+   & (2.185) \\[2pt]
+  Trade openness & 5.323*** \\
+   & (1.897) \\[2pt]
+  Bank credit-to-GDP ratio & $-$7.533*** \\
+   & (2.491) \\[2pt]
+  Inflation & $-$36.034*** \\
+   & (11.296) \\[2pt]
+  Nominal exchange-rate & 20.192*** \\
+   & (5.783) \\
+  \midrule
+  Observations & 48 \\
+  \bottomrule
+  \end{tabular}
+  \end{center}
+
+\end{frame}
+
+
+% ==== Section 3: Role of the sovereign-bank nexus ====
+\sectionroadmap{3}
+
+% ---------------- Nexus specification ----------------
+\begin{frame}{Sovereign-bank nexus: specification}
+
+ \footnotesize
+
+   We interact the crisis-type dummy with
+    the high-nexus dummy inside the same local-projection framework
+
+  \begin{center}
+
+    \begin{equation}
+    y_{i,t+h} - y_{i,t} = \delta_i^{S,h}
+      + \Gamma^{HN,h} D_{i,t}^{HN} D_{i,t+1}^{S}
+      + \Gamma^{LN,h} \left(1 - D_{i,t}^{HN}\right) D_{i,t+1}^{S}
+      + X_{i,t}\Gamma^{S,h} + e_{i,t+h}^{S}
+    \end{equation}
+  \end{center}
+
+  \begin{itemize}
+
+   \item Where $\Gamma^{HN,h}$, $\Gamma^{LN,h}$ are effect of a crisis of type $S$ when pre-crisis sovereign exposure is high or low.
+  \end{itemize}
+\end{frame}
+
+
+
+
+% ---------------- Nexus results ----------------
+\begin{frame}{Sovereign-bank nexus: result, by crisis type}
+  \begin{center}
+  \includegraphics[width=0.50\textwidth,height=0.95\textheight,keepaspectratio]{figures/fig6_aipw_by_crisis_type_part1.png}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Sovereign-bank nexus: result, by crisis type}
+  \begin{center}
+  \includegraphics[width=0.50\textwidth,height=0.95\textheight,keepaspectratio]{figures/fig6_aipw_by_crisis_type_part2.png}
+  \end{center}
+\end{frame}
+
+
+
+
+% ---------------- Nexus results: tables ----------------
+\begin{frame}{Nexus results: tables}
+  \tiny
+  \begin{center}
+  \begin{tabular*}{0.92\linewidth}{@{\extracolsep{\fill}}lccccc}
+  \multicolumn{6}{c}{\normalsize GDP} \\
+  \toprule
+   & $h=1$ & $h=2$ & $h=3$ & $h=4$ & $h=5$ \\
+  \midrule
+  Default-linked, high nexus & $-$17.85* & $-$18.98* & $-$18.53* & $-$17.68* & $-$16.68* \\
+  Default-linked, low nexus & $-$7.72* & $-$9.11* & $-$3.18* & 1.22* & 3.37* \\
+  Non-default, high nexus & 0.75* & $-$0.93* & $-$0.66* & 0.65* & 0.21 \\
+  Non-default, low nexus & $-$2.87* & $-$3.09* & $-$0.86* & $-$0.71 & 0.95* \\
+  \midrule
+  \multicolumn{6}{l}{Differences, bootstrap 95\% CI / Clogg $z$} \\[1pt]
+  Default(High)$-$Default(Low) & [$-$18.9,4.9] & [$-$21.4,6.5] & [$-$24.4,2.2] & [$-$29.0,2.2] & [$-$32.6,1.4] \\
+   & ($-$24.15***) & ($-$22.85***) & ($-$33.56***) & ($-$36.07***) & ($-$32.11***) \\[2pt]
+  Non-default(High)$-$Non-default(Low) & [0.0,6.9]* & [$-$0.9,5.7] & [$-$4.3,3.8] & [$-$4.8,6.3] & [$-$7.5,6.6] \\
+   & (13.95***) & (7.49***) & (0.54) & (2.76***) & ($-$1.27) \\
+  \bottomrule
+  \end{tabular*}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Nexus results: tables}
+  \tiny
+  \begin{center}
+  \begin{tabular*}{0.92\linewidth}{@{\extracolsep{\fill}}lccccc}
+  \multicolumn{6}{c}{\normalsize Bank credit} \\
+  \toprule
+   & $h=1$ & $h=2$ & $h=3$ & $h=4$ & $h=5$ \\
+  \midrule
+  Default-linked, high nexus & $-$16.32* & $-$32.22* & $-$34.35* & $-$13.22* & $-$3.28* \\
+  Default-linked, low nexus & 7.24* & $-$25.13* & $-$49.71* & $-$47.95* & $-$39.65* \\
+  Non-default, high nexus & $-$2.28* & $-$5.02* & $-$4.75* & $-$0.15 & 18.38* \\
+  Non-default, low nexus & $-$0.90* & $-$7.64* & $-$10.36* & $-$2.67* & $-$6.29* \\
+  \midrule
+  \multicolumn{6}{l}{Differences, bootstrap 95\% CI / Clogg $z$} \\[1pt]
+  Default(High)$-$Default(Low) & [$-$31.3,7.2] & [$-$37.4,28.5] & [$-$41.0,58.7] & [$-$19.5,87.9] & [$-$21.6,114.9] \\
+   & ($-$48.88***) & ($-$8.20***) & (12.31***) & (26.25***) & (24.73***) \\[2pt]
+  Non-default(High)$-$Non-default(Low) & [$-$9.5,7.2] & [$-$11.6,14.6] & [$-$17.9,22.0] & [$-$21.7,21.9] & [$-$8.8,44.6] \\
+   & ($-$2.35**) & (3.18***) & (4.66***) & (1.82*) & (17.25***) \\
+  \bottomrule
+  \end{tabular*}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Nexus results: tables}
+  \tiny
+  \begin{center}
+  \begin{tabular*}{0.92\linewidth}{@{\extracolsep{\fill}}lccccc}
+  \multicolumn{6}{c}{\normalsize Investment} \\
+  \toprule
+   & $h=1$ & $h=2$ & $h=3$ & $h=4$ & $h=5$ \\
+  \midrule
+  Default-linked, high nexus & $-$22.13* & $-$16.84* & $-$17.37* & $-$18.30* & $-$16.17* \\
+  Default-linked, low nexus & $-$24.63* & $-$18.83* & 2.68* & 10.57* & 15.71* \\
+  Non-default, high nexus & 4.94* & $-$4.91* & $-$1.71 & $-$2.67* & $-$2.00 \\
+  Non-default, low nexus & $-$10.24* & $-$10.39* & $-$7.55* & $-$14.66* & $-$14.49* \\
+  \midrule
+  \multicolumn{6}{l}{Differences, bootstrap 95\% CI / Clogg $z$} \\[1pt]
+  Default(High)$-$Default(Low) & [$-$23.4,32.8] & [$-$23.2,21.2] & [$-$42.4,8.2] & [$-$65.5,3.7] & [$-$70.9,$-$2.0]* \\
+   & (2.84***) & (1.81*) & ($-$13.57***) & ($-$21.54***) & ($-$18.49***) \\[2pt]
+  Non-default(High)$-$Non-default(Low) & [$-$0.7,28.7] & [$-$8.4,19.1] & [$-$12.5,21.6] & [$-$14.9,34.7] & [$-$21.3,44.5] \\
+   & (13.09***) & (4.52***) & (4.03***) & (5.83***) & (5.29***) \\
+  \bottomrule
+  \end{tabular*}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Nexus results: tables}
+  \tiny
+  \begin{center}
+  \begin{tabular*}{0.92\linewidth}{@{\extracolsep{\fill}}lccccc}
+  \multicolumn{6}{c}{\normalsize Bank claims on government} \\
+  \toprule
+   & $h=1$ & $h=2$ & $h=3$ & $h=4$ & $h=5$ \\
+  \midrule
+  Default-linked, high nexus & 7.53* & 12.21* & 9.93* & 3.28* & $-$3.18* \\
+  Default-linked, low nexus & 5.93* & 5.03* & 4.23* & 2.42* & 2.07* \\
+  Non-default, high nexus & 0.67* & 0.78* & 0.45 & $-$1.20* & 1.14* \\
+  Non-default, low nexus & 1.72* & 2.36* & 2.11* & $-$0.42 & $-$0.26 \\
+  \midrule
+  \multicolumn{6}{l}{Differences, bootstrap 95\% CI / Clogg $z$} \\[1pt]
+  Default(High)$-$Default(Low) & [$-$6.8,7.9] & [$-$4.3,19.4] & [$-$1.7,12.9] & [$-$9.2,8.4] & [$-$16.9,8.0] \\
+   & (5.12***) & (19.70***) & (16.60***) & (2.15**) & ($-$10.49***) \\[2pt]
+  Non-default(High)$-$Non-default(Low) & [$-$4.0,3.1] & [$-$6.2,3.4] & [$-$6.8,3.1] & [$-$8.7,5.7] & [$-$9.6,8.6] \\
+   & ($-$4.05***) & ($-$4.54***) & ($-$4.16***) & ($-$1.59) & (2.41**) \\
+  \bottomrule
+  \end{tabular*}
+  \end{center}
+\end{frame}
+
+
+% ==== Section 4: Conclusion ====
+\sectionroadmap{4}
+
+% ---------------- Conclusion ----------------
+\begin{frame}{Conclusion}
+ \footnotesize
+  \begin{itemize}
+    \item \textbf{A mechanism:} a potential explanation for the
+    larger GDP and bank credit costs of default-linked crises is the
+    close interlinkage between the sovereign and the domestic
+    banking sector, combined with spillovers from sovereign risk to
+    firms' access to external financing
+    \item \textbf{A sovereign trade-off:} the decision to restructure
+    or not is ultimately the sovereign's choice, weighing the cost of
+    default against the cost of continuing to service the debt --
+    shaped by whatever adjustment margins the sovereign has to work
+    its way out of the crisis without restructuring
+    \item \textbf{An open question:} under what circumstances is
+    avoiding default a durable resolution, versus merely a way of
+    postponing it?
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[allowframebreaks]{References}
+  \footnotesize
+  \bibliographystyle{apalike}
+  \bibliography{references}
+\end{frame}
+
+\end{document}
